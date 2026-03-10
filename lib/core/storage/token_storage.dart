@@ -23,7 +23,7 @@ class TokenStorage {
   String? get refreshToken => _refreshToken;
 
   /// Clears stored authentication tokens.
-  void clearToekns() {
+  void clearTokens() {
     _accessToken = null;
     _refreshToken = null;
   }
