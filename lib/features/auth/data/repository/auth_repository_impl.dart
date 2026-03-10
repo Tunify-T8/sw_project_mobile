@@ -21,16 +21,13 @@ import 'package:software_project/features/auth/domain/repositories/auth_reposito
 /// - Sending authentication requests to the backend API.
 /// - Parsing authentication responses into DTO models.
 /// - Converting DTOs into domain entities.
+/// - Storing authentication tokens after successful login or registration.
 /// - Returning domain entities to the use cases.
-///
-/// The logout operation will later be responsible for clearing
-/// locally stored authentication tokens once token storage
-/// is implemented.
 class AuthRepositoryImpl implements AuthRepository {
   /// The API client used for network requests.
   final AuthApi api;
 
-  /// The token storage service
+  /// Storage used to manage authentication tokens.
   final TokenStorage tokenStorage;
 
   /// Creates an instance of [AuthRepositoryImpl] with the required [AuthApi] and [TokenStorage].
@@ -43,8 +40,14 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<AuthUserEntity> login(String email, String password) async {
     final request = LoginRequestDTO(email: email, password: password);
+
     final response = await api.login(request);
+
     final dto = AuthResponseDTO.fromJson(response.data);
+
+    /// Save tokens after successful authentication.
+    tokenStorage.saveTokens(dto.accessToken, dto.refreshToken);
+
     return AuthUserMapper.toEntity(dto.user);
   }
 
@@ -64,7 +67,12 @@ class AuthRepositoryImpl implements AuthRepository {
       username: username,
     );
     final response = await api.register(request);
+
     final dto = AuthResponseDTO.fromJson(response.data);
+
+    /// Save tokens after successful authentication.
+    tokenStorage.saveTokens(dto.accessToken, dto.refreshToken);
+
     return AuthUserMapper.toEntity(dto.user);
   }
 
@@ -74,6 +82,7 @@ class AuthRepositoryImpl implements AuthRepository {
   /// authentication tokens from secure storage.
   @override
   Future<void> logout() async {
+    /// Clears stored authentication tokens.
     tokenStorage.clearTokens();
   }
 }

@@ -3,26 +3,32 @@
 ///
 /// Token storage will later be implemented using
 /// secure storage to persist login sessions.
+/// Flutter Secure Storage to maintain
+/// authentication sessions across app restarts.
 class TokenStorage {
-  /// Access Token
+  /// Stored access token used for authenticated requests.
   String? _accessToken;
 
-  /// Refresh Token
+  /// Stored refresh token used to obtain new access tokens.
   String? _refreshToken;
 
   /// Saves authentication tokens.
+  ///
+  /// Called after successful login or registration.
   void saveTokens(String accessToken, String refreshToken) {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
   }
 
-  /// Returns stored access token.
+  /// Returns the currently stored access token.
   String? get accessToken => _accessToken;
 
-  /// Returns stored refresh token.
+  /// Returns the currently stored refresh token.
   String? get refreshToken => _refreshToken;
 
   /// Clears stored authentication tokens.
+  ///
+  /// Called during logout.
   void clearTokens() {
     _accessToken = null;
     _refreshToken = null;

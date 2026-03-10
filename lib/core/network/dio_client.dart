@@ -12,12 +12,16 @@ class DioClient {
   static const String baseUrl = "";
 
   /// Creates and configures a [Dio] instance.
+  ///
+  /// This method defines default options
+  /// such as timeouts and base API URL.
   static Dio create() {
     final dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
+        headers: {"Content-Type": "application/json"},
       ),
     );
     return dio;
