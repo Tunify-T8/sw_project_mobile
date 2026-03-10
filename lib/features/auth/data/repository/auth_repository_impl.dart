@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:software_project/features/auth/data/api/auth_api.dart';
 import 'package:software_project/features/auth/data/dto/auth_response_dto.dart';
 import 'package:software_project/features/auth/data/dto/login_request_dto.dart';
@@ -67,7 +66,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   /// Logs out the current user.
   ///
-  /// This method will be implemented to clear locally stored 
+  /// This method will be implemented to clear locally stored
   /// authentication tokens from secure storage.
   @override
   Future<void> logout() async {
