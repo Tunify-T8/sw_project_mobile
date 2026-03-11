@@ -1,3 +1,6 @@
+import 'package:dio/dio.dart';
+import 'package:software_project/core/errors/failure.dart';
+import 'package:software_project/core/errors/network_exceptions.dart';
 import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/data/api/auth_api.dart';
 import 'package:software_project/features/auth/data/dto/auth_response_dto.dart';
@@ -32,18 +35,24 @@ class AuthRepositoryImpl implements AuthRepository {
   /// stores the returned tokens, and maps the user to [AuthUserEntity].
   @override
   Future<AuthUserEntity> login(String email, String password) async {
-    final request = LoginRequestDTO(email: email, password: password);
+    try {
+      final response = await api.login(
+        LoginRequestDTO(email: email, password: password),
+      );
 
-    final response = await api.login(request);
+      final dto = AuthResponseDTO.fromJson(response.data);
 
-    final dto = AuthResponseDTO.fromJson(response.data);
+      await tokenStorage.saveTokens(
+        accessToken: dto.accessToken,
+        refreshToken: dto.refreshToken,
+      );
 
-    await tokenStorage.saveTokens(
-      accessToken: dto.accessToken,
-      refreshToken: dto.refreshToken,
-    );
-
-    return AuthUserMapper.toEntity(dto.user);
+      return AuthUserMapper.toEntity(dto.user);
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
   }
 
   /// Registers a new user with [email], [password], and [username].
@@ -56,22 +65,28 @@ class AuthRepositoryImpl implements AuthRepository {
     String password,
     String username,
   ) async {
-    final request = RegisterRequestDTO(
-      email: email,
-      password: password,
-      username: username,
-    );
+    try {
+      final response = await api.register(
+        RegisterRequestDTO(
+          email: email,
+          password: password,
+          username: username,
+        ),
+      );
 
-    final response = await api.register(request);
+      final dto = AuthResponseDTO.fromJson(response.data);
 
-    final dto = AuthResponseDTO.fromJson(response.data);
+      await tokenStorage.saveTokens(
+        accessToken: dto.accessToken,
+        refreshToken: dto.refreshToken,
+      );
 
-    await tokenStorage.saveTokens(
-      accessToken: dto.accessToken,
-      refreshToken: dto.refreshToken,
-    );
-
-    return AuthUserMapper.toEntity(dto.user);
+      return AuthUserMapper.toEntity(dto.user);
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
   }
 
   /// Authenticates a user via OAuth using the given [provider] and [token].
@@ -80,16 +95,22 @@ class AuthRepositoryImpl implements AuthRepository {
   /// and maps the user to [AuthUserEntity].
   @override
   Future<AuthUserEntity> oauthLogin(String provider, String token) async {
-    final response = await api.oauthLogin(provider, token);
+    try {
+      final response = await api.oauthLogin(provider, token);
 
-    final dto = AuthResponseDTO.fromJson(response.data);
+      final dto = AuthResponseDTO.fromJson(response.data);
 
-    await tokenStorage.saveTokens(
-      accessToken: dto.accessToken,
-      refreshToken: dto.refreshToken,
-    );
+      await tokenStorage.saveTokens(
+        accessToken: dto.accessToken,
+        refreshToken: dto.refreshToken,
+      );
 
-    return AuthUserMapper.toEntity(dto.user);
+      return AuthUserMapper.toEntity(dto.user);
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
   }
 
   /// Logs out the current user by clearing stored tokens.

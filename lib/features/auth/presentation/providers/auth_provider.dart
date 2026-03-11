@@ -74,16 +74,27 @@ final authControllerProvider =
 /// Manages authentication state for the presentation layer.
 ///
 /// Exposes async state as [AsyncValue<AuthUserEntity?>]:
-/// - `null`  → unauthenticated
-/// - `data`  → authenticated user
-/// - `loading` → operation in progress
-/// - `error`   → operation failed
+/// - `null`    → user is unauthenticated
+/// - `data`    → authenticated user entity
+/// - `loading` → an operation is in progress
+/// - `error`   → the last operation failed with a [Failure]
 class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
+  /// Use case responsible for logging in with email and password.
   final LoginUseCase loginUseCase;
+
+  /// Use case responsible for registering a new user account.
   final RegisterUseCase registerUseCase;
+
+  /// Use case responsible for logging the current user out.
   final LogoutUseCase logoutUseCase;
+
+  /// Use case responsible for authenticating via an OAuth provider.
   final OAuthLoginUseCase oauthLoginUseCase;
 
+  /// Creates an [AuthController] with all required use cases.
+  ///
+  /// Initial state is [AsyncValue.data(null)], representing
+  /// an unauthenticated session.
   AuthController({
     required this.loginUseCase,
     required this.registerUseCase,
