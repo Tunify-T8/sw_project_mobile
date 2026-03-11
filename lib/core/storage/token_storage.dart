@@ -1,36 +1,50 @@
-/// Handles storing and retrieving authentication tokens
-/// used for authenticated API requests.
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'storage_keys.dart';
+
+/// Handles secure storage of authentication tokens.
 ///
-/// Token storage will later be implemented using
-/// secure storage to persist login sessions.
-/// Flutter Secure Storage to maintain
-/// authentication sessions across app restarts.
+/// Uses [FlutterSecureStorage] which stores values
+/// in encrypted storage:
+/// - Android → EncryptedSharedPreferences
+/// - iOS → Keychain
+/// - Web → Secure local storage
 class TokenStorage {
-  /// Stored access token used for authenticated requests.
-  String? _accessToken;
+  const TokenStorage();
 
-  /// Stored refresh token used to obtain new access tokens.
-  String? _refreshToken;
+  /// Secure storage instance
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
-  /// Saves authentication tokens.
-  ///
-  /// Called after successful login or registration.
-  void saveTokens(String accessToken, String refreshToken) {
-    _accessToken = accessToken;
-    _refreshToken = refreshToken;
+  /// Saves authentication tokens securely.
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await _storage.write(key: StorageKeys.accessToken, value: accessToken);
+
+    await _storage.write(key: StorageKeys.refreshToken, value: refreshToken);
   }
 
-  /// Returns the currently stored access token.
-  String? get accessToken => _accessToken;
+  /// Returns stored access token.
+  Future<String?> getAccessToken() async {
+    return await _storage.read(key: StorageKeys.accessToken);
+  }
 
-  /// Returns the currently stored refresh token.
-  String? get refreshToken => _refreshToken;
+  /// Returns stored refresh token.
+  Future<String?> getRefreshToken() async {
+    return await _storage.read(key: StorageKeys.refreshToken);
+  }
 
-  /// Clears stored authentication tokens.
-  ///
-  /// Called during logout.
-  void clearTokens() {
-    _accessToken = null;
-    _refreshToken = null;
+  /// Checks if a user is authenticated.
+  Future<bool> hasAccessToken() async {
+    final token = await _storage.read(key: StorageKeys.accessToken);
+
+    return token != null;
+  }
+
+  /// Clears authentication tokens (logout).
+  Future<void> clearTokens() async {
+    await _storage.delete(key: StorageKeys.accessToken);
+
+    await _storage.delete(key: StorageKeys.refreshToken);
   }
 }

@@ -29,4 +29,11 @@ class AuthApi {
   Future<Response> register(RegisterRequestDTO request) {
     return dio.post("/auth/register", data: request.toJson());
   }
+
+  Future<Response> oauthLogin(String provider, String token) {
+    return dio.post(
+      "/auth/oauth",
+      data: {"provider": provider, "token": token},
+    );
+  }
 }

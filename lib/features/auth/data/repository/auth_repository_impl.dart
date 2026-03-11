@@ -13,30 +13,23 @@ import 'package:software_project/features/auth/domain/repositories/auth_reposito
 /// handling authentication operations by communicating with
 /// the backend API through [AuthApi].
 ///
-/// It converts API responses represented as Data Transfer Objects (DTOs)
-/// into domain entities using mappers, ensuring that the domain layer
-/// remains independent from API response structures.
-///
-/// Responsibilities:
-/// - Sending authentication requests to the backend API.
-/// - Parsing authentication responses into DTO models.
-/// - Converting DTOs into domain entities.
-/// - Storing authentication tokens after successful login or registration.
-/// - Returning domain entities to the use cases.
+/// It converts API responses (DTOs) into domain entities using
+/// mappers, ensuring the domain layer stays decoupled from
+/// API response structures.
 class AuthRepositoryImpl implements AuthRepository {
   /// The API client used for network requests.
   final AuthApi api;
 
-  /// Storage used to manage authentication tokens.
+  /// Storage used to persist authentication tokens securely.
   final TokenStorage tokenStorage;
 
-  /// Creates an instance of [AuthRepositoryImpl] with the required [AuthApi] and [TokenStorage].
+  /// Creates an instance of [AuthRepositoryImpl].
   const AuthRepositoryImpl(this.api, this.tokenStorage);
 
   /// Signs in a user with [email] and [password].
   ///
-  /// Calls [AuthApi.login], maps the result to [AuthUserEntity],
-  /// and handles any potential exceptions from the API.
+  /// Calls [AuthApi.login], parses the response into an [AuthResponseDTO],
+  /// stores the returned tokens, and maps the user to [AuthUserEntity].
   @override
   Future<AuthUserEntity> login(String email, String password) async {
     final request = LoginRequestDTO(email: email, password: password);
@@ -45,16 +38,18 @@ class AuthRepositoryImpl implements AuthRepository {
 
     final dto = AuthResponseDTO.fromJson(response.data);
 
-    /// Save tokens after successful authentication.
-    tokenStorage.saveTokens(dto.accessToken, dto.refreshToken);
+    await tokenStorage.saveTokens(
+      accessToken: dto.accessToken,
+      refreshToken: dto.refreshToken,
+    );
 
     return AuthUserMapper.toEntity(dto.user);
   }
 
   /// Registers a new user with [email], [password], and [username].
   ///
-  /// Calls [AuthApi.register], maps the result to [AuthUserEntity],
-  /// and handles any potential exceptions from the API.
+  /// Calls [AuthApi.register], parses the response, stores the returned
+  /// tokens, and maps the user to [AuthUserEntity].
   @override
   Future<AuthUserEntity> register(
     String email,
@@ -66,23 +61,40 @@ class AuthRepositoryImpl implements AuthRepository {
       password: password,
       username: username,
     );
+
     final response = await api.register(request);
 
     final dto = AuthResponseDTO.fromJson(response.data);
 
-    /// Save tokens after successful authentication.
-    tokenStorage.saveTokens(dto.accessToken, dto.refreshToken);
+    await tokenStorage.saveTokens(
+      accessToken: dto.accessToken,
+      refreshToken: dto.refreshToken,
+    );
 
     return AuthUserMapper.toEntity(dto.user);
   }
 
-  /// Logs out the current user.
+  /// Authenticates a user via OAuth using the given [provider] and [token].
   ///
-  /// This method will be implemented to clear locally stored
-  /// authentication tokens from secure storage.
+  /// Calls [AuthApi.oauthLogin], stores the returned tokens,
+  /// and maps the user to [AuthUserEntity].
+  @override
+  Future<AuthUserEntity> oauthLogin(String provider, String token) async {
+    final response = await api.oauthLogin(provider, token);
+
+    final dto = AuthResponseDTO.fromJson(response.data);
+
+    await tokenStorage.saveTokens(
+      accessToken: dto.accessToken,
+      refreshToken: dto.refreshToken,
+    );
+
+    return AuthUserMapper.toEntity(dto.user);
+  }
+
+  /// Logs out the current user by clearing stored tokens.
   @override
   Future<void> logout() async {
-    /// Clears stored authentication tokens.
-    tokenStorage.clearTokens();
+    await tokenStorage.clearTokens();
   }
 }

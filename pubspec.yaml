@@ -35,9 +35,25 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
-  # The following adds then Dio to your application.
+  # The following adds Dio to your application.
   # Use with the Dio class for API.
-  dio: ^5.0.0
+  dio: ^5.4.0
+
+  # The following adds flutter riverpod to your application.
+  # Use for state management.
+  flutter_riverpod: ^2.5.1
+
+  # The following adds flutter secure storage to your application.
+  # Use for secure JWT storage.
+  flutter_secure_storage: ^9.0.0
+
+  # The following adds jwt decoder to your application.
+  # Use to check token expiration.
+  jwt_decoder: ^2.0.1
+
+  # The following adds Google Sign in to your application.
+  # Use for OAuth with Google.
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
