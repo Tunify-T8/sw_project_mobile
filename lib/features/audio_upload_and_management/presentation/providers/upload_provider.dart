@@ -1,17 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/services/file_picker_service.dart';
-import '../../data/services/mock_upload_service.dart';
-import '../../domain/entities/upload_state.dart';
-import '../../domain/entities/upload_status.dart';
-
-final mockUploadServiceProvider = Provider<MockUploadService>((ref) {
-  return MockUploadService();
-});
-
-final filePickerServiceProvider = Provider<FilePickerService>((ref) {
-  return FilePickerService();
-});
+import '../../domain/entities/uploaded_track.dart';
+import 'upload_dependencies_provider.dart';
+import 'upload_repository_provider.dart';
+import 'upload_state.dart';
 
 class UploadNotifier extends Notifier<UploadState> {
   @override
@@ -19,85 +10,96 @@ class UploadNotifier extends Notifier<UploadState> {
     return const UploadState();
   }
 
-  Future<void> loadQuota() async {
-    state = state.copyWith(isLoadingQuota: true, error: null);
+  Future<void> loadQuota(String userId) async {
+    state = state.copyWith(
+      isLoadingQuota: true,
+      error: null,
+    );
 
     try {
-      final service = ref.read(mockUploadServiceProvider);
-      final data = await service.getUploadQuota();
+      final repository = ref.read(uploadRepositoryProvider);
+      final quota = await repository.getUploadQuota(userId);
 
       state = state.copyWith(
         isLoadingQuota: false,
-        tier: data['tier'] as String,
-        uploadMinutesRemaining: data['uploadMinutesRemaining'] as int,
+        quota: quota,
       );
     } catch (e) {
-      state = state.copyWith(isLoadingQuota: false, error: e.toString());
+      state = state.copyWith(
+        isLoadingQuota: false,
+        error: e.toString(),
+      );
     }
   }
 
-  Future<void> pickFile() async {
+  Future<void> pickAudioFile() async {
     try {
       final picker = ref.read(filePickerServiceProvider);
-      final PlatformFile? file = await picker.pickAudioFile();
+      final file = await picker.pickAudioFile();
 
       if (file == null) {
         return;
       }
 
       state = state.copyWith(
-        selectedFileName: file.name,
-        selectedFilePath: file.path,
+        selectedAudio: file,
         error: null,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(
+        error: e.toString(),
+      );
     }
   }
 
-  Future<bool> createAndUploadTrack() async {
-    if (state.selectedFileName == null) {
-      state = state.copyWith(error: 'Please select an audio file first');
-      return false;
+  Future<UploadedTrack?> createTrackAndUpload(String userId) async {
+    if (state.selectedAudio == null) {
+      state = state.copyWith(
+        error: 'Please choose an audio file first.',
+      );
+      return null;
     }
 
+    state = state.copyWith(
+      isUploading: true,
+      uploadProgress: 0.0,
+      error: null,
+    );
+
     try {
-      final service = ref.read(mockUploadServiceProvider);
+      final repository = ref.read(uploadRepositoryProvider);
 
-      final track = await service.createTrack(
-        fileName: state.selectedFileName!,
+      final createdTrack = await repository.createTrack(userId);
+
+      state = state.copyWith(
+        currentTrack: createdTrack,
+      );
+
+      final uploadedTrack = await repository.uploadAudio(
+        trackId: createdTrack.trackId,
+        file: state.selectedAudio!,
+        onProgress: (progress) {
+          state = state.copyWith(
+            uploadProgress: progress,
+          );
+        },
       );
 
       state = state.copyWith(
-        trackId: track['trackId'] as String,
-        status: UploadStatus.idle,
-        progress: 0.0,
-        error: null,
+        isUploading: false,
+        currentTrack: uploadedTrack,
       );
 
-      state = state.copyWith(status: UploadStatus.uploading);
-
-      await for (final value in service.uploadFileProgress()) {
-        state = state.copyWith(progress: value);
-      }
-
-      state = state.copyWith(status: UploadStatus.processing);
-
-      final finalStatus = await service.processTrack();
-
-      state = state.copyWith(
-        status: finalStatus == 'finished'
-            ? UploadStatus.finished
-            : UploadStatus.failed,
-        progress: 1.0,
-      );
-
-      return state.status == UploadStatus.finished;
+      return uploadedTrack;
     } catch (e) {
-      state = state.copyWith(status: UploadStatus.failed, error: e.toString());
-      return false;
+      state = state.copyWith(
+        isUploading: false,
+        error: e.toString(),
+      );
+      return null;
     }
   }
 }
 
-final uploadProvider = NotifierProvider<UploadNotifier, UploadState>(UploadNotifier.new);
+final uploadProvider =
+    NotifierProvider<UploadNotifier, UploadState>(UploadNotifier.new);

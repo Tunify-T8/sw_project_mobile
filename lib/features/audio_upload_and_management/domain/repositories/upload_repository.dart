@@ -1,0 +1,32 @@
+import '../entities/picked_upload_file.dart';
+import '../entities/track_metadata.dart';
+import '../entities/upload_quota.dart';
+import '../entities/uploaded_track.dart';
+
+abstract class UploadRepository {
+  Future<UploadQuota> getUploadQuota(String userId);
+
+  Future<UploadedTrack> createTrack(String userId);
+
+  Future<UploadedTrack> uploadAudio({
+    required String trackId,
+    required PickedUploadFile file,
+    required void Function(double progress) onProgress,
+  });
+
+  Future<UploadedTrack> finalizeMetadata({
+    required String trackId,
+    required TrackMetadata metadata,
+  });
+
+  Future<UploadedTrack> waitUntilProcessed(String trackId);
+
+  Future<UploadedTrack> getTrackDetails(String trackId);
+
+  Future<UploadedTrack> updateTrackMetadata({
+    required String trackId,
+    required TrackMetadata metadata,
+  });
+
+  Future<void> deleteTrack(String trackId);
+}

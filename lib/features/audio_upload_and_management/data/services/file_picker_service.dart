@@ -1,21 +1,41 @@
 import 'package:file_picker/file_picker.dart';
+import '../../domain/entities/picked_upload_file.dart';
 
 class FilePickerService {
-  Future<PlatformFile?> pickAudioFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['mp3', 'wav', 'm4a', 'aac', 'flac'],  //check docs for extensions
-        withData: false,   //ask what that means
-      );
+  Future<PickedUploadFile?> pickAudioFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'wav', 'flac', 'm4a', 'aac'],
+      withData: false,
+    );
 
-      if (result != null && result.files.isNotEmpty) {
-        return result.files.first;   
-      }
-    } catch (e) {
-      // Handle any errors that occur during file picking
-      print('Error picking file: $e');
+    if (result == null || result.files.isEmpty) {
+      return null;
     }
-    return null; // Return null if no file was selected or an error occurred
+
+    final file = result.files.first;
+
+    if (file.path == null) {
+      return null;
+    }
+
+    return PickedUploadFile(
+      name: file.name,
+      path: file.path!,
+      sizeBytes: file.size,
+    );
+  }
+
+  Future<String?> pickArtworkImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: false,
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return null;
+    }
+
+    return result.files.first.path;
   }
 }

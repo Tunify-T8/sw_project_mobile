@@ -6,4 +6,5 @@ enum UploadStatus {
   processing,
   finished,
   failed,
+  deleted,
 }

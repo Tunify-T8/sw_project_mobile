@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import '../../data/services/mock_upload_service.dart';
-import '../../domain/entities/track_metadata_state.dart';
-import 'upload_provider.dart';
+import '../../domain/entities/track_metadata.dart';
+import '../../domain/entities/upload_status.dart';
+import 'track_metadata_state.dart';
+import 'upload_dependencies_provider.dart';
+import 'upload_repository_provider.dart';
 
 class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   @override
@@ -9,49 +11,126 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
     return const TrackMetadataState();
   }
 
+  void initializeSuggestedTitle(String fileName) {
+    if (state.title.isNotEmpty) {
+      return;
+    }
+
+    final dotIndex = fileName.lastIndexOf('.');
+    final suggestedTitle =
+        dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+
+    state = state.copyWith(
+      title: suggestedTitle,
+    );
+  }
+
   void setTitle(String value) {
     state = state.copyWith(title: value);
   }
 
-  void setGenre(String value) {
-    state = state.copyWith(genre: value);
+  void setGenreCategory(String value) {
+    state = state.copyWith(genreCategory: value);
+  }
+
+  void setGenreSubGenre(String value) {
+    state = state.copyWith(genreSubGenre: value);
+  }
+
+  void setTagsText(String value) {
+    state = state.copyWith(tagsText: value);
   }
 
   void setDescription(String value) {
     state = state.copyWith(description: value);
   }
 
-  void setTags(String value) {
-    state = state.copyWith(tags: value);
-  }
-
   void setPrivacy(String value) {
     state = state.copyWith(privacy: value);
   }
 
-  Future<bool> saveMetadata(String trackId, WidgetRef ref) async {
+  Future<void> pickArtwork() async {
+    try {
+      final picker = ref.read(filePickerServiceProvider);
+      final path = await picker.pickArtworkImage();
+
+      if (path == null) {
+        return;
+      }
+
+      state = state.copyWith(
+        artworkPath: path,
+        error: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<bool> saveMetadataAndWait(String trackId) async {
+    if (state.title.trim().isEmpty) {
+      state = state.copyWith(
+        error: 'Title is required.',
+      );
+      return false;
+    }
+
+    if (state.genreSubGenre.trim().isEmpty) {
+      state = state.copyWith(
+        error: 'Sub-genre is required.',
+      );
+      return false;
+    }
+
     state = state.copyWith(
       isSaving: true,
       error: null,
     );
 
     try {
-      final service = ref.read(mockUploadServiceProvider);
+      final repository = ref.read(uploadRepositoryProvider);
 
-      await service.finalizeMetadata(
-        trackId: trackId,
-        title: state.title,
-        genre: state.genre,
-        description: state.description,
-        tags: state.tags,
+      final metadata = TrackMetadata(
+        title: state.title.trim(),
+        genreCategory: state.genreCategory.trim(),
+        genreSubGenre: state.genreSubGenre.trim(),
+        tags: state.tagsText
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList(),
+        description: state.description.trim(),
         privacy: state.privacy,
+        artworkPath: state.artworkPath,
       );
 
-      state = state.copyWith(isSaving: false);
-      return true;
+      final processingTrack = await repository.finalizeMetadata(
+        trackId: trackId,
+        metadata: metadata,
+      );
+
+      state = state.copyWith(
+        isSaving: false,
+        isPolling: true,
+        processingStatus: processingTrack.status,
+      );
+
+      final finalTrack = await repository.waitUntilProcessed(trackId);
+
+      state = state.copyWith(
+        isPolling: false,
+        processingStatus: finalTrack.status,
+        finalTrack: finalTrack,
+      );
+
+      return finalTrack.status == UploadStatus.finished;
     } catch (e) {
       state = state.copyWith(
         isSaving: false,
+        isPolling: false,
+        processingStatus: UploadStatus.failed,
         error: e.toString(),
       );
       return false;
@@ -59,7 +138,5 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   }
 }
 
-final trackMetadataProvider =
-    NotifierProvider<TrackMetadataNotifier, TrackMetadataState>(
-  TrackMetadataNotifier.new,
-);
+final trackMetadataProvider = NotifierProvider<TrackMetadataNotifier,
+    TrackMetadataState>(TrackMetadataNotifier.new);

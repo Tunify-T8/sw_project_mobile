@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^3.2.1
   file_picker: ^10.3.10
+  dio: ^5.9.2
   
 dev_dependencies:
   flutter_test:

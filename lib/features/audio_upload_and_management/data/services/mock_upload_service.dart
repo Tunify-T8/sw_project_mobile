@@ -4,20 +4,28 @@ class MockUploadService {
   Future<Map<String, dynamic>> getUploadQuota() async {
     await Future.delayed(const Duration(milliseconds: 700));
 
-    return {
-      'tier': 'free',
-      'uploadMinutesRemaining': 176,
-    };
+    return {'tier': 'free', 'uploadMinutesRemaining': 176};
   }
 
-  Future<Map<String, dynamic>> createTrack({
-    required String fileName}) async {
+  // Future<Map<String, dynamic>> createTrack({
+  //   required String fileName}) async {
+  //   await Future.delayed(const Duration(milliseconds: 700));
+
+  //   return {
+  //     'trackId': 'track_${DateTime.now().millisecondsSinceEpoch}',
+  //     'status': 'idle',
+  //     'originalFileName': fileName,
+  //   };
+  // }
+
+  Future<Map<String, dynamic>> createTrack({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 700));
 
     return {
       'trackId': 'track_${DateTime.now().millisecondsSinceEpoch}',
       'status': 'idle',
-      'originalFileName': fileName,
+      'audioUrl': null,
+      'waveformUrl': null,
     };
   }
 
@@ -32,7 +40,25 @@ class MockUploadService {
     await Future.delayed(const Duration(seconds: 2));
     return 'finished';
   }
+  Stream<double> uploadProgress() async* {
+    for (int i = 1; i <= 10; i++) {
+      await Future.delayed(const Duration(milliseconds: 250));
+      yield i / 10;
+    }
+  }
 
+  Future<Map<String, dynamic>> uploadAudio({required String trackId}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+  
+    return {
+      'trackId': trackId,
+      'status': 'uploading',
+      'audioUrl': null,
+      'waveformUrl': null,
+    };
+  }
+
+  /*
   Future<void> finalizeMetadata({
     required String trackId,
     required String title,
@@ -42,5 +68,48 @@ class MockUploadService {
     required String privacy,
   }) async {
     await Future.delayed(const Duration(milliseconds: 800));
+  } */
+   Future<Map<String, dynamic>> finalizeMetadata({
+    required String trackId,
+    required Map<String, dynamic> metadata,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 700));
+
+    return {
+      'trackId': trackId,
+      'status': 'processing',
+      'audioUrl': 'https://mock.cdn/audio/$trackId.mp3',
+      'waveformUrl': 'https://mock.cdn/waveform/$trackId.json',
+      'title': metadata['title'],
+      'description': metadata['description'],
+      'privacy': metadata['privacy'],
+      'artworkUrl': metadata['artworkPath'] != null
+          ? 'https://mock.cdn/artwork/$trackId.png'
+          : null,
+    };
+  }
+  Future<Map<String, dynamic>> pollTrackStatus({
+    required String trackId,
+  }) async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    return {
+      'trackId': trackId,
+      'status': 'finished',
+      'audioUrl': 'https://mock.cdn/audio/$trackId.mp3',
+      'waveformUrl': 'https://mock.cdn/waveform/$trackId.json',
+      'artworkUrl': 'https://mock.cdn/artwork/$trackId.png',
+    };
   }
 }
+  Future<Map<String, dynamic>> getTrackDetails({required String trackId}) async {
+    await Future.delayed(const Duration(milliseconds: 700));
+
+    return {
+      'trackId': trackId,
+      'status': 'finished',
+      'audioUrl': 'https://mock.cdn/audio/$trackId.mp3',
+      'waveformUrl': 'https://mock.cdn/waveform/$trackId.json',
+      'artworkUrl': 'https://mock.cdn/artwork/$trackId.png',
+    };  
+  }
