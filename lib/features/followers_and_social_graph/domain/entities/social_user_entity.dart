@@ -7,8 +7,12 @@ class SocialUserEntity {
   final bool isFollowing;
   final bool isBlocked;
   final bool isDeleted;
-  final bool isNotificationEnabled; //need to tell back end
-  final bool isTrueFriend; //need to tell back end
+  final bool isNotificationEnabled; //need to tell backend
+  final bool isTrueFriend; //need to tell backend & check if we need it
+  final bool isVerified; //tell backend
+  //will see about those
+  //final bool isArtist; 
+  //final bool cityName; //change name!
 
   const SocialUserEntity({
     required this.userID,
@@ -20,7 +24,8 @@ class SocialUserEntity {
     required this.isBlocked,
     required this.isDeleted,
     required this.isNotificationEnabled,
-    required this.isTrueFriend
+    required this.isTrueFriend,
+    required this.isVerified
   });
 
   SocialUserEntity copyWith({
@@ -34,6 +39,7 @@ class SocialUserEntity {
   bool? isDeleted,
   bool? isNotificationEnabled,
   bool? isTrueFriend,
+  bool? isVerified,
 }) {
   return SocialUserEntity(
     userID: userID ?? this.userID,
@@ -46,6 +52,7 @@ class SocialUserEntity {
     isDeleted: isDeleted ?? this.isDeleted,
     isNotificationEnabled: isNotificationEnabled ?? this.isNotificationEnabled,
     isTrueFriend: isTrueFriend?? this.isTrueFriend,
+    isVerified: isVerified?? this.isVerified,
   );
 }
 }

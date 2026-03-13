@@ -36,6 +36,7 @@ class NetworkListsNotifier extends Notifier<NetworkListsState>{
           isNotificationEnabled:
               user['isNotificationEnabled'] as bool? ?? false,
           isTrueFriend: false,
+          isVerified: false,
         );
       }).toList();
 
@@ -73,6 +74,7 @@ class NetworkListsNotifier extends Notifier<NetworkListsState>{
           isDeleted: false,
           isNotificationEnabled: false,
           isTrueFriend: false,
+          isVerified: false,
         );
       }).toList();
 

@@ -2,36 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/network_lists_provider.dart';
 import '../widgets/user_social_tile.dart';
+import '../../domain/entities/network_list_type.dart';
 
 class NetworkListsScreen extends ConsumerStatefulWidget {
-  const NetworkListsScreen({super.key});
+  final NetworkListType listType;
+  final String userID;
+
+  const NetworkListsScreen({
+    super.key,
+    required this.listType,
+    required this.userID,
+  });
 
   @override
   ConsumerState<NetworkListsScreen> createState() => _NetworkListsScreenState();
 }
 
 class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
-  final userID = "u1";
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(networkListsProvider.notifier).loadFollowersList(userID: userID);
+      if (widget.listType == NetworkListType.followers) {
+        ref
+            .read(networkListsProvider.notifier)
+            .loadFollowersList(userID: widget.userID);
+      } else {
+        ref
+            .read(networkListsProvider.notifier)
+            .loadFollowingList(userID: widget.userID);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final listsState = ref.watch(networkListsProvider);
-    final userList = listsState.followersUsers;
-    bool isLoading;
-    String error;
+
+    final userList;
+    if (widget.listType == NetworkListType.followers)
+      userList = listsState.followersUsers;
+    else
+      userList = listsState.followingUsers;
+
 
     return Scaffold(
       backgroundColor: Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: Color(0xFF121212),
-        title: Text('Following', style: TextStyle(color: Colors.white)),
+        title: Text(
+          widget.listType == NetworkListType.followers
+              ? 'Followers'
+              : 'Following',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: Column(
         children: [
@@ -59,6 +83,7 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                   avatarUrl: socialUser.avatarUrl,
                   isFollowing: socialUser.isFollowing,
                   isNotificationEnabled: socialUser.isNotificationEnabled,
+                  listType: widget.listType,
                 );
               },
             ),

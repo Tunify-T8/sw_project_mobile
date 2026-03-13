@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/entities/network_list_type.dart';
 
 class UserSocialTile extends StatelessWidget {
   final String displayName;
@@ -6,6 +7,7 @@ class UserSocialTile extends StatelessWidget {
   final String avatarUrl;
   final bool isFollowing;
   final bool isNotificationEnabled;
+  final NetworkListType listType;
 
   const UserSocialTile({
     required this.displayName,
@@ -13,6 +15,7 @@ class UserSocialTile extends StatelessWidget {
     required this.avatarUrl,
     required this.isFollowing,
     required this.isNotificationEnabled,
+    required this.listType
   });
 
   @override
@@ -57,7 +60,8 @@ class UserSocialTile extends StatelessWidget {
               style: TextStyle(fontSize: 15.0),
             ),
           ),
-          TextButton(
+          if(listType == NetworkListType.following)
+              TextButton(
             onPressed: () {},
             child: Icon(
               isNotificationEnabled
