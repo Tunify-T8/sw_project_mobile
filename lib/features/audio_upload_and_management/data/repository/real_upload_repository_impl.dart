@@ -23,9 +23,7 @@ class RealUploadRepository implements UploadRepository {
 
   @override
   Future<UploadedTrack> createTrack(String userId) async {
-    final dto = await api.createTrack(
-      CreateTrackRequestDto(userId: userId),
-    );
+    final dto = await api.createTrack(CreateTrackRequestDto(userId: userId));
     return dto.toEntity();
   }
 

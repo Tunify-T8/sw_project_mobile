@@ -1,22 +1,17 @@
 import 'dart:async';
 
 class MockUploadService {
-  Future<Map<String, dynamic>> getUploadQuota() async {
+  Future<Map<String, dynamic>> getUploadQuota({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 700));
 
-    return {'tier': 'free', 'uploadMinutesRemaining': 176};
+    return {
+      'tier': 'free',
+      'uploadMinutesLimit': 180,
+      'uploadMinutesUsed': 4,
+      'uploadMinutesRemaining': 176,
+      'canUpgrade': true,
+    };
   }
-
-  // Future<Map<String, dynamic>> createTrack({
-  //   required String fileName}) async {
-  //   await Future.delayed(const Duration(milliseconds: 700));
-
-  //   return {
-  //     'trackId': 'track_${DateTime.now().millisecondsSinceEpoch}',
-  //     'status': 'idle',
-  //     'originalFileName': fileName,
-  //   };
-  // }
 
   Future<Map<String, dynamic>> createTrack({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 700));
@@ -29,17 +24,6 @@ class MockUploadService {
     };
   }
 
-  Stream<double> uploadFileProgress() async* {
-    for (int i = 1; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 250));
-      yield i / 10;
-    }
-  }
-
-  Future<String> processTrack() async {
-    await Future.delayed(const Duration(seconds: 2));
-    return 'finished';
-  }
   Stream<double> uploadProgress() async* {
     for (int i = 1; i <= 10; i++) {
       await Future.delayed(const Duration(milliseconds: 250));
@@ -47,9 +31,14 @@ class MockUploadService {
     }
   }
 
+  Future<String> processTrack() async {
+    await Future.delayed(const Duration(seconds: 1));
+    return 'finished';
+  }
+
   Future<Map<String, dynamic>> uploadAudio({required String trackId}) async {
     await Future.delayed(const Duration(milliseconds: 300));
-  
+
     return {
       'trackId': trackId,
       'status': 'uploading',
@@ -58,18 +47,7 @@ class MockUploadService {
     };
   }
 
-  /*
-  Future<void> finalizeMetadata({
-    required String trackId,
-    required String title,
-    required String genre,
-    required String description,
-    required String tags,
-    required String privacy,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-  } */
-   Future<Map<String, dynamic>> finalizeMetadata({
+  Future<Map<String, dynamic>> finalizeMetadata({
     required String trackId,
     required Map<String, dynamic> metadata,
   }) async {
@@ -88,6 +66,7 @@ class MockUploadService {
           : null,
     };
   }
+
   Future<Map<String, dynamic>> pollTrackStatus({
     required String trackId,
   }) async {
@@ -101,8 +80,10 @@ class MockUploadService {
       'artworkUrl': 'https://mock.cdn/artwork/$trackId.png',
     };
   }
-}
-  Future<Map<String, dynamic>> getTrackDetails({required String trackId}) async {
+
+  Future<Map<String, dynamic>> getTrackDetails({
+    required String trackId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 700));
 
     return {
@@ -111,5 +92,6 @@ class MockUploadService {
       'audioUrl': 'https://mock.cdn/audio/$trackId.mp3',
       'waveformUrl': 'https://mock.cdn/waveform/$trackId.json',
       'artworkUrl': 'https://mock.cdn/artwork/$trackId.png',
-    };  
+    };
   }
+}

@@ -16,12 +16,8 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
       return;
     }
 
-    final dotIndex = fileName.lastIndexOf('.');
-    final suggestedTitle =
-        dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
-
     state = state.copyWith(
-      title: suggestedTitle,
+      title: fileName,
     );
   }
 
@@ -49,10 +45,10 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
     state = state.copyWith(privacy: value);
   }
 
-  Future<void> pickArtwork() async {
+  Future<void> pickArtwork({bool fromCamera = false}) async {
     try {
       final picker = ref.read(filePickerServiceProvider);
-      final path = await picker.pickArtworkImage();
+      final path = await picker.pickArtworkImage(fromCamera: fromCamera);
 
       if (path == null) {
         return;
@@ -79,7 +75,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
 
     if (state.genreSubGenre.trim().isEmpty) {
       state = state.copyWith(
-        error: 'Sub-genre is required.',
+        error: 'Genre is required.',
       );
       return false;
     }
@@ -91,6 +87,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
 
     try {
       final repository = ref.read(uploadRepositoryProvider);
+      final currentArtistName = ref.read(currentArtistNameProvider);
 
       final metadata = TrackMetadata(
         title: state.title.trim(),
@@ -103,6 +100,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
             .toList(),
         description: state.description.trim(),
         privacy: state.privacy,
+        artists: [currentArtistName],
         artworkPath: state.artworkPath,
       );
 
@@ -138,5 +136,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   }
 }
 
-final trackMetadataProvider = NotifierProvider<TrackMetadataNotifier,
-    TrackMetadataState>(TrackMetadataNotifier.new);
+final trackMetadataProvider =
+    NotifierProvider<TrackMetadataNotifier, TrackMetadataState>(
+  TrackMetadataNotifier.new,
+);

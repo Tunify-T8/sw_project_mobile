@@ -9,6 +9,7 @@ class FinalizeTrackMetadataRequestDto {
   final List<String> tags;
   final String description;
   final String privacy;
+  final List<String> artists;
   final String? artworkPath;
 
   FinalizeTrackMetadataRequestDto({
@@ -19,6 +20,7 @@ class FinalizeTrackMetadataRequestDto {
     required this.tags,
     required this.description,
     required this.privacy,
+    required this.artists,
     this.artworkPath,
   });
 
@@ -34,6 +36,7 @@ class FinalizeTrackMetadataRequestDto {
       tags: metadata.tags,
       description: metadata.description,
       privacy: metadata.privacy,
+      artists: metadata.artists,
       artworkPath: metadata.artworkPath,
     );
   }
@@ -47,6 +50,7 @@ class FinalizeTrackMetadataRequestDto {
       'tags': tags,
       'description': description,
       'privacy': privacy,
+      'artists': artists,
       if (artworkPath != null && artworkPath!.isNotEmpty)
         'artwork': await MultipartFile.fromFile(artworkPath!),
     });

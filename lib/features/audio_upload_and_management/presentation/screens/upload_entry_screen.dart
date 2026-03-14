@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/upload_status.dart';
+import '../providers/upload_dependencies_provider.dart';
 import '../providers/upload_provider.dart';
 import 'track_metadata_screen.dart';
 
@@ -12,19 +13,75 @@ class UploadEntryScreen extends ConsumerStatefulWidget {
 }
 
 class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
-  static const String demoUserId = 'user-demo-id';
+  bool _didAutoOpenPicker = false;
 
   @override
   void initState() {
     super.initState();
 
-    Future.microtask(() {
-      ref.read(uploadProvider.notifier).loadQuota(demoUserId);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final userId = ref.read(currentUploadUserIdProvider);
+
+      await ref.read(uploadProvider.notifier).loadQuota(userId);
+
+      if (_didAutoOpenPicker) {
+        return;
+      }
+
+      _didAutoOpenPicker = true;
+      await _startUploadFlow(pickFileFirst: true);
     });
   }
 
-  String _statusLabel(UploadStatus? status) {
-    if (status == null) return '-';
+  Future<void> _startUploadFlow({required bool pickFileFirst}) async {
+    final userId = ref.read(currentUploadUserIdProvider);
+    final notifier = ref.read(uploadProvider.notifier);
+
+    final track = pickFileFirst
+        ? await notifier.pickAudioAndCreateTrackAndUpload(userId)
+        : await notifier.createTrackAndUpload(userId);
+
+    if (!mounted) {
+      return;
+    }
+
+    final latestState = ref.read(uploadProvider);
+
+    if (track != null && latestState.selectedAudio != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TrackMetadataScreen(
+            trackId: track.trackId,
+            fileName: latestState.selectedAudio!.name,
+          ),
+        ),
+      );
+    }
+  }
+
+  String _statusLabel() {
+    final uploadState = ref.read(uploadProvider);
+
+    if (uploadState.isUploading &&
+        uploadState.currentTrack == null &&
+        uploadState.uploadProgress == 0.0) {
+      return 'Preparing to upload';
+    }
+
+    if (uploadState.isUploading) {
+      return 'Uploading';
+    }
+
+    if (!uploadState.isUploading && uploadState.uploadProgress >= 1.0) {
+      return 'Upload complete';
+    }
+
+    final status = uploadState.currentTrack?.status;
+
+    if (status == null) {
+      return '-';
+    }
 
     switch (status) {
       case UploadStatus.idle:
@@ -51,10 +108,7 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF111111),
         elevation: 0,
-        title: const Text(
-          'Upload',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Upload', style: TextStyle(color: Colors.white)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -122,8 +176,8 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white24),
                   ),
-                  onPressed: () {
-                    ref.read(uploadProvider.notifier).pickAudioFile();
+                  onPressed: () async {
+                    await ref.read(uploadProvider.notifier).pickAudioFile();
                   },
                   child: const Text('Choose audio file'),
                 ),
@@ -132,7 +186,8 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
           ),
           const SizedBox(height: 16),
           if (uploadState.currentTrack != null ||
-              uploadState.uploadProgress > 0.0) ...[
+              uploadState.uploadProgress > 0.0 ||
+              uploadState.isUploading) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -149,7 +204,7 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Status: ${_statusLabel(uploadState.currentTrack?.status)}',
+                    'Status: ${_statusLabel()}',
                     style: const TextStyle(color: Colors.white),
                   ),
                   const SizedBox(height: 12),
@@ -187,27 +242,17 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
               onPressed: uploadState.isUploading
                   ? null
                   : () async {
-                      final track = await ref
-                          .read(uploadProvider.notifier)
-                          .createTrackAndUpload(demoUserId);
-
-                      if (track != null &&
-                          context.mounted &&
-                          uploadState.selectedAudio != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TrackMetadataScreen(
-                              trackId: track.trackId,
-                              fileName: ref.read(uploadProvider).selectedAudio!.name,
-                            ),
-                          ),
-                        );
-                      }
+                      await _startUploadFlow(
+                        pickFileFirst: uploadState.selectedAudio == null,
+                      );
                     },
               child: uploadState.isUploading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Upload track'),
+                  : Text(
+                      uploadState.selectedAudio == null
+                          ? 'Choose and upload'
+                          : 'Upload track',
+                    ),
             ),
           ),
         ],

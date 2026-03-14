@@ -15,7 +15,7 @@ class MockUploadRepository implements UploadRepository {
 
   @override
   Future<UploadQuota> getUploadQuota(String userId) async {
-    final data = await service.getUploadQuota();
+    final data = await service.getUploadQuota(userId: userId);
 
     return UploadQuota(
       tier: data['tier'] as String,
@@ -67,8 +67,12 @@ class MockUploadRepository implements UploadRepository {
       trackId: trackId,
       metadata: {
         'title': metadata.title,
+        'genreCategory': metadata.genreCategory,
+        'genreSubGenre': metadata.genreSubGenre,
+        'tags': metadata.tags,
         'description': metadata.description,
         'privacy': metadata.privacy,
+        'artists': metadata.artists,
         'artworkPath': metadata.artworkPath,
       },
     );
