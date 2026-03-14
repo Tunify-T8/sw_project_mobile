@@ -4,6 +4,7 @@ import '../../domain/entities/uploaded_track.dart';
 
 class UploadState {
   final bool isLoadingQuota;
+  final bool isPreparingUpload;
   final bool isUploading;
   final UploadQuota? quota;
   final PickedUploadFile? selectedAudio;
@@ -13,6 +14,7 @@ class UploadState {
 
   const UploadState({
     this.isLoadingQuota = false,
+    this.isPreparingUpload = false,
     this.isUploading = false,
     this.quota,
     this.selectedAudio,
@@ -23,6 +25,7 @@ class UploadState {
 
   UploadState copyWith({
     bool? isLoadingQuota,
+    bool? isPreparingUpload,
     bool? isUploading,
     UploadQuota? quota,
     PickedUploadFile? selectedAudio,
@@ -32,6 +35,7 @@ class UploadState {
   }) {
     return UploadState(
       isLoadingQuota: isLoadingQuota ?? this.isLoadingQuota,
+      isPreparingUpload: isPreparingUpload ?? this.isPreparingUpload,
       isUploading: isUploading ?? this.isUploading,
       quota: quota ?? this.quota,
       selectedAudio: selectedAudio ?? this.selectedAudio,

@@ -1,5 +1,12 @@
 import 'dart:async';
+// “Pretend a backend exists, but we’re just simulating it with delays and mock data. This allows us to test our frontend logic without needing a real server.”
+// return fake raw data
+// simulate delay
+// simulate progress
+// simulate processing
 
+// service = source of raw data
+// repository = domain-facing wrapper
 class MockUploadService {
   Future<Map<String, dynamic>> getUploadQuota({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 700));
@@ -31,11 +38,7 @@ class MockUploadService {
     }
   }
 
-  Future<String> processTrack() async {
-    await Future.delayed(const Duration(seconds: 1));
-    return 'finished';
-  }
-
+  // if backend is late lets put the audio uploaded into the assets to play it locally, and then when the backend is ready we can switch to the real URL. this way we can test the full flow without needing a real backend yet.
   Future<Map<String, dynamic>> uploadAudio({required String trackId}) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
@@ -80,6 +83,11 @@ class MockUploadService {
       'artworkUrl': 'https://mock.cdn/artwork/$trackId.png',
     };
   }
+
+  //A more advanced mock could have returned:
+  //processing first time
+  //processing second time
+  //finished third time
 
   Future<Map<String, dynamic>> getTrackDetails({
     required String trackId,

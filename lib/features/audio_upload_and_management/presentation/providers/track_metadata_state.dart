@@ -8,6 +8,7 @@ class TrackMetadataState {
   final String tagsText;
   final String description;
   final String privacy;
+  final List<String> artists;
   final String? artworkPath;
 
   final bool isSaving;
@@ -19,10 +20,11 @@ class TrackMetadataState {
   const TrackMetadataState({
     this.title = '',
     this.genreCategory = 'music',
-    this.genreSubGenre = 'hip_hop',
+    this.genreSubGenre = '',
     this.tagsText = '',
     this.description = '',
     this.privacy = 'public',
+    this.artists = const [],
     this.artworkPath,
     this.isSaving = false,
     this.isPolling = false,
@@ -38,6 +40,7 @@ class TrackMetadataState {
     String? tagsText,
     String? description,
     String? privacy,
+    List<String>? artists,
     String? artworkPath,
     bool? isSaving,
     bool? isPolling,
@@ -52,6 +55,7 @@ class TrackMetadataState {
       tagsText: tagsText ?? this.tagsText,
       description: description ?? this.description,
       privacy: privacy ?? this.privacy,
+      artists: artists ?? this.artists,
       artworkPath: artworkPath ?? this.artworkPath,
       isSaving: isSaving ?? this.isSaving,
       isPolling: isPolling ?? this.isPolling,

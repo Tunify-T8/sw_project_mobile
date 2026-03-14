@@ -5,6 +5,12 @@ import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../services/mock_upload_service.dart';
+//So repository’s job is:
+// call service
+// get raw map
+// convert raw map into domain object
+// This is exactly the translator layer.
+//mapper for mock
 
 class MockUploadRepository implements UploadRepository {
   final MockUploadService service;

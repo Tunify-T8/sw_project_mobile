@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_status.dart';
@@ -8,16 +10,19 @@ import 'upload_repository_provider.dart';
 class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   @override
   TrackMetadataState build() {
-    return const TrackMetadataState();
+    final primaryArtist = ref.read(currentArtistNameProvider);
+
+    return TrackMetadataState(
+      artists: [primaryArtist],
+    );
   }
 
-  void initializeSuggestedTitle(String fileName) {
-    if (state.title.isNotEmpty) {
-      return;
-    }
+  void prepareForNewUpload(String fileName) {
+    final primaryArtist = ref.read(currentArtistNameProvider);
 
-    state = state.copyWith(
+    state = TrackMetadataState(
       title: fileName,
+      artists: [primaryArtist],
     );
   }
 
@@ -45,6 +50,42 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
     state = state.copyWith(privacy: value);
   }
 
+  void addArtist(String value) {
+    final trimmed = value.trim();
+
+    if (trimmed.isEmpty) {
+      return;
+    }
+
+    final alreadyExists = state.artists.any(
+      (artist) => artist.toLowerCase() == trimmed.toLowerCase(),
+    );
+
+    if (alreadyExists) {
+      return;
+    }
+
+    state = state.copyWith(
+      artists: [...state.artists, trimmed],
+      error: null,
+    );
+  }
+
+  void removeArtist(String artist) {
+    if (state.artists.length == 1) {
+      return;
+    }
+
+    final updatedArtists = state.artists
+        .where((element) => element != artist)
+        .toList();
+
+    state = state.copyWith(
+      artists: updatedArtists,
+      error: null,
+    );
+  }
+
   Future<void> pickArtwork({bool fromCamera = false}) async {
     try {
       final picker = ref.read(filePickerServiceProvider);
@@ -65,29 +106,42 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
     }
   }
 
-  Future<bool> saveMetadataAndWait(String trackId) async {
+  void saveMetadataAndProcessInBackground(String trackId) {
+    unawaited(_saveMetadataAndProcess(trackId));
+  }
+
+  Future<void> _saveMetadataAndProcess(String trackId) async {
     if (state.title.trim().isEmpty) {
       state = state.copyWith(
         error: 'Title is required.',
       );
-      return false;
+      return;
     }
 
     if (state.genreSubGenre.trim().isEmpty) {
       state = state.copyWith(
         error: 'Genre is required.',
       );
-      return false;
+      return;
+    }
+
+    if (state.artists.isEmpty) {
+      state = state.copyWith(
+        error: 'At least one artist is required.',
+      );
+      return;
     }
 
     state = state.copyWith(
       isSaving: true,
+      isPolling: false,
+      processingStatus: UploadStatus.idle,
+      finalTrack: null,
       error: null,
     );
 
     try {
       final repository = ref.read(uploadRepositoryProvider);
-      final currentArtistName = ref.read(currentArtistNameProvider);
 
       final metadata = TrackMetadata(
         title: state.title.trim(),
@@ -100,7 +154,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
             .toList(),
         description: state.description.trim(),
         privacy: state.privacy,
-        artists: [currentArtistName],
+        artists: state.artists,
         artworkPath: state.artworkPath,
       );
 
@@ -122,8 +176,6 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
         processingStatus: finalTrack.status,
         finalTrack: finalTrack,
       );
-
-      return finalTrack.status == UploadStatus.finished;
     } catch (e) {
       state = state.copyWith(
         isSaving: false,
@@ -131,7 +183,6 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
         processingStatus: UploadStatus.failed,
         error: e.toString(),
       );
-      return false;
     }
   }
 }

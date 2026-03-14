@@ -13,3 +13,4 @@ class UploadQuota {
     required this.canUpgrade,
   });
 }
+//the user’s upload allowance

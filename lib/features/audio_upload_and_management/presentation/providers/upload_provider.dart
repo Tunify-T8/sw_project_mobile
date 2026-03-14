@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/uploaded_track.dart';
 import 'upload_dependencies_provider.dart';
 import 'upload_repository_provider.dart';
@@ -32,7 +35,60 @@ class UploadNotifier extends Notifier<UploadState> {
     }
   }
 
-  Future<void> pickAudioFile() async {
+  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(String userId) async {
+    try {
+      final picker = ref.read(filePickerServiceProvider);
+      final file = await picker.pickAudioFile();
+
+      if (file == null) {
+        return null;
+      }
+
+      state = state.copyWith(
+        selectedAudio: file,
+        isPreparingUpload: true,
+        isUploading: false,
+        uploadProgress: 0.0,
+        error: null,
+      );
+
+      final repository = ref.read(uploadRepositoryProvider);
+      final createdTrack = await repository.createTrack(userId);
+
+      state = state.copyWith(
+        currentTrack: createdTrack,
+        isPreparingUpload: false,
+        isUploading: true,
+      );
+
+      unawaited(
+        _uploadAudioInBackground(
+          trackId: createdTrack.trackId,
+          file: file,
+        ),
+      );
+
+      return createdTrack;
+    } catch (e) {
+      state = state.copyWith(
+        isPreparingUpload: false,
+        isUploading: false,
+        error: e.toString(),
+      );
+      return null;
+    }
+  }
+
+  Future<void> replaceCurrentAudioAndStartUpload() async {
+    final currentTrack = state.currentTrack;
+
+    if (currentTrack == null) {
+      state = state.copyWith(
+        error: 'No track exists yet to replace its audio.',
+      );
+      return;
+    }
+
     try {
       final picker = ref.read(filePickerServiceProvider);
       final file = await picker.pickAudioFile();
@@ -43,119 +99,36 @@ class UploadNotifier extends Notifier<UploadState> {
 
       state = state.copyWith(
         selectedAudio: file,
-        uploadProgress: 0.0,
-        error: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        error: e.toString(),
-      );
-    }
-  }
-
-  Future<UploadedTrack?> pickAudioAndCreateTrackAndUpload(String userId) async {
-    try {
-      final picker = ref.read(filePickerServiceProvider);
-      final file = await picker.pickAudioFile();
-
-      if (file == null) {
-        return null;
-      }
-
-      state = state.copyWith(
-        selectedAudio: file,
-        uploadProgress: 0.0,
-        error: null,
-      );
-
-      return createTrackAndUpload(userId);
-    } catch (e) {
-      state = state.copyWith(
-        error: e.toString(),
-      );
-      return null;
-    }
-  }
-
-  Future<UploadedTrack?> createTrackAndUpload(String userId) async {
-    if (state.selectedAudio == null) {
-      state = state.copyWith(
-        error: 'Please choose an audio file first.',
-      );
-      return null;
-    }
-
-    state = state.copyWith(
-      isUploading: true,
-      uploadProgress: 0.0,
-      error: null,
-    );
-
-    try {
-      final repository = ref.read(uploadRepositoryProvider);
-
-      final createdTrack = await repository.createTrack(userId);
-
-      state = state.copyWith(
-        currentTrack: createdTrack,
-      );
-
-      final uploadedTrack = await repository.uploadAudio(
-        trackId: createdTrack.trackId,
-        file: state.selectedAudio!,
-        onProgress: (progress) {
-          state = state.copyWith(
-            uploadProgress: progress,
-          );
-        },
-      );
-
-      state = state.copyWith(
-        isUploading: false,
-        uploadProgress: 1.0,
-        currentTrack: uploadedTrack,
-      );
-
-      return uploadedTrack;
-    } catch (e) {
-      state = state.copyWith(
-        isUploading: false,
-        error: e.toString(),
-      );
-      return null;
-    }
-  }
-
-  Future<UploadedTrack?> replaceCurrentAudio() async {
-    final currentTrack = state.currentTrack;
-
-    if (currentTrack == null) {
-      state = state.copyWith(
-        error: 'No draft track exists yet to replace its audio.',
-      );
-      return null;
-    }
-
-    try {
-      final picker = ref.read(filePickerServiceProvider);
-      final newFile = await picker.pickAudioFile();
-
-      if (newFile == null) {
-        return null;
-      }
-
-      state = state.copyWith(
-        selectedAudio: newFile,
+        isPreparingUpload: false,
         isUploading: true,
         uploadProgress: 0.0,
         error: null,
       );
 
+      unawaited(
+        _uploadAudioInBackground(
+          trackId: currentTrack.trackId,
+          file: file,
+        ),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isUploading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> _uploadAudioInBackground({
+    required String trackId,
+    required PickedUploadFile file,
+  }) async {
+    try {
       final repository = ref.read(uploadRepositoryProvider);
 
       final uploadedTrack = await repository.uploadAudio(
-        trackId: currentTrack.trackId,
-        file: newFile,
+        trackId: trackId,
+        file: file,
         onProgress: (progress) {
           state = state.copyWith(
             uploadProgress: progress,
@@ -164,19 +137,22 @@ class UploadNotifier extends Notifier<UploadState> {
       );
 
       state = state.copyWith(
+        isPreparingUpload: false,
         isUploading: false,
         uploadProgress: 1.0,
         currentTrack: uploadedTrack,
       );
-
-      return uploadedTrack;
     } catch (e) {
       state = state.copyWith(
+        isPreparingUpload: false,
         isUploading: false,
         error: e.toString(),
       );
-      return null;
     }
+  }
+
+  void clearError() {
+    state = state.copyWith(error: null);
   }
 }
 

@@ -3,7 +3,7 @@ import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../dto/track_response_dto.dart';
 import '../dto/upload_quota_dto.dart';
-
+// maps to entity objects used in the domain layer, converting from API DTOs to domain entities
 extension UploadQuotaDtoMapper on UploadQuotaDto {
   UploadQuota toEntity() {
     return UploadQuota(

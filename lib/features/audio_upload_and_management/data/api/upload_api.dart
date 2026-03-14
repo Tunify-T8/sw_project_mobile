@@ -4,7 +4,7 @@ import '../dto/create_track_request_dto.dart';
 import '../dto/finalize_track_metadata_request_dto.dart';
 import '../dto/track_response_dto.dart';
 import '../dto/upload_quota_dto.dart';
-
+// HTTP layer 
 class UploadApi {
   final Dio dio;
 

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/upload_status.dart';
 import '../providers/track_metadata_provider.dart';
-import '../providers/upload_dependencies_provider.dart';
+import '../providers/track_metadata_state.dart';
 import '../providers/upload_provider.dart';
 
 class TrackMetadataScreen extends ConsumerStatefulWidget {
@@ -23,57 +23,210 @@ class TrackMetadataScreen extends ConsumerStatefulWidget {
 }
 
 class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
+  final TextEditingController _artistController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
 
     Future.microtask(() {
-      ref
-          .read(trackMetadataProvider.notifier)
-          .initializeSuggestedTitle(widget.fileName);
+      ref.read(trackMetadataProvider.notifier).prepareForNewUpload(
+            widget.fileName,
+          );
     });
   }
 
-  InputDecoration _inputStyle(String label) {
-    return const InputDecoration(
-      labelStyle: TextStyle(color: Colors.white70),
-      enabledBorder: UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white24),
-      ),
-      focusedBorder: UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
-      ),
-      filled: false,
-    ).copyWith(labelText: label);
+  @override
+  void dispose() {
+    _artistController.dispose();
+    super.dispose();
   }
 
-  String _processingLabel({
-    required bool isSaving,
-    required bool isPolling,
-    required UploadStatus status,
-  }) {
-    if (isSaving) {
-      return 'Preparing to process';
+  int _completionCount(TrackMetadataState state) {
+    int count = 0;
+
+    if (state.title.trim().isNotEmpty) count++;
+    if (state.artworkPath != null && state.artworkPath!.isNotEmpty) count++;
+    if (state.genreSubGenre.trim().isNotEmpty) count++;
+    if (state.description.trim().isNotEmpty) count++;
+
+    return count;
+  }
+
+  void _showChecklistBottomSheet(TrackMetadataState state) {
+    final completed = _completionCount(state);
+
+    Widget checklistItem({
+      required String label,
+      required String tip,
+      required bool done,
+    }) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            done ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: done ? Colors.white : Colors.white70,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tip,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
     }
 
-    if (isPolling && status == UploadStatus.processing) {
-      return 'Processing';
-    }
-
-    switch (status) {
-      case UploadStatus.idle:
-        return 'Idle';
-      case UploadStatus.uploading:
-        return 'Uploading';
-      case UploadStatus.processing:
-        return 'Processing';
-      case UploadStatus.finished:
-        return 'Finished';
-      case UploadStatus.failed:
-        return 'Failed';
-      case UploadStatus.deleted:
-        return 'Deleted';
-    }
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF242424),
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 52,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white38,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Get everything in place',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Fans are more likely to play your track when you complete these:',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 92,
+                      height: 92,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CircularProgressIndicator(
+                            value: completed / 4,
+                            strokeWidth: 8,
+                            backgroundColor: Colors.white12,
+                            color: const Color(0xFFA855F7),
+                          ),
+                          Center(
+                            child: Text(
+                              '$completed/4',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          checklistItem(
+                            label: 'Title',
+                            tip: "Tip: don't include artist name",
+                            done: state.title.trim().isNotEmpty,
+                          ),
+                          const SizedBox(height: 16),
+                          checklistItem(
+                            label: 'Artwork',
+                            tip: 'Add cover art for better presentation',
+                            done: state.artworkPath != null &&
+                                state.artworkPath!.isNotEmpty,
+                          ),
+                          const SizedBox(height: 16),
+                          checklistItem(
+                            label: 'Genre',
+                            tip: 'Help fans discover your track',
+                            done: state.genreSubGenre.trim().isNotEmpty,
+                          ),
+                          const SizedBox(height: 16),
+                          checklistItem(
+                            label: 'Description',
+                            tip: 'Tell listeners more about the track',
+                            done: state.description.trim().isNotEmpty,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white38),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'Ok, got it',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _showArtworkSourceSheet() async {
@@ -122,57 +275,17 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     );
   }
 
-  Future<void> _replaceAudio() async {
-    final updatedTrack = await ref
-        .read(uploadProvider.notifier)
-        .replaceCurrentAudio();
-
-    if (!mounted || updatedTrack == null) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Audio file replaced successfully')),
-    );
-  }
-
-  Widget _buildTopTabs() {
-    Widget tabItem({required String label, required bool selected}) {
-      return Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF2B2B2B) : Colors.transparent,
-            borderRadius: BorderRadius.circular(28),
-            border: selected
-                ? Border.all(color: Colors.white54)
-                : Border.all(color: Colors.transparent),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.white54,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white24),
-        color: Colors.black,
+  InputDecoration _underlineFieldStyle(String label, {String? hintText}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hintText,
+      labelStyle: const TextStyle(color: Colors.white70),
+      hintStyle: const TextStyle(color: Colors.white38),
+      enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.white24),
       ),
-      child: Row(
-        children: [
-          tabItem(label: 'Track Info', selected: true),
-          tabItem(label: 'Advanced', selected: false),
-          tabItem(label: 'Permissions', selected: false),
-        ],
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.white70),
       ),
     );
   }
@@ -185,7 +298,11 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         height: 120,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white38, width: 1.2),
+          border: Border.all(
+            color: Colors.white54,
+            width: 1.2,
+            style: BorderStyle.solid,
+          ),
         ),
         child: artworkPath == null || artworkPath.isEmpty
             ? const Center(
@@ -197,37 +314,74 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
               )
             : ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.file(File(artworkPath), fit: BoxFit.cover),
+                child: Image.file(
+                  File(artworkPath),
+                  fit: BoxFit.cover,
+                ),
               ),
       ),
     );
   }
 
-  Widget _buildUploadIndicator({
+  Widget _buildProgressPill({
+    required bool isPreparingUpload,
     required bool isUploading,
     required double progress,
   }) {
-    final uploadFinished = !isUploading && progress >= 1.0;
+    String label;
 
-    if (uploadFinished) {
-      return Container(
-        width: 42,
-        height: 42,
-        decoration: const BoxDecoration(
-          color: Color(0xFF23C16B),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.check, color: Colors.black, size: 24),
-      );
+    if (isPreparingUpload) {
+      label = 'PREPARING TO UPLOAD';
+    } else if (isUploading) {
+      label = 'UPLOADING ${(progress * 100).toStringAsFixed(0)}%';
+    } else {
+      label = 'UPLOADING 100%';
     }
 
-    return SizedBox(
-      width: 42,
-      height: 42,
-      child: CircularProgressIndicator(
-        value: progress == 0.0 ? null : progress,
-        color: Colors.white,
-        backgroundColor: Colors.white12,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        height: 46,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0C5F3B),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Stack(
+          children: [
+            FractionallySizedBox(
+              widthFactor: isPreparingUpload ? 0.15 : progress.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF11A85B),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Row(
+                children: [
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.close,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 14),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -245,9 +399,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         ref.read(trackMetadataProvider.notifier).setPrivacy(value);
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
@@ -255,27 +408,36 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: Colors.white, fontSize: 17),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: Colors.white70, fontSize: 15),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
             Container(
               width: 28,
               height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white70, width: 1.4),
+                border: Border.all(color: Colors.white70, width: 1.5),
                 color: isSelected ? Colors.white : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, size: 18, color: Colors.black)
+                  ? const Icon(
+                      Icons.check,
+                      color: Colors.black,
+                      size: 18,
+                    )
                   : null,
             ),
           ],
@@ -284,33 +446,177 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     );
   }
 
+  String _processingText(TrackMetadataState state) {
+    if (state.isSaving) {
+      return 'Preparing to process';
+    }
+
+    if (state.isPolling) {
+      return 'Processing';
+    }
+
+    switch (state.processingStatus) {
+      case UploadStatus.idle:
+        return 'Idle';
+      case UploadStatus.uploading:
+        return 'Uploading';
+      case UploadStatus.processing:
+        return 'Processing';
+      case UploadStatus.finished:
+        return 'Finished';
+      case UploadStatus.failed:
+        return 'Failed';
+      case UploadStatus.deleted:
+        return 'Deleted';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final metadataState = ref.watch(trackMetadataProvider);
     final uploadState = ref.watch(uploadProvider);
-    final artistName = ref.watch(currentArtistNameProvider);
 
-    final displayedFileName =
-        uploadState.selectedAudio?.name ?? widget.fileName;
     final uploadFinished =
-        !uploadState.isUploading && uploadState.uploadProgress >= 1.0;
+        !uploadState.isPreparingUpload &&
+        !uploadState.isUploading &&
+        uploadState.uploadProgress >= 1.0;
+
+    final displayedFileName = uploadState.selectedAudio?.name ?? widget.fileName;
+    final completionCount = _completionCount(metadataState);
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
-        centerTitle: true,
         backgroundColor: const Color(0xFF111111),
         elevation: 0,
+        leadingWidth: 90,
+        leading: TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: Colors.white70, fontSize: 18),
+          ),
+        ),
+        centerTitle: true,
         title: const Text(
           'Upload',
-          style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: GestureDetector(
+              onTap: () => _showChecklistBottomSheet(metadataState),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white38),
+                ),
+                child: Center(
+                  child: Text(
+                    '$completionCount/4',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          _buildTopTabs(),
-          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2B2B2B),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(color: Colors.white54),
+                    ),
+                    child: const Text(
+                      'Track Info',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Text(
+                      'Advanced',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    child: Text(
+                      'Permissions',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF262626),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Color(0xFF7C3AED),
+                  child: Icon(Icons.flash_on, color: Colors.white),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Amplify your track with Artist Pro',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -322,17 +628,29 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                   children: [
                     const Text(
                       'Filename',
-                      style: TextStyle(color: Colors.white70, fontSize: 15),
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       displayedFileName,
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
                     ),
                     const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        if (uploadFinished)
+                    if (!uploadFinished)
+                      _buildProgressPill(
+                        isPreparingUpload: uploadState.isPreparingUpload,
+                        isUploading: uploadState.isUploading,
+                        progress: uploadState.uploadProgress,
+                      )
+                    else
+                      Row(
+                        children: [
                           OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -341,129 +659,204 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                                 borderRadius: BorderRadius.circular(28),
                               ),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
+                                horizontal: 22,
                                 vertical: 12,
                               ),
                             ),
-                            onPressed: uploadState.isUploading
-                                ? null
-                                : _replaceAudio,
+                            onPressed: () {
+                              ref
+                                  .read(uploadProvider.notifier)
+                                  .replaceCurrentAudioAndStartUpload();
+                            },
                             child: const Text('Replace'),
-                          )
-                        else
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                LinearProgressIndicator(
-                                  value: uploadState.uploadProgress == 0.0
-                                      ? null
-                                      : uploadState.uploadProgress,
-                                  minHeight: 6,
-                                  backgroundColor: Colors.white12,
-                                  color: const Color(0xFFFF5500),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  uploadState.isUploading
-                                      ? 'Uploading ${(uploadState.uploadProgress * 100).toStringAsFixed(0)}%'
-                                      : 'Preparing to upload',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF37B26C),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              color: Colors.black,
                             ),
                           ),
-                        const SizedBox(width: 12),
-                        _buildUploadIndicator(
-                          isUploading: uploadState.isUploading,
-                          progress: uploadState.uploadProgress,
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 28),
-          TextFormField(
-            initialValue: metadataState.title,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputStyle('Title *'),
-            onChanged: (value) {
-              ref.read(trackMetadataProvider.notifier).setTitle(value);
-            },
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Artists *',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+          const SizedBox(height: 22),
+          Container(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111111),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  controller: TextEditingController(text: metadataState.title)
+                    ..selection = TextSelection.fromPosition(
+                      TextPosition(offset: metadataState.title.length),
+                    ),
+                  decoration: _underlineFieldStyle('Title *'),
+                  onChanged: (value) {
+                    ref.read(trackMetadataProvider.notifier).setTitle(value);
+                  },
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2B2B2B),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Text(
-                  artistName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    letterSpacing: 1.0,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 22),
+                const Text(
+                  'Artists *',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: metadataState.artists.map((artist) {
+                    final canRemove = metadataState.artists.length > 1;
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2B2B2B),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            artist.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: canRemove
+                                ? () {
+                                    ref
+                                        .read(trackMetadataProvider.notifier)
+                                        .removeArtist(artist);
+                                  }
+                                : null,
+                            child: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: canRemove ? Colors.white70 : Colors.white24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _artistController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _underlineFieldStyle(
+                    '',
+                    hintText: 'Add any other collaborators of the track',
+                  ).copyWith(
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        ref
+                            .read(trackMetadataProvider.notifier)
+                            .addArtist(_artistController.text);
+                        _artistController.clear();
+                      },
+                      icon: const Icon(Icons.add, color: Colors.white70),
+                    ),
+                  ),
+                  onSubmitted: (value) {
+                    ref.read(trackMetadataProvider.notifier).addArtist(value);
+                    _artistController.clear();
+                  },
+                ),
+                const SizedBox(height: 22),
+                TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  controller:
+                      TextEditingController(text: metadataState.genreSubGenre)
+                        ..selection = TextSelection.fromPosition(
+                          TextPosition(
+                            offset: metadataState.genreSubGenre.length,
+                          ),
+                        ),
+                  decoration: _underlineFieldStyle(
+                    'Genre',
+                    hintText: 'Help fans discover your track',
+                  ),
+                  onChanged: (value) {
+                    ref
+                        .read(trackMetadataProvider.notifier)
+                        .setGenreSubGenre(value);
+                  },
+                ),
+                const SizedBox(height: 22),
+                TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  controller:
+                      TextEditingController(text: metadataState.description)
+                        ..selection = TextSelection.fromPosition(
+                          TextPosition(
+                            offset: metadataState.description.length,
+                          ),
+                        ),
+                  maxLines: 3,
+                  decoration: _underlineFieldStyle(
+                    'Description',
+                    hintText: 'Add any details about your track for fans',
+                  ),
+                  onChanged: (value) {
+                    ref.read(trackMetadataProvider.notifier).setDescription(value);
+                  },
+                ),
+                const SizedBox(height: 22),
+                TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  controller: TextEditingController(text: metadataState.tagsText)
+                    ..selection = TextSelection.fromPosition(
+                      TextPosition(offset: metadataState.tagsText.length),
+                    ),
+                  decoration: _underlineFieldStyle(
+                    'Tags',
+                    hintText: 'Add comma separated tags',
+                  ),
+                  onChanged: (value) {
+                    ref.read(trackMetadataProvider.notifier).setTagsText(value);
+                  },
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Your profile name is used as the primary artist.',
-            style: TextStyle(color: Colors.white54),
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            initialValue: metadataState.genreSubGenre,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputStyle('Genre'),
-            onChanged: (value) {
-              ref.read(trackMetadataProvider.notifier).setGenreSubGenre(value);
-            },
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            initialValue: metadataState.description,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 3,
-            decoration: _inputStyle('Description'),
-            onChanged: (value) {
-              ref.read(trackMetadataProvider.notifier).setDescription(value);
-            },
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            initialValue: metadataState.tagsText,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputStyle('Tags (comma separated)'),
-            onChanged: (value) {
-              ref.read(trackMetadataProvider.notifier).setTagsText(value);
-            },
-          ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 26),
           const Text(
             'Privacy',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _buildPrivacyOption(
             value: 'public',
             currentValue: metadataState.privacy,
@@ -476,7 +869,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
             title: 'Unlisted (Private)',
             subtitle: 'Anyone with private link can access',
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (metadataState.error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -491,55 +884,46 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
+                disabledBackgroundColor: const Color(0xFFBDBDBD),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              onPressed:
-                  metadataState.isSaving ||
-                      metadataState.isPolling ||
-                      uploadState.isUploading
-                  ? null
-                  : () async {
-                      final success = await ref
+              onPressed: uploadFinished &&
+                      !metadataState.isSaving &&
+                      !metadataState.isPolling
+                  ? () {
+                      ref
                           .read(trackMetadataProvider.notifier)
-                          .saveMetadataAndWait(widget.trackId);
+                          .saveMetadataAndProcessInBackground(widget.trackId);
 
-                      if (success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Track is fully processed and ready'),
-                          ),
-                        );
-                      }
-                    },
-              child: metadataState.isSaving || metadataState.isPolling
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
+                  : null,
+              child: Text(
+                uploadFinished ? 'Save' : 'Uploading...',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           Text(
-            'Status: ${_processingLabel(isSaving: metadataState.isSaving, isPolling: metadataState.isPolling, status: metadataState.processingStatus)}',
+            'Status: ${_processingText(metadataState)}',
             style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 18),
           const Text(
             "By uploading, you confirm that your sounds comply with our Terms of Use and you don't infringe anyone else's rights.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, height: 1.5),
+            style: TextStyle(
+              color: Colors.white70,
+              height: 1.5,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           const Text(
             'TERMS OF USE',
             textAlign: TextAlign.center,
@@ -547,47 +931,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
               color: Colors.white,
               decoration: TextDecoration.underline,
               fontWeight: FontWeight.w600,
-              letterSpacing: 1.0,
             ),
           ),
-          if (metadataState.finalTrack != null) ...[
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1C),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Processed Track Output',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Audio URL: ${metadataState.finalTrack!.audioUrl ?? '-'}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Waveform URL: ${metadataState.finalTrack!.waveformUrl ?? '-'}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Artwork URL: ${metadataState.finalTrack!.artworkUrl ?? '-'}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
