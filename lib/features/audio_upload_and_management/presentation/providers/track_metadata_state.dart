@@ -1,3 +1,4 @@
+import '../../domain/entities/upload_genre.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 
@@ -32,6 +33,38 @@ class TrackMetadataState {
     this.finalTrack,
     this.error,
   });
+
+  UploadGenre get selectedGenre => UploadGenres.fromValues(
+        category: genreCategory,
+        subGenre: genreSubGenre,
+      );
+
+  bool get hasTitle => title.trim().isNotEmpty;
+
+  bool get hasGenre => genreSubGenre.trim().isNotEmpty;
+
+  bool get hasArtwork => artworkPath != null && artworkPath!.trim().isNotEmpty;
+
+  bool get hasDescription => description.trim().isNotEmpty;
+
+  int get completedChecklistItems {
+    int count = 0;
+
+    if (hasTitle) count++;
+    if (hasGenre) count++;
+    if (hasArtwork) count++;
+    if (hasDescription) count++;
+
+    return count;
+  }
+
+  double get checklistProgress => completedChecklistItems / 4;
+
+  bool get isBusyInBackground {
+    return isSaving ||
+        isPolling ||
+        processingStatus == UploadStatus.processing;
+  }
 
   TrackMetadataState copyWith({
     String? title,

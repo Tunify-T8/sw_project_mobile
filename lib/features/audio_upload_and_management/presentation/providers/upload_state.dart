@@ -23,6 +23,11 @@ class UploadState {
     this.error,
   });
 
+  bool get isBusy => isPreparingUpload || isUploading;
+
+  bool get uploadFinished =>
+      !isPreparingUpload && !isUploading && uploadProgress >= 1.0;
+
   UploadState copyWith({
     bool? isLoadingQuota,
     bool? isPreparingUpload,

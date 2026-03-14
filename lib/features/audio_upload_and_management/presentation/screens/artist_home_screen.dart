@@ -24,37 +24,23 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
     });
   }
 
-  String _homeUploadStatusLabel() {
-    final uploadState = ref.read(uploadProvider);
-    final metadataState = ref.read(trackMetadataProvider);
-
-    if (uploadState.isPreparingUpload) {
-      return 'Preparing to upload';
+  bool _isHomeUploadBusy({
+    required dynamic uploadState,
+    required dynamic metadataState,
+  }) {
+    if (uploadState.isPreparingUpload || uploadState.isUploading) {
+      return true;
     }
 
-    if (uploadState.isUploading) {
-      final percent = (uploadState.uploadProgress * 100).toStringAsFixed(0);
-      return 'Uploading $percent%';
+    if (metadataState.isSaving || metadataState.isPolling) {
+      return true;
     }
 
-    if (metadataState.isSaving) {
-      return 'Preparing to process';
+    if (metadataState.processingStatus == UploadStatus.processing) {
+      return true;
     }
 
-    if (metadataState.isPolling &&
-        metadataState.processingStatus == UploadStatus.processing) {
-      return 'Processing track';
-    }
-
-    if (metadataState.processingStatus == UploadStatus.finished) {
-      return 'Upload complete';
-    }
-
-    if (metadataState.processingStatus == UploadStatus.failed) {
-      return 'Upload failed';
-    }
-
-    return 'Ready to upload';
+    return false;
   }
 
   Future<void> _startUploadFlow() async {
@@ -85,7 +71,13 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadProvider);
+    final metadataState = ref.watch(trackMetadataProvider);
     final artistName = ref.watch(currentArtistNameProvider);
+
+    final isUploadBusy = _isHomeUploadBusy(
+      uploadState: uploadState,
+      metadataState: metadataState,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -129,9 +121,7 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: uploadState.isPreparingUpload || uploadState.isUploading
-                        ? null
-                        : _startUploadFlow,
+                    onTap: isUploadBusy ? null : _startUploadFlow,
                     child: Container(
                       width: 48,
                       height: 48,
@@ -140,46 +130,38 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white24),
                       ),
-                      child: const Icon(
-                        Icons.cloud_upload_outlined,
-                        color: Colors.white,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const Icon(
+                            Icons.cloud_upload_outlined,
+                            color: Colors.white,
+                          ),
+                          if (isUploadBusy)
+                            const SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.6,
+                                backgroundColor: Colors.transparent,
+                                valueColor: AlwaysStoppedAnimation(
+                                  Color(0xFFA855F7),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      artistName,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: Text(
-                      _homeUploadStatusLabel(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                artistName,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 28),
               const Text(
