@@ -1,29 +1,23 @@
-import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
-import 'package:software_project/features/auth/domain/repositories/auth_repository.dart';
+import '../repositories/auth_repository.dart';
 
-/// Handles user registration within the application.
+/// Registers a new user account.
 ///
-/// This use case coordinates the account creation process
-/// between the presentation layer and the authentication repository.
-///
-/// It ensures that registration requests follow domain rules
-/// before delegating the operation to the repository.
+/// Does not return tokens — email verification is required next.
 class RegisterUseCase {
-  /// Repository used to perform authentication operations.
-  final AuthRepository repository;
+  final AuthRepository _repository;
+  const RegisterUseCase(this._repository);
 
-  /// Creates an instance of [RegisterUseCase].
-  const RegisterUseCase(this.repository);
-
-  /// Executes the user registration process.
-  ///
-  /// Requires a valid [email], [password], and unique [username].
-  ///
-  /// Returns an [AuthUserEntity] representing the newly
-  /// created authenticated user.
-  ///
-  /// Throws an exception if registration fails.
-  Future<AuthUserEntity> call(String email, String password, String username) {
-    return repository.register(email, password, username);
-  }
+  Future<void> call({
+    required String email,
+    required String username,
+    required String password,
+    required String gender,
+    required String dateOfBirth,
+  }) => _repository.register(
+    email: email,
+    username: username,
+    password: password,
+    gender: gender,
+    dateOfBirth: dateOfBirth,
+  );
 }

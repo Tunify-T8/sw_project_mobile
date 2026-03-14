@@ -1,42 +1,38 @@
-import 'user_dto.dart';
-
-/// Data Transfer Object representing the authentication response
-/// returned by the backend API.
+/// Shared response shape for endpoints that return tokens + user.
 ///
-/// This DTO belongs to the data layer and is responsible for parsing
-/// the response received after successful authentication operations
-/// such as login or user registration.
-///
-/// The response typically contains the authenticated user information
-/// along with the access and refresh tokens required for authorized requests.
-class AuthResponseDTO {
-  /// The authenticated user returned by the API.
-  final UserDTO user;
-
-  /// JWT access token used to authenticate API requests.
+/// Used by: POST /auth/verify-email, POST /auth/login (verified user).
+class AuthResponseDto {
   final String accessToken;
-
-  /// Refresh token used to obtain a new access token when the current one expires.
   final String refreshToken;
+  final String userId;
+  final String username;
+  final String email;
+  final String role;
+  final bool isVerified;
+  final String? avatarUrl;
 
-  /// Duration in seconds before the access token expires.
-  final int accessTokenExpiresIn;
-
-  /// Constructor to create an instance of [AuthResponseDTO].
-  AuthResponseDTO({
-    required this.user,
+  const AuthResponseDto({
     required this.accessToken,
     required this.refreshToken,
-    required this.accessTokenExpiresIn,
+    required this.userId,
+    required this.username,
+    required this.email,
+    required this.role,
+    required this.isVerified,
+    this.avatarUrl,
   });
 
-  /// Creates an [AuthResponseDTO] instance from a JSON response returned by the API.
-  factory AuthResponseDTO.fromJson(Map<String, dynamic> json) {
-    return AuthResponseDTO(
-      user: UserDTO.fromJson(json["user"]),
-      accessToken: json["accessToken"],
-      refreshToken: json["refreshToken"],
-      accessTokenExpiresIn: json["accessTokenExpiresIn"],
+  factory AuthResponseDto.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] as Map<String, dynamic>;
+    return AuthResponseDto(
+      accessToken: json['accessToken'] as String,
+      refreshToken: json['refreshToken'] as String,
+      userId: user['id'] as String,
+      username: user['username'] as String,
+      email: user['email'] as String,
+      role: user['role'] as String,
+      isVerified: user['isVerified'] as bool,
+      avatarUrl: user['avatar_url'] as String?,
     );
   }
 }

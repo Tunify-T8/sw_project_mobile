@@ -4,108 +4,162 @@ import 'package:software_project/core/errors/network_exceptions.dart';
 import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/data/api/auth_api.dart';
 import 'package:software_project/features/auth/data/dto/auth_response_dto.dart';
+import 'package:software_project/features/auth/data/dto/check_email_request_dto.dart';
 import 'package:software_project/features/auth/data/dto/login_request_dto.dart';
+import 'package:software_project/features/auth/data/dto/login_response_dto.dart';
 import 'package:software_project/features/auth/data/dto/register_request_dto.dart';
+import 'package:software_project/features/auth/data/dto/verify_email_request_dto.dart';
 import 'package:software_project/features/auth/data/mappers/auth_user_mapper.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 import 'package:software_project/features/auth/domain/repositories/auth_repository.dart';
 
 /// Concrete implementation of [AuthRepository].
 ///
-/// This class belongs to the data layer and is responsible for
-/// handling authentication operations by communicating with
-/// the backend API through [AuthApi].
-///
-/// It converts API responses (DTOs) into domain entities using
-/// mappers, ensuring the domain layer stays decoupled from
-/// API response structures.
+/// Bridges the domain layer to the Tunify backend via [AuthApi].
+/// All token persistence is handled through [TokenStorage].
 class AuthRepositoryImpl implements AuthRepository {
-  /// The API client used for network requests.
-  final AuthApi api;
+  final AuthApi _api;
+  final TokenStorage _tokenStorage;
 
-  /// Storage used to persist authentication tokens securely.
-  final TokenStorage tokenStorage;
+  const AuthRepositoryImpl(this._api, this._tokenStorage);
 
-  /// Creates an instance of [AuthRepositoryImpl].
-  const AuthRepositoryImpl(this.api, this.tokenStorage);
+  @override
+  Future<bool> checkEmail(String email) async {
+    try {
+      final response = await _api.checkEmail(
+        CheckEmailRequestDto(email: email),
+      );
+      return response.data['exists'] as bool;
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
 
-  /// Signs in a user with [email] and [password].
-  ///
-  /// Calls [AuthApi.login], parses the response into an [AuthResponseDTO],
-  /// stores the returned tokens, and maps the user to [AuthUserEntity].
+  @override
+  Future<void> register({
+    required String email,
+    required String username,
+    required String password,
+    required String gender,
+    required String dateOfBirth,
+  }) async {
+    try {
+      await _api.register(
+        RegisterRequestDto(
+          email: email,
+          username: username,
+          password: password,
+          gender: gender,
+          dateOfBirth: dateOfBirth,
+        ),
+      );
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
+
+  @override
+  Future<AuthUserEntity> verifyEmail(String email, String token) async {
+    try {
+      final response = await _api.verifyEmail(
+        VerifyEmailRequestDto(email: email, token: token),
+      );
+      final dto = AuthResponseDto.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      await _tokenStorage.saveTokens(
+        accessToken: dto.accessToken,
+        refreshToken: dto.refreshToken,
+      );
+      return AuthUserMapper.toEntity(dto);
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
+
+  @override
+  Future<void> resendVerification(String email) async {
+    try {
+      await _api.resendVerification(email);
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
+
   @override
   Future<AuthUserEntity> login(String email, String password) async {
     try {
-      final response = await api.login(
-        LoginRequestDTO(email: email, password: password),
+      final response = await _api.login(
+        LoginRequestDto(email: email, password: password),
+      );
+      final dto = LoginResponseDto.fromJson(
+        response.data as Map<String, dynamic>,
       );
 
-      final dto = AuthResponseDTO.fromJson(response.data);
+      // Unverified user — backend returns 200 with no tokens.
+      if (!dto.isVerified) {
+        throw const UnverifiedUserFailure();
+      }
 
-      await tokenStorage.saveTokens(
-        accessToken: dto.accessToken,
-        refreshToken: dto.refreshToken,
+      await _tokenStorage.saveTokens(
+        accessToken: dto.accessToken!,
+        refreshToken: dto.refreshToken!,
       );
 
-      return AuthUserMapper.toEntity(dto.user);
+      return AuthUserEntity(
+        id: dto.userId,
+        email: dto.email,
+        username: dto.username,
+        role: dto.role ?? 'LISTENER',
+        isVerified: true,
+        avatarUrl: dto.avatarUrl,
+      );
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
+    } on Failure {
+      rethrow;
     } catch (_) {
       throw const UnknownFailure();
     }
   }
 
-  /// Registers a new user with [email], [password], and [username].
-  ///
-  /// Calls [AuthApi.register], parses the response, stores the returned
-  /// tokens, and maps the user to [AuthUserEntity].
   @override
-  Future<AuthUserEntity> register(
-    String email,
-    String password,
-    String username,
-  ) async {
+  Future<void> signOut() async {
     try {
-      final response = await api.register(
-        RegisterRequestDTO(
-          email: email,
-          password: password,
-          username: username,
-        ),
-      );
-
-      final dto = AuthResponseDTO.fromJson(response.data);
-
-      await tokenStorage.saveTokens(
-        accessToken: dto.accessToken,
-        refreshToken: dto.refreshToken,
-      );
-
-      return AuthUserMapper.toEntity(dto.user);
-    } on DioException catch (e) {
-      throw NetworkExceptions.fromDioException(e);
-    } catch (_) {
-      throw const UnknownFailure();
+      final refreshToken = await _tokenStorage.getRefreshToken();
+      if (refreshToken != null) {
+        await _api.signOut(refreshToken);
+      }
+    } finally {
+      // Always clear local tokens even if the network call fails.
+      await _tokenStorage.clearTokens();
     }
   }
 
-  /// Authenticates a user via OAuth using the given [provider] and [token].
-  ///
-  /// Calls [AuthApi.oauthLogin], stores the returned tokens,
-  /// and maps the user to [AuthUserEntity].
   @override
-  Future<AuthUserEntity> oauthLogin(String provider, String token) async {
+  Future<void> signOutAll() async {
     try {
-      final response = await api.oauthLogin(provider, token);
+      final refreshToken = await _tokenStorage.getRefreshToken();
+      if (refreshToken != null) {
+        await _api.signOutAll(refreshToken);
+      }
+    } finally {
+      await _tokenStorage.clearTokens();
+    }
+  }
 
-      final dto = AuthResponseDTO.fromJson(response.data);
-
-      await tokenStorage.saveTokens(
-        accessToken: dto.accessToken,
-        refreshToken: dto.refreshToken,
-      );
-
-      return AuthUserMapper.toEntity(dto.user);
+  @override
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _api.forgotPassword(email);
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } catch (_) {
@@ -113,9 +167,40 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  /// Logs out the current user by clearing stored tokens.
   @override
-  Future<void> logout() async {
-    await tokenStorage.clearTokens();
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+    bool signoutAll = true,
+  }) async {
+    try {
+      await _api.resetPassword(
+        email: email,
+        token: token,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+        signoutAll: signoutAll,
+      );
+      if (signoutAll) await _tokenStorage.clearTokens();
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
+
+  @override
+  Future<void> deleteAccount({String? password}) async {
+    try {
+      await _api.deleteAccount(password: password);
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } catch (_) {
+      throw const UnknownFailure();
+    } finally {
+      await _tokenStorage.clearTokens();
+    }
   }
 }

@@ -1,35 +1,18 @@
-import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
-import 'package:software_project/features/auth/domain/repositories/auth_repository.dart';
+import '../repositories/auth_repository.dart';
 
-/// Handles OAuth authentication for users signing in
-/// via a third-party identity provider such as Google.
+/// Placeholder use case for OAuth login via third-party providers.
 ///
-/// This use case coordinates the OAuth login flow between
-/// the presentation layer and the authentication repository.
+/// The Tunify API doc marks POST /auth/google as "Coming Soon".
+/// This class will be implemented once the backend endpoint is available.
 ///
-/// It delegates the actual authentication to [AuthRepository.oauthLogin],
-/// keeping the presentation layer decoupled from data-layer details.
+/// For now, OAuth is handled directly in [AuthController.loginWithGoogle]
+/// using the [GoogleSignInService] to obtain an identity token,
+/// without a matching backend call.
+///
+/// TODO: Implement once POST /auth/google is available on the backend.
 class OAuthLoginUseCase {
-  /// Repository used to perform the OAuth authentication operation.
-  final AuthRepository repository;
+  // ignore: unused_field
+  final AuthRepository _repository;
 
-  /// Creates an instance of [OAuthLoginUseCase].
-  const OAuthLoginUseCase(this.repository);
-
-  /// Executes the OAuth login process.
-  ///
-  /// [provider] is the name of the OAuth identity provider
-  /// (e.g. `"google"`).
-  ///
-  /// [token] is the identity token obtained from the provider
-  /// after the user completes their consent flow on the client side.
-  ///
-  /// Returns an [AuthUserEntity] representing the authenticated user
-  /// if the operation succeeds.
-  ///
-  /// Throws a [Failure] if the token is invalid, the provider
-  /// is unsupported, or if a network or server error occurs.
-  Future<AuthUserEntity> call(String provider, String token) {
-    return repository.oauthLogin(provider, token);
-  }
+  const OAuthLoginUseCase(this._repository);
 }

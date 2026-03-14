@@ -1,68 +1,52 @@
 import 'package:dio/dio.dart';
 import 'failure.dart';
 
-/// Maps [DioException] instances into domain-layer [Failure] objects.
-///
-/// Centralizing this mapping keeps all Dio-specific error handling
-/// contained within the data layer. Use cases and the presentation
-/// layer only ever deal with [Failure] subclasses, never with [DioException].
+/// Maps [DioException]s to domain [Failure] types.
 class NetworkExceptions {
-  /// Private constructor — this class is not meant to be instantiated.
-  /// Use [fromDioException] directly as a static utility.
   NetworkExceptions._();
 
   /// Converts a [DioException] into the appropriate [Failure] subclass.
-  ///
-  /// Inspects [DioException.type] to determine the category of failure:
-  /// - Timeout or connection errors → [NetworkFailure]
-  /// - Bad HTTP response → delegates to [_fromStatusCode]
-  /// - Anything else → [UnknownFailure]
-  static Failure fromDioException(DioException exception) {
-    switch (exception.type) {
+  static Failure fromDioException(DioException e) {
+    switch (e.type) {
       case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
       case DioExceptionType.connectionError:
         return const NetworkFailure();
-
       case DioExceptionType.badResponse:
-        return _fromStatusCode(exception.response?.statusCode);
-
+        return _fromStatusCode(e.response?.statusCode, e.response?.data);
       default:
         return const UnknownFailure();
     }
   }
 
-  /// Maps an HTTP [statusCode] to the appropriate [Failure].
-  ///
-  /// Handles the following codes explicitly:
-  /// - `400` → [ValidationFailure] (bad request / invalid input)
-  /// - `401` → [UnauthorizedFailure] (invalid credentials)
-  /// - `409` → [ConflictFailure] (e.g. email already registered)
-  /// - `500` and above → [ServerFailure]
-  /// - `null` or any other code → [UnknownFailure]
-  ///
-  /// The [statusCode] parameter is nullable because [Response.statusCode]
-  /// may be null when Dio cannot complete the request. A null code
-  /// is treated as an unknown failure.
-  static Failure _fromStatusCode(int? statusCode) {
+  static Failure _fromStatusCode(int? statusCode, dynamic data) {
     if (statusCode == null) return const UnknownFailure();
-
     if (statusCode >= 500) return const ServerFailure();
+
+    final message = _extractMessage(data);
 
     switch (statusCode) {
       case 400:
-        return const ValidationFailure(
-          'Invalid request. Please check your input.',
-        );
+        return ValidationFailure(message ?? 'Invalid request.');
       case 401:
         return const UnauthorizedFailure();
+      case 403:
+        return ForbiddenFailure(message ?? 'Access denied.');
+      case 404:
+        return NotFoundFailure(message ?? 'Not found.');
       case 409:
-        return const ConflictFailure(
-          'An account with this email already exists.',
-        );
+        return ConflictFailure(message ?? 'Conflict.');
       default:
         return const UnknownFailure();
     }
+  }
+
+  /// Extracts the `message` field from the backend error response body.
+  static String? _extractMessage(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      return data['message'] as String?;
+    }
+    return null;
   }
 }

@@ -1,24 +1,21 @@
-/// Represents an authenticated user within the application.
+/// Represents an authenticated user in the domain layer.
 ///
-/// This entity belongs to the domain layer and contains core user information
-/// required by the authentication module.
-///
-/// Used throughout the application
-/// to represent the currently logged-in user.
+/// This is the single user model used by the presentation layer.
+/// It is decoupled from any API response shape.
 class AuthUserEntity {
-  /// Unique Id for the user.
   final String id;
-
-  /// Email address associated with the user's account.
   final String email;
-
-  /// Username chosen by the user.
   final String username;
+  final String role;
+  final bool isVerified;
+  final String? avatarUrl;
 
-  /// Constructor to create an instance of [AuthUserEntity].
   const AuthUserEntity({
     required this.id,
     required this.email,
     required this.username,
+    required this.role,
+    required this.isVerified,
+    this.avatarUrl,
   });
 }

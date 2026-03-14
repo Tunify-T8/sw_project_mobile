@@ -1,46 +1,58 @@
-/// Represents a domain-level failure that can occur during any operation.
+/// Base class for all domain-level failures.
 ///
-/// This lives in the domain layer so use cases and the presentation
-/// layer can handle errors without depending on Dio or any other
-/// data-layer detail.
-///
-/// Each subclass represents a distinct category of failure,
-/// making it easy to display the correct message in the UI.
+/// Lives in the domain layer so use cases and the presentation layer
+/// can handle errors without depending on Dio or any data-layer detail.
 abstract class Failure {
-  /// Human-readable message describing what went wrong.
   final String message;
-
   const Failure(this.message);
 }
 
-/// Failure caused by an unauthenticated or invalid credential response (401).
+/// HTTP 400 — validation error.
+class ValidationFailure extends Failure {
+  const ValidationFailure(super.message);
+}
+
+/// HTTP 401 — wrong credentials.
 class UnauthorizedFailure extends Failure {
   const UnauthorizedFailure()
     : super('Invalid credentials. Please check your email and password.');
 }
 
-/// Failure caused by a conflict, e.g. email already registered (409).
+/// Login succeeded but the account is not yet email-verified.
+///
+/// The presentation layer should show the verify-email flow.
+class UnverifiedUserFailure extends Failure {
+  const UnverifiedUserFailure()
+    : super('Please verify your email before logging in.');
+}
+
+/// HTTP 403 — account banned or suspended.
+class ForbiddenFailure extends Failure {
+  const ForbiddenFailure(super.message);
+}
+
+/// HTTP 404 — resource not found.
+class NotFoundFailure extends Failure {
+  const NotFoundFailure(super.message);
+}
+
+/// HTTP 409 — duplicate email or username.
 class ConflictFailure extends Failure {
   const ConflictFailure(super.message);
 }
 
-/// Failure caused by a validation error returned by the server (400).
-class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
-}
-
-/// Failure caused by a server-side error (5xx).
+/// HTTP 5xx — server-side error.
 class ServerFailure extends Failure {
   const ServerFailure() : super('A server error occurred. Please try again.');
 }
 
-/// Failure caused by no internet connection or a timeout.
+/// No internet connection or request timeout.
 class NetworkFailure extends Failure {
   const NetworkFailure()
     : super('No internet connection. Please check your network.');
 }
 
-/// Failure caused by any unexpected or unclassified error.
+/// Any unexpected or unclassified error.
 class UnknownFailure extends Failure {
   const UnknownFailure() : super('An unexpected error occurred.');
 }

@@ -1,40 +1,61 @@
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 
-/// Defines the authentication operations required by the application.
+/// Abstract contract for all authentication operations.
 ///
-/// This interface ensures that the presentation layer interacts
-/// with authentication logic through abstraction,
-/// keeping the domain layer decoupled from data sources.
+/// The presentation layer depends only on this interface,
+/// keeping it decoupled from network or storage details.
 abstract class AuthRepository {
-  /// Logs user into the application using email and password.
+  /// Checks whether [email] is already registered.
   ///
-  /// Returns the authenticated [AuthUserEntity] if the login succeeds.
+  /// Returns `true` if an account exists, `false` if the email is available.
+  Future<bool> checkEmail(String email);
+
+  /// Creates a new account. Does NOT return tokens — email must be verified first.
   ///
-  /// Throws an exception if credentials are invalid
-  /// or if the authentication request fails.
+  /// Throws on validation error (400) or duplicate email/username (409).
+  Future<void> register({
+    required String email,
+    required String username,
+    required String password,
+    required String gender,
+    required String dateOfBirth,
+  });
+
+  /// Verifies the user's email with the 6-char [token] from their inbox.
+  ///
+  /// Returns the authenticated [AuthUserEntity] with tokens on success.
+  Future<AuthUserEntity> verifyEmail(String email, String token);
+
+  /// Resends the verification email to [email].
+  Future<void> resendVerification(String email);
+
+  /// Authenticates the user with [email] and [password].
+  ///
+  /// Returns [AuthUserEntity] if verified.
+  /// Throws [UnverifiedUserFailure] if the account exists but is not verified.
+  /// Throws [UnauthorizedFailure] for wrong credentials.
   Future<AuthUserEntity> login(String email, String password);
 
-  /// Registers a new user account.
-  ///
-  /// Requires a valid [email], [password], and unique [username].
-  ///
-  /// Returns the newly created authenticated [AuthUserEntity].
-  Future<AuthUserEntity> register(
-    String email,
-    String password,
-    String username,
-  );
+  /// Signs out the current device by revoking the stored refresh token.
+  Future<void> signOut();
 
-  /// Authenticates a user via an OAuth [provider] using an identity [token].
-  ///
-  /// [provider] is the OAuth provider name (e.g. "google").
-  /// [token] is the identity token obtained from the provider.
-  ///
-  /// Returns the authenticated [AuthUserEntity] on success.
-  Future<AuthUserEntity> oauthLogin(String provider, String token);
+  /// Signs out all devices by revoking all refresh tokens.
+  Future<void> signOutAll();
 
-  /// Logs the current user out of the application.
+  /// Sends a password reset email to [email].
+  Future<void> forgotPassword(String email);
+
+  /// Resets the password using the 6-char [token] from the reset email.
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+    bool signoutAll = true,
+  });
+
+  /// Soft-deletes the authenticated user's account.
   ///
-  /// Clears all locally stored authentication tokens.
-  Future<void> logout();
+  /// [password] is required for local accounts.
+  Future<void> deleteAccount({String? password});
 }
