@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'edit_profile_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/dto/profile_dto.dart';
+//import 'package:share_plus/share_plus.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -28,6 +30,11 @@ class  _ProfileScreenState extends State<ProfileScreen> {
   //image files
   File? profileImage;
   File? coverImage;
+  //////tracks for now
+  List<Map<String, String>> tracks = [
+    {'title': 'Track 1', 'duration': '3:45'},
+    {'title': 'Track 2', 'duration': '4:20'},
+  ];
   ///////////////////////
 
   Widget buildProfileImage() {
@@ -93,7 +100,6 @@ class  _ProfileScreenState extends State<ProfileScreen> {
               //Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowingScreen()));
             },
             child:Text('$followingCount Following', style: followerStyle),
-        
           ),
         ],
       ),
@@ -131,37 +137,12 @@ class  _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget buildIcon({//avoid redundancy; do all icons with it, reusable code
-    required IconData icon,
-    required VoidCallback onPressed,
-    double size = 28,
-    Color color = Colors.white,
-    bool filled = false, // true for play button (white circle)
-  }) {
-    if (filled) {
-      return Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
-        child: IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon, color: Colors.black, size: size),
-        ),
-      );
-    }
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon, color: color, size: size),
-    );
-  }
-
   Widget buildActionButtons() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 25),
     child: Row(
       children: [
-        buildIcon(
-          icon: Icons.edit_outlined,
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 28),
           onPressed: () async {
             final result = await Navigator.push<ProfileDto>(
               context,
@@ -191,56 +172,135 @@ class  _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
         const Spacer(),
-        buildIcon(
-            icon: Icons.shuffle,
-            onPressed: () {},
-          ),
-        buildIcon(
-            icon: Icons.play_arrow,
-            onPressed: () {},
-            filled: true,  
-            size:28,
-          ), 
+        IconButton(
+          icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
+          onPressed: () {},
+        ),
+      // play needs to be like this to show the filled circle
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
+          onPressed: () {},
+        ),
+      ),
       ],
     ),
   );
-  ////popup menu
-  PopupMenuItem<String> buildMenuItem({
-    required String value,
-    required IconData icon,
-    required String label,
-  }) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(color: Colors.white)),
-        ],
+  ////da el three dots menu
+    void showShareSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // profile info el heya elmafrodd bas el name,followers, tracks
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: profileImage != null ? FileImage(profileImage!) : null,
+                  child: profileImage == null ? const Icon(Icons.person, color: Colors.white) : null,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(userName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text('$followersCount Followers · ${tracks.length} Tracks',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // share actions row el gowa el three dots
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8),//bdl ma kont ba3od a3mlo be eidi
+              child: Row(
+                children: [
+                  buildShareAction(Icons.send, 'Message'),
+                 buildShareAction(Icons.copy, 'Copy Link'),
+                  buildShareAction(Icons.copy, 'Copy Link', onTap: () {
+                    Clipboard.setData(const ClipboardData(text: 'https://soundcloud.com/darineelfeel'));
+                    Navigator.pop(context); // close bottom sheet
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Link copied to clipboard!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }),
+                  // buildShareAction(Icons.share, 'Share', onTap: () {
+                  //   Share.share('https://soundcloud.com/darineelfeel');
+                  // }),
+                  ///// bgrb copy to clipboard
+                  buildShareAction(Icons.message, 'WhatsApp'),
+                  buildShareAction(Icons.messenger_outline, 'SMS'),
+                  buildShareAction(Icons.person, 'Instagram stories'),
+                  buildShareAction(Icons.person, 'Facebook stories'),
+                  buildShareAction(Icons.message, 'WhatsApp'),
+                  buildShareAction(Icons.more, 'More'),
+                  //add more when needed
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            //start station
+            ListTile(
+              leading: const Icon(Icons.radio, color: Colors.white),
+              title: const Text('Start station', style: TextStyle(color: Colors.white)),
+              onTap: () {},
+            ),
+            // view info
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: Colors.white),
+              title: const Text('View info', style: TextStyle(color: Colors.white)),
+              onTap: () {},
+            ),
+          ],
+        ),
       ),
     );
   }
-  Widget buildMoreMenu() => PopupMenuButton<String>(
-    color: const Color(0xFF1A1A1A),
-      onSelected: (value) {
-        if (value == 'share') {
-          // Navigator.push(context, MaterialPageRoute(builder: (_) => const ShareScreen()));
-        } else if (value == 'star') {
-          //Navigator.push(context, MaterialPageRoute(builder: (_) =>const EditProfileScreen()));
-        } else if (value == 'copy_link') {
-          print('copy link');
-        }
-      },
-    icon: const Icon(Icons.more_vert, color: Colors.white),
-    itemBuilder: (context) => [
-      buildMenuItem(value: 'share', icon: Icons.share_outlined, label: 'Share'),
-      buildMenuItem(value: 'star', icon: Icons.star_outline, label: 'Star'),
-      buildMenuItem(value: 'copy_link', icon: Icons.link, label: 'Copy link'),
-    ],
-  );
-
-
+    
+    Widget buildShareAction(IconData icon, String label, {VoidCallback? onTap}) => SizedBox(
+      width: 80,
+      child: GestureDetector(
+        onTap: onTap,  // ← uses the passed onTap
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade800,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -252,11 +312,11 @@ class  _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.cast),
             onPressed: () {},
           ),
-          // IconButton(
-          //   icon: const Icon(Icons.more_vert),
-          //   onPressed: () {},
-          // ),
-           buildMoreMenu(),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () => showShareSheet(),
+          ),
+          // buildMoreMenu(),
         ],
       ),
       body: SingleChildScrollView(

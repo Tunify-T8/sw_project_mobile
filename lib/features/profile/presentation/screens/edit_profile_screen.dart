@@ -1,7 +1,11 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/dto/profile_dto.dart';
+import '../widgets/discard_dialog.dart';
+import '../widgets/edit_profile_images.dart';
+import '../widgets/edit_profile_text_fields.dart';
+
 class EditProfileScreen extends StatefulWidget {
   final String userName;
   final String city;
@@ -19,6 +23,7 @@ class EditProfileScreen extends StatefulWidget {
     this.profileImage,
     this.coverImage,
   });
+
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
@@ -27,20 +32,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   ////////////variables
   File? profileImage;
   File? coverImage;
-  final double coverHeight = 150;
-  final double profileHeight = 150;
   final _picker = ImagePicker();
-   // pre-filled with current profile data, user edits these
+  // pre-filled with current profile data, user edits these
   late final TextEditingController _nameController;
   late final TextEditingController _cityController;
   late final TextEditingController _countryController;
   late final TextEditingController _bioController;
 
-  bool _hasChanges = false;
+  bool _hasChanges = false;//need to track to use when you save and when you try to exit withoiut saving
 
   @override
   void initState() {
-    super.initState();
+    super.initState();//thsi is what the values are initially
     _nameController = TextEditingController(text: widget.userName);
     _cityController = TextEditingController(text: widget.city);
     _countryController = TextEditingController(text: widget.country);
@@ -50,7 +53,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   @override
-  void dispose() {
+  void dispose() {//dipose happens when teh screen is closed to clear the memory of controllers and avoid memory leaks
     _nameController.dispose();
     _cityController.dispose();
     _countryController.dispose();
@@ -58,68 +61,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<bool> _onWillPop() async {
+  Future<bool> _onWillPop() async {//if user goes back if has changes is true then display discard dialog
     if (!_hasChanges) return true;
-    final shouldLeave = await showDiscardDialog();
-    return shouldLeave ?? false;
-  }
-
-
-  Future<bool?> showDiscardDialog() {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text(
-          'Are you sure?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'You have unsaved changes that will be lost',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), // discard
-            child: const Text(
-              'DISCARD CHANGES',
-              style: TextStyle(
-                color: Colors.orange,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, false), // stay
-            child: const Text(
-              'CONTINUE EDITING',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    final shouldLeave = await showDiscardDialog(context);
+    if (shouldLeave != null) {
+      return shouldLeave;// user pressed el howa ah discard aw continue editing
+    } else {
+      return false;// user das bara fa hy2fel we ysibo ykml editing
+    }
   }
 
   Widget buildSaveButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
       child: ElevatedButton(
-      onPressed: () {
-        setState(() => _hasChanges = false);
-        Navigator.pop(context, ProfileDto(
-          userName: _nameController.text,
-          city: _cityController.text,
-          country: _countryController.text,
-          bio: _bioController.text,
-          profileImagePath: profileImage?.path,
-          coverImagePath: coverImage?.path,
-        ));
-      },
-
+        onPressed: () {
+          setState(() => _hasChanges = false);
+          Navigator.pop(context, ProfileDto(
+            userName: _nameController.text,
+            city: _cityController.text,
+            country: _countryController.text,
+            bio: _bioController.text,
+            profileImagePath: profileImage?.path,
+            coverImagePath: coverImage?.path,
+          ));//btrg3 el profile el mt3dl fih
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -157,117 +123,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ],
     );
   }
+
   Future<void> pickImage({required bool isCover}) async {
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() {
         _hasChanges = true;
-        if (isCover) {
+        if (isCover) {//lw el cover el et8yr 8yr el cover image
           coverImage = File(picked.path);
-        } else {
+        } else {//8er kda 7ot el sora el e5trha fel profile
           profileImage = File(picked.path);
         }
       });
     }
   }
-Widget buildCoverImage() {
-  Widget coverContent;
-  if (coverImage != null) {
-    coverContent = Image.file(coverImage!, fit: BoxFit.cover);
-  } else {
-    coverContent = const SizedBox.shrink();
-  }
 
-  return GestureDetector(
-    onTap: () => pickImage(isCover: true),
-    child: Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: coverHeight,
-          color: Colors.grey.shade800,
-          child: coverContent,
-        ),
-        Positioned(
-          bottom: 10,
-          right: 14,
-          child: Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white24),
-            ),
-            child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget buildProfileImage() {
-  ImageProvider? image;
-  if (profileImage != null) {
-    image = FileImage(profileImage!);
-  }
-
-  Widget? avatarChild;
-  if (profileImage == null) {
-    avatarChild = const Icon(Icons.person, size: 50, color: Color(0xFF3A5F8A));
-  }
-
-  return GestureDetector(
-    onTap: () => pickImage(isCover: false),
-    child: Stack(
-      children: [
-        CircleAvatar(
-          radius: profileHeight / 2,
-          backgroundColor: Colors.grey,
-          backgroundImage: image,
-          child: avatarChild,
-        ),
-        Positioned(
-          bottom: 4,
-          right: 4,
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white24),
-            ),
-            child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 18),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-  Widget buildBody() {
+  Widget buildBody() {//a scrollable bode: images(top),fields (bottom)
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              buildCoverImage(),
-              Positioned(
-                top: coverHeight - profileHeight / 2,
-                left: 25,
-                child: buildProfileImage(),
-              ),
-            ],
+          EditProfileImages(
+            coverImage: coverImage,
+            profileImage: profileImage,
+            onCoverTap: () => pickImage(isCover: true),
+            onProfileTap: () => pickImage(isCover: false),
           ),
-          SizedBox(height: profileHeight / 2 + 8),
+          SizedBox(height: EditProfileImages.profileHeight / 2 + 8),
+          EditProfileTextFields(
+            nameController: _nameController,
+            cityController: _cityController,
+            countryController: _countryController,
+            bioController: _bioController,
+            onChanged: () => setState(() => _hasChanges = true),
+          ),
         ],
       ),
     );
   }
+
   @override
-@override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
