@@ -6,6 +6,7 @@ class EditProfileTextFields extends StatelessWidget {//controller are better 3ls
   final TextEditingController countryController;
   final TextEditingController bioController;
   final VoidCallback onChanged;
+  final VoidCallback onCountryTap; // to select the country from the menu
 
   const EditProfileTextFields({////these are the required parameters to be passed mynf3sh w7da mttb3etsh
     super.key,
@@ -14,6 +15,7 @@ class EditProfileTextFields extends StatelessWidget {//controller are better 3ls
     required this.countryController,
     required this.bioController,
     required this.onChanged,
+    required this.onCountryTap, // for the country 
   });
 
   Widget buildField(String label, TextEditingController controller,
@@ -46,7 +48,15 @@ class EditProfileTextFields extends StatelessWidget {//controller are better 3ls
         children: [
           buildField('Display Name', nameController),
           buildField('City', cityController, maxLength: 35),
-          buildField('Country', countryController, maxLength: 35),
+          ////buildField('Country', countryController, maxLength: 35),
+            ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Country', style: TextStyle(color: Colors.white70)),
+                subtitle: Text(countryController.text, style: const TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                onTap: onCountryTap,
+            ),
+          ///////
           buildField('Bio', bioController),
           //buildField('Genre', genreController),
         ],

@@ -5,6 +5,7 @@ import '../../data/dto/profile_dto.dart';
 import '../widgets/discard_dialog.dart';
 import '../widgets/edit_profile_images.dart';
 import '../widgets/edit_profile_text_fields.dart';
+import 'package:country_picker/country_picker.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String userName;
@@ -156,6 +157,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             countryController: _countryController,
             bioController: _bioController,
             onChanged: () => setState(() => _hasChanges = true),
+            onCountryTap: () {  // added this to choose the country from package
+              showCountryPicker(
+                context: context,
+                showPhoneCode: false,
+                onSelect: (Country country) {
+                  setState(() {
+                    _countryController.text = country.name;
+                    _hasChanges = true;
+                  });
+                },
+              );
+            },
           ),
         ],
       ),
