@@ -6,23 +6,30 @@ import '../widgets/discard_dialog.dart';
 import '../widgets/edit_profile_images.dart';
 import '../widgets/edit_profile_text_fields.dart';
 import 'package:country_picker/country_picker.dart';
+import '../widgets/edit_profile_links.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final String userName;
-  final String city;
-  final String country;
-  final String bio;
-  final File? profileImage;
-  final File? coverImage;
+    final String userName;
+    final String bio;
+    final String city;
+    final String country;
+    final File? profileImage;
+    final File? coverImage;
+    final String? instagram;
+    final String? twitter;
+    final String? website;
 
   const EditProfileScreen({
     super.key,
     required this.userName,
+    required this.bio,
     required this.city,
     required this.country,
-    required this.bio,
     this.profileImage,
     this.coverImage,
+    this.instagram,
+    this.twitter,
+    this.website,
   });
 
   @override
@@ -36,21 +43,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _picker = ImagePicker();
   // pre-filled with current profile data, user edits these
   late final TextEditingController _nameController;
+  late final TextEditingController _bioController;
   late final TextEditingController _cityController;
   late final TextEditingController _countryController;
-  late final TextEditingController _bioController;
+  late final TextEditingController _instagramController;
+  late final TextEditingController _twitterController;
+  late final TextEditingController _websiteController;
 
   bool _hasChanges = false;//need to track to use when you save and when you try to exit withoiut saving
 
   @override
   void initState() {
     super.initState();//thsi is what the values are initially
-    _nameController = TextEditingController(text: widget.userName);
-    _cityController = TextEditingController(text: widget.city);
-    _countryController = TextEditingController(text: widget.country);
-    _bioController = TextEditingController(text: widget.bio);
-    profileImage = widget.profileImage;
-    coverImage = widget.coverImage;
+      _nameController = TextEditingController(text: widget.userName);
+      _cityController = TextEditingController(text: widget.city);
+      _countryController = TextEditingController(text: widget.country);
+      _bioController = TextEditingController(text: widget.bio);
+      _instagramController = TextEditingController(text: widget.instagram ?? '');
+      _twitterController = TextEditingController(text: widget.twitter ?? '');
+      _websiteController = TextEditingController(text: widget.website ?? '');
+      profileImage = widget.profileImage;
+      coverImage = widget.coverImage;
   }
 
   @override
@@ -59,6 +72,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _cityController.dispose();
     _countryController.dispose();
     _bioController.dispose();
+    _instagramController.dispose();
+    _twitterController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -78,14 +94,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: ElevatedButton(
         onPressed: () {
           setState(() => _hasChanges = false);
-          Navigator.pop(context, ProfileDto(
-            userName: _nameController.text,
-            city: _cityController.text,
-            country: _countryController.text,
-            bio: _bioController.text,
-            profileImagePath: profileImage?.path,
-            coverImagePath: coverImage?.path,
-          ));//btrg3 el profile el mt3dl fih
+        Navigator.pop(context, ProfileDto(
+          userName: _nameController.text,
+          city: _cityController.text,
+          country: _countryController.text,
+          bio: _bioController.text,
+          profileImagePath: profileImage?.path,
+          coverImagePath: coverImage?.path,
+          instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
+          twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
+          website: _websiteController.text.isEmpty ? null : _websiteController.text,
+        ));
+          //btrg3 el profile el mt3dl fih
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
@@ -157,7 +177,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             countryController: _countryController,
             bioController: _bioController,
             onChanged: () => setState(() => _hasChanges = true),
-            onCountryTap: () {  // added this to choose the country from package
+            onCountryTap: () {
               showCountryPicker(
                 context: context,
                 showPhoneCode: false,
@@ -169,6 +189,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               );
             },
+          ),
+          EditProfileLinks(
+            instagramController: _instagramController,
+            twitterController: _twitterController,
+            websiteController: _websiteController,
+            onChanged: () => setState(() => _hasChanges = true),
           ),
         ],
       ),

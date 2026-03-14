@@ -1,20 +1,23 @@
 class ProfileDto {
-  final String username;
+  final String userName;
+  final String city;
+  final String country;
   final String bio;
-  final String location;
-  final String? avatarPath;
-  final String? coverPath;
+  final String? profileImagePath;
+  final String? coverImagePath;
   final String? instagram;
   final String? twitter;
   final String? website;
   // TODO: add genres later
+  // TODO: add playlists later
 
   ProfileDto({
-    required this.username,
+    required this.userName,
+    required this.city,
+    required this.country,
     required this.bio,
-    required this.location,
-    this.avatarPath,
-    this.coverPath,
+    this.profileImagePath,
+    this.coverImagePath,
     this.instagram,
     this.twitter,
     this.website,

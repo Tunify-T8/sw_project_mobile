@@ -23,6 +23,9 @@ class  _ProfileScreenState extends State<ProfileScreen> {
   String userName = 'Darine Sherif';
   String city = 'Cairo';
   String country = 'Egypt';
+  String? instagram;
+  String? twitter;
+  String? website;
   int followersCount = 300;
   int followingCount = 1;
   List<String> genres = ['HipHop', 'Jazz', 'Electronic'];
@@ -81,7 +84,7 @@ class  _ProfileScreenState extends State<ProfileScreen> {
   );
   Widget buildLocation() => Padding(
     padding: const EdgeInsets.only(left: 25),
-    child: Text('📍$city, $country',style:bioStyle), 
+    child: Text('📍$city, $country', style: bioStyle),
   );
   Widget buildFollowerCount() {
     return Padding(
@@ -105,38 +108,41 @@ class  _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  Widget buildSocialLinks() {
-    final links = [//I will hardcode the links first to see what appears then I will take it from api
-      {'icon': Icons.camera_alt, 'url': 'https://instagram.com/darineelfeel'},
-      {'icon': Icons.language, 'url': 'https://yourwebsite.com'},//these two are an example to add more icons do that in edit
-    ];//when I get the api it would probably look like this 
-    // final links = user.webLinks.map((link) => {
-    //   'icon': iconForPlatform(link.platform),
-    //   'url': link.url,
-    // }).toList();
+ Widget buildSocialLinks() {
+  final links = [
+    if (instagram != null && instagram!.isNotEmpty)
+      {'icon': Icons.camera_alt, 'url': instagram!, 'label': instagram!},
+    if (twitter != null && twitter!.isNotEmpty)
+      {'icon': Icons.alternate_email, 'url': twitter!, 'label': twitter!},
+    if (website != null && website!.isNotEmpty)
+      {'icon': Icons.language, 'url': website!, 'label': website!},
+  ];
 
-    return Padding(
-      padding: const EdgeInsets.only(left: 25),
-      child: Row(
-        children: links.map((link) => IconButton(
-          onPressed: () async {
-             // launch url later when I get api
-          // launchUrl(Uri.parse(link['url'] as String));
-          //print(link['url']); // just prints for now so I can see it works for now
-    
+  if (links.isEmpty) return const SizedBox.shrink();
+
+  return Padding(
+    padding: const EdgeInsets.only(left: 25),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: links.map((link) => GestureDetector(
+        onTap: () async {
           final url = Uri.parse(link['url'] as String);
           await launchUrl(url, mode: LaunchMode.externalApplication);
-          }, // add url_launcher here later->what I'm trying to do now
-          icon: Icon(
-            link['icon'] as IconData,
-            color: Colors.white,
-            size:30,
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Icon(link['icon'] as IconData, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(link['label'] as String, style: bioStyle),
+            ],
           ),
-        )).toList(),
-      ),
-    );
-  }
-
+        ),
+      )).toList(),
+    ),
+  );
+}
   Widget buildActionButtons() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 25),
     child: Row(
@@ -146,27 +152,29 @@ class  _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () async {
             final result = await Navigator.push<ProfileDto>(
               context,
-                MaterialPageRoute(builder: (_) => EditProfileScreen(
+              MaterialPageRoute(builder: (_) => EditProfileScreen(
                 userName: userName,
+                bio: bio,
                 city: city,
                 country: country,
-                bio: bio,
                 profileImage: profileImage,
                 coverImage: coverImage,
+                instagram: instagram,
+                twitter: twitter,
+                website: website,
               ))
             );
             if (result != null) {
               setState(() {
                 userName = result.userName;
-                city = result.city;
-                country = result.country;
                 bio = result.bio;
-                if (result.profileImagePath != null) {
-                  profileImage = File(result.profileImagePath!);
-                }
-                if (result.coverImagePath != null) {
-                  coverImage = File(result.coverImagePath!);
-                }
+                city = result.city;
+                country= result.country;
+                instagram = result.instagram;
+                twitter = result.twitter;
+                website = result.website;
+                if (result.profileImagePath != null) profileImage = File(result.profileImagePath!);
+                if (result.coverImagePath != null) coverImage = File(result.coverImagePath!);
               });
             }
           },
