@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/shared/ui/screens/settings_screen.dart';
 import 'shared/ui/screens/library_screen.dart';
 
 void main() {

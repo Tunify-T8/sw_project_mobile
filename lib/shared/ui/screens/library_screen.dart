@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/shared/ui/screens/settings_screen.dart';
 import '../widgets/library_menu_tile.dart';
+import 'settings_screen.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -14,7 +16,10 @@ class LibraryScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
-              //navigate
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
             },
             icon: Icon(Icons.settings),
             iconSize: 30.0,
