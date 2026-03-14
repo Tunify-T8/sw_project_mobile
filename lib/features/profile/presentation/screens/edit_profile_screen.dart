@@ -18,6 +18,7 @@ class EditProfileScreen extends StatefulWidget {
     final String? instagram;
     final String? twitter;
     final String? website;
+    final String userType;
 
   const EditProfileScreen({
     super.key,
@@ -30,6 +31,7 @@ class EditProfileScreen extends StatefulWidget {
     this.instagram,
     this.twitter,
     this.website,
+    this.userType = 'ARTIST',
   });
 
   @override
@@ -51,7 +53,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _websiteController;
 
   bool _hasChanges = false;//need to track to use when you save and when you try to exit withoiut saving
-
+  late bool _isArtist;
   @override
   void initState() {
     super.initState();//thsi is what the values are initially
@@ -64,6 +66,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _websiteController = TextEditingController(text: widget.website ?? '');
       profileImage = widget.profileImage;
       coverImage = widget.coverImage;
+      _isArtist = widget.userType == 'ARTIST';
   }
 
   @override
@@ -104,6 +107,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
           twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
           website: _websiteController.text.isEmpty ? null : _websiteController.text,
+          userType: _isArtist ? 'ARTIST' : 'LISTENER',
         ));
           //btrg3 el profile el mt3dl fih
         },
@@ -196,11 +200,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             websiteController: _websiteController,
             onChanged: () => setState(() => _hasChanges = true),
           ),
+          buildAccountTypeToggle(),//is artist aw listener
         ],
       ),
     );
   }
-
+Widget buildAccountTypeToggle() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Account type',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            Text(
+              _isArtist ? 'Artist' : 'Listener',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ],
+        ),
+        Switch(
+          value: _isArtist,
+          activeColor: const Color(0xFF3A5F8A),
+          onChanged: (val) {
+            setState(() {
+              _isArtist = val;
+              _hasChanges = true;
+            });
+          },
+        ),
+      ],
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -8,6 +8,10 @@ class ProfileDto {
   final String? instagram;
   final String? twitter;
   final String? website;
+  final int followersCount;
+  final int followingCount;
+  final String visibility;
+  final String userType;
   // TODO: add genres later
   // TODO: add playlists later
 
@@ -21,5 +25,9 @@ class ProfileDto {
     this.instagram,
     this.twitter,
     this.website,
+    this.followersCount = 0,
+    this.followingCount = 0,
+    this.visibility = 'PUBLIC',
+    this.userType = 'ARTIST',
   });
 }

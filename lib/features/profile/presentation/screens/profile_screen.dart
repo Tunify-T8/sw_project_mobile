@@ -4,6 +4,10 @@ import 'package:flutter/services.dart';
 import 'edit_profile_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/dto/profile_dto.dart';
+import 'package:flutter/foundation.dart';
+import '../providers/profile_provider.dart';
+import '../providers/profile_state.dart';
+//import '../../data/dto/profile_dto.dart';
 //import 'package:share_plus/share_plus.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,6 +17,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class  _ProfileScreenState extends State<ProfileScreen> {
+  late ProfileProvider _provider;//di bel apis
   final double profileHeight = 150;
   final double coverHeight = 150;
   ///styles 
@@ -20,60 +25,120 @@ class  _ProfileScreenState extends State<ProfileScreen> {
   final followerStyle = TextStyle( fontSize: 18, color: Colors.grey.shade200);
   final bioStyle = TextStyle(fontSize: 16, color: Colors.grey.shade400, height: 1.5);
   // I wrote the mockdata i used as variables to easily replace with api later
-  String userName = 'Darine Sherif';
-  String city = 'Cairo';
-  String country = 'Egypt';
+  // String userName = 'Darine Sherif';
+  // String city = 'Cairo';
+  // String country = 'Egypt';
+  // String? instagram;
+  // String? twitter;
+  // String? website;
+  // int followersCount = 300;
+  // int followingCount = 1;
+  String userName = '';
+  String city = '';
+  String country = '';
   String? instagram;
   String? twitter;
   String? website;
-  int followersCount = 300;
-  int followingCount = 1;
-  List<String> genres = ['HipHop', 'Jazz', 'Electronic'];
-  String bio = 'Music lover based in Cairo 🎧';
-  //image files
+  int followersCount = 0;
+  int followingCount = 0;
+  List<String> genres = [];
+  String bio = '';
   File? profileImage;
   File? coverImage;
+  String userType = 'ARTIST';
+ // List<String> genres = ['HipHop', 'Jazz', 'Electronic'];
+  //String bio = 'Music lover based in Cairo 🎧';
+  //image files
+  //File? profileImage;
+  //File? coverImage;
   //////tracks for now
   List<Map<String, String>> tracks = [
     {'title': 'Track 1', 'duration': '3:45'},
     {'title': 'Track 2', 'duration': '4:20'},
   ];
   ///////////////////////
+  @override
+  void initState() {
+    super.initState();
+    _provider = ProfileProvider();
+    _provider.addListener(_onProfileLoaded);
+    _provider.loadProfile();
+  }
 
+  void _onProfileLoaded() {
+    if (_provider.state.isSuccess && _provider.state.profile != null) {
+      final profile = _provider.state.profile!;
+      setState(() {
+        userName = profile.userName;
+        bio = profile.bio;
+        city = profile.city;
+        country = profile.country;
+        followersCount = profile.followersCount;
+        followingCount = profile.followingCount;
+        instagram = profile.instagram;
+        twitter = profile.twitter;
+        website = profile.website;
+        userType = profile.userType;
+        if (profile.profileImagePath != null) {
+          // network image — handle separately
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _provider.removeListener(_onProfileLoaded);
+    super.dispose();
+  }
+  //////
   Widget buildProfileImage() {
-    if(profileImage!=null){
-    return CircleAvatar(
-        radius: profileHeight/2,
+    final avatarUrl = _provider.state.profile?.profileImagePath;
+    if (avatarUrl != null) {
+      return CircleAvatar(
+        radius: profileHeight / 2,
         backgroundColor: Colors.grey,
-        backgroundImage:FileImage(profileImage!),
-
+        backgroundImage: NetworkImage(avatarUrl),
       );
-      }
-      else{
-        return CircleAvatar(
+    } else if (profileImage != null) {
+      return CircleAvatar(
+        radius: profileHeight / 2,
+        backgroundColor: Colors.grey,
+        backgroundImage: FileImage(profileImage!),
+      );
+    } else {
+      return CircleAvatar(
         radius: profileHeight / 2,
         backgroundColor: Colors.grey,
         child: const Icon(Icons.person, size: 50, color: Color(0xFF3A5F8A)),
-       );
-      }
+      );
+    }
   }
 
   Widget buildCoverImage() {
-    if (coverImage != null) {
-        return Container(
-          width: double.infinity,
-          height: coverHeight,
-          color: Colors.grey.shade800,
-          child: Image.file(coverImage!, fit: BoxFit.cover),
-        );
-      } else {
-        return Container(
-          width: double.infinity,
-          height: coverHeight,
-          color: Colors.grey.shade800,
-        );
-      }
-  } 
+    final coverUrl = _provider.state.profile?.coverImagePath;
+    if (coverUrl != null) {
+      return Container(
+        width: double.infinity,
+        height: coverHeight,
+        color: Colors.grey.shade800,
+        child: Image.network(coverUrl, fit: BoxFit.cover),
+      );
+    } else if (coverImage != null) {
+      return Container(
+        width: double.infinity,
+        height: coverHeight,
+        color: Colors.grey.shade800,
+        child: Image.file(coverImage!, fit: BoxFit.cover),
+      );
+    } else {
+      return Container(
+        width: double.infinity,
+        height: coverHeight,
+        color: Colors.grey.shade800,
+      );
+    }
+  }
   Widget buildName() => Padding(
     padding: const EdgeInsets.only(left: 25),
     child: Text(userName,style:nameStyle),
@@ -162,20 +227,44 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                 instagram: instagram,
                 twitter: twitter,
                 website: website,
+                userType: userType,
               ))
             );
+            // if (result != null) {
+            //   setState(() {
+            //     userName = result.userName;
+            //     bio = result.bio;
+            //     city = result.city;
+            //     country= result.country;
+            //     instagram = result.instagram;
+            //     twitter = result.twitter;
+            //     website = result.website;
+            //     if (result.profileImagePath != null) profileImage = File(result.profileImagePath!);
+            //     if (result.coverImagePath != null) coverImage = File(result.coverImagePath!);
+            //   });
+            // }
+
+            // if (result != null) {
+            //   await _provider.updateProfile(result);
+            // }
             if (result != null) {
-              setState(() {
-                userName = result.userName;
-                bio = result.bio;
-                city = result.city;
-                country= result.country;
-                instagram = result.instagram;
-                twitter = result.twitter;
-                website = result.website;
-                if (result.profileImagePath != null) profileImage = File(result.profileImagePath!);
-                if (result.coverImagePath != null) coverImage = File(result.coverImagePath!);
-              });
+              final updated = ProfileDto(
+                userName: result.userName,
+                bio: result.bio,
+                city: result.city,
+                country: result.country,
+                visibility: result.visibility,
+                followersCount: result.followersCount,
+                followingCount: result.followingCount,
+                instagram: result.instagram,
+                twitter: result.twitter,
+                website: result.website,
+                userType: result.userType,
+                profileImagePath: result.profileImagePath ?? _provider.state.profile?.profileImagePath,
+                coverImagePath: result.coverImagePath ?? _provider.state.profile?.coverImagePath,
+              );
+              setState(() => userType = result.userType);
+              await _provider.updateProfile(updated);
             }
           },
         ),
@@ -327,7 +416,11 @@ class  _ProfileScreenState extends State<ProfileScreen> {
           // buildMoreMenu(),
         ],
       ),
-      body: SingleChildScrollView(
+body: _provider.state.isLoading
+  ? const Center(child: CircularProgressIndicator())
+  : _provider.state.isError
+    ? Center(child: Text(_provider.state.errorMessage ?? 'Error', style: const TextStyle(color: Colors.white)))
+    : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -359,6 +452,8 @@ class  _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    
     );
   }
+  
 }
