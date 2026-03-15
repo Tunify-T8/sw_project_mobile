@@ -1,4 +1,5 @@
-import '../../domain/entities/upload_genre.dart';
+import '../../domain/entities/upload_genre_model.dart';
+//import '../../domain/entities/upload_genres.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 

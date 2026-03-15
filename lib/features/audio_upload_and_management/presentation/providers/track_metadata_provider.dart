@@ -1,51 +1,41 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_genre.dart';
 import '../../domain/entities/upload_status.dart';
+import 'track_metadata_mapper.dart';
 import 'track_metadata_state.dart';
+import 'track_metadata_validator.dart';
 import 'upload_dependencies_provider.dart';
 import 'upload_repository_provider.dart';
 
 class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   @override
   TrackMetadataState build() {
-    final primaryArtist = ref.read(currentArtistNameProvider);
-
     return TrackMetadataState(
-      artists: [primaryArtist],
+      artists: [_primaryArtist],
     );
   }
 
-  void prepareForNewUpload(String fileName) {
-    final primaryArtist = ref.read(currentArtistNameProvider);
+  String get _primaryArtist => ref.read(currentArtistNameProvider);
 
+  void prepareForNewUpload(String fileName) {
     state = TrackMetadataState(
       title: fileName,
-      artists: [primaryArtist],
+      artists: [_primaryArtist],
     );
   }
 
   void setTitle(String value) {
-    state = state.copyWith(
-      title: value,
-      error: null,
-    );
+    state = state.copyWith(title: value, error: null);
   }
 
   void setGenreCategory(String value) {
-    state = state.copyWith(
-      genreCategory: value,
-      error: null,
-    );
+    state = state.copyWith(genreCategory: value, error: null);
   }
 
   void setGenreSubGenre(String value) {
-    state = state.copyWith(
-      genreSubGenre: value,
-      error: null,
-    );
+    state = state.copyWith(genreSubGenre: value, error: null);
   }
 
   void setGenre(UploadGenre genre) {
@@ -57,24 +47,15 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   }
 
   void setTagsText(String value) {
-    state = state.copyWith(
-      tagsText: value,
-      error: null,
-    );
+    state = state.copyWith(tagsText: value, error: null);
   }
 
   void setDescription(String value) {
-    state = state.copyWith(
-      description: value,
-      error: null,
-    );
+    state = state.copyWith(description: value, error: null);
   }
 
   void setPrivacy(String value) {
-    state = state.copyWith(
-      privacy: value,
-      error: null,
-    );
+    state = state.copyWith(privacy: value, error: null);
   }
 
   void addArtist(String value) {
@@ -103,12 +84,8 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
       return;
     }
 
-    final updatedArtists = state.artists
-        .where((element) => element != artist)
-        .toList();
-
     state = state.copyWith(
-      artists: updatedArtists,
+      artists: state.artists.where((value) => value != artist).toList(),
       error: null,
     );
   }
@@ -127,14 +104,12 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
         error: null,
       );
     } catch (e) {
-      state = state.copyWith(
-        error: e.toString(),
-      );
+      state = state.copyWith(error: e.toString());
     }
   }
 
   Future<bool> saveMetadataAndProcessInBackground(String trackId) async {
-    final validationError = _validateBeforeSave();
+    final validationError = TrackMetadataValidator.validateForSave(state);
 
     if (validationError != null) {
       state = state.copyWith(error: validationError);
@@ -153,40 +128,10 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
     return true;
   }
 
-  String? _validateBeforeSave() {
-    if (state.title.trim().isEmpty) {
-      return 'Title is required.';
-    }
-
-    if (state.genreSubGenre.trim().isEmpty) {
-      return 'Genre is required.';
-    }
-
-    if (state.artists.isEmpty) {
-      return 'At least one artist is required.';
-    }
-
-    return null;
-  }
-
   Future<void> _saveMetadataAndProcess(String trackId) async {
     try {
       final repository = ref.read(uploadRepositoryProvider);
-
-      final metadata = TrackMetadata(
-        title: state.title.trim(),
-        genreCategory: state.genreCategory.trim(),
-        genreSubGenre: state.genreSubGenre.trim(),
-        tags: state.tagsText
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList(),
-        description: state.description.trim(),
-        privacy: state.privacy,
-        artists: state.artists,
-        artworkPath: state.artworkPath,
-      );
+      final metadata = TrackMetadataMapper.toEntity(state);
 
       final processingTrack = await repository.finalizeMetadata(
         trackId: trackId,

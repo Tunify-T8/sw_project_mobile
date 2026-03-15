@@ -1,14 +1,19 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/upload_genre.dart';
 import '../../domain/entities/upload_status.dart';
 import '../providers/track_metadata_provider.dart';
-import '../providers/track_metadata_state.dart';
 import '../providers/upload_provider.dart';
-import '../widgets/upload_checklist_progress_ring.dart';
+import '../widgets/metadata/privacy_section.dart';
+import '../widgets/metadata/save_metadata_footer.dart';
+import '../widgets/metadata/track_file_summary_section.dart';
+import '../widgets/metadata/track_info_form_section.dart';
+import '../widgets/metadata/track_metadata_tab_switcher.dart';
+import '../widgets/metadata/upload_promo_banner.dart';
+import '../widgets/sheets/artwork_source_sheet.dart';
+import '../widgets/sheets/genre_picker_sheet.dart';
+import '../widgets/sheets/track_checklist_sheet.dart';
 
+// refactor again after merging with rozana
 class TrackMetadataScreen extends ConsumerStatefulWidget {
   final String trackId;
   final String fileName;
@@ -25,7 +30,10 @@ class TrackMetadataScreen extends ConsumerStatefulWidget {
 }
 
 class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
+  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _artistController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _tagsController = TextEditingController();
 
   @override
   void initState() {
@@ -40,507 +48,34 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
   @override
   void dispose() {
+    _titleController.dispose();
     _artistController.dispose();
+    _descriptionController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
-  void _showChecklistBottomSheet(TrackMetadataState state) {
-    final completed = state.completedChecklistItems;
-
-    Widget checklistItem({
-      required String label,
-      required String tip,
-      required bool done,
-    }) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            done ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: done ? const Color(0xFFA855F7) : Colors.white70,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  tip,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
+  void _syncController(TextEditingController controller, String value) {
+    if (controller.text == value) {
+      return;
     }
 
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF242424),
-      isScrollControlled: true,
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.74,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
-              child: Column(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.white38,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Get everything in place',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Fans are more likely to play your track when you complete these:',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 92,
-                            height: 92,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                UploadChecklistProgressRing(
-                                  progress: state.checklistProgress,
-                                  size: 92,
-                                  strokeWidth: 8,
-                                ),
-                                Text(
-                                  '$completed/4',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                checklistItem(
-                                  label: 'Title',
-                                  tip: "Tip: don't include artist name",
-                                  done: state.hasTitle,
-                                ),
-                                const SizedBox(height: 16),
-                                checklistItem(
-                                  label: 'Artwork',
-                                  tip: 'Add cover art for better presentation',
-                                  done: state.hasArtwork,
-                                ),
-                                const SizedBox(height: 16),
-                                checklistItem(
-                                  label: 'Genre',
-                                  tip: 'Help fans discover your track',
-                                  done: state.hasGenre,
-                                ),
-                                const SizedBox(height: 16),
-                                checklistItem(
-                                  label: 'Description',
-                                  tip: 'Add any details about your track for fans',
-                                  done: state.hasDescription,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white38),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Ok, got it',
-                        style: TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
     );
   }
 
-  Future<void> _showArtworkSourceSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF1C1C1C),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library_outlined,
-                  color: Colors.white,
-                ),
-                title: const Text(
-                  'Choose from gallery',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref.read(trackMetadataProvider.notifier).pickArtwork();
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.camera_alt_outlined,
-                  color: Colors.white,
-                ),
-                title: const Text(
-                  'Take photo',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref
-                      .read(trackMetadataProvider.notifier)
-                      .pickArtwork(fromCamera: true);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showGenreBottomSheet(TrackMetadataState state) async {
-    final selectedGenre = state.selectedGenre;
-
-    Widget buildSectionLabel(String label) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      );
-    }
-
-    Widget buildGenreTile(UploadGenre genre) {
-      final isSelected = genre.isNone
-          ? selectedGenre.isNone
-          : selectedGenre.categoryValue == genre.categoryValue &&
-              selectedGenre.subGenre == genre.subGenre;
-
-      return ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-        title: Text(
-          genre.label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-          ),
-        ),
-        trailing: isSelected
-            ? const Icon(
-                Icons.check,
-                color: Colors.white,
-              )
-            : null,
-        onTap: () {
-          ref.read(trackMetadataProvider.notifier).setGenre(genre);
-          Navigator.pop(context);
-        },
-      );
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
-      isScrollControlled: true,
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.82,
-          child: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 52,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.white38,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
-                    physics: const ClampingScrollPhysics(),
-                    children: [
-                      buildGenreTile(UploadGenres.none),
-                      buildSectionLabel('Music'),
-                      ...UploadGenres.music.map(buildGenreTile),
-                      buildSectionLabel('Audio'),
-                      ...UploadGenres.audio.map(buildGenreTile),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  InputDecoration _underlineFieldStyle(String label, {String? hintText}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hintText,
-      labelStyle: const TextStyle(color: Colors.white70),
-      hintStyle: const TextStyle(color: Colors.white38),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white24),
-      ),
-      focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white70),
-      ),
-    );
-  }
-
-  Widget _buildArtworkTile(String? artworkPath) {
-    return GestureDetector(
-      onTap: _showArtworkSourceSheet,
-      child: Container(
-        width: 120,
-        height: 120,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white54,
-            width: 1.2,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: artworkPath == null || artworkPath.isEmpty
-            ? const Center(
-                child: Icon(
-                  Icons.camera_alt_outlined,
-                  color: Colors.white,
-                  size: 34,
-                ),
-              )
-            : ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.file(
-                  File(artworkPath),
-                  fit: BoxFit.cover,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildProgressPill({
-    required bool isPreparingUpload,
-    required bool isUploading,
-    required double progress,
-  }) {
-    String label;
-
-    if (isPreparingUpload) {
-      label = 'PREPARING TO UPLOAD';
-    } else if (isUploading) {
-      label = 'UPLOADING ${(progress * 100).toStringAsFixed(0)}%';
-    } else {
-      label = 'UPLOADING 100%';
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        height: 46,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0C5F3B),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Stack(
-          children: [
-            FractionallySizedBox(
-              widthFactor: isPreparingUpload ? 0.15 : progress.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF11A85B),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Row(
-                children: [
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.close,
-                    color: Colors.white70,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 14),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrivacyOption({
-    required String value,
-    required String currentValue,
-    required String title,
-    required String subtitle,
-  }) {
-    final isSelected = value == currentValue;
-
-    return InkWell(
-      onTap: () {
-        ref.read(trackMetadataProvider.notifier).setPrivacy(value);
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white70, width: 1.5),
-                color: isSelected ? Colors.white : Colors.transparent,
-              ),
-              child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.black,
-                      size: 18,
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _processingText(TrackMetadataState state) {
-    if (state.isSaving) {
+  String _processingText(UploadStatus status, bool isSaving, bool isPolling) {
+    if (isSaving) {
       return 'Preparing to process';
     }
 
-    if (state.isPolling) {
+    if (isPolling) {
       return 'Processing';
     }
 
-    switch (state.processingStatus) {
+    switch (status) {
       case UploadStatus.idle:
         return 'Idle';
       case UploadStatus.uploading:
@@ -556,48 +91,16 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     }
   }
 
-  Widget _buildGenreField(TrackMetadataState metadataState) {
-    final selectedGenre = metadataState.selectedGenre;
-    final hasGenre = metadataState.hasGenre;
+  Future<void> _handleSave() async {
+    final started = await ref
+        .read(trackMetadataProvider.notifier)
+        .saveMetadataAndProcessInBackground(widget.trackId);
 
-    return InkWell(
-      onTap: () => _showGenreBottomSheet(metadataState),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Genre',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  hasGenre ? selectedGenre.label : 'Help fans discover your track',
-                  style: TextStyle(
-                    color: hasGenre ? Colors.white : Colors.white38,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.unfold_more,
-                color: Colors.white70,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Container(
-            height: 1,
-            color: Colors.white24,
-          ),
-        ],
-      ),
-    );
+    if (!started || !mounted) {
+      return;
+    }
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -605,9 +108,14 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     final metadataState = ref.watch(trackMetadataProvider);
     final uploadState = ref.watch(uploadProvider);
 
+    _syncController(_titleController, metadataState.title);
+    _syncController(_descriptionController, metadataState.description);
+    _syncController(_tagsController, metadataState.tagsText);
+
     final uploadFinished = uploadState.uploadFinished;
     final displayedFileName = uploadState.selectedAudio?.name ?? widget.fileName;
-    final completionCount = metadataState.completedChecklistItems;
+    final buttonEnabled =
+        uploadFinished && !metadataState.isSaving && !metadataState.isPolling;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -616,9 +124,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         elevation: 0,
         leadingWidth: 90,
         leading: TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
           child: const Text(
             'Cancel',
             style: TextStyle(color: Colors.white70, fontSize: 18),
@@ -633,20 +139,23 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 14),
             child: GestureDetector(
-              onTap: () => _showChecklistBottomSheet(metadataState),
+              onTap: () => showTrackChecklistSheet(context, metadataState),
               child: SizedBox(
                 width: 42,
                 height: 42,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    UploadChecklistProgressRing(
-                      progress: metadataState.checklistProgress,
-                      size: 42,
+                    CircularProgressIndicator(
+                      value: metadataState.checklistProgress,
                       strokeWidth: 3,
+                      backgroundColor: Colors.white12,
+                      valueColor: const AlwaysStoppedAnimation(
+                        Color(0xFFA855F7),
+                      ),
                     ),
                     Text(
-                      '$completionCount/4',
+                      '${metadataState.completedChecklistItems}/4',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -664,391 +173,87 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         physics: const ClampingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2B2B2B),
-                      borderRadius: BorderRadius.circular(26),
-                      border: Border.all(color: Colors.white54),
-                    ),
-                    child: const Text(
-                      'Track Info',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      'Advanced',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      'Permissions',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const TrackMetadataTabSwitcher(),
           const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF262626),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Color(0xFF7C3AED),
-                  child: Icon(Icons.flash_on, color: Colors.white),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Amplify your track with Artist Pro',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const UploadPromoBanner(),
           const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildArtworkTile(metadataState.artworkPath),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Filename',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      displayedFileName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    if (!uploadFinished)
-                      _buildProgressPill(
-                        isPreparingUpload: uploadState.isPreparingUpload,
-                        isUploading: uploadState.isUploading,
-                        progress: uploadState.uploadProgress,
-                      )
-                    else
-                      Row(
-                        children: [
-                          OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white38),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 22,
-                                vertical: 12,
-                              ),
-                            ),
-                            onPressed: () {
-                              ref
-                                  .read(uploadProvider.notifier)
-                                  .replaceCurrentAudioAndStartUpload();
-                            },
-                            child: const Text('Replace'),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF37B26C),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ],
+          TrackFileSummarySection(
+            displayedFileName: displayedFileName,
+            artworkPath: metadataState.artworkPath,
+            uploadFinished: uploadFinished,
+            isPreparingUpload: uploadState.isPreparingUpload,
+            isUploading: uploadState.isUploading,
+            uploadProgress: uploadState.uploadProgress,
+            onPickArtwork: () {
+              showArtworkSourceSheet(
+                context,
+                onPickFromGallery: () {
+                  ref.read(trackMetadataProvider.notifier).pickArtwork();
+                },
+                onPickFromCamera: () {
+                  ref
+                      .read(trackMetadataProvider.notifier)
+                      .pickArtwork(fromCamera: true);
+                },
+              );
+            },
+            onReplaceAudio: () {
+              ref
+                  .read(uploadProvider.notifier)
+                  .replaceCurrentAudioAndStartUpload();
+            },
           ),
           const SizedBox(height: 22),
-          Container(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111111),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  controller: TextEditingController(text: metadataState.title)
-                    ..selection = TextSelection.fromPosition(
-                      TextPosition(offset: metadataState.title.length),
-                    ),
-                  decoration: _underlineFieldStyle('Title *'),
-                  onChanged: (value) {
-                    ref.read(trackMetadataProvider.notifier).setTitle(value);
-                  },
-                ),
-                const SizedBox(height: 22),
-                const Text(
-                  'Artists *',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: metadataState.artists.map((artist) {
-                    final canRemove = metadataState.artists.length > 1;
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2B2B2B),
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            artist.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: canRemove
-                                ? () {
-                                    ref
-                                        .read(trackMetadataProvider.notifier)
-                                        .removeArtist(artist);
-                                  }
-                                : null,
-                            child: Icon(
-                              Icons.close,
-                              size: 18,
-                              color: canRemove ? Colors.white70 : Colors.white24,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _artistController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _underlineFieldStyle(
-                    '',
-                    hintText: 'Add any other collaborators of the track',
-                  ).copyWith(
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        ref
-                            .read(trackMetadataProvider.notifier)
-                            .addArtist(_artistController.text);
-                        _artistController.clear();
-                      },
-                      icon: const Icon(Icons.add, color: Colors.white70),
-                    ),
-                  ),
-                  onSubmitted: (value) {
-                    ref.read(trackMetadataProvider.notifier).addArtist(value);
-                    _artistController.clear();
-                  },
-                ),
-                const SizedBox(height: 22),
-                _buildGenreField(metadataState),
-                const SizedBox(height: 22),
-                TextField(
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  controller:
-                      TextEditingController(text: metadataState.description)
-                        ..selection = TextSelection.fromPosition(
-                          TextPosition(
-                            offset: metadataState.description.length,
-                          ),
-                        ),
-                  maxLines: 1,
-                  decoration: _underlineFieldStyle(
-                    'Description',
-                    hintText: 'Add any details about your track for fans',
-                  ),
-                  onChanged: (value) {
-                    ref.read(trackMetadataProvider.notifier).setDescription(value);
-                  },
-                ),
-                const SizedBox(height: 22),
-                TextField(
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  controller: TextEditingController(text: metadataState.tagsText)
-                    ..selection = TextSelection.fromPosition(
-                      TextPosition(offset: metadataState.tagsText.length),
-                    ),
-                  decoration: _underlineFieldStyle(
-                    'Tags',
-                    hintText: 'Add comma separated tags',
-                  ),
-                  onChanged: (value) {
-                    ref.read(trackMetadataProvider.notifier).setTagsText(value);
-                  },
-                ),
-              ],
-            ),
+          TrackInfoFormSection(
+            titleController: _titleController,
+            artistController: _artistController,
+            descriptionController: _descriptionController,
+            tagsController: _tagsController,
+            artists: metadataState.artists,
+            hasGenre: metadataState.hasGenre,
+            selectedGenreLabel: metadataState.selectedGenre.label,
+            onTitleChanged: (value) {
+              ref.read(trackMetadataProvider.notifier).setTitle(value);
+            },
+            onAddArtist: (value) {
+              ref.read(trackMetadataProvider.notifier).addArtist(value);
+            },
+            onRemoveArtist: (artist) {
+              ref.read(trackMetadataProvider.notifier).removeArtist(artist);
+            },
+            onGenreTap: () {
+              showGenrePickerSheet(
+                context,
+                selectedGenre: metadataState.selectedGenre,
+                onGenreSelected: (genre) {
+                  ref.read(trackMetadataProvider.notifier).setGenre(genre);
+                },
+              );
+            },
+            onDescriptionChanged: (value) {
+              ref.read(trackMetadataProvider.notifier).setDescription(value);
+            },
+            onTagsChanged: (value) {
+              ref.read(trackMetadataProvider.notifier).setTagsText(value);
+            },
           ),
           const SizedBox(height: 26),
-          const Text(
-            'Privacy',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildPrivacyOption(
-            value: 'public',
+          PrivacySection(
             currentValue: metadataState.privacy,
-            title: 'Public',
-            subtitle: 'Anyone can find this',
-          ),
-          _buildPrivacyOption(
-            value: 'private',
-            currentValue: metadataState.privacy,
-            title: 'Unlisted (Private)',
-            subtitle: 'Anyone with private link can access',
+            onChanged: (value) {
+              ref.read(trackMetadataProvider.notifier).setPrivacy(value);
+            },
           ),
           const SizedBox(height: 12),
-          if (metadataState.error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                metadataState.error!,
-                style: const TextStyle(color: Colors.redAccent),
-              ),
+          SaveMetadataFooter(
+            errorMessage: metadataState.error,
+            statusText: _processingText(
+              metadataState.processingStatus,
+              metadataState.isSaving,
+              metadataState.isPolling,
             ),
-          SizedBox(
-            height: 58,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                disabledBackgroundColor: const Color(0xFFBDBDBD),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: uploadFinished &&
-                      !metadataState.isSaving &&
-                      !metadataState.isPolling
-                  ? () async {
-                      final started = await ref
-                          .read(trackMetadataProvider.notifier)
-                          .saveMetadataAndProcessInBackground(widget.trackId);
-
-                      if (!started || !mounted) {
-                        return;
-                      }
-
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    }
-                  : null,
-              child: Text(
-                uploadFinished ? 'Save' : 'Uploading...',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Status: ${_processingText(metadataState)}',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            "By uploading, you confirm that your sounds comply with our Terms of Use and you don't infringe anyone else's rights.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white70,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'TERMS OF USE',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              decoration: TextDecoration.underline,
-              fontWeight: FontWeight.w600,
-            ),
+            buttonText: uploadFinished ? 'Save' : 'Uploading...',
+            onSavePressed: buttonEnabled ? _handleSave : null,
           ),
         ],
       ),
