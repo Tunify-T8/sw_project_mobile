@@ -12,6 +12,23 @@ class TrackMetadataState {
   final List<String> artists;
   final String? artworkPath;
 
+  final String recordLabel;
+  final String publisher;
+  final String isrc;
+  final bool hasScheduledRelease;
+  final DateTime? scheduledReleaseDate;
+  final bool contentWarning;
+
+  final bool allowDownloads;
+  final bool offlineListening;
+  final bool includeInRss;
+  final bool displayEmbedCode;
+  final bool appPlaybackEnabled;
+
+  final String availabilityType;
+  final String availabilityRegionsText;
+  final String licensing;
+
   final bool isSaving;
   final bool isPolling;
   final UploadStatus processingStatus;
@@ -27,6 +44,20 @@ class TrackMetadataState {
     this.privacy = 'public',
     this.artists = const [],
     this.artworkPath,
+    this.recordLabel = '',
+    this.publisher = '',
+    this.isrc = '',
+    this.hasScheduledRelease = false,
+    this.scheduledReleaseDate,
+    this.contentWarning = false,
+    this.allowDownloads = false,
+    this.offlineListening = true,
+    this.includeInRss = true,
+    this.displayEmbedCode = false,
+    this.appPlaybackEnabled = true,
+    this.availabilityType = 'worldwide',
+    this.availabilityRegionsText = '',
+    this.licensing = 'all_rights_reserved',
     this.isSaving = false,
     this.isPolling = false,
     this.processingStatus = UploadStatus.idle,
@@ -34,10 +65,8 @@ class TrackMetadataState {
     this.error,
   });
 
-  UploadGenre get selectedGenre => UploadGenres.fromValues(
-        category: genreCategory,
-        subGenre: genreSubGenre,
-      );
+  UploadGenre get selectedGenre =>
+      UploadGenres.fromValues(category: genreCategory, subGenre: genreSubGenre);
 
   bool get hasTitle => title.trim().isNotEmpty;
 
@@ -61,9 +90,7 @@ class TrackMetadataState {
   double get checklistProgress => completedChecklistItems / 4;
 
   bool get isBusyInBackground {
-    return isSaving ||
-        isPolling ||
-        processingStatus == UploadStatus.processing;
+    return isSaving || isPolling || processingStatus == UploadStatus.processing;
   }
 
   TrackMetadataState copyWith({
@@ -75,6 +102,22 @@ class TrackMetadataState {
     String? privacy,
     List<String>? artists,
     String? artworkPath,
+
+    String? recordLabel,
+    String? publisher,
+    String? isrc,
+    bool? hasScheduledRelease,
+    DateTime? scheduledReleaseDate,
+    bool? contentWarning,
+    bool? allowDownloads,
+    bool? offlineListening,
+    bool? includeInRss,
+    bool? displayEmbedCode,
+    bool? appPlaybackEnabled,
+    String? availabilityType,
+    String? availabilityRegionsText,
+    String? licensing,
+
     bool? isSaving,
     bool? isPolling,
     UploadStatus? processingStatus,
@@ -90,6 +133,21 @@ class TrackMetadataState {
       privacy: privacy ?? this.privacy,
       artists: artists ?? this.artists,
       artworkPath: artworkPath ?? this.artworkPath,
+      recordLabel: recordLabel ?? this.recordLabel,
+      publisher: publisher ?? this.publisher,
+      isrc: isrc ?? this.isrc,
+      hasScheduledRelease: hasScheduledRelease ?? this.hasScheduledRelease,
+      scheduledReleaseDate: scheduledReleaseDate ?? this.scheduledReleaseDate,
+      contentWarning: contentWarning ?? this.contentWarning,
+      allowDownloads: allowDownloads ?? this.allowDownloads,
+      offlineListening: offlineListening ?? this.offlineListening,
+      includeInRss: includeInRss ?? this.includeInRss,
+      displayEmbedCode: displayEmbedCode ?? this.displayEmbedCode,
+      appPlaybackEnabled: appPlaybackEnabled ?? this.appPlaybackEnabled,
+      availabilityType: availabilityType ?? this.availabilityType,
+      availabilityRegionsText:
+          availabilityRegionsText ?? this.availabilityRegionsText,
+      licensing: licensing ?? this.licensing,
       isSaving: isSaving ?? this.isSaving,
       isPolling: isPolling ?? this.isPolling,
       processingStatus: processingStatus ?? this.processingStatus,

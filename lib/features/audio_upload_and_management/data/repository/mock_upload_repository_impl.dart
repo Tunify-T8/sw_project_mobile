@@ -15,9 +15,7 @@ import '../services/mock_upload_service.dart';
 class MockUploadRepository implements UploadRepository {
   final MockUploadService service;
 
-  MockUploadRepository({
-    required this.service,
-  });
+  MockUploadRepository({required this.service});
 
   @override
   Future<UploadQuota> getUploadQuota(String userId) async {
@@ -80,6 +78,20 @@ class MockUploadRepository implements UploadRepository {
         'privacy': metadata.privacy,
         'artists': metadata.artists,
         'artworkPath': metadata.artworkPath,
+        'recordLabel': metadata.recordLabel,
+        'publisher': metadata.publisher,
+        'isrc': metadata.isrc,
+        'contentWarning': metadata.contentWarning,
+        'scheduledReleaseDate': metadata.scheduledReleaseDate
+            ?.toIso8601String(),
+        'allowDownloads': metadata.allowDownloads,
+        'offlineListening': metadata.offlineListening,
+        'includeInRss': metadata.includeInRss,
+        'displayEmbedCode': metadata.displayEmbedCode,
+        'appPlaybackEnabled': metadata.appPlaybackEnabled,
+        'availabilityType': metadata.availabilityType,
+        'availabilityRegions': metadata.availabilityRegions,
+        'licensing': metadata.licensing,
       },
     );
 

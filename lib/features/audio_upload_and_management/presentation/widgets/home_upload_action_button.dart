@@ -40,9 +40,7 @@ class HomeUploadActionButton extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 1.8,
                   backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Color(0xFFA855F7),
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA855F7)),
                 ),
               ),
           ],

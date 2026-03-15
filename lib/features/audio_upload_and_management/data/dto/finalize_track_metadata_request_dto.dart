@@ -12,6 +12,22 @@ class FinalizeTrackMetadataRequestDto {
   final List<String> artists;
   final String? artworkPath;
 
+  final String recordLabel;
+  final String publisher;
+  final String isrc;
+  final bool contentWarning;
+  final DateTime? scheduledReleaseDate;
+
+  final bool allowDownloads;
+  final bool offlineListening;
+  final bool includeInRss;
+  final bool displayEmbedCode;
+  final bool appPlaybackEnabled;
+
+  final String availabilityType;
+  final List<String> availabilityRegions;
+  final String licensing;
+
   FinalizeTrackMetadataRequestDto({
     required this.trackId,
     required this.title,
@@ -22,6 +38,20 @@ class FinalizeTrackMetadataRequestDto {
     required this.privacy,
     required this.artists,
     this.artworkPath,
+
+    required this.recordLabel,
+    required this.publisher,
+    required this.isrc,
+    required this.contentWarning,
+    required this.scheduledReleaseDate,
+    required this.allowDownloads,
+    required this.offlineListening,
+    required this.includeInRss,
+    required this.displayEmbedCode,
+    required this.appPlaybackEnabled,
+    required this.availabilityType,
+    required this.availabilityRegions,
+    required this.licensing,
   });
 
   factory FinalizeTrackMetadataRequestDto.fromEntity({
@@ -38,6 +68,19 @@ class FinalizeTrackMetadataRequestDto {
       privacy: metadata.privacy,
       artists: metadata.artists,
       artworkPath: metadata.artworkPath,
+      recordLabel: metadata.recordLabel,
+      publisher: metadata.publisher,
+      isrc: metadata.isrc,
+      contentWarning: metadata.contentWarning,
+      scheduledReleaseDate: metadata.scheduledReleaseDate,
+      allowDownloads: metadata.allowDownloads,
+      offlineListening: metadata.offlineListening,
+      includeInRss: metadata.includeInRss,
+      displayEmbedCode: metadata.displayEmbedCode,
+      appPlaybackEnabled: metadata.appPlaybackEnabled,
+      availabilityType: metadata.availabilityType,
+      availabilityRegions: metadata.availabilityRegions,
+      licensing: metadata.licensing,
     );
   }
 
@@ -51,6 +94,22 @@ class FinalizeTrackMetadataRequestDto {
       'description': description,
       'privacy': privacy,
       'artists': artists,
+
+      'recordLabel': recordLabel,
+      'publisher': publisher,
+      'isrc': isrc,
+      'contentWarning': contentWarning,
+      if (scheduledReleaseDate != null)
+        'scheduledReleaseDate': scheduledReleaseDate!.toIso8601String(),
+      'permissions[allowDownloads]': allowDownloads,
+      'permissions[offlineListening]': offlineListening,
+      'permissions[includeInRss]': includeInRss,
+      'permissions[displayEmbedCode]': displayEmbedCode,
+      'permissions[appPlaybackEnabled]': appPlaybackEnabled,
+      'availability[type]': availabilityType,
+      'availability[regions]': availabilityRegions,
+      'licensing': licensing,
+
       if (artworkPath != null && artworkPath!.isNotEmpty)
         'artwork': await MultipartFile.fromFile(artworkPath!),
     });

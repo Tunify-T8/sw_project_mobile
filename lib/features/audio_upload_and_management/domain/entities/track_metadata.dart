@@ -1,5 +1,4 @@
-
-  class TrackMetadata {
+class TrackMetadata {
   final String title;
   final String genreCategory;
   final String genreSubGenre;
@@ -8,6 +7,22 @@
   final String privacy;
   final List<String> artists;
   final String? artworkPath;
+
+  final String recordLabel;
+  final String publisher;
+  final String isrc;
+  final bool contentWarning;
+  final DateTime? scheduledReleaseDate;
+
+  final bool allowDownloads;
+  final bool offlineListening;
+  final bool includeInRss;
+  final bool displayEmbedCode;
+  final bool appPlaybackEnabled;
+
+  final String availabilityType;
+  final List<String> availabilityRegions;
+  final String licensing;
 
   const TrackMetadata({
     required this.title,
@@ -18,15 +33,18 @@
     required this.privacy,
     required this.artists,
     this.artworkPath,
+    required this.recordLabel,
+    required this.publisher,
+    required this.isrc,
+    required this.contentWarning,
+    required this.scheduledReleaseDate,
+    required this.allowDownloads,
+    required this.offlineListening,
+    required this.includeInRss,
+    required this.displayEmbedCode,
+    required this.appPlaybackEnabled,
+    required this.availabilityType,
+    required this.availabilityRegions,
+    required this.licensing,
   });
 }
-
- // we dont need an image could be null
-  // button replace missing -> open file picker again to replace the file and restart the upload process
-  // placeholder for premium->artist pro can make u schedule release date and time
-  //caption not here -> maybe instead of tags
-  // image not here -> need image picker.
-  //artist name not here -> get from user profile
-  //=====================================
-  //DONT FORGET THE OTHER TABS ADVANCED AND PERMISSIONS
-  //=====================================

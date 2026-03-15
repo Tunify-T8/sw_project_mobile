@@ -13,68 +13,47 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
   TrackMetadataState build() {
     final primaryArtist = ref.read(currentArtistNameProvider);
 
-    return TrackMetadataState(
-      artists: [primaryArtist],
-    );
+    return TrackMetadataState(artists: [primaryArtist]);
   }
 
   void prepareForNewUpload(String fileName) {
     final primaryArtist = ref.read(currentArtistNameProvider);
 
-    state = TrackMetadataState(
-      title: fileName,
-      artists: [primaryArtist],
-    );
+    state = TrackMetadataState(title: fileName, artists: [primaryArtist]);
   }
 
   void setTitle(String value) {
-    state = state.copyWith(
-      title: value,
-      error: null,
-    );
+    state = state.copyWith(title: value, error: null);
   }
 
   void setGenreCategory(String value) {
-    state = state.copyWith(
-      genreCategory: value,
-      error: null,
-    );
+    state = state.copyWith(genreCategory: value, error: null);
   }
 
   void setGenreSubGenre(String value) {
-    state = state.copyWith(
-      genreSubGenre: value,
-      error: null,
-    );
+    state = state.copyWith(genreSubGenre: value, error: null);
   }
 
   void setGenre(UploadGenre genre) {
     state = state.copyWith(
-      genreCategory: genre.categoryValue.isEmpty ? 'music' : genre.categoryValue,
+      genreCategory: genre.categoryValue.isEmpty
+          ? 'music'
+          : genre.categoryValue,
       genreSubGenre: genre.subGenre,
       error: null,
     );
   }
 
   void setTagsText(String value) {
-    state = state.copyWith(
-      tagsText: value,
-      error: null,
-    );
+    state = state.copyWith(tagsText: value, error: null);
   }
 
   void setDescription(String value) {
-    state = state.copyWith(
-      description: value,
-      error: null,
-    );
+    state = state.copyWith(description: value, error: null);
   }
 
   void setPrivacy(String value) {
-    state = state.copyWith(
-      privacy: value,
-      error: null,
-    );
+    state = state.copyWith(privacy: value, error: null);
   }
 
   void addArtist(String value) {
@@ -92,10 +71,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
       return;
     }
 
-    state = state.copyWith(
-      artists: [...state.artists, trimmed],
-      error: null,
-    );
+    state = state.copyWith(artists: [...state.artists, trimmed], error: null);
   }
 
   void removeArtist(String artist) {
@@ -107,10 +83,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
         .where((element) => element != artist)
         .toList();
 
-    state = state.copyWith(
-      artists: updatedArtists,
-      error: null,
-    );
+    state = state.copyWith(artists: updatedArtists, error: null);
   }
 
   Future<void> pickArtwork({bool fromCamera = false}) async {
@@ -122,15 +95,82 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
         return;
       }
 
-      state = state.copyWith(
-        artworkPath: path,
-        error: null,
-      );
+      state = state.copyWith(artworkPath: path, error: null);
     } catch (e) {
-      state = state.copyWith(
-        error: e.toString(),
-      );
+      state = state.copyWith(error: e.toString());
     }
+  }
+
+  void setRecordLabel(String value) {
+    state = state.copyWith(recordLabel: value, error: null);
+  }
+
+  void setPublisher(String value) {
+    state = state.copyWith(publisher: value, error: null);
+  }
+
+  void setIsrc(String value) {
+    state = state.copyWith(isrc: value, error: null);
+  }
+
+  void setHasScheduledRelease(bool value) {
+    state = state.copyWith(
+      hasScheduledRelease: value,
+      scheduledReleaseDate: value
+          ? (state.scheduledReleaseDate ?? DateTime.now())
+          : state.scheduledReleaseDate,
+      error: null,
+    );
+  }
+
+  void setScheduledReleaseDate(DateTime value) {
+    state = state.copyWith(
+      scheduledReleaseDate: value,
+      hasScheduledRelease: true,
+      error: null,
+    );
+  }
+
+  void setContentWarning(bool value) {
+    state = state.copyWith(contentWarning: value, error: null);
+  }
+
+  void setAllowDownloads(bool value) {
+    state = state.copyWith(allowDownloads: value, error: null);
+  }
+
+  void setOfflineListening(bool value) {
+    state = state.copyWith(offlineListening: value, error: null);
+  }
+
+  void setIncludeInRss(bool value) {
+    state = state.copyWith(includeInRss: value, error: null);
+  }
+
+  void setDisplayEmbedCode(bool value) {
+    state = state.copyWith(displayEmbedCode: value, error: null);
+  }
+
+  void setAppPlaybackEnabled(bool value) {
+    state = state.copyWith(appPlaybackEnabled: value, error: null);
+  }
+
+  void setAvailabilityType(String value) {
+    state = state.copyWith(
+      availabilityType: value,
+      availabilityRegionsText: value == 'worldwide'
+          ? ''
+          : state.availabilityRegionsText,
+      error: null,
+    );
+  }
+
+  void setAvailabilityRegionsText(String value) {
+    state = state.copyWith(availabilityRegionsText: value, error: null);
+  }
+
+  void setLicensing(String value) {
+    state = state.copyWith(licensing: value, error: null);
   }
 
   Future<bool> saveMetadataAndProcessInBackground(String trackId) async {
@@ -173,6 +213,14 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
     try {
       final repository = ref.read(uploadRepositoryProvider);
 
+      final availabilityRegions = state.availabilityType == 'worldwide'
+          ? <String>[]
+          : state.availabilityRegionsText
+                .split(',')
+                .map((e) => e.trim().toUpperCase())
+                .where((e) => e.isNotEmpty)
+                .toList();
+
       final metadata = TrackMetadata(
         title: state.title.trim(),
         genreCategory: state.genreCategory.trim(),
@@ -186,6 +234,21 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
         privacy: state.privacy,
         artists: state.artists,
         artworkPath: state.artworkPath,
+        recordLabel: state.recordLabel.trim(),
+        publisher: state.publisher.trim(),
+        isrc: state.isrc.trim(),
+        contentWarning: state.contentWarning,
+        scheduledReleaseDate: state.hasScheduledRelease
+            ? state.scheduledReleaseDate
+            : null,
+        allowDownloads: state.allowDownloads,
+        offlineListening: state.offlineListening,
+        includeInRss: state.includeInRss,
+        displayEmbedCode: state.displayEmbedCode,
+        appPlaybackEnabled: state.appPlaybackEnabled,
+        availabilityType: state.availabilityType,
+        availabilityRegions: availabilityRegions,
+        licensing: state.licensing,
       );
 
       final processingTrack = await repository.finalizeMetadata(
@@ -221,5 +284,5 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
 
 final trackMetadataProvider =
     NotifierProvider<TrackMetadataNotifier, TrackMetadataState>(
-  TrackMetadataNotifier.new,
-);
+      TrackMetadataNotifier.new,
+    );

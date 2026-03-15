@@ -67,6 +67,20 @@ class MockUploadService {
       'artworkUrl': metadata['artworkPath'] != null
           ? 'https://mock.cdn/artwork/$trackId.png'
           : null,
+
+      'recordLabel': metadata['recordLabel'],
+      'publisher': metadata['publisher'],
+      'isrc': metadata['isrc'],
+      'contentWarning': metadata['contentWarning'],
+      'scheduledReleaseDate': metadata['scheduledReleaseDate'],
+      'allowDownloads': metadata['allowDownloads'],
+      'offlineListening': metadata['offlineListening'],
+      'includeInRss': metadata['includeInRss'],
+      'displayEmbedCode': metadata['displayEmbedCode'],
+      'appPlaybackEnabled': metadata['appPlaybackEnabled'],
+      'availabilityType': metadata['availabilityType'],
+      'availabilityRegions': metadata['availabilityRegions'],
+      'licensing': metadata['licensing'],
     };
   }
 
