@@ -11,6 +11,7 @@ class TrackMetadata {
   final String recordLabel;
   final String publisher;
   final String isrc;
+  final String pLine;
   final bool contentWarning;
   final DateTime? scheduledReleaseDate;
 
@@ -19,7 +20,6 @@ class TrackMetadata {
   final bool includeInRss;
   final bool displayEmbedCode;
   final bool appPlaybackEnabled;
-
   final String availabilityType;
   final List<String> availabilityRegions;
   final String licensing;
@@ -32,19 +32,20 @@ class TrackMetadata {
     required this.description,
     required this.privacy,
     required this.artists,
-    this.artworkPath,
-    required this.recordLabel,
-    required this.publisher,
-    required this.isrc,
-    required this.contentWarning,
-    required this.scheduledReleaseDate,
-    required this.allowDownloads,
-    required this.offlineListening,
-    required this.includeInRss,
-    required this.displayEmbedCode,
-    required this.appPlaybackEnabled,
-    required this.availabilityType,
-    required this.availabilityRegions,
-    required this.licensing,
+    required this.artworkPath,
+    this.recordLabel = '',
+    this.publisher = '',
+    this.isrc = '',
+    this.pLine = '',
+    this.contentWarning = false,
+    this.scheduledReleaseDate,
+    this.allowDownloads = false,
+    this.offlineListening = true,
+    this.includeInRss = true,
+    this.displayEmbedCode = true,
+    this.appPlaybackEnabled = true,
+    this.availabilityType = 'worldwide',
+    this.availabilityRegions = const [],
+    this.licensing = 'all_rights_reserved',
   });
 }

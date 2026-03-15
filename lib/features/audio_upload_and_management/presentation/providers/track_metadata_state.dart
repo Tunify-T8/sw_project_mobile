@@ -15,6 +15,7 @@ class TrackMetadataState {
   final String recordLabel;
   final String publisher;
   final String isrc;
+  final String pLine;
   final bool hasScheduledRelease;
   final DateTime? scheduledReleaseDate;
   final bool contentWarning;
@@ -24,7 +25,6 @@ class TrackMetadataState {
   final bool includeInRss;
   final bool displayEmbedCode;
   final bool appPlaybackEnabled;
-
   final String availabilityType;
   final String availabilityRegionsText;
   final String licensing;
@@ -47,13 +47,14 @@ class TrackMetadataState {
     this.recordLabel = '',
     this.publisher = '',
     this.isrc = '',
+    this.pLine = '',
     this.hasScheduledRelease = false,
     this.scheduledReleaseDate,
     this.contentWarning = false,
     this.allowDownloads = false,
     this.offlineListening = true,
     this.includeInRss = true,
-    this.displayEmbedCode = false,
+    this.displayEmbedCode = true,
     this.appPlaybackEnabled = true,
     this.availabilityType = 'worldwide',
     this.availabilityRegionsText = '',
@@ -65,8 +66,10 @@ class TrackMetadataState {
     this.error,
   });
 
-  UploadGenre get selectedGenre =>
-      UploadGenres.fromValues(category: genreCategory, subGenre: genreSubGenre);
+  UploadGenre get selectedGenre => UploadGenres.fromValues(
+        category: genreCategory,
+        subGenre: genreSubGenre,
+      );
 
   bool get hasTitle => title.trim().isNotEmpty;
 
@@ -90,7 +93,9 @@ class TrackMetadataState {
   double get checklistProgress => completedChecklistItems / 4;
 
   bool get isBusyInBackground {
-    return isSaving || isPolling || processingStatus == UploadStatus.processing;
+    return isSaving ||
+        isPolling ||
+        processingStatus == UploadStatus.processing;
   }
 
   TrackMetadataState copyWith({
@@ -102,10 +107,10 @@ class TrackMetadataState {
     String? privacy,
     List<String>? artists,
     String? artworkPath,
-
     String? recordLabel,
     String? publisher,
     String? isrc,
+    String? pLine,
     bool? hasScheduledRelease,
     DateTime? scheduledReleaseDate,
     bool? contentWarning,
@@ -117,7 +122,6 @@ class TrackMetadataState {
     String? availabilityType,
     String? availabilityRegionsText,
     String? licensing,
-
     bool? isSaving,
     bool? isPolling,
     UploadStatus? processingStatus,
@@ -136,6 +140,7 @@ class TrackMetadataState {
       recordLabel: recordLabel ?? this.recordLabel,
       publisher: publisher ?? this.publisher,
       isrc: isrc ?? this.isrc,
+      pLine: pLine ?? this.pLine,
       hasScheduledRelease: hasScheduledRelease ?? this.hasScheduledRelease,
       scheduledReleaseDate: scheduledReleaseDate ?? this.scheduledReleaseDate,
       contentWarning: contentWarning ?? this.contentWarning,
