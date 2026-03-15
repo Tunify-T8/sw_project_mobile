@@ -4,14 +4,14 @@ import '../dto/create_track_request_dto.dart';
 import '../dto/finalize_track_metadata_request_dto.dart';
 import '../dto/track_response_dto.dart';
 import '../dto/upload_quota_dto.dart';
-// HTTP layer 
+
 class UploadApi {
   final Dio dio;
 
   UploadApi(this.dio);
 
   Future<UploadQuotaDto> getUploadQuota(String userId) async {
-    final response = await dio.get(ApiEndpoints.uploadQuota(userId));
+    final response = await dio.get(ApiEndpoints.uploadQuota());
     return UploadQuotaDto.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -31,7 +31,6 @@ class UploadApi {
     required ProgressCallback onSendProgress,
   }) async {
     final formData = FormData.fromMap({
-      'trackId': trackId,
       'audioFile': await MultipartFile.fromFile(
         filePath,
         filename: fileName,
@@ -40,6 +39,29 @@ class UploadApi {
 
     final response = await dio.post(
       ApiEndpoints.uploadAudio(trackId),
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+      onSendProgress: onSendProgress,
+    );
+
+    return TrackResponseDto.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<TrackResponseDto> replaceAudio({
+    required String trackId,
+    required String filePath,
+    required String fileName,
+    required ProgressCallback onSendProgress,
+  }) async {
+    final formData = FormData.fromMap({
+      'newAudioFile': await MultipartFile.fromFile(
+        filePath,
+        filename: fileName,
+      ),
+    });
+
+    final response = await dio.post(
+      ApiEndpoints.replaceAudio(trackId),
       data: formData,
       options: Options(contentType: 'multipart/form-data'),
       onSendProgress: onSendProgress,
