@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'app/bootstrap.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+// void main() {
+//   runApp(const MyApp());
+// }
+
+/// Application entry point.
+///
+/// Delegates all initialisation to [bootstrap] which sets up
+/// Flutter bindings, system UI, and launches [SoundCloudApp]
+/// wrapped in a Riverpod [ProviderScope].
+void main() => bootstrap();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
