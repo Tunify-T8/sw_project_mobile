@@ -67,10 +67,8 @@ class TrackMetadataState {
     this.error,
   });
 
-  UploadGenre get selectedGenre => UploadGenres.fromValues(
-        category: genreCategory,
-        subGenre: genreSubGenre,
-      );
+  UploadGenre get selectedGenre =>
+      UploadGenres.fromValues(category: genreCategory, subGenre: genreSubGenre);
 
   bool get hasTitle => title.trim().isNotEmpty;
 
@@ -94,9 +92,7 @@ class TrackMetadataState {
   double get checklistProgress => completedChecklistItems / 4;
 
   bool get isBusyInBackground {
-    return isSaving ||
-        isPolling ||
-        processingStatus == UploadStatus.processing;
+    return isSaving || isPolling || processingStatus == UploadStatus.processing;
   }
 
   TrackMetadataState copyWith({

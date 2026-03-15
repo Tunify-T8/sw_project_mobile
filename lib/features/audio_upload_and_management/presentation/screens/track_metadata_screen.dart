@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/track_metadata_provider.dart';
+import '../providers/track_metadata_state.dart';
 import '../providers/upload_provider.dart';
 import '../widgets/metadata/advanced_metadata_section.dart';
 import '../widgets/metadata/permissions_metadata_section.dart';
@@ -57,7 +58,6 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
   @override
   void dispose() {
-    _titleController.dispose();
     _titleController.dispose();
     _artistController.dispose();
     _descriptionController.dispose();
@@ -418,10 +418,6 @@ Widget _buildScrollableContent(
   Widget build(BuildContext context) {
     final metadataState = ref.watch(trackMetadataProvider);
     final uploadState = ref.watch(uploadProvider);
-
-    _syncController(_titleController, metadataState.title);
-    _syncController(_descriptionController, metadataState.description);
-    _syncController(_tagsController, metadataState.tagsText);
 
     _syncControllers(metadataState);
 
