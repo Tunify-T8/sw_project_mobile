@@ -16,8 +16,6 @@ import 'package:software_project/features/auth/domain/usecases/register_usecase.
 import 'package:software_project/features/auth/domain/usecases/resend_verification_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/verify_email_usecase.dart';
-import 'package:software_project/features/auth/data/mock/mock_auth_config.dart';
-import 'package:software_project/features/auth/data/mock/mock_auth_service.dart';
 
 // ─── Infrastructure ───────────────────────────────────────────────────────────
 
@@ -112,6 +110,10 @@ final authControllerProvider =
 /// - `data(user)`  → authenticated
 /// - `loading()`   → operation in progress
 /// - `error(e, s)` → last operation failed with a [Failure]
+///
+/// The controller always calls its injected use cases directly.
+/// Manual UI testing scenarios are handled at the screen level via
+/// [MockAuthConfig] and [MockAuthService] in [EmailEntryScreen] and similar.
 class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
   final CheckEmailUseCase _checkEmail;
   final RegisterUseCase _register;
@@ -150,14 +152,8 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
        _googleSignInService = googleSignInService,
        super(const AsyncValue.data(null));
 
-  /// Checks if [email] is registered. Returns true if exists.
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
-  /// Change [MockAuthConfig.emailScenario] to test different outcomes.
+  /// Returns true if [email] is already registered.
   Future<bool> checkEmail(String email) async {
-    if (MockAuthConfig.useMock) {
-      return MockAuthService.checkEmail(email);
-    }
     try {
       return await _checkEmail(email);
     } catch (e, s) {
@@ -166,10 +162,8 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
-  /// Registers a new user. Navigates to verify-email after success.
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
-  /// Change [MockAuthConfig.registerScenario] to test different outcomes.
+  /// Creates a new account. State becomes data(null) on success —
+  /// the user must verify their email before a session is started.
   Future<void> register({
     required String email,
     required String username,
@@ -179,35 +173,24 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      if (MockAuthConfig.useMock) {
-        await MockAuthService.register();
-      } else {
-        await _register(
-          email: email,
-          username: username,
-          password: password,
-          gender: gender,
-          dateOfBirth: dateOfBirth,
-        );
-      }
-      // Registration succeeds but no user yet — return null data
-      // to signal "go to verify-email" in the UI.
+      await _register(
+        email: email,
+        username: username,
+        password: password,
+        gender: gender,
+        dateOfBirth: dateOfBirth,
+      );
       state = const AsyncValue.data(null);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
     }
   }
 
-  /// Verifies email with [token]. Sets state to authenticated user on success.
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
-  /// Change [MockAuthConfig.verifyScenario] to test different outcomes.
+  /// Verifies the email with [token]. Sets state to the authenticated user.
   Future<void> verifyEmail(String email, String token) async {
     state = const AsyncValue.loading();
     try {
-      final user = MockAuthConfig.useMock
-          ? await MockAuthService.verifyEmail()
-          : await _verifyEmail(email, token);
+      final user = await _verifyEmail(email, token);
       state = AsyncValue.data(user);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
@@ -223,24 +206,18 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
-  /// Logs in with [email] and [password].
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
-  /// Change [MockAuthConfig.loginScenario] to test different outcomes.
+  /// Authenticates with email and password.
   Future<void> login(String email, String password) async {
     state = const AsyncValue.loading();
     try {
-      final user = MockAuthConfig.useMock
-          ? await MockAuthService.login(email, password)
-          : await _login(email, password);
+      final user = await _login(email, password);
       state = AsyncValue.data(user);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
     }
   }
 
-  /// Logs in via Google OAuth.
-  /// Returns false if the user cancelled the Google dialog.
+  /// Initiates Google OAuth. Returns false if the user cancels.
   Future<bool> loginWithGoogle() async {
     try {
       final result = await _googleSignInService.signIn();
@@ -253,20 +230,14 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
-  /// Signs out the current device.
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
+  /// Signs out the current device and resets state.
   Future<void> logout() async {
-    if (MockAuthConfig.useMock) {
-      await MockAuthService.logout();
-    } else {
-      await _logout();
-    }
+    await _logout();
     await _googleSignInService.signOut();
     state = const AsyncValue.data(null);
   }
 
-  /// Signs out all devices.
+  /// Signs out all devices and resets state.
   Future<void> logoutAll() async {
     await _logoutAll();
     await _googleSignInService.signOut();
@@ -274,26 +245,17 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
   }
 
   /// Sends a password reset email.
-  ///
-  /// Per the Tunify API spec the UI always navigates to check-your-email
-  /// regardless of the outcome — never reveal whether an address exists.
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
+  /// Error is swallowed — the UI always navigates to check-your-email
+  /// regardless of outcome (never reveal whether an address exists).
   Future<void> forgotPassword(String email) async {
     try {
-      if (MockAuthConfig.useMock) {
-        await MockAuthService.forgotPassword(email);
-      } else {
-        await _forgotPassword(email);
-      }
+      await _forgotPassword(email);
     } catch (_) {
-      // Intentionally swallowed — UI always shows the check-email screen.
+      // Intentionally swallowed per Tunify API security spec.
     }
   }
 
   /// Resets the password using the token from the reset email.
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
-  /// Change [MockAuthConfig.resetScenario] to test different outcomes.
   Future<void> resetPassword({
     required String email,
     required String token,
@@ -303,35 +265,24 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      if (MockAuthConfig.useMock) {
-        await MockAuthService.resetPassword();
-      } else {
-        await _resetPassword(
-          email: email,
-          token: token,
-          newPassword: newPassword,
-          confirmPassword: confirmPassword,
-          signoutAll: signoutAll,
-        );
-      }
+      await _resetPassword(
+        email: email,
+        token: token,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+        signoutAll: signoutAll,
+      );
       state = const AsyncValue.data(null);
     } catch (e, s) {
       state = AsyncValue.error(e, s);
     }
   }
 
-  /// Permanently deletes the authenticated user's account.
-  ///
-  /// Uses [MockAuthService] when [MockAuthConfig.useMock] is true.
-  /// Change [MockAuthConfig.deleteScenario] to test different outcomes.
+  /// Permanently deletes the account and clears state.
   Future<void> deleteAccount({String? password}) async {
     state = const AsyncValue.loading();
     try {
-      if (MockAuthConfig.useMock) {
-        await MockAuthService.deleteAccount();
-      } else {
-        await _deleteAccount(password: password);
-      }
+      await _deleteAccount(password: password);
       state = const AsyncValue.data(null);
     } catch (e, s) {
       state = AsyncValue.error(e, s);

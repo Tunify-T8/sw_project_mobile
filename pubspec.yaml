@@ -55,14 +55,6 @@ dependencies:
   # Use for OAuth with Google.
   google_sign_in: ^6.2.1
 
-  # The following adds Mockito in to your application.
-  # Use for Unit Tests.
-  mockito: ^5.4.4
-
-  # The following adds build_runner in to your application.
-  # Use for generating mock files for testing.
-  build_runner: ^2.4.9
-
   # The following adds url_launcher in to your application.
   # Use for launching urls.
   url_launcher: ^6.3.1
@@ -70,6 +62,14 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # The following adds Mockito in to your application.
+  # Use for Unit Tests.
+  mockito: ^5.4.4
+
+  # The following adds build_runner in to your application.
+  # Use for generating mock files for testing.
+  build_runner: ^2.4.9
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
