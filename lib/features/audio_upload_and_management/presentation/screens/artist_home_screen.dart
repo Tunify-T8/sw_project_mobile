@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/upload_status.dart';
 import '../providers/track_metadata_provider.dart';
+import '../providers/track_metadata_state.dart';
 import '../providers/upload_dependencies_provider.dart';
 import '../providers/upload_provider.dart';
+import '../providers/upload_state.dart';
+import '../widgets/home/artist_home_header.dart';
+import '../widgets/home/home_cards_grid.dart';
 import 'track_metadata_screen.dart';
 
 class ArtistHomeScreen extends ConsumerStatefulWidget {
@@ -25,8 +29,8 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
   }
 
   bool _isHomeUploadBusy({
-    required dynamic uploadState,
-    required dynamic metadataState,
+    required UploadState uploadState,
+    required TrackMetadataState metadataState,
   }) {
     if (uploadState.isPreparingUpload || uploadState.isUploading) {
       return true;
@@ -36,11 +40,7 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
       return true;
     }
 
-    if (metadataState.processingStatus == UploadStatus.processing) {
-      return true;
-    }
-
-    return false;
+    return metadataState.processingStatus == UploadStatus.processing;
   }
 
   Future<void> _startUploadFlow() async {
@@ -87,73 +87,9 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.graphic_eq,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Artist Home',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: isUploadBusy ? null : _startUploadFlow,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E1E),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const Icon(
-                            Icons.cloud_upload_outlined,
-                            color: Colors.white,
-                          ),
-                          if (isUploadBusy)
-                            const SizedBox(
-                              width: 36,
-                              height: 36,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.6,
-                                backgroundColor: Colors.transparent,
-                                valueColor: AlwaysStoppedAnimation(
-                                  Color(0xFFA855F7),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              ArtistHomeHeader(
+                isUploadBusy: isUploadBusy,
+                onUploadTap: _startUploadFlow,
               ),
               const SizedBox(height: 18),
               Text(
@@ -173,52 +109,10 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.4,
-                  children: const [
-                    _HomePlaceholderCard(title: 'Recent Uploads'),
-                    _HomePlaceholderCard(title: 'Draft Tracks'),
-                    _HomePlaceholderCard(title: 'Performance'),
-                    _HomePlaceholderCard(title: 'Audience'),
-                  ],
-                ),
+              const Expanded(
+                child: HomeCardsGrid(),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HomePlaceholderCard extends StatelessWidget {
-  final String title;
-
-  const _HomePlaceholderCard({
-    required this.title,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Align(
-        alignment: Alignment.bottomLeft,
-        child: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),

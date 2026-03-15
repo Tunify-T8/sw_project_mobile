@@ -1,6 +1,6 @@
  // so no objects can be created
 
-// Because if your backend changes a path later, you only fix it in one place.
+  // Because if your backend changes a path later, you only fix it in one place.
 
   // Replace this with your backend URL.
   // Android emulator -> use 10.0.2.2 instead of localhost.
@@ -36,6 +36,13 @@
 
   // Module 4 — Delete
   static String deleteTrack(String trackId) => '/tracks/$trackId';
+  static const String myUploads = '/me/uploads';
+  static const String artistToolsQuota = '/me/uploads/artist-tools';
+
+  static String uploadDetails(String trackId) => '/tracks/$trackId';
+  static String deleteUpload(String trackId) => '/tracks/$trackId';
+  static String replaceUploadFile(String trackId) =>
+      '/tracks/$trackId/replace-file';
 
 }
 // We need a shared network layer.
