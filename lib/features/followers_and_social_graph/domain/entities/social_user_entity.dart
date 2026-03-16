@@ -1,58 +1,65 @@
 class SocialUserEntity {
-  final String userID;
-  final String userDisplayName;
-  final String avatarUrl;
-  final int followersCount;
-  final int followingCount; 
+  final String id;
+  final String username;
+  final String? avatarUrl;
+  final String? coverUrl;
+  final String? userType;
+  final int? followersCount;
+  final int? followingCount;
+  final int? tracksUploadedCount;
+  final int? mutualFollowersCount;
+  final bool isVerified;
   final bool isFollowing;
-  final bool isBlocked;
-  final bool isDeleted;
-  final bool isNotificationEnabled; //need to tell backend
-  final bool isTrueFriend; //need to tell backend & check if we need it
-  final bool isVerified; //tell backend
-  //will see about those
-  //final bool isArtist; 
-  //final bool cityName; //change name!
+  final bool isNotificationEnabled;
+  final String? blockedAt;
 
   const SocialUserEntity({
-    required this.userID,
-    required this.userDisplayName,
-    required this.avatarUrl,
-    required this.followersCount,
-    required this.followingCount,
-    required this.isFollowing,
-    required this.isBlocked,
-    required this.isDeleted,
-    required this.isNotificationEnabled,
-    required this.isTrueFriend,
-    required this.isVerified
+    required this.id,
+    required this.username,
+    this.avatarUrl,
+    this.coverUrl,
+    this.userType,
+    this.followersCount,
+    this.followingCount,
+    this.tracksUploadedCount,
+    this.mutualFollowersCount,
+    this.isVerified = false,
+    this.isFollowing = false,
+    this.isNotificationEnabled = false,
+    this.blockedAt,
   });
 
   SocialUserEntity copyWith({
-  String? userID,
-  String? userDisplayName,
-  String? avatarUrl,
-  int? followersCount,
-  int? followingCount,
-  bool? isFollowing,
-  bool? isBlocked,
-  bool? isDeleted,
-  bool? isNotificationEnabled,
-  bool? isTrueFriend,
-  bool? isVerified,
-}) {
-  return SocialUserEntity(
-    userID: userID ?? this.userID,
-    userDisplayName: userDisplayName ?? this.userDisplayName,
-    avatarUrl: avatarUrl ?? this.avatarUrl,
-    followersCount: followersCount ?? this.followersCount,
-    followingCount: followingCount ?? this.followingCount,
-    isFollowing: isFollowing ?? this.isFollowing,
-    isBlocked: isBlocked ?? this.isBlocked,
-    isDeleted: isDeleted ?? this.isDeleted,
-    isNotificationEnabled: isNotificationEnabled ?? this.isNotificationEnabled,
-    isTrueFriend: isTrueFriend?? this.isTrueFriend,
-    isVerified: isVerified?? this.isVerified,
-  );
-}
+    String? id,
+    String? username,
+    String? avatarUrl,
+    String? coverUrl,
+    String? userType,
+    int? followersCount,
+    int? followingCount,
+    int? tracksUploadedCount,
+    int? mutualFollowersCount,
+    bool? isVerified,
+    bool? isFollowing,
+    bool? isNotificationEnabled,
+    String? blockedAt,
+  }) {
+    return SocialUserEntity(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      coverUrl: coverUrl ?? this.coverUrl,
+      userType: userType ?? this.userType,
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
+      tracksUploadedCount: tracksUploadedCount ?? this.tracksUploadedCount,
+      mutualFollowersCount:
+          mutualFollowersCount ?? this.mutualFollowersCount,
+      isVerified: isVerified ?? this.isVerified,
+      isFollowing: isFollowing ?? this.isFollowing,
+      isNotificationEnabled:
+          isNotificationEnabled ?? this.isNotificationEnabled,
+      blockedAt: blockedAt ?? this.blockedAt,
+    );
+  }
 }

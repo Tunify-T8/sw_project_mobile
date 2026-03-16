@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'features/followers_and_social_graph/presentation/screens/network_lists_screen.dart';
+
 import 'features/followers_and_social_graph/domain/entities/network_list_type.dart';
+import 'features/followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -12,14 +13,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    NetworkListType listType;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SoundCloud Clone',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const NetworkListsScreen(listType: NetworkListType.following, userID: "u2"),
+      home: const NetworkListsScreen(
+        userId: 'u2',
+        listType: NetworkListType.blocked,
+      ),
     );
   }
 }

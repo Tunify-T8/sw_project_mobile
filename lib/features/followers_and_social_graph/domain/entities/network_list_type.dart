@@ -1,5 +1,7 @@
 enum NetworkListType {
   following,
   followers,
-  //will add more later
+  suggested, 
+  blocked,
+  mutual,
 }
