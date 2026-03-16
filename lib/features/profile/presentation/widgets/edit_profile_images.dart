@@ -1,14 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfileImages extends StatelessWidget {
   final File? coverImage;
   final File? profileImage;
-  final VoidCallback onCoverTap;
-  final VoidCallback onProfileTap;
+  // final VoidCallback onCoverTap;
+  // final VoidCallback onProfileTap;
+  final void Function(ImageSource) onCoverPick;
+  final void Function(ImageSource) onProfilePick;
 
-  final VoidCallback onCoverDelete;    // ← add
-  final VoidCallback onProfileDelete;
+  final VoidCallback onCoverDelete;    // lw hamsa7 cover
+  final VoidCallback onProfileDelete;//lw hamsa7 profile
 
   static const double coverHeight = 150;
   static const double profileHeight = 150;
@@ -17,11 +20,58 @@ class EditProfileImages extends StatelessWidget {
     super.key,
     required this.coverImage,
     required this.profileImage,
-    required this.onCoverTap,
-    required this.onProfileTap,
+    required this.onCoverPick,
+    required this.onProfilePick,
+    required this.onCoverDelete,    //el zwedtohom fo2
+    required this.onProfileDelete,  
   });
 
-  Widget buildCoverImage() {
+void showImageOptions(BuildContext context, {required bool isCover}) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF1A1A1A),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (_) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.camera_alt_outlined, color: Colors.white),
+          title: const Text('Take photo', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            Navigator.pop(context);
+            isCover
+                ? onCoverPick(ImageSource.camera)
+                : onProfilePick(ImageSource.camera);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
+          title: const Text('Choose from library', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            Navigator.pop(context);
+            isCover
+                ? onCoverPick(ImageSource.gallery)
+                : onProfilePick(ImageSource.gallery);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.delete_outline, color: Colors.white),
+          title: Text(
+            isCover ? 'Delete header image' : 'Delete profile image',
+            style: const TextStyle(color: Colors.white),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            isCover ? onCoverDelete() : onProfileDelete();
+          },
+        ),
+      ],
+    ),
+  );
+}
+  Widget buildCoverImage(BuildContext context) {
   Widget coverContent;
   if (coverImage != null) {
     coverContent = Image.file(coverImage!, fit: BoxFit.cover);
@@ -30,7 +80,7 @@ class EditProfileImages extends StatelessWidget {
   }
 
   return GestureDetector(
-    onTap: onCoverTap,
+    onTap:()=>showImageOptions(context, isCover: true),
     child: Stack(
       children: [
         Container(
@@ -57,7 +107,7 @@ class EditProfileImages extends StatelessWidget {
   );
 }
 
-Widget buildProfileImage() {
+Widget buildProfileImage(BuildContext context) {
   ImageProvider? image;
   if (profileImage != null) {
     image = FileImage(profileImage!);
@@ -69,7 +119,7 @@ Widget buildProfileImage() {
   }
 
   return GestureDetector(
-    onTap: onProfileTap,
+    onTap: ()=> showImageOptions(context, isCover: false),
     child: Stack(
       children: [
         CircleAvatar(
@@ -101,11 +151,11 @@ Widget buildProfileImage() {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        buildCoverImage(),
+        buildCoverImage(context),
         Positioned(
           top: coverHeight - profileHeight / 2,
           left: 25,
-          child: buildProfileImage(),
+          child: buildProfileImage(context),
         ),
       ],
     );

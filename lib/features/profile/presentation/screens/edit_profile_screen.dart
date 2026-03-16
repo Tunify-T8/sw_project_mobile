@@ -9,6 +9,7 @@ import 'package:country_picker/country_picker.dart';
 import '../widgets/edit_profile_links.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+//import '../../data/services/image_server_upload.dart';//cloudinary
 
 class EditProfileScreen extends StatefulWidget {
     final String userName;
@@ -43,29 +44,14 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   ////////////cloudinary
 
-Future<String?> uploadImage(File imageFile) async {
-  final url = Uri.parse('https://api.cloudinary.com/v1_1/denreb1dd/upload');
-
-  final request = http.MultipartRequest('POST', url)
-    ..fields['upload_preset'] = 'ml_default'
-    ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
-
-  final response = await request.send();
-
-  if (response.statusCode == 200) {
-    final responseData = await response.stream.toBytes();
-    final responseString = String.fromCharCodes(responseData);
-    final jsonMap = jsonDecode(responseString);
-
-    return jsonMap['secure_url'];
-  }
-
-  return null;
-}
 
   //////////variables
   File? profileImage;
   File? coverImage;
+  ////as url
+  String? profileImageUrl;
+  String? coverImageUrl;
+  /////
   final _picker = ImagePicker();
 ///////////ba2fel el save le7ad ma ye
    //bool _isUploading = false; 
@@ -106,7 +92,25 @@ Future<String?> uploadImage(File imageFile) async {
     _websiteController.dispose();
     super.dispose();
   }
+Future<String?> uploadImage(File imageFile) async {
+  final url = Uri.parse('https://api.cloudinary.com/v1_1/denreb1dd/upload');
 
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = 'ml_default'
+    ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+  final response = await request.send();
+
+  if (response.statusCode == 200) {
+    final responseData = await response.stream.toBytes();
+    final responseString = String.fromCharCodes(responseData);
+    final jsonMap = jsonDecode(responseString);
+
+    return jsonMap['secure_url'];
+  }
+
+  return null;
+}
   Future<bool> _onWillPop() async {//if user goes back if has changes is true then display discard dialog
     if (!_hasChanges) return true;
     final shouldLeave = await showDiscardDialog(context);
@@ -125,7 +129,7 @@ Future<String?> uploadImage(File imageFile) async {
 
           String? profileUrl;
           String? coverUrl;
-
+          
           if (profileImage != null) {
             profileUrl = await uploadImage(profileImage!);
           }
@@ -149,23 +153,6 @@ Future<String?> uploadImage(File imageFile) async {
             userType: _isArtist ? 'ARTIST' : 'LISTENER',
           ));
         },
-        // onPressed: () {
-        //   setState(() => _hasChanges = false);
-        // Navigator.pop(context, ProfileDto(
-        //   userName: _nameController.text,
-        //   city: _cityController.text,
-        //   country: _countryController.text,
-        //   bio: _bioController.text,
-        //   profileImagePath: profileImage?.path,
-        //   coverImagePath: coverImage?.path,
-        //   instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
-        //   twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
-        //   website: _websiteController.text.isEmpty ? null : _websiteController.text,
-        //   userType: _isArtist ? 'ARTIST' : 'LISTENER',
-        // ));
-        //   //btrg3 el profile el mt3dl fih
-        // },
-        //////////////
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
@@ -204,8 +191,8 @@ Future<String?> uploadImage(File imageFile) async {
     );
   }
 
-  Future<void> pickImage({required bool isCover}) async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
+Future<void> pickImage({required bool isCover, ImageSource source = ImageSource.gallery}) async {
+  final picked = await _picker.pickImage(source: source);//source 3lshan ya2ma camera ya2ma gallery
     if (picked != null) {
       setState(() {
         _hasChanges = true;
@@ -226,8 +213,16 @@ Future<String?> uploadImage(File imageFile) async {
           EditProfileImages(
             coverImage: coverImage,
             profileImage: profileImage,
-            onCoverTap: () => pickImage(isCover: true),
-            onProfileTap: () => pickImage(isCover: false),
+            onCoverPick: (source) => pickImage(isCover: true, source: source),//8yrataha 3lshan ta5od camera aw gallery
+            onProfilePick: (source) => pickImage(isCover: false, source: source),
+            onCoverDelete: () => setState(() {   // to delete
+              coverImage = null;
+              _hasChanges = true;
+            }),
+            onProfileDelete: () => setState(() { // to delete
+              profileImage = null;
+              _hasChanges = true;
+            }),
           ),
           SizedBox(height: EditProfileImages.profileHeight / 2 + 8),
           EditProfileTextFields(
