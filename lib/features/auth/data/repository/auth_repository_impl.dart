@@ -71,11 +71,13 @@ class AuthRepositoryImpl implements AuthRepository {
       final dto = AuthResponseDto.fromJson(
         response.data as Map<String, dynamic>,
       );
-      await _tokenStorage.saveTokens(
+      final user = AuthUserMapper.toEntity(dto);
+      await _tokenStorage.saveSession(
         accessToken: dto.accessToken,
         refreshToken: dto.refreshToken,
+        user: user,
       );
-      return AuthUserMapper.toEntity(dto);
+      return user;
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } catch (_) {
@@ -116,12 +118,7 @@ class AuthRepositoryImpl implements AuthRepository {
         throw const ServerFailure();
       }
 
-      await _tokenStorage.saveTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      );
-
-      return AuthUserEntity(
+      final user = AuthUserEntity(
         id: dto.userId,
         email: dto.email,
         username: dto.username,
@@ -129,6 +126,14 @@ class AuthRepositoryImpl implements AuthRepository {
         isVerified: true,
         avatarUrl: dto.avatarUrl,
       );
+
+      await _tokenStorage.saveSession(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        user: user,
+      );
+
+      return user;
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } on Failure {
@@ -147,7 +152,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } finally {
       // Always clear local tokens even if the network call fails.
-      await _tokenStorage.clearTokens();
+      await _tokenStorage.clearSession();
     }
   }
 
@@ -159,7 +164,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _api.signOutAll(refreshToken);
       }
     } finally {
-      await _tokenStorage.clearTokens();
+      await _tokenStorage.clearSession();
     }
   }
 
@@ -190,7 +195,7 @@ class AuthRepositoryImpl implements AuthRepository {
         confirmPassword: confirmPassword,
         signoutAll: signoutAll,
       );
-      if (signoutAll) await _tokenStorage.clearTokens();
+      if (signoutAll) await _tokenStorage.clearSession();
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } catch (_) {
@@ -203,7 +208,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _api.deleteAccount(password: password);
       // Only reached if the API call succeeded — safe to clear tokens now.
-      await _tokenStorage.clearTokens();
+      await _tokenStorage.clearSession();
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } catch (_) {

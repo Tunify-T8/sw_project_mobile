@@ -4,50 +4,62 @@ import 'mock_auth_config.dart';
 
 /// Fake implementations of every auth operation.
 ///
-/// Each method reads the matching scenario from [MockAuthConfig]
-/// and either returns fake data or throws the appropriate [Failure].
-///
-/// No screen code changes needed to switch scenarios —
-/// just change the config value and hot-restart.
+/// This version keeps a tiny in-memory user store so signup and login can both
+/// be tested in the same app run without manually flipping mock scenarios.
 class MockAuthService {
   MockAuthService._();
 
-  // ── Fake user returned on successful login / verify ────────────────────────
-  static const AuthUserEntity _fakeUser = AuthUserEntity(
-    id: 'mock-user-001',
-    email: 'robin.banks.dealer911@gmail.com',
-    username: 'Robin Banks',
-    role: 'LISTENER',
-    isVerified: true,
-  );
+  static int _idCounter = 2;
 
-  // ── checkEmail ──────────────────────────────────────────────────────────────
-  /// Returns true if [MockEmailScenario.existingAccount], false otherwise.
+  static final Map<String, _MockStoredUser> _usersByEmail = {
+    'robin.banks.dealer911@gmail.com': _MockStoredUser(
+      id: 'mock-user-001',
+      email: 'robin.banks.dealer911@gmail.com',
+      username: 'Robin Banks',
+      role: 'LISTENER',
+      isVerified: true,
+      password: '123456',
+    ),
+  };
+
   static Future<bool> checkEmail(String email) async {
     await Future.delayed(MockAuthConfig.delay);
+    final normalizedEmail = email.trim().toLowerCase();
+    final stored = _usersByEmail[normalizedEmail];
+    if (stored != null) {
+      return true;
+    }
     return MockAuthConfig.emailScenario == MockEmailScenario.existingAccount;
   }
 
-  // ── login ───────────────────────────────────────────────────────────────────
-  /// Returns [_fakeUser] or throws based on [MockAuthConfig.loginScenario].
-  static Future<AuthUserEntity> login(String email, String password) async {
-    await Future.delayed(MockAuthConfig.delay);
-    switch (MockAuthConfig.loginScenario) {
-      case MockLoginScenario.success:
-        return _fakeUser;
-      case MockLoginScenario.wrongPassword:
-        throw const UnauthorizedFailure();
-      case MockLoginScenario.unverified:
-        throw const UnverifiedUserFailure();
-    }
-  }
-
-  // ── register ────────────────────────────────────────────────────────────────
-  /// Completes silently or throws based on [MockAuthConfig.registerScenario].
-  static Future<void> register() async {
+  static Future<void> register({
+    required String email,
+    required String username,
+    required String password,
+    required String gender,
+    required String dateOfBirth,
+  }) async {
     await Future.delayed(MockAuthConfig.delay);
     switch (MockAuthConfig.registerScenario) {
       case MockRegisterScenario.success:
+        final normalizedEmail = email.trim().toLowerCase();
+        if (_usersByEmail.containsKey(normalizedEmail)) {
+          throw const ConflictFailure('This email is already in use.');
+        }
+        final duplicateUsername = _usersByEmail.values.any(
+          (user) => user.username.toLowerCase() == username.trim().toLowerCase(),
+        );
+        if (duplicateUsername) {
+          throw const ConflictFailure('This username is already taken.');
+        }
+        _usersByEmail[normalizedEmail] = _MockStoredUser(
+          id: 'mock-user-${_idCounter++}',
+          email: normalizedEmail,
+          username: username.trim(),
+          role: 'ARTIST',
+          isVerified: false,
+          password: password,
+        );
         return;
       case MockRegisterScenario.emailTaken:
         throw const ConflictFailure('This email is already in use.');
@@ -56,33 +68,59 @@ class MockAuthService {
     }
   }
 
-  // ── verifyEmail ─────────────────────────────────────────────────────────────
-  /// Returns [_fakeUser] or throws based on [MockAuthConfig.verifyScenario].
-  static Future<AuthUserEntity> verifyEmail() async {
+  static Future<AuthUserEntity> verifyEmail({
+    required String email,
+    required String token,
+  }) async {
     await Future.delayed(MockAuthConfig.delay);
     switch (MockAuthConfig.verifyScenario) {
       case MockVerifyScenario.success:
-        return _fakeUser;
+        final normalizedEmail = email.trim().toLowerCase();
+        final stored = _usersByEmail[normalizedEmail];
+        if (stored == null) {
+          throw const NotFoundFailure('Account not found.');
+        }
+        final verified = stored.copyWith(isVerified: true);
+        _usersByEmail[normalizedEmail] = verified;
+        return verified.toEntity();
       case MockVerifyScenario.invalidToken:
         throw const UnauthorizedFailure();
     }
   }
 
-  // ── forgotPassword ──────────────────────────────────────────────────────────
-  /// Completes silently (API always returns success — security by design)
-  /// or throws a [ValidationFailure] to simulate a bad email format.
+  static Future<AuthUserEntity> login(String email, String password) async {
+    await Future.delayed(MockAuthConfig.delay);
+    switch (MockAuthConfig.loginScenario) {
+      case MockLoginScenario.success:
+        final normalizedEmail = email.trim().toLowerCase();
+        final stored = _usersByEmail[normalizedEmail];
+        if (stored == null) {
+          throw const UnauthorizedFailure();
+        }
+        if (!stored.isVerified) {
+          throw const UnverifiedUserFailure();
+        }
+        if (stored.password != password) {
+          throw const UnauthorizedFailure();
+        }
+        return stored.toEntity();
+      case MockLoginScenario.wrongPassword:
+        throw const UnauthorizedFailure();
+      case MockLoginScenario.unverified:
+        throw const UnverifiedUserFailure();
+    }
+  }
+
   static Future<void> forgotPassword(String email) async {
     await Future.delayed(MockAuthConfig.delay);
     switch (MockAuthConfig.forgotScenario) {
       case MockForgotScenario.success:
-        return; // Always navigate to check-your-email regardless.
+        return;
       case MockForgotScenario.invalidEmail:
         throw const ValidationFailure('Invalid email address format.');
     }
   }
 
-  // ── resetPassword ───────────────────────────────────────────────────────────
-  /// Completes silently or throws based on [MockAuthConfig.resetScenario].
   static Future<void> resetPassword() async {
     await Future.delayed(MockAuthConfig.delay);
     switch (MockAuthConfig.resetScenario) {
@@ -95,8 +133,6 @@ class MockAuthService {
     }
   }
 
-  // ── deleteAccount ───────────────────────────────────────────────────────────
-  /// Completes silently or throws based on [MockAuthConfig.deleteScenario].
   static Future<void> deleteAccount() async {
     await Future.delayed(MockAuthConfig.delay);
     switch (MockAuthConfig.deleteScenario) {
@@ -111,10 +147,53 @@ class MockAuthService {
     }
   }
 
-  // ── logout ──────────────────────────────────────────────────────────────────
-  /// Always succeeds — clears tokens (handled by repository).
   static Future<void> logout() async {
     await Future.delayed(MockAuthConfig.delay);
-    // MockLogoutScenario only has success — logout always works locally.
+  }
+}
+
+class _MockStoredUser {
+  final String id;
+  final String email;
+  final String username;
+  final String role;
+  final bool isVerified;
+  final String password;
+
+  const _MockStoredUser({
+    required this.id,
+    required this.email,
+    required this.username,
+    required this.role,
+    required this.isVerified,
+    required this.password,
+  });
+
+  _MockStoredUser copyWith({
+    String? id,
+    String? email,
+    String? username,
+    String? role,
+    bool? isVerified,
+    String? password,
+  }) {
+    return _MockStoredUser(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      username: username ?? this.username,
+      role: role ?? this.role,
+      isVerified: isVerified ?? this.isVerified,
+      password: password ?? this.password,
+    );
+  }
+
+  AuthUserEntity toEntity() {
+    return AuthUserEntity(
+      id: id,
+      email: email,
+      username: username,
+      role: role,
+      isVerified: isVerified,
+    );
   }
 }

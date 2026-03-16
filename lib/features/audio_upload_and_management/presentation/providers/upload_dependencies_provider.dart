@@ -1,21 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/services/file_picker_service.dart';
+
 import '../../../../core/network/dio_client.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/api/upload_api.dart';
-
-// Later, this exact provider can be replaced to read from:
-
-// auth provider
-
-// profile provider
-
+import '../../data/services/file_picker_service.dart';
 
 final currentUploadUserIdProvider = Provider<String>((ref) {
-  return 'user-demo-id';
+  final authState = ref.watch(authControllerProvider);
+  final user = authState.asData?.value;
+  return user?.id ?? '';
 });
 
 final currentArtistNameProvider = Provider<String>((ref) {
-  return 'ROZANA AHMED';
+  final authState = ref.watch(authControllerProvider);
+  final user = authState.asData?.value;
+  return user?.username ?? 'Authenticated artist';
 });
 
 final filePickerServiceProvider = Provider<FilePickerService>((ref) {

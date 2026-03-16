@@ -1,6 +1,3 @@
-export 'upload_genre_model.dart';
-export 'upload_genres.dart';
-
 enum UploadGenreGroup {
   music,
   audio,
@@ -21,4 +18,3 @@ class UploadGenre {
 
   String get categoryValue => group?.name ?? '';
 }
-

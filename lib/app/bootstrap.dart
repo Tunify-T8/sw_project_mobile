@@ -48,7 +48,7 @@ class TunifyApp extends StatelessWidget {
       title: 'Tunify',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
-      onGenerateRoute: generateRoute,
+      onGenerateRoute: AppRouter.onGenerateRoute,
       // Use initialRoute instead of home so that generateRoute handles
       // every route from the very first frame, including '/'.
       // home + onGenerateRoute conflict because home bypasses the route

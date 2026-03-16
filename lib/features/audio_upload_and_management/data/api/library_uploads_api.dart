@@ -15,19 +15,40 @@ class LibraryUploadsApi {
   /// GET /me/uploads
   Future<List<UploadItemDto>> getMyUploads() async {
     final response = await dio.get(ApiEndpoints.myUploads);
-    final data = response.data as List<dynamic>;
+    final raw = response.data;
+
+    final List<dynamic> data;
+    if (raw is List) {
+      data = raw;
+    } else if (raw is Map<String, dynamic>) {
+      data = (raw['items'] as List?) ??
+          (raw['uploads'] as List?) ??
+          (raw['data'] as List?) ??
+          const <dynamic>[];
+    } else {
+      data = const <dynamic>[];
+    }
 
     return data
-        .map((item) => UploadItemDto.fromJson(item as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map(UploadItemDto.fromJson)
         .toList();
   }
 
-  /// GET /me/uploads/artist-tools
+  /// GET /users/me/artist-tools/upload-minutes
   Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
-    final response = await dio.get(ApiEndpoints.artistToolsQuota);
-    return ArtistToolsQuotaDto.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    final response = await dio.get(ApiEndpoints.artistToolsQuota());
+    final raw = response.data;
+
+    if (raw is Map<String, dynamic>) {
+      return ArtistToolsQuotaDto.fromJson(
+        raw['data'] is Map<String, dynamic>
+            ? raw['data'] as Map<String, dynamic>
+            : raw,
+      );
+    }
+
+    throw const FormatException('Invalid artist tools quota response format.');
   }
 
   /// DELETE /tracks/:id
@@ -86,8 +107,15 @@ class LibraryUploadsApi {
       );
     }
 
-    return UploadItemDto.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    final raw = response.data;
+    if (raw is Map<String, dynamic>) {
+      return UploadItemDto.fromJson(
+        raw['data'] is Map<String, dynamic>
+            ? raw['data'] as Map<String, dynamic>
+            : raw,
+      );
+    }
+
+    throw const FormatException('Invalid update upload response format.');
   }
 }

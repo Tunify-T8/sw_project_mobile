@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/core/routing/routes.dart';
 
 import '../features/audio_upload_and_management/presentation/screens/home_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/library_screen.dart';
+import 'router.dart';
 
 /// SoundCloud-style bottom nav: Home | Feed | Search | Library | Upgrade
 class MainShellScreen extends ConsumerStatefulWidget {
@@ -25,8 +27,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           const _PlaceholderTab(label: 'Feed'),
           const _PlaceholderTab(label: 'Search'),
           LibraryScreen(
+            onOpenSettings: () =>
+                Navigator.of(context).pushNamed(AppRoutes.account),
             onOpenYourUploads: () =>
-                Navigator.of(context).pushNamed('/your-uploads'),
+                Navigator.of(context).pushNamed(Routes.yourUploads),
           ),
           const _PlaceholderTab(label: 'Upgrade'),
         ],

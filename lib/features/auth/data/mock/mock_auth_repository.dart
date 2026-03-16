@@ -1,19 +1,16 @@
+import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 import 'package:software_project/features/auth/domain/repositories/auth_repository.dart';
-import 'mock_auth_config.dart';
 import 'mock_auth_service.dart';
 
 /// Fake implementation of [AuthRepository] used during development
 /// when [MockAuthConfig.useMock] is true.
-///
-/// Every method delegates to [MockAuthService] which reads scenario enums
-/// from [MockAuthConfig] and returns controlled results or throws typed
-/// [Failure]s — exactly what the real repository would do.
-///
-/// Screens and use cases never know this exists.
-/// The single switch is in [authRepositoryProvider] in auth_provider.dart.
 class MockAuthRepository implements AuthRepository {
-  const MockAuthRepository();
+  final TokenStorage _tokenStorage;
+
+  const MockAuthRepository({
+    required TokenStorage tokenStorage,
+  }) : _tokenStorage = tokenStorage;
 
   @override
   Future<bool> checkEmail(String email) => MockAuthService.checkEmail(email);
@@ -25,20 +22,44 @@ class MockAuthRepository implements AuthRepository {
     required String password,
     required String gender,
     required String dateOfBirth,
-  }) => MockAuthService.register();
+  }) {
+    return MockAuthService.register(
+      email: email,
+      username: username,
+      password: password,
+      gender: gender,
+      dateOfBirth: dateOfBirth,
+    );
+  }
 
   @override
-  Future<AuthUserEntity> login(String email, String password) =>
-      MockAuthService.login(email, password);
+  Future<AuthUserEntity> login(String email, String password) async {
+    final user = await MockAuthService.login(email, password);
+    await _tokenStorage.saveSession(
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      user: user,
+    );
+    return user;
+  }
 
   @override
-  Future<AuthUserEntity> verifyEmail(String email, String token) =>
-      MockAuthService.verifyEmail();
+  Future<AuthUserEntity> verifyEmail(String email, String token) async {
+    final user = await MockAuthService.verifyEmail(
+      email: email,
+      token: token,
+    );
+    await _tokenStorage.saveSession(
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      user: user,
+    );
+    return user;
+  }
 
   @override
   Future<void> resendVerification(String email) async {
-    // No scenario needed — resend always succeeds in mock mode.
-    await Future.delayed(MockAuthConfig.delay);
+    await Future.delayed(const Duration(milliseconds: 700));
   }
 
   @override
@@ -52,15 +73,28 @@ class MockAuthRepository implements AuthRepository {
     required String newPassword,
     required String confirmPassword,
     bool signoutAll = true,
-  }) => MockAuthService.resetPassword();
+  }) async {
+    await MockAuthService.resetPassword();
+    if (signoutAll) {
+      await _tokenStorage.clearSession();
+    }
+  }
 
   @override
-  Future<void> deleteAccount({String? password}) =>
-      MockAuthService.deleteAccount();
+  Future<void> deleteAccount({String? password}) async {
+    await MockAuthService.deleteAccount();
+    await _tokenStorage.clearSession();
+  }
 
   @override
-  Future<void> signOut() => MockAuthService.logout();
+  Future<void> signOut() async {
+    await MockAuthService.logout();
+    await _tokenStorage.clearSession();
+  }
 
   @override
-  Future<void> signOutAll() => MockAuthService.logout();
+  Future<void> signOutAll() async {
+    await MockAuthService.logout();
+    await _tokenStorage.clearSession();
+  }
 }

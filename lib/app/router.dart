@@ -1,66 +1,4 @@
 import 'package:flutter/material.dart';
-/*
-import '../features/audio_upload_and_management/domain/entities/upload_item.dart';
-import '../features/audio_upload_and_management/presentation/screens/edit_track_screen.dart';
-import '../features/audio_upload_and_management/presentation/screens/track_detail_screen.dart';
-import '../features/audio_upload_and_management/presentation/screens/track_metadata_screen.dart';
-import '../features/audio_upload_and_management/presentation/screens/upload_entry_screen.dart';
-import '../features/audio_upload_and_management/presentation/screens/upload_progress_screen.dart';
-import '../features/audio_upload_and_management/presentation/screens/your_uploads_screen.dart';
-import 'main_shell_screen.dart';
-import '../core/routing/routes.dart';
-
-class AppRouter {
-  AppRouter._();
-
-  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case Routes.shell:
-        return _fade(const MainShellScreen());
-
-      case Routes.uploadEntry:
-        return _slide(const UploadEntryScreen());
-
-      case Routes.trackMetadata:
-        final args = settings.arguments as Map<String, String>;
-        return _slide(
-          TrackMetadataScreen(
-            trackId: args['trackId']!,
-            fileName: args['fileName']!,
-          ),
-        );
-
-      case Routes.uploadProgress:
-        return _slide(const UploadProgressScreen());
-
-      case Routes.editTrack:
-        final item = settings.arguments as UploadItem;
-        return _slide(EditTrackScreen(item: item));
-
-      case Routes.trackDetail:
-        final item = settings.arguments as UploadItem;
-        return _slide(TrackDetailScreen(item: item));
-
-      case Routes.yourUploads:
-        return _slide(const YourUploadsScreen());
-
-      default:
-        return _fade(const MainShellScreen());
-    }
-  }
-
-  static MaterialPageRoute<T> _fade<T>(Widget page) =>
-      MaterialPageRoute<T>(builder: (_) => page);
-
-  static PageRouteBuilder<T> _slide<T>(Widget page) => PageRouteBuilder<T>(
-    pageBuilder: (_, __, ___) => page,
-    transitionsBuilder: (_, anim, __, child) => SlideTransition(
-      position: Tween(
-        begin: const Offset(1, 0),
-        end: Offset.zero,
-      ).chain(CurveTween(curve: Curves.ease)).animate(anim),
-      child: child,
-    ),*/ import 'package:flutter/material.dart';
 
 import '../core/routing/routes.dart';
 import '../features/audio_upload_and_management/domain/entities/upload_item.dart';
@@ -70,7 +8,6 @@ import '../features/audio_upload_and_management/presentation/screens/track_metad
 import '../features/audio_upload_and_management/presentation/screens/upload_entry_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/upload_progress_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/your_uploads_screen.dart';
-
 import '../features/auth/presentation/screens/account_screen.dart';
 import '../features/auth/presentation/screens/check_your_email_screen.dart';
 import '../features/auth/presentation/screens/delete_account_screen.dart';
@@ -84,12 +21,9 @@ import '../features/auth/presentation/screens/sign_in_or_create_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
-
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
 
-/// Auth route names.
-/// Keep this because the auth module will already be using these names.
 class AppRoutes {
   AppRoutes._();
 
@@ -107,10 +41,11 @@ class AppRoutes {
   static const String resetPassword = '/reset-password';
   static const String account = '/account';
   static const String deleteAccount = '/delete-account';
-
-  /// After auth succeeds, go to your app shell.
   static const String home = '/home';
 }
+
+Route<dynamic> generateRoute(RouteSettings settings) =>
+    AppRouter.onGenerateRoute(settings);
 
 class AppRouter {
   AppRouter._();
@@ -119,7 +54,6 @@ class AppRouter {
     final args = _readArgs(settings.arguments);
 
     switch (settings.name) {
-      // ---------------- AUTH FLOW ----------------
       case AppRoutes.authGate:
         return _fade(const AuthGate(), settings);
 
@@ -136,9 +70,7 @@ class AppRouter {
 
       case AppRoutes.signInOrCreate:
         return _fade(
-          SignInOrCreateScreen(
-            initialMode: args['mode'] as String?,
-          ),
+          SignInOrCreateScreen(initialMode: args['mode'] as String?),
           settings,
         );
 
@@ -163,9 +95,7 @@ class AppRouter {
 
       case AppRoutes.registerDetail:
         return _fade(
-          RegisterDetailScreen(
-            email: args['email'] as String? ?? '',
-          ),
+          RegisterDetailScreen(email: args['email'] as String? ?? ''),
           settings,
         );
 
@@ -180,25 +110,19 @@ class AppRouter {
 
       case AppRoutes.verifyEmail:
         return _fade(
-          VerifyEmailScreen(
-            email: args['email'] as String? ?? '',
-          ),
+          VerifyEmailScreen(email: args['email'] as String? ?? ''),
           settings,
         );
 
       case AppRoutes.forgotPassword:
         return _fade(
-          ForgotPasswordScreen(
-            initialEmail: args['email'] as String?,
-          ),
+          ForgotPasswordScreen(initialEmail: args['email'] as String?),
           settings,
         );
 
       case AppRoutes.checkYourEmail:
         return _fade(
-          CheckYourEmailScreen(
-            email: args['email'] as String? ?? '',
-          ),
+          CheckYourEmailScreen(email: args['email'] as String? ?? ''),
           settings,
         );
 
@@ -212,54 +136,75 @@ class AppRouter {
         );
 
       case AppRoutes.account:
-        return _fade(const AccountScreen(), settings);
+        return _fade(
+          const AuthProtectedScreen(child: AccountScreen()),
+          settings,
+        );
 
       case AppRoutes.deleteAccount:
-        return _fade(const DeleteAccountScreen(), settings);
+        return _fade(
+          const AuthProtectedScreen(child: DeleteAccountScreen()),
+          settings,
+        );
 
-      /// Auth branch wanted "home" here.
-      /// We map it to your real app shell.
       case AppRoutes.home:
       case Routes.shell:
-        return _fade(const MainShellScreen(), settings);
+        return _fade(
+          const AuthProtectedScreen(child: MainShellScreen()),
+          settings,
+        );
 
-      // ---------------- YOUR UPLOAD / LIBRARY FLOW ----------------
       case Routes.uploadEntry:
-        return _slide(const UploadEntryScreen(), settings);
+        return _slide(
+          const AuthProtectedScreen(child: UploadEntryScreen()),
+          settings,
+        );
 
       case Routes.trackMetadata:
         return _slide(
-          TrackMetadataScreen(
-            trackId: args['trackId'] as String? ?? '',
-            fileName: args['fileName'] as String? ?? '',
+          AuthProtectedScreen(
+            child: TrackMetadataScreen(
+              trackId: args['trackId'] as String? ?? '',
+              fileName: args['fileName'] as String? ?? '',
+            ),
           ),
           settings,
         );
 
       case Routes.uploadProgress:
-        return _slide(const UploadProgressScreen(), settings);
+        return _slide(
+          const AuthProtectedScreen(child: UploadProgressScreen()),
+          settings,
+        );
 
       case Routes.editTrack:
         final item = settings.arguments as UploadItem;
-        return _slide(EditTrackScreen(item: item), settings);
+        return _slide(
+          AuthProtectedScreen(child: EditTrackScreen(item: item)),
+          settings,
+        );
 
       case Routes.trackDetail:
         final item = settings.arguments as UploadItem;
-        return _slide(TrackDetailScreen(item: item), settings);
+        return _slide(
+          AuthProtectedScreen(child: TrackDetailScreen(item: item)),
+          settings,
+        );
 
       case Routes.yourUploads:
-        return _slide(const YourUploadsScreen(), settings);
+        return _slide(
+          const AuthProtectedScreen(child: YourUploadsScreen()),
+          settings,
+        );
 
       default:
-        return _fade(const MainShellScreen(), settings);
+        return _fade(const AuthGate(), settings);
     }
   }
 
   static Map<String, dynamic> _readArgs(Object? rawArgs) {
     if (rawArgs is Map) {
-      return rawArgs.map(
-        (key, value) => MapEntry(key.toString(), value),
-      );
+      return rawArgs.map((key, value) => MapEntry(key.toString(), value));
     }
     return <String, dynamic>{};
   }
@@ -301,6 +246,4 @@ class AppRouter {
       transitionDuration: const Duration(milliseconds: 300),
     );
   }
-}
-  );
 }

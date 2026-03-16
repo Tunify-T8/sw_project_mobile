@@ -12,6 +12,7 @@ import '../widgets/artist_tool_paywall_sheet.dart';
 import '../widgets/artist_tools_banner.dart';
 import '../widgets/artist_tools_sheet.dart';
 import '../widgets/uploads_search_header.dart';
+import '../utils/upload_auth_guard.dart';
 import 'track_detail_screen.dart';
 import 'edit_track_screen.dart';
 
@@ -32,6 +33,9 @@ class YourUploadsScreen extends ConsumerStatefulWidget {
 class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
   late final TextEditingController _searchCtrl;
   Future<void> _startInlineUpload() async {
+    final canUpload = await ensureUploadAuthenticated(context, ref);
+    if (!canUpload) return;
+
     final userId = ref.read(currentUploadUserIdProvider);
     final track = await ref
         .read(uploadProvider.notifier)

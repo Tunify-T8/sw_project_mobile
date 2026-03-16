@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/upload_dependencies_provider.dart';
 import '../providers/upload_provider.dart';
+import '../utils/upload_auth_guard.dart';
 import 'track_metadata_screen.dart';
 
 /// Entry point for the upload flow.
@@ -32,6 +33,9 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
   }
 
   Future<void> _startFlow() async {
+    final canUpload = await ensureUploadAuthenticated(context, ref);
+    if (!canUpload) return;
+
     final userId = ref.read(currentUploadUserIdProvider);
     final track = await ref
         .read(uploadProvider.notifier)

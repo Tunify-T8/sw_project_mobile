@@ -20,8 +20,6 @@ import 'package:software_project/features/auth/domain/usecases/resend_verificati
 import 'package:software_project/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/verify_email_usecase.dart';
 
-// ─── Infrastructure ───────────────────────────────────────────────────────────
-
 final tokenStorageProvider = Provider<TokenStorage>(
   (_) => const TokenStorage(),
 );
@@ -35,22 +33,18 @@ final googleSignInServiceProvider = Provider<GoogleSignInService>(
   (_) => GoogleSignInService(),
 );
 
-// ─── Repository ───────────────────────────────────────────────────────────────
-
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  // ── Single mock/real switch ───────────────────────────────────────────────
-  // Change MockAuthConfig.useMock to false when the backend is ready.
-  // Nothing else in the codebase needs to change.
+  final tokenStorage = ref.read(tokenStorageProvider);
+
   if (MockAuthConfig.useMock) {
-    return const MockAuthRepository();
+    return MockAuthRepository(tokenStorage: tokenStorage);
   }
+
   return AuthRepositoryImpl(
     ref.read(authApiProvider),
-    ref.read(tokenStorageProvider),
+    tokenStorage,
   );
 });
-
-// ─── Use Cases ────────────────────────────────────────────────────────────────
 
 final checkEmailUseCaseProvider = Provider<CheckEmailUseCase>(
   (ref) => CheckEmailUseCase(ref.read(authRepositoryProvider)),
@@ -92,91 +86,50 @@ final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>(
   (ref) => DeleteAccountUseCase(ref.read(authRepositoryProvider)),
 );
 
-// ─── Controller ───────────────────────────────────────────────────────────────
-
 final authControllerProvider =
-    StateNotifierProvider<AuthController, AsyncValue<AuthUserEntity?>>((ref) {
-      return AuthController(
-        checkEmail: ref.read(checkEmailUseCaseProvider),
-        register: ref.read(registerUseCaseProvider),
-        verifyEmail: ref.read(verifyEmailUseCaseProvider),
-        resendVerification: ref.read(resendVerificationUseCaseProvider),
-        login: ref.read(loginUseCaseProvider),
-        logout: ref.read(logoutUseCaseProvider),
-        logoutAll: ref.read(logoutAllUseCaseProvider),
-        forgotPassword: ref.read(forgotPasswordUseCaseProvider),
-        resetPassword: ref.read(resetPasswordUseCaseProvider),
-        deleteAccount: ref.read(deleteAccountUseCaseProvider),
-        googleSignInService: ref.read(googleSignInServiceProvider),
-      );
-    });
+    NotifierProvider<AuthController, AsyncValue<AuthUserEntity?>>(
+      AuthController.new,
+    );
 
-/// Manages authentication state for the entire app.
-///
-/// State is [AsyncValue<AuthUserEntity?>]:
-/// - `data(null)`  → unauthenticated
-/// - `data(user)`  → authenticated
-/// - `loading()`   → operation in progress
-/// - `error(e, s)` → last operation failed with a [Failure]
-///
-/// NOTE on the mock system (#11): The current mock interception points live in
-/// individual screens (EmailEntryScreen, TellUsMoreScreen) which is an
-/// architectural violation (presentation importing data/mock). The correct
-/// design would register a FakeMockAuthRepository as the authRepositoryProvider
-/// override when MockAuthConfig.useMock == true, so screens never need to
-/// know about mocks. This is the recommended next refactor but is left for
-/// when the real backend is integrated, as it requires reworking how
-/// ProviderScope overrides are set up in bootstrap.dart.
-class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
-  final CheckEmailUseCase _checkEmail;
-  final RegisterUseCase _register;
-  final VerifyEmailUseCase _verifyEmail;
-  final ResendVerificationUseCase _resendVerification;
-  final LoginUseCase _login;
-  final LogoutUseCase _logout;
-  final LogoutAllUseCase _logoutAll;
-  final ForgotPasswordUseCase _forgotPassword;
-  final ResetPasswordUseCase _resetPassword;
-  final DeleteAccountUseCase _deleteAccount;
-  final GoogleSignInService _googleSignInService;
+class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
+  CheckEmailUseCase get _checkEmail => ref.read(checkEmailUseCaseProvider);
+  RegisterUseCase get _register => ref.read(registerUseCaseProvider);
+  VerifyEmailUseCase get _verifyEmail => ref.read(verifyEmailUseCaseProvider);
+  ResendVerificationUseCase get _resendVerification =>
+      ref.read(resendVerificationUseCaseProvider);
+  LoginUseCase get _login => ref.read(loginUseCaseProvider);
+  LogoutUseCase get _logout => ref.read(logoutUseCaseProvider);
+  LogoutAllUseCase get _logoutAll => ref.read(logoutAllUseCaseProvider);
+  ForgotPasswordUseCase get _forgotPassword =>
+      ref.read(forgotPasswordUseCaseProvider);
+  ResetPasswordUseCase get _resetPassword =>
+      ref.read(resetPasswordUseCaseProvider);
+  DeleteAccountUseCase get _deleteAccount =>
+      ref.read(deleteAccountUseCaseProvider);
+  GoogleSignInService get _googleSignInService =>
+      ref.read(googleSignInServiceProvider);
+  TokenStorage get _tokenStorage => ref.read(tokenStorageProvider);
 
-  AuthController({
-    required CheckEmailUseCase checkEmail,
-    required RegisterUseCase register,
-    required VerifyEmailUseCase verifyEmail,
-    required ResendVerificationUseCase resendVerification,
-    required LoginUseCase login,
-    required LogoutUseCase logout,
-    required LogoutAllUseCase logoutAll,
-    required ForgotPasswordUseCase forgotPassword,
-    required ResetPasswordUseCase resetPassword,
-    required DeleteAccountUseCase deleteAccount,
-    required GoogleSignInService googleSignInService,
-  }) : _checkEmail = checkEmail,
-       _register = register,
-       _verifyEmail = verifyEmail,
-       _resendVerification = resendVerification,
-       _login = login,
-       _logout = logout,
-       _logoutAll = logoutAll,
-       _forgotPassword = forgotPassword,
-       _resetPassword = resetPassword,
-       _deleteAccount = deleteAccount,
-       _googleSignInService = googleSignInService,
-       super(const AsyncValue.data(null));
+  @override
+  AsyncValue<AuthUserEntity?> build() {
+    return const AsyncData<AuthUserEntity?>(null);
+  }
 
-  /// Returns true if [email] is already registered.
+  Future<AuthUserEntity?> restoreSession() async {
+    final user = await _tokenStorage.getUser();
+    state = AsyncData<AuthUserEntity?>(user);
+    return user;
+  }
+
   Future<bool> checkEmail(String email) async {
     try {
       return await _checkEmail(email);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
       return false;
     }
   }
 
-  /// Creates a new account. State becomes data(null) on success —
-  /// the user must verify their email before a session is started.
   Future<void> register({
     required String email,
     required String username,
@@ -184,7 +137,7 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
     required String gender,
     required String dateOfBirth,
   }) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<AuthUserEntity?>();
     try {
       await _register(
         email: email,
@@ -193,89 +146,73 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
         gender: gender,
         dateOfBirth: dateOfBirth,
       );
-      state = const AsyncValue.data(null);
+      state = const AsyncData<AuthUserEntity?>(null);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     }
   }
 
-  /// Verifies the email with [token]. Sets state to the authenticated user.
   Future<void> verifyEmail(String email, String token) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<AuthUserEntity?>();
     try {
       final user = await _verifyEmail(email, token);
-      state = AsyncValue.data(user);
+      state = AsyncData<AuthUserEntity?>(user);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     }
   }
 
-  /// Resends the verification email.
   Future<void> resendVerification(String email) async {
     try {
       await _resendVerification(email);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     }
   }
 
-  /// Authenticates with email and password.
   Future<void> login(String email, String password) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<AuthUserEntity?>();
     try {
       final user = await _login(email, password);
-      state = AsyncValue.data(user);
+      state = AsyncData<AuthUserEntity?>(user);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     }
   }
 
-  /// Initiates Google OAuth. Returns false if the user cancels.
   Future<bool> loginWithGoogle() async {
     try {
       final result = await _googleSignInService.signIn();
       if (result == null) return false;
-      // TODO: Call oauthLogin endpoint once backend adds POST /auth/google.
       return true;
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
       return false;
     }
   }
 
-  /// Signs out the current device and resets state.
   Future<void> logout() async {
     await _logout();
     await _googleSignInService.signOut();
-    state = const AsyncValue.data(null);
+    state = const AsyncData<AuthUserEntity?>(null);
   }
 
-  /// Signs out all devices and resets state.
   Future<void> logoutAll() async {
     await _logoutAll();
     await _googleSignInService.signOut();
-    state = const AsyncValue.data(null);
+    state = const AsyncData<AuthUserEntity?>(null);
   }
 
-  /// Sends a password reset email.
-  ///
-  /// Validation errors (400) are surfaced so the UI can display them safely.
-  /// All other errors are swallowed to avoid revealing whether the address
-  /// exists on the backend.
   Future<void> forgotPassword(String email) async {
     try {
       await _forgotPassword(email);
     } on ValidationFailure catch (e, s) {
-      // A 400 means the email format was rejected by the server — this is
-      // safe to surface since it reveals nothing about whether the address
-      // is registered.
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     } catch (_) {
-      // All other errors (404, network, server) are swallowed intentionally.
+      // Intentionally swallowed to avoid revealing account existence.
     }
   }
 
-  /// Resets the password using the token from the reset email.
   Future<void> resetPassword({
     required String email,
     required String token,
@@ -283,7 +220,7 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
     required String confirmPassword,
     bool signoutAll = true,
   }) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<AuthUserEntity?>();
     try {
       await _resetPassword(
         email: email,
@@ -292,20 +229,19 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
         confirmPassword: confirmPassword,
         signoutAll: signoutAll,
       );
-      state = const AsyncValue.data(null);
+      state = const AsyncData<AuthUserEntity?>(null);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     }
   }
 
-  /// Permanently deletes the account and clears state.
   Future<void> deleteAccount({String? password}) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<AuthUserEntity?>();
     try {
       await _deleteAccount(password: password);
-      state = const AsyncValue.data(null);
+      state = const AsyncData<AuthUserEntity?>(null);
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
+      state = AsyncError<AuthUserEntity?>(e, s);
     }
   }
 }

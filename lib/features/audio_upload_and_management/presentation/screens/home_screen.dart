@@ -8,6 +8,7 @@ import '../providers/upload_dependencies_provider.dart';
 import '../providers/upload_provider.dart';
 import '../providers/track_metadata_provider.dart';
 import '../providers/upload_state.dart';
+import '../utils/upload_auth_guard.dart';
 import 'track_detail_screen.dart';
 import 'track_metadata_screen.dart';
 import 'artist_home_screen.dart';
@@ -38,6 +39,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       uploadState.isPreparingUpload || uploadState.isUploading;
 
  Future<void> _startUpload() async {
+  final canUpload = await ensureUploadAuthenticated(context, ref);
+  if (!canUpload) return;
+
   final userId = ref.read(currentUploadUserIdProvider);
   final track = await ref
       .read(uploadProvider.notifier)

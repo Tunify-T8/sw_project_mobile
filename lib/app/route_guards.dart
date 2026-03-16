@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:software_project/app/router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
+import 'package:software_project/core/routing/routes.dart';
 import 'package:software_project/core/storage/token_storage.dart';
+import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 
-/// Evaluates whether a user is allowed to navigate to a given route.
-///
-/// There are two protection rules:
-///
-/// 1. Protected routes (require a stored token):
-///    If the user has no token and tries to reach [AppRoutes.home]
-///    or [AppRoutes.deleteAccount], they are redirected to [AppRoutes.landing].
-///
-/// 2. Auth-only routes (require no stored token):
-///    If the user already has a token and tries to reach any sign-in or
-///    register screen, they are redirected to [AppRoutes.home].
-///
-/// All other routes are allowed through unchanged.
+import 'router.dart';
+
 class RouteGuard {
   final TokenStorage _tokenStorage;
 
   const RouteGuard(this._tokenStorage);
 
-  /// Routes that require an authenticated session (stored token).
   static const List<String> _protectedRoutes = [
     AppRoutes.home,
+    AppRoutes.account,
     AppRoutes.deleteAccount,
+    Routes.shell,
+    Routes.uploadEntry,
+    Routes.trackMetadata,
+    Routes.uploadProgress,
+    Routes.editTrack,
+    Routes.trackDetail,
+    Routes.yourUploads,
   ];
 
-  /// Routes that are only reachable when the user is unauthenticated.
   static const List<String> _authOnlyRoutes = [
     AppRoutes.landing,
     AppRoutes.signInOrCreate,
@@ -40,10 +37,6 @@ class RouteGuard {
     AppRoutes.resetPassword,
   ];
 
-  /// Returns the route to actually navigate to.
-  ///
-  /// If navigation is allowed, [routeName] is returned unchanged.
-  /// If blocked by a protection rule, the redirect route is returned.
   Future<String> evaluate(String? routeName) async {
     final hasToken = await _tokenStorage.hasAccessToken();
     final route = routeName ?? AppRoutes.splash;
@@ -58,28 +51,85 @@ class RouteGuard {
   }
 }
 
-/// Entry point for auth-based navigation.
-///
-/// On cold start the app always begins at [AppRoutes.authGate], which
-/// builds this widget.
-///
-/// AuthGate checks whether an access token exists and then navigates to
-/// [AppRoutes.splash], passing the intended post-splash destination.
-///
-/// This keeps token-check logic centralized and makes the widget easy to
-/// test by accepting a [TokenStorage] instance via constructor.
-class AuthGate extends StatefulWidget {
-  /// Allows tests to inject a fake [TokenStorage].
-  /// Production code relies on the default [TokenStorage()] instance.
+class AuthProtectedScreen extends ConsumerStatefulWidget {
+  final Widget child;
+
+  const AuthProtectedScreen({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  ConsumerState<AuthProtectedScreen> createState() => _AuthProtectedScreenState();
+}
+
+class _AuthProtectedScreenState extends ConsumerState<AuthProtectedScreen> {
+  bool _isChecking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final tokenStorage = ref.read(tokenStorageProvider);
+    final hasToken = await tokenStorage.hasAccessToken();
+
+    if (!mounted) return;
+
+    if (!hasToken) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.landing,
+        (route) => false,
+      );
+      return;
+    }
+
+    final user = await ref.read(authControllerProvider.notifier).restoreSession();
+
+    if (!mounted) return;
+
+    if (user == null) {
+      await tokenStorage.clearSession();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.landing,
+        (route) => false,
+      );
+      return;
+    }
+
+    setState(() => _isChecking = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isChecking) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    return widget.child;
+  }
+}
+
+class AuthGate extends ConsumerStatefulWidget {
   final TokenStorage tokenStorage;
 
   const AuthGate({super.key, this.tokenStorage = const TokenStorage()});
 
   @override
-  State<AuthGate> createState() => _AuthGateState();
+  ConsumerState<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends ConsumerState<AuthGate> {
   @override
   void initState() {
     super.initState();
@@ -88,21 +138,28 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _evaluate() async {
     final hasToken = await widget.tokenStorage.hasAccessToken();
+    String destination = AppRoutes.landing;
+
+    if (hasToken) {
+      final user = await ref.read(authControllerProvider.notifier).restoreSession();
+      if (user != null) {
+        destination = AppRoutes.home;
+      } else {
+        await widget.tokenStorage.clearSession();
+      }
+    }
+
     if (!mounted) return;
 
-    // Always go through splash so the animation plays on every cold start.
-    // SplashScreen receives the post-auth destination via route arguments
-    // and navigates there after the animation completes.
     Navigator.pushReplacementNamed(
       context,
       AppRoutes.splash,
-      arguments: {'destination': hasToken ? AppRoutes.home : AppRoutes.landing},
+      arguments: {'destination': destination},
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Blank screen shown only for the brief moment the token check runs.
     return const Scaffold(
       backgroundColor: AppColors.background,
       body: SizedBox.shrink(),

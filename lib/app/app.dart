@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'router.dart';
-import '../core/routing/routes.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -17,7 +16,7 @@ class MyApp extends StatelessWidget {
           secondary: Color(0xFF9C27B0),
         ),
       ),
-      initialRoute: Routes.shell,
+      initialRoute: AppRoutes.authGate,
       onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }

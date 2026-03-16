@@ -92,7 +92,7 @@ class RefreshInterceptor extends Interceptor {
       }
       _queue.clear();
 
-      await tokenStorage.clearTokens();
+      await tokenStorage.clearSession();
       return handler.next(err);
     } finally {
       _isRefreshing = false;

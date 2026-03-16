@@ -13,21 +13,7 @@ class MockLibraryUploadsApi {
     await Future.delayed(const Duration(milliseconds: 250));
     return GlobalTrackStore.instance.all
         .where((item) => !item.isDeleted)
-        .map((item) => UploadItemDto(
-              id: item.id,
-              title: item.title,
-              artists: item.artistDisplay.split(', '),
-              durationSeconds: item.durationSeconds,
-              artworkUrl: item.artworkUrl,
-              localArtworkPath: item.localArtworkPath,
-              localFilePath: item.localFilePath,
-              description: item.description,
-              privacy:
-                  item.visibility == UploadVisibility.public ? 'public' : 'private',
-              status: _statusString(item.status),
-              contentWarning: item.isExplicit,
-              createdAt: item.createdAt.toIso8601String(),
-            ))
+        .map(_toDto)
         .toList();
   }
 
@@ -54,10 +40,12 @@ class MockLibraryUploadsApi {
     await Future.delayed(const Duration(milliseconds: 300));
     final existing = GlobalTrackStore.instance.find(trackId);
     if (existing != null) {
-      GlobalTrackStore.instance.update(existing.copyWith(
-        localFilePath: filePath,
-        status: UploadProcessingStatus.processing,
-      ));
+      GlobalTrackStore.instance.update(
+        existing.copyWith(
+          localFilePath: filePath,
+          status: UploadProcessingStatus.processing,
+        ),
+      );
     }
   }
 
@@ -75,25 +63,47 @@ class MockLibraryUploadsApi {
     final updated = existing.copyWith(
       title: title,
       description: description,
-      visibility:
-          privacy == 'public' ? UploadVisibility.public : UploadVisibility.private,
+      visibility: privacy == 'public'
+          ? UploadVisibility.public
+          : UploadVisibility.private,
       localArtworkPath: localArtworkPath ?? existing.localArtworkPath,
+      artworkUrl: localArtworkPath ?? existing.artworkUrl,
     );
     GlobalTrackStore.instance.update(updated);
 
+    return _toDto(updated);
+  }
+
+  UploadItemDto _toDto(UploadItem item) {
     return UploadItemDto(
-      id: updated.id,
-      title: updated.title,
-      artists: updated.artistDisplay.split(', '),
-      durationSeconds: updated.durationSeconds,
-      artworkUrl: updated.artworkUrl,
-      localArtworkPath: updated.localArtworkPath,
-      localFilePath: updated.localFilePath,
-      description: updated.description,
-      privacy: privacy,
-      status: 'finished',
-      contentWarning: updated.isExplicit,
-      createdAt: updated.createdAt.toIso8601String(),
+      id: item.id,
+      title: item.title,
+      artists: item.artistDisplay.split(', '),
+      durationSeconds: item.durationSeconds,
+      artworkUrl: item.artworkUrl,
+      localArtworkPath: item.localArtworkPath,
+      localFilePath: item.localFilePath,
+      description: item.description,
+      tags: item.tags,
+      genreCategory: item.genreCategory,
+      genreSubGenre: item.genreSubGenre,
+      privacy: item.visibility == UploadVisibility.public ? 'public' : 'private',
+      status: _statusString(item.status),
+      contentWarning: item.isExplicit,
+      recordLabel: item.recordLabel,
+      publisher: item.publisher,
+      isrc: item.isrc,
+      pLine: item.pLine,
+      scheduledReleaseDate: item.scheduledReleaseDate?.toIso8601String(),
+      allowDownloads: item.allowDownloads,
+      offlineListening: item.offlineListening,
+      includeInRss: item.includeInRss,
+      displayEmbedCode: item.displayEmbedCode,
+      appPlaybackEnabled: item.appPlaybackEnabled,
+      availabilityType: item.availabilityType,
+      availabilityRegions: item.availabilityRegions,
+      licensing: item.licensing,
+      createdAt: item.createdAt.toIso8601String(),
     );
   }
 

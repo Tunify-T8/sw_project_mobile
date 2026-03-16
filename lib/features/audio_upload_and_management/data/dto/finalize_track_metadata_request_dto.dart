@@ -87,9 +87,8 @@ class FinalizeTrackMetadataRequestDto {
       recordLabel: metadata.recordLabel,
       publisher: metadata.publisher,
       isrc: metadata.isrc,
-      // Keep this safe even if your entity doesn’t visually expose it yet.
-      pLine: metadata.recordLabel.isNotEmpty
-          ? metadata.recordLabel
+      pLine: metadata.pLine.isNotEmpty
+          ? metadata.pLine
           : '2026 SoundCloud Clone',
       contentWarning: metadata.contentWarning,
       scheduledReleaseDate: metadata.scheduledReleaseDate,
@@ -117,7 +116,6 @@ class FinalizeTrackMetadataRequestDto {
       'description': description,
       'privacy': privacy,
       'artists': artists,
-
       'recordLabel': recordLabel,
       'publisher': publisher,
       'isrc': isrc,
@@ -125,22 +123,18 @@ class FinalizeTrackMetadataRequestDto {
       'contentWarning': contentWarning,
       if (scheduledReleaseDate != null)
         'scheduledReleaseDate': scheduledReleaseDate!.toIso8601String(),
-
       'availability[type]': availabilityType,
       'availability[regions]': availabilityRegions,
-
       'licensing[type]': licensingType,
       'licensing[allowAttribution]': allowAttribution,
       'licensing[nonCommercial]': nonCommercial,
       'licensing[noDerivatives]': noDerivatives,
       'licensing[shareAlike]': shareAlike,
-
       'permissions[enableDirectDownloads]': enableDirectDownloads,
       'permissions[enableOfflineListening]': enableOfflineListening,
       'permissions[includeInRSS]': includeInRss,
       'permissions[displayEmbedCode]': displayEmbedCode,
       'permissions[enableAppPlayback]': enableAppPlayback,
-
       if (artworkPath != null && artworkPath!.isNotEmpty)
         'artwork': await MultipartFile.fromFile(artworkPath!),
     });
