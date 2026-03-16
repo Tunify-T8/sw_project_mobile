@@ -17,10 +17,7 @@ import 'package:software_project/features/auth/presentation/widgets/visibility_t
 /// The "Also sign me out everywhere" checkbox maps to [signoutAll] in
 /// the Tunify API — defaults to true per API spec.
 class ResetPasswordScreen extends ConsumerStatefulWidget {
-  /// Pre-filled email from the deep link query parameter.
   final String? email;
-
-  /// Pre-filled reset token from the deep link query parameter.
   final String? resetToken;
 
   const ResetPasswordScreen({super.key, this.email, this.resetToken});
@@ -39,8 +36,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-
-  /// Defaults to true per Tunify API recommendation.
   bool _signOutAll = true;
 
   @override
@@ -62,6 +57,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Delegate reset logic to the controller; UI reacts to state changes.
     await ref
         .read(authControllerProvider.notifier)
         .resetPassword(
@@ -71,32 +67,32 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           confirmPassword: _confirmController.text,
           signoutAll: _signOutAll,
         );
-
-    if (!mounted) return;
-
-    ref
-        .read(authControllerProvider)
-        .whenOrNull(
-          data: (_) => Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.landing,
-            (route) => false,
-          ),
-          error: (e, _) {
-            final message = e is Failure ? e.message : 'Reset failed.';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          },
-        );
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
+
+    // Listen for controller state changes to handle success and errors.
+    ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          if (previous?.isLoading == true) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.landing,
+              (route) => false,
+            );
+          }
+        },
+        error: (e, _) {
+          final message = e is Failure ? e.message : 'Reset failed.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
+          );
+        },
+      );
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -115,7 +111,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 Text('Change your password', style: AppTextStyles.screenTitle),
                 const SizedBox(height: AppSpacing.xxl),
 
-                // Email (editable in case deep link doesn't carry it)
                 Text('Email address', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -126,7 +121,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
-                // Reset token
                 Text(
                   'Reset code (from email)',
                   style: AppTextStyles.fieldLabel,
@@ -139,7 +133,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
-                // New password
                 Text('New password', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -155,7 +148,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
-                // Confirm password
                 Text('Confirm new password', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -172,7 +164,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // Sign out all devices checkbox
                 GestureDetector(
                   onTap: () => setState(() => _signOutAll = !_signOutAll),
                   child: Row(

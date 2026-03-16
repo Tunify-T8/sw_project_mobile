@@ -4,8 +4,6 @@ import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/design_system/spacing.dart';
 import 'package:software_project/core/utils/validators.dart';
-import 'package:software_project/features/auth/data/mock/mock_auth_config.dart';
-import 'package:software_project/features/auth/data/mock/mock_auth_service.dart';
 import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 import 'package:software_project/shared/ui/widgets/app_back_button.dart';
 import 'package:software_project/shared/ui/widgets/app_button.dart';
@@ -25,12 +23,11 @@ import 'package:software_project/core/utils/url_launcher_util.dart';
 ///   - Email is NEW      → go to RegisterDetailScreen (guide them to create)
 ///
 /// ── TESTING ──────────────────────────────────────────────────────────────────
-/// Change [MockAuthConfig.emailScenario] to simulate existing/new email.
+/// Change [MockAuthConfig.emailScenario] in mock_auth_config.dart to simulate
+/// existing/new email. The mock is handled at the repository level —
+/// this screen always calls the controller regardless of mock mode.
 class EmailEntryScreen extends ConsumerStatefulWidget {
-  /// Email pre-filled from the sign-in screen.
   final String? initialEmail;
-
-  /// The flow that triggered this screen: `'create'` or `'login'`.
   final String mode;
 
   const EmailEntryScreen({super.key, this.initialEmail, this.mode = 'create'});
@@ -62,14 +59,13 @@ class _EmailEntryScreenState extends ConsumerState<EmailEntryScreen> {
 
     final email = _emailController.text.trim();
 
-    final bool exists;
-    if (MockAuthConfig.useMock) {
-      exists = await MockAuthService.checkEmail(email);
-    } else {
-      exists = await ref
-          .read(authControllerProvider.notifier)
-          .checkEmail(email);
-    }
+    // Always goes through the controller → use case → repository chain.
+    // In mock mode, authRepositoryProvider returns MockAuthRepository.
+    // In real mode, it returns AuthRepositoryImpl.
+    // This screen never needs to know which one is active.
+    final exists = await ref
+        .read(authControllerProvider.notifier)
+        .checkEmail(email);
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -77,21 +73,17 @@ class _EmailEntryScreenState extends ConsumerState<EmailEntryScreen> {
     _navigate(email: email, exists: exists);
   }
 
-  /// Applies the routing rules based on [mode] and [exists].
   void _navigate({required String email, required bool exists}) {
     final isCreateFlow = widget.mode == 'create';
 
     if (isCreateFlow) {
-      // ── "Create an account" flow ──────────────────────────────────────────
       if (exists) {
-        // Email already registered — show login screen with the notice banner.
         Navigator.pushNamed(
           context,
           AppRoutes.password,
           arguments: {'email': email, 'showAccountExistsNotice': true},
         );
       } else {
-        // New email — proceed with registration.
         Navigator.pushNamed(
           context,
           AppRoutes.registerDetail,
@@ -99,16 +91,13 @@ class _EmailEntryScreenState extends ConsumerState<EmailEntryScreen> {
         );
       }
     } else {
-      // ── "Log in" flow ─────────────────────────────────────────────────────
       if (exists) {
-        // Email registered — go to login. No notice needed.
         Navigator.pushNamed(
           context,
           AppRoutes.password,
           arguments: {'email': email, 'showAccountExistsNotice': false},
         );
       } else {
-        // Email not found — guide user to register instead.
         Navigator.pushNamed(
           context,
           AppRoutes.registerDetail,

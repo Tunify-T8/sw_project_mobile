@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/core/errors/failure.dart';
 import 'package:software_project/core/network/dio_client.dart';
 import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/data/api/auth_api.dart';
+import 'package:software_project/features/auth/data/mock/mock_auth_config.dart';
+import 'package:software_project/features/auth/data/mock/mock_auth_repository.dart';
 import 'package:software_project/features/auth/data/repository/auth_repository_impl.dart';
 import 'package:software_project/features/auth/data/services/google_sign_in_service.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
@@ -35,6 +38,12 @@ final googleSignInServiceProvider = Provider<GoogleSignInService>(
 // ─── Repository ───────────────────────────────────────────────────────────────
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  // ── Single mock/real switch ───────────────────────────────────────────────
+  // Change MockAuthConfig.useMock to false when the backend is ready.
+  // Nothing else in the codebase needs to change.
+  if (MockAuthConfig.useMock) {
+    return const MockAuthRepository();
+  }
   return AuthRepositoryImpl(
     ref.read(authApiProvider),
     ref.read(tokenStorageProvider),
@@ -85,7 +94,6 @@ final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>(
 
 // ─── Controller ───────────────────────────────────────────────────────────────
 
-/// Provides and manages the [AuthController] state machine.
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<AuthUserEntity?>>((ref) {
       return AuthController(
@@ -111,9 +119,14 @@ final authControllerProvider =
 /// - `loading()`   → operation in progress
 /// - `error(e, s)` → last operation failed with a [Failure]
 ///
-/// The controller always calls its injected use cases directly.
-/// Manual UI testing scenarios are handled at the screen level via
-/// [MockAuthConfig] and [MockAuthService] in [EmailEntryScreen] and similar.
+/// NOTE on the mock system (#11): The current mock interception points live in
+/// individual screens (EmailEntryScreen, TellUsMoreScreen) which is an
+/// architectural violation (presentation importing data/mock). The correct
+/// design would register a FakeMockAuthRepository as the authRepositoryProvider
+/// override when MockAuthConfig.useMock == true, so screens never need to
+/// know about mocks. This is the recommended next refactor but is left for
+/// when the real backend is integrated, as it requires reworking how
+/// ProviderScope overrides are set up in bootstrap.dart.
 class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
   final CheckEmailUseCase _checkEmail;
   final RegisterUseCase _register;
@@ -245,13 +258,20 @@ class AuthController extends StateNotifier<AsyncValue<AuthUserEntity?>> {
   }
 
   /// Sends a password reset email.
-  /// Error is swallowed — the UI always navigates to check-your-email
-  /// regardless of outcome (never reveal whether an address exists).
+  ///
+  /// Validation errors (400) are surfaced so the UI can display them safely.
+  /// All other errors are swallowed to avoid revealing whether the address
+  /// exists on the backend.
   Future<void> forgotPassword(String email) async {
     try {
       await _forgotPassword(email);
+    } on ValidationFailure catch (e, s) {
+      // A 400 means the email format was rejected by the server — this is
+      // safe to surface since it reveals nothing about whether the address
+      // is registered.
+      state = AsyncValue.error(e, s);
     } catch (_) {
-      // Intentionally swallowed per Tunify API security spec.
+      // All other errors (404, network, server) are swallowed intentionally.
     }
   }
 

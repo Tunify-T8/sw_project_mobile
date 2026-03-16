@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
-import 'package:software_project/core/storage/token_storage.dart';
 
-/// Splash screen.
+/// Splash screen shown immediately after app startup.
 ///
-/// Displays the white SoundCloud waveform logo with a subtle glow animation,
-/// then routes to home (authenticated) or landing (unauthenticated).
+/// Displays a brief animation and then navigates to [destination], which is
+/// passed via route arguments (typically by [AuthGate]).
 ///
-/// No network requests, no loading spinner — just the logo and glow.
-/// To swap in a real PNG asset once added to the project:
-///   Replace [_SoundCloudWavemark] with:
-///   Image.asset('assets/images/soundcloud_logo_white.png', width: 120)
-class SplashScreen extends ConsumerStatefulWidget {
-  const SplashScreen({super.key});
+/// If no destination is provided (e.g. in unit tests), it falls back to
+/// [AppRoutes.landing].
+///
+/// The logo is currently rendered using [CustomPaint]; replace it with
+/// an asset image when an official logo file is available.
+class SplashScreen extends StatefulWidget {
+  final String destination;
+  const SplashScreen({super.key, required this.destination});
 
   @override
-  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen>
+class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeIn;
@@ -52,19 +52,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         );
 
     _controller.forward();
-    _navigate();
+    _navigateAfterAnimation();
   }
 
-  Future<void> _navigate() async {
+  Future<void> _navigateAfterAnimation() async {
+    // Wait for the full animation + a small hold so the logo is visible.
     await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
-    const tokenStorage = TokenStorage();
-    final hasToken = await tokenStorage.hasAccessToken();
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(
-      context,
-      hasToken ? AppRoutes.home : AppRoutes.landing,
-    );
+
+    // Navigate to the destination provided by the caller.
+    Navigator.pushReplacementNamed(context, widget.destination);
   }
 
   @override
@@ -128,8 +125,7 @@ class _LogoWithGlow extends StatelessWidget {
 
 /// Paints the SoundCloud waveform-and-cloud mark in white.
 ///
-/// This is a faithful vector replica — replace with an Image.asset
-/// once the official PNG/SVG is added to assets/.
+/// Replace with an Image.asset once the official PNG/SVG is added to assets/.
 class _SoundCloudWavemark extends StatelessWidget {
   const _SoundCloudWavemark();
 
@@ -148,7 +144,7 @@ class _WavemarkPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    // Bar heights as fractions — matches the real SoundCloud waveform shape
+    // Bar heights as fractions — matches the real SoundCloud waveform shape.
     const heights = [0.25, 0.4, 0.62, 0.45, 0.88, 0.62, 1.0, 0.78, 0.52, 0.68];
     const barWidth = 8.0;
     const gap = 4.5;

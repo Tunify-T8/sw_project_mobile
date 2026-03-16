@@ -8,7 +8,7 @@ import 'package:software_project/shared/ui/widgets/app_back_button.dart';
 import 'package:software_project/shared/ui/widgets/app_button.dart';
 import 'package:software_project/core/utils/url_launcher_util.dart';
 
-/// Shown after a password reset link has been sent (image 12).
+/// Shown after a password reset link has been sent.
 class CheckYourEmailScreen extends StatelessWidget {
   final String email;
   const CheckYourEmailScreen({super.key, required this.email});
@@ -21,7 +21,6 @@ class CheckYourEmailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header row ─────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenHorizontal,
@@ -41,7 +40,6 @@ class CheckYourEmailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── "Check your email" ─────────────────────────
                   const Text(
                     'Check your email',
                     style: TextStyle(
@@ -52,14 +50,29 @@ class CheckYourEmailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
 
-                  Text(
-                    "We've sent instructions on how to change your password "
-                    'to your email address.',
-                    style: AppTextStyles.bodyMuted,
+                  // Show the email address where the reset link was sent.
+                  RichText(
+                    text: TextSpan(
+                      style: AppTextStyles.bodyMuted,
+                      children: [
+                        const TextSpan(
+                          text:
+                              "We've sent instructions on how to change your "
+                              'password to ',
+                        ),
+                        TextSpan(
+                          text: email,
+                          style: const TextStyle(
+                            color: AppColors.onBackground,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const TextSpan(text: '.'),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
 
-                  // ── Back to login ──────────────────────────────
                   AppButton(
                     label: 'Back to login',
                     onPressed: () => Navigator.pushNamedAndRemoveUntil(
@@ -72,7 +85,6 @@ class CheckYourEmailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
-                  // ── Help inline link (image 12) ────────────────
                   RichText(
                     text: TextSpan(
                       style: AppTextStyles.caption,

@@ -41,6 +41,6 @@ class AppColors {
   // ── Semantic ──────────────────────────────────────────────────────────────
   static const Color error = Color(0xFFFF4444);
 
-  /// Bright pink-red used for the "Delete account" button (matches screenshot)
+  /// Bright pink-red used for the "Delete account" button.
   static const Color deleteRed = Color(0xFFE8336D);
 }

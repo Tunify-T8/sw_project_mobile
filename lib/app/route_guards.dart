@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/storage/token_storage.dart';
-import 'router.dart';
 
 /// Evaluates whether a user is allowed to navigate to a given route.
 ///
@@ -16,12 +16,6 @@ import 'router.dart';
 ///    register screen, they are redirected to [AppRoutes.home].
 ///
 /// All other routes are allowed through unchanged.
-///
-/// Usage inside [MaterialApp.onGenerateRoute]:
-/// ```dart
-/// final allowed = await RouteGuard(tokenStorage).evaluate(settings.name);
-/// // then build the screen for `allowed`
-/// ```
 class RouteGuard {
   final TokenStorage _tokenStorage;
 
@@ -64,20 +58,22 @@ class RouteGuard {
   }
 }
 
-/// The first widget shown on cold start.
+/// Entry point for auth-based navigation.
 ///
-/// Checks whether a valid access token is stored and immediately
-/// replaces itself with either [AppRoutes.home] or [AppRoutes.landing].
-/// It never stays visible — it shows only for the milliseconds
-/// it takes to read from secure storage.
+/// On cold start the app always begins at [AppRoutes.authGate], which
+/// builds this widget.
 ///
-/// This widget is set as [MaterialApp.home] in [bootstrap.dart].
-/// The actual first visible screen for the user is the splash screen
-/// ([AppRoutes.splash] is the initial route once auth is determined
-/// — but the splash screen handles its own auth check, so [AuthGate]
-/// bypasses splash and goes directly to home or landing).
+/// AuthGate checks whether an access token exists and then navigates to
+/// [AppRoutes.splash], passing the intended post-splash destination.
+///
+/// This keeps token-check logic centralized and makes the widget easy to
+/// test by accepting a [TokenStorage] instance via constructor.
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
+  /// Allows tests to inject a fake [TokenStorage].
+  /// Production code relies on the default [TokenStorage()] instance.
+  final TokenStorage tokenStorage;
+
+  const AuthGate({super.key, this.tokenStorage = const TokenStorage()});
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -91,27 +87,25 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _evaluate() async {
-    const tokenStorage = TokenStorage();
-    final hasToken = await tokenStorage.hasAccessToken();
+    final hasToken = await widget.tokenStorage.hasAccessToken();
     if (!mounted) return;
+
+    // Always go through splash so the animation plays on every cold start.
+    // SplashScreen receives the post-auth destination via route arguments
+    // and navigates there after the animation completes.
     Navigator.pushReplacementNamed(
       context,
-      hasToken ? AppRoutes.home : AppRoutes.landing,
+      AppRoutes.splash,
+      arguments: {'destination': hasToken ? AppRoutes.home : AppRoutes.landing},
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Shown only for the brief moment the token check runs.
-    // Uses AppColors so the background matches the rest of the app.
+    // Blank screen shown only for the brief moment the token check runs.
     return const Scaffold(
       backgroundColor: AppColors.background,
-      body: Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primary,
-          strokeWidth: 2,
-        ),
-      ),
+      body: SizedBox.shrink(),
     );
   }
 }

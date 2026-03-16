@@ -35,7 +35,7 @@ void main() {
   /// flip it in tests. The controller is therefore constructed directly
   /// (bypassing the provider tree) so the injected use cases are always
   /// reached regardless of the mock config flag.
-  AuthController _build() => AuthController(
+  AuthController build() => AuthController(
     checkEmail: mockCheckEmail,
     register: mockRegister,
     verifyEmail: mockVerifyEmail,
@@ -61,7 +61,7 @@ void main() {
     mockResetPassword = MockResetPasswordUseCase();
     mockDeleteAccount = MockDeleteAccountUseCase();
     mockGoogle = MockGoogleSignInService();
-    controller = _build();
+    controller = build();
   });
 
   // ── Initial state ──────────────────────────────────────────────────────────

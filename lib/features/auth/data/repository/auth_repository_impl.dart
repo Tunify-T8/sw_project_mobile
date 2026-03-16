@@ -109,9 +109,16 @@ class AuthRepositoryImpl implements AuthRepository {
         throw const UnverifiedUserFailure();
       }
 
+      // Validate that tokens are present before saving them.
+      final accessToken = dto.accessToken;
+      final refreshToken = dto.refreshToken;
+      if (accessToken == null || refreshToken == null) {
+        throw const ServerFailure();
+      }
+
       await _tokenStorage.saveTokens(
-        accessToken: dto.accessToken!,
-        refreshToken: dto.refreshToken!,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
       );
 
       return AuthUserEntity(
@@ -195,12 +202,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> deleteAccount({String? password}) async {
     try {
       await _api.deleteAccount(password: password);
+      // Only reached if the API call succeeded — safe to clear tokens now.
+      await _tokenStorage.clearTokens();
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } catch (_) {
       throw const UnknownFailure();
-    } finally {
-      await _tokenStorage.clearTokens();
     }
   }
 }

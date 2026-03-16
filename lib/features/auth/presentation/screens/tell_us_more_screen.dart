@@ -64,6 +64,23 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
     'December': '12',
   };
 
+  /// Days per month for non-leap-year validation.
+  /// February gets 28; leap years are an edge case handled by server validation.
+  static const _daysInMonth = {
+    'January': 31,
+    'February': 28,
+    'March': 31,
+    'April': 30,
+    'May': 31,
+    'June': 30,
+    'July': 31,
+    'August': 31,
+    'September': 30,
+    'October': 31,
+    'November': 30,
+    'December': 31,
+  };
+
   /// Maps display label → backend enum value.
   static const _genderOptions = {
     'Male': 'MALE',
@@ -78,7 +95,15 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
     return List.generate(100, (i) => now - 13 - i);
   }
 
-  static final List<int> _days = List.generate(31, (i) => i + 1);
+  /// Returns a list of valid day numbers for the currently selected month.
+  ///
+  /// If no month is selected, returns 1–31. Used to prevent invalid dates
+  /// such as February 30.
+  List<int> get _daysForSelectedMonth {
+    if (_selectedMonth == null) return List.generate(31, (i) => i + 1);
+    final max = _daysInMonth[_selectedMonth] ?? 31;
+    return List.generate(max, (i) => i + 1);
+  }
 
   @override
   void dispose() {
@@ -112,6 +137,10 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
       return;
     }
 
+    // Always goes through the controller → use case → repository chain.
+    // In mock mode, authRepositoryProvider returns MockAuthRepository.
+    // In real mode, it returns AuthRepositoryImpl.
+    // Navigation and error handling are done via ref.listen in build().
     await ref
         .read(authControllerProvider.notifier)
         .register(
@@ -120,22 +149,6 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
           username: _usernameController.text.trim(),
           gender: _genderOptions[_selectedGender]!,
           dateOfBirth: dob,
-        );
-
-    if (!mounted) return;
-
-    ref
-        .read(authControllerProvider)
-        .whenOrNull(
-          data: (_) => Navigator.pushNamed(
-            context,
-            AppRoutes.verifyEmail,
-            arguments: {'email': widget.email},
-          ),
-          error: (e, _) {
-            final msg = e is Failure ? e.message : 'Registration failed.';
-            _snack(msg);
-          },
         );
   }
 
@@ -148,6 +161,25 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
+
+    // Navigate on successful registration and show errors if they occur.
+    ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          if (previous?.isLoading == true) {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.verifyEmail,
+              arguments: {'email': widget.email},
+            );
+          }
+        },
+        error: (e, _) {
+          final msg = e is Failure ? e.message : 'Registration failed.';
+          _snack(msg);
+        },
+      );
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -177,7 +209,7 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Display name — hint text acts as the label
+                      // Display name
                       AppTextField(
                         controller: _usernameController,
                         hintText: 'Display name',
@@ -196,7 +228,9 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
                         style: AppTextStyles.fieldLabel,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      // Three dropdowns side by side: Month | Day | Year
+
+                      // Three dropdowns for month/day/year. The day list updates
+                      // based on the selected month to prevent invalid dates.
                       Row(
                         children: [
                           Expanded(
@@ -206,8 +240,18 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
                               value: _selectedMonth,
                               items: _months,
                               itemLabel: (m) => m,
-                              onChanged: (v) =>
-                                  setState(() => _selectedMonth = v),
+                              onChanged: (v) {
+                                setState(() {
+                                  _selectedMonth = v;
+                                  // Reset day if it exceeds the new month max.
+                                  if (_selectedDay != null && v != null) {
+                                    final max = _daysInMonth[v] ?? 31;
+                                    if (_selectedDay! > max) {
+                                      _selectedDay = null;
+                                    }
+                                  }
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(width: AppSpacing.sm),
@@ -216,7 +260,7 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
                             child: AuthDropdownField<int>(
                               hint: 'Day',
                               value: _selectedDay,
-                              items: _days,
+                              items: _daysForSelectedMonth,
                               itemLabel: (d) => d.toString(),
                               onChanged: (v) =>
                                   setState(() => _selectedDay = v),
@@ -244,7 +288,7 @@ class _TellUsMoreScreenState extends ConsumerState<TellUsMoreScreen> {
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
-                      // Gender — hint acts as the label
+                      // Gender
                       AuthDropdownField<String>(
                         hint: 'Gender (required)',
                         value: _selectedGender,

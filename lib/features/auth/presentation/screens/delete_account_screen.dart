@@ -8,8 +8,8 @@ import 'package:software_project/core/errors/failure.dart';
 import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 import 'package:software_project/shared/ui/widgets/app_back_button.dart';
 
-/// Shows body text and a pink-red pill "Delete account" button.
-/// Tapping it opens an [AlertDialog] (not a bottom sheet — matches image 11).
+/// Shows body text and a pink-red "Delete account" button.
+/// Tapping it opens a confirmation [AlertDialog].
 class DeleteAccountScreen extends ConsumerStatefulWidget {
   const DeleteAccountScreen({super.key});
 
@@ -19,8 +19,6 @@ class DeleteAccountScreen extends ConsumerStatefulWidget {
 }
 
 class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
-  bool _isLoading = false;
-
   void _showConfirmDialog() {
     showDialog(
       context: context,
@@ -35,41 +33,46 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   }
 
   Future<void> _deleteAccount() async {
-    setState(() => _isLoading = true);
-
+    // Invoke the controller to perform the delete request and update state.
     await ref
         .read(authControllerProvider.notifier)
         .deleteAccount(password: null);
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    ref
-        .read(authControllerProvider)
-        .whenOrNull(
-          data: (_) => Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.landing,
-            (route) => false,
-          ),
-          error: (e, _) {
-            final msg = e is Failure ? e.message : 'Deletion failed.';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(msg), backgroundColor: AppColors.error),
-            );
-          },
-        );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Disable the button while an operation is in progress.
+    final isLoading = ref.watch(authControllerProvider).isLoading;
+
+    // Listen for controller state changes to handle success/error events.
+    ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
+      next.whenOrNull(
+        data: (_) {
+          // Navigate away on successful deletion.
+          if (previous?.isLoading == true) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.landing,
+              (route) => false,
+            );
+          }
+        },
+        error: (e, _) {
+          final msg = e is Failure ? e.message : 'Deletion failed.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+          );
+        },
+      );
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header row ──────────────────────────────────────
+            // ── Header row ──────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenHorizontal,
@@ -96,12 +99,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xxl),
 
-                  // Pink-red pill button (matches image 10)
+                  // Confirmation button for deleting the account.
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _showConfirmDialog,
+                      onPressed: isLoading ? null : _showConfirmDialog,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.deleteRed,
                         foregroundColor: Colors.white,
@@ -114,7 +117,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      child: _isLoading
+                      child: isLoading
                           ? const SizedBox(
                               width: 20,
                               height: 20,

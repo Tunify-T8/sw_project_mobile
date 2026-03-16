@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
-import 'route_guards.dart';
 import 'router.dart';
 
 /// Initialises the Flutter framework and launches the app.
@@ -20,17 +19,13 @@ import 'router.dart';
 ///   all providers to work).
 /// - Calls [runApp] with [TunifyApp].
 Future<void> bootstrap() async {
-  // Must be called before any Flutter framework APIs are used.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock to portrait — the app is not designed for landscape.
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Make the status bar transparent and match the system nav bar
-  // to the app's dark background so there is no colour mismatch.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -40,44 +35,29 @@ Future<void> bootstrap() async {
     ),
   );
 
-  runApp(
-    // ProviderScope is the Riverpod equivalent of a DI container.
-    // It must wrap the entire widget tree so every ConsumerWidget
-    // and ref.read() / ref.watch() call can reach the providers.
-    const ProviderScope(child: TunifyApp()),
-  );
+  runApp(const ProviderScope(child: TunifyApp()));
 }
 
 /// The root widget of the application.
-///
-/// Configures [MaterialApp] with:
-/// - The global dark [ThemeData] derived from [AppColors].
-/// - [generateRoute] as the named route factory.
-/// - [AuthGate] as the home widget — it performs the initial
-///   auth check and redirects to home or landing before the
-///   user sees anything.
 class TunifyApp extends StatelessWidget {
   const TunifyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SoundCloud',
+      title: 'Tunify',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
       onGenerateRoute: generateRoute,
-      // AuthGate performs the token check on cold start.
-      // It replaces itself immediately — the user never sees it directly.
-      home: const AuthGate(),
+      // Use initialRoute instead of home so that generateRoute handles
+      // every route from the very first frame, including '/'.
+      // home + onGenerateRoute conflict because home bypasses the route
+      // generator entirely for the first screen, making pushReplacementNamed
+      // from initState unreliable before the navigator is ready.
+      initialRoute: AppRoutes.authGate,
     );
   }
 
-  /// Builds the app-wide [ThemeData].
-  ///
-  /// All values derive from [AppColors] so changing the palette
-  /// in one place updates the entire app. Individual widget styles
-  /// (buttons, inputs) are defined in their own widget files and
-  /// do NOT rely on the theme — they use [AppColors] directly.
   ThemeData _buildTheme() {
     return ThemeData(
       brightness: Brightness.dark,
@@ -114,7 +94,6 @@ class TunifyApp extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         behavior: SnackBarBehavior.floating,
       ),
-      // White cursor matches the dark theme across all text fields.
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: AppColors.onBackground,
       ),

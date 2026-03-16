@@ -12,11 +12,12 @@ import 'package:software_project/shared/ui/widgets/app_button.dart';
 import 'package:software_project/shared/ui/widgets/app_text_field.dart';
 import 'package:software_project/core/utils/url_launcher_util.dart';
 
-/// Forgot password screen (images 12 & 13).
+/// Forgot password screen.
 ///
-/// Email shown in a field (pre-filled from [PasswordScreen]).
-/// Body copy matches screenshot exactly.
-/// "Need help? visit our Help Center" inline blue link.
+/// Users can request a password reset email. The email field may be
+/// pre-filled when navigating from the login flow.
+///
+/// Includes an inline "Help Center" link for additional support.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   final String? initialEmail;
   const ForgotPasswordScreen({super.key, this.initialEmail});
@@ -101,7 +102,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                     const SizedBox(height: AppSpacing.base),
 
-                    // ── Body copy with inline link (image 13) ─────
+                    // Body copy explaining what happens after submission.
                     RichText(
                       text: TextSpan(
                         style: AppTextStyles.bodyMuted,

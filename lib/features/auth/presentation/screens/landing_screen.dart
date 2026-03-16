@@ -4,17 +4,10 @@ import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/design_system/spacing.dart';
 import 'package:software_project/shared/ui/widgets/app_button.dart';
 
-/// Landing screen for unauthenticated users.
+/// Landing screen shown to unauthenticated users.
 ///
-/// Layout:
-/// - Full-screen background image (abstract lines artwork)
-/// - Rounded-top blue-grey card at the bottom
-/// - Dark SoundCloud logo + tagline inside the card
-/// - "Create an account" (white pill) and "Log in" (soft-blue pill) buttons
-///
-/// Background image: swap the [backgroundImageUrl] constant below
-/// with a local asset once your team adds one:
-///   Image.asset('assets/images/landing_bg.jpg', fit: BoxFit.cover)
+/// Displays a full-screen background image and offers primary actions to
+/// create an account or log in.
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
 
@@ -103,8 +96,14 @@ class _LandingScreenState extends State<LandingScreen>
 
 // ── Bottom card ───────────────────────────────────────────────────────────────
 
+/// The sliding card at the bottom of the landing screen.
+///
+/// Contains the app tagline and primary action buttons.
 class _BottomCard extends StatelessWidget {
+  /// Called when the user taps "Create an account".
   final VoidCallback onCreateAccount;
+
+  /// Called when the user taps "Log in".
   final VoidCallback onLogIn;
 
   const _BottomCard({required this.onCreateAccount, required this.onLogIn});
@@ -127,13 +126,7 @@ class _BottomCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // SoundCloud logo icon.
-          // Replace with Image.asset once the logo PNG is in assets/:
-          //   Image.asset(
-          //     'assets/images/soundcloud_logo_dark.png',
-          //     width: 44, height: 44,
-          //   )
-          // Official brand assets: https://soundcloud.com/pages/contact
+          // App logo placeholder.
           const Icon(Icons.graphic_eq, color: Color(0xFF2C3E50), size: 44),
 
           const SizedBox(height: AppSpacing.base),

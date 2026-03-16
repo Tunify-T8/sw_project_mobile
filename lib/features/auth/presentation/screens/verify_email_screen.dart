@@ -54,36 +54,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       return;
     }
 
+    // Delegate verification to the controller; UI reacts to state changes.
     await ref
         .read(authControllerProvider.notifier)
         .verifyEmail(widget.email, _token);
-
-    if (!mounted) return;
-
-    ref
-        .read(authControllerProvider)
-        .whenOrNull(
-          data: (user) {
-            if (user != null) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.home,
-                (route) => false,
-              );
-            }
-          },
-          error: (e, _) {
-            final message = e is Failure
-                ? e.message
-                : 'Verification failed. Try again.';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          },
-        );
   }
 
   Future<void> _onResend() async {
@@ -103,6 +77,29 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
+
+    // Listen for auth state changes to navigate on success or show errors.
+    ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
+      next.whenOrNull(
+        data: (user) {
+          if (user != null && previous?.isLoading == true) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.home,
+              (route) => false,
+            );
+          }
+        },
+        error: (e, _) {
+          final message = e is Failure
+              ? e.message
+              : 'Verification failed. Try again.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: AppColors.error),
+          );
+        },
+      );
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -146,9 +143,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              // Six individual character boxes.
-              // Each box is a [TokenDigitField] that handles auto-advance
-              // and backspace navigation between boxes.
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
@@ -174,7 +168,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
               AppButton(
                 label: 'Verify',
-                // Disabled until all 6 boxes are filled.
                 onPressed: _token.length == 6 ? _onVerify : null,
                 style: AppButtonStyle.primary,
                 isLoading: isLoading,

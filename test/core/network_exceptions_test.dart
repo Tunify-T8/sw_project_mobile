@@ -8,7 +8,7 @@ import 'package:software_project/core/errors/network_exceptions.dart';
 /// No mocks needed — the function is a pure mapping from DioException → Failure.
 void main() {
   // Helper to build a DioException cleanly in every test.
-  DioException _make(DioExceptionType type, {int? statusCode}) {
+  DioException make(DioExceptionType type, {int? statusCode}) {
     return DioException(
       requestOptions: RequestOptions(path: '/test'),
       type: type,
@@ -27,7 +27,7 @@ void main() {
     test('connection timeout → NetworkFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.connectionTimeout),
+          make(DioExceptionType.connectionTimeout),
         ),
         isA<NetworkFailure>(),
       );
@@ -36,7 +36,7 @@ void main() {
     test('receive timeout → NetworkFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.receiveTimeout),
+          make(DioExceptionType.receiveTimeout),
         ),
         isA<NetworkFailure>(),
       );
@@ -44,7 +44,7 @@ void main() {
 
     test('send timeout → NetworkFailure', () {
       expect(
-        NetworkExceptions.fromDioException(_make(DioExceptionType.sendTimeout)),
+        NetworkExceptions.fromDioException(make(DioExceptionType.sendTimeout)),
         isA<NetworkFailure>(),
       );
     });
@@ -52,7 +52,7 @@ void main() {
     test('connection error (no internet) → NetworkFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.connectionError),
+          make(DioExceptionType.connectionError),
         ),
         isA<NetworkFailure>(),
       );
@@ -63,7 +63,7 @@ void main() {
     test('400 → ValidationFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 400),
+          make(DioExceptionType.badResponse, statusCode: 400),
         ),
         isA<ValidationFailure>(),
       );
@@ -72,7 +72,7 @@ void main() {
     test('401 → UnauthorizedFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 401),
+          make(DioExceptionType.badResponse, statusCode: 401),
         ),
         isA<UnauthorizedFailure>(),
       );
@@ -81,7 +81,7 @@ void main() {
     test('403 → ForbiddenFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 403),
+          make(DioExceptionType.badResponse, statusCode: 403),
         ),
         isA<ForbiddenFailure>(),
       );
@@ -90,7 +90,7 @@ void main() {
     test('404 → NotFoundFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 404),
+          make(DioExceptionType.badResponse, statusCode: 404),
         ),
         isA<NotFoundFailure>(),
       );
@@ -99,7 +99,7 @@ void main() {
     test('409 → ConflictFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 409),
+          make(DioExceptionType.badResponse, statusCode: 409),
         ),
         isA<ConflictFailure>(),
       );
@@ -110,7 +110,7 @@ void main() {
     test('500 → ServerFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 500),
+          make(DioExceptionType.badResponse, statusCode: 500),
         ),
         isA<ServerFailure>(),
       );
@@ -119,7 +119,7 @@ void main() {
     test('503 → ServerFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: 503),
+          make(DioExceptionType.badResponse, statusCode: 503),
         ),
         isA<ServerFailure>(),
       );
@@ -130,7 +130,7 @@ void main() {
     test('badResponse with null status code → UnknownFailure', () {
       expect(
         NetworkExceptions.fromDioException(
-          _make(DioExceptionType.badResponse, statusCode: null),
+          make(DioExceptionType.badResponse, statusCode: null),
         ),
         isA<UnknownFailure>(),
       );
@@ -138,14 +138,14 @@ void main() {
 
     test('unknown DioExceptionType → UnknownFailure', () {
       expect(
-        NetworkExceptions.fromDioException(_make(DioExceptionType.unknown)),
+        NetworkExceptions.fromDioException(make(DioExceptionType.unknown)),
         isA<UnknownFailure>(),
       );
     });
 
     test('cancel type → UnknownFailure', () {
       expect(
-        NetworkExceptions.fromDioException(_make(DioExceptionType.cancel)),
+        NetworkExceptions.fromDioException(make(DioExceptionType.cancel)),
         isA<UnknownFailure>(),
       );
     });

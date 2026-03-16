@@ -45,47 +45,47 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
   Future<void> _onContinue() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Delegate login to the controller; UI reacts to state changes via ref.listen.
     await ref
         .read(authControllerProvider.notifier)
         .login(widget.email, _passwordController.text);
-
-    if (!mounted) return;
-
-    ref
-        .read(authControllerProvider)
-        .whenOrNull(
-          data: (user) {
-            if (user != null) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.home,
-                (route) => false,
-              );
-            }
-          },
-          error: (e, _) {
-            if (e is UnverifiedUserFailure) {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.verifyEmail,
-                arguments: {'email': widget.email},
-              );
-            } else {
-              final message = e is Failure ? e.message : 'Login failed.';
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(message),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            }
-          },
-        );
   }
 
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
+
+    // React to auth state changes (success / error) via ref.listen.
+    ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
+      next.whenOrNull(
+        data: (user) {
+          if (user != null && previous?.isLoading == true) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.home,
+              (route) => false,
+            );
+          }
+        },
+        error: (e, _) {
+          if (e is UnverifiedUserFailure) {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.verifyEmail,
+              arguments: {'email': widget.email},
+            );
+          } else {
+            final message = e is Failure ? e.message : 'Login failed.';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+      );
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -115,7 +115,7 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── "Account already exists"  ──────
+                    // ── "Account already exists" notice ─────────────────
                     if (widget.showAccountExistsNotice) ...[
                       Text(
                         'We noticed that an account already exists for this email. '

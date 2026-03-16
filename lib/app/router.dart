@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/app/route_guards.dart';
 import 'package:software_project/features/auth/presentation/screens/splash_screen.dart';
 import 'package:software_project/features/auth/presentation/screens/landing_screen.dart';
 import 'package:software_project/features/auth/presentation/screens/sign_in_or_create_screen.dart';
@@ -18,11 +19,14 @@ import 'package:software_project/features/auth/presentation/screens/account_scre
 class AppRoutes {
   AppRoutes._();
 
-  static const String splash = '/';
+  /// Initial route — runs the token check and redirects to splash.
+  static const String authGate = '/';
+
+  static const String splash = '/splash';
   static const String landing = '/landing';
   static const String signInOrCreate = '/sign-in';
 
-  /// Email entry sub-screen (image 4) — shown after tapping "Or with email".
+  /// Email entry sub-screen — shown after tapping "Or with email".
   static const String emailEntry = '/email-entry';
 
   /// Login path — password entry for an existing account.
@@ -50,14 +54,29 @@ class AppRoutes {
   static const String home = '/home';
 }
 
-/// Generates the [Route] for each named route.
-/// All arguments are [Map<String, dynamic>] via [RouteSettings.arguments].
+/// Generates a [Route] for the given [RouteSettings].
+///
+/// All navigation uses named routes and passes arguments as a
+/// [Map<String, dynamic>] via [RouteSettings.arguments].
+///
+/// The app's startup and auth gating are handled by [AuthGate]; routes
+/// defined here assume that authorization checks have already run.
 Route<dynamic> generateRoute(RouteSettings settings) {
   final args = settings.arguments as Map<String, dynamic>? ?? {};
 
   switch (settings.name) {
+    case AppRoutes.authGate:
+      return _fade(const AuthGate(), settings);
+
     case AppRoutes.splash:
-      return _fade(const SplashScreen(), settings);
+      // SplashScreen expects a destination argument; fall back to landing when
+      // none is provided (e.g. in widget tests).
+      return _fade(
+        SplashScreen(
+          destination: args['destination'] as String? ?? AppRoutes.landing,
+        ),
+        settings,
+      );
 
     case AppRoutes.landing:
       return _fade(const LandingScreen(), settings);
