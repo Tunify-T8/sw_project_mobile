@@ -283,6 +283,7 @@ class _RecentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasFile = item.localArtworkPath != null &&
         File(item.localArtworkPath!).existsSync();
+    final hasRemote = item.artworkUrl != null && item.artworkUrl!.startsWith('http');
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -301,8 +302,19 @@ class _RecentCard extends StatelessWidget {
                 child: hasFile
                     ? Image.file(File(item.localArtworkPath!),
                         fit: BoxFit.cover, height: double.infinity)
-                    : const Icon(Icons.person,
-                        color: Color(0xFF6A8AAA), size: 28),
+                    : hasRemote
+                        ? Image.network(
+                            item.artworkUrl!,
+                            fit: BoxFit.cover,
+                            height: double.infinity,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.person,
+                              color: Color(0xFF6A8AAA),
+                              size: 28,
+                            ),
+                          )
+                        : const Icon(Icons.person,
+                            color: Color(0xFF6A8AAA), size: 28),
               ),
             ),
             const SizedBox(width: 10),

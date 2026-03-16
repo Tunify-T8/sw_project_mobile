@@ -3,6 +3,8 @@ class UploadItemDto {
   final String title;
   final List<String> artists;
   final int durationSeconds;
+  final String? audioUrl;
+  final String? waveformUrl;
   final String? artworkUrl;
   final String? localArtworkPath;
   final String? localFilePath;
@@ -33,6 +35,8 @@ class UploadItemDto {
     required this.title,
     required this.artists,
     required this.durationSeconds,
+    this.audioUrl,
+    this.waveformUrl,
     required this.artworkUrl,
     this.localArtworkPath,
     this.localFilePath,
@@ -67,6 +71,8 @@ class UploadItemDto {
           .map((e) => e.toString())
           .toList(),
       durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
+      audioUrl: json['audioUrl'] as String?,
+      waveformUrl: json['waveformUrl'] as String?,
       artworkUrl: json['artworkUrl'] as String?,
       localArtworkPath: json['localArtworkPath'] as String?,
       localFilePath: json['localFilePath'] as String?,
@@ -106,6 +112,8 @@ class UploadItemDto {
       'title': title,
       'artists': artists,
       'durationSeconds': durationSeconds,
+      'audioUrl': audioUrl,
+      'waveformUrl': waveformUrl,
       'artworkUrl': artworkUrl,
       'localArtworkPath': localArtworkPath,
       'localFilePath': localFilePath,
@@ -138,6 +146,8 @@ class UploadItemDto {
     String? title,
     List<String>? artists,
     int? durationSeconds,
+    String? audioUrl,
+    String? waveformUrl,
     String? artworkUrl,
     String? localArtworkPath,
     String? localFilePath,
@@ -168,6 +178,8 @@ class UploadItemDto {
       title: title ?? this.title,
       artists: artists ?? this.artists,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      audioUrl: audioUrl ?? this.audioUrl,
+      waveformUrl: waveformUrl ?? this.waveformUrl,
       artworkUrl: artworkUrl ?? this.artworkUrl,
       localArtworkPath: localArtworkPath ?? this.localArtworkPath,
       localFilePath: localFilePath ?? this.localFilePath,

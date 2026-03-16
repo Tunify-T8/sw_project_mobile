@@ -135,7 +135,7 @@ class FinalizeTrackMetadataRequestDto {
       'permissions[includeInRSS]': includeInRss,
       'permissions[displayEmbedCode]': displayEmbedCode,
       'permissions[enableAppPlayback]': enableAppPlayback,
-      if (artworkPath != null && artworkPath!.isNotEmpty)
+      if (artworkPath != null && artworkPath!.isNotEmpty && !artworkPath!.startsWith('http'))
         'artwork': await MultipartFile.fromFile(artworkPath!),
     });
   }

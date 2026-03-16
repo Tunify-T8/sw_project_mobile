@@ -291,6 +291,7 @@ class _LatestTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasLocal = item.localArtworkPath != null &&
         File(item.localArtworkPath!).existsSync();
+    final hasRemote = item.artworkUrl != null && item.artworkUrl!.startsWith('http');
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -308,8 +309,20 @@ class _LatestTile extends StatelessWidget {
               child: hasLocal
                   ? Image.file(File(item.localArtworkPath!),
                       fit: BoxFit.cover, width: 48, height: 48)
-                  : const Icon(Icons.account_circle_rounded,
-                      color: Color(0xFF4872D7), size: 38),
+                  : hasRemote
+                      ? Image.network(
+                          item.artworkUrl!,
+                          fit: BoxFit.cover,
+                          width: 48,
+                          height: 48,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.account_circle_rounded,
+                            color: Color(0xFF4872D7),
+                            size: 38,
+                          ),
+                        )
+                      : const Icon(Icons.account_circle_rounded,
+                          color: Color(0xFF4872D7), size: 38),
             ),
           ),
           const SizedBox(width: 12),

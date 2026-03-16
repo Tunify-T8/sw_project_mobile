@@ -373,6 +373,8 @@ class _UploadTile extends StatelessWidget {
     final hasLocal =
         item.localArtworkPath != null &&
         File(item.localArtworkPath!).existsSync();
+    final hasRemote =
+        item.artworkUrl != null && item.artworkUrl!.startsWith('http');
 
     return GestureDetector(
       onTap: isBusy ? null : onTap,
@@ -393,11 +395,23 @@ class _UploadTile extends StatelessWidget {
                       width: 64,
                       height: 64,
                     )
-                  : const Icon(
-                      Icons.account_circle_rounded,
-                      color: Color(0xFF4872D7),
-                      size: 52,
-                    ),
+                  : hasRemote
+                      ? Image.network(
+                          item.artworkUrl!,
+                          fit: BoxFit.cover,
+                          width: 64,
+                          height: 64,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.account_circle_rounded,
+                            color: Color(0xFF4872D7),
+                            size: 52,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.account_circle_rounded,
+                          color: Color(0xFF4872D7),
+                          size: 52,
+                        ),
             ),
           ),
           const SizedBox(width: 14),
@@ -550,6 +564,8 @@ class _TrackOptionsSheet extends StatelessWidget {
     final hasLocal =
         item.localArtworkPath != null &&
         File(item.localArtworkPath!).existsSync();
+    final hasRemote =
+        item.artworkUrl != null && item.artworkUrl!.startsWith('http');
 
     return Container(
       decoration: const BoxDecoration(
@@ -587,11 +603,21 @@ class _TrackOptionsSheet extends StatelessWidget {
                               File(item.localArtworkPath!),
                               fit: BoxFit.cover,
                             )
-                          : const Icon(
-                              Icons.account_circle_rounded,
-                              color: Color(0xFF4872D7),
-                              size: 44,
-                            ),
+                          : hasRemote
+                              ? Image.network(
+                                  item.artworkUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.account_circle_rounded,
+                                    color: Color(0xFF4872D7),
+                                    size: 44,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.account_circle_rounded,
+                                  color: Color(0xFF4872D7),
+                                  size: 44,
+                                ),
                     ),
                   ),
                   const SizedBox(width: 14),

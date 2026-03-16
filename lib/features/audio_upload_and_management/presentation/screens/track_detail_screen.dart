@@ -107,6 +107,8 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final item = widget.item;
     final hasArtwork = item.localArtworkPath != null &&
         File(item.localArtworkPath!).existsSync();
+    final hasRemoteArtwork =
+        item.artworkUrl != null && item.artworkUrl!.startsWith('http');
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -119,7 +121,26 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
                     fit: BoxFit.cover,
                     color: Colors.black.withOpacity(0.15),
                     colorBlendMode: BlendMode.darken)
-                : Container(
+                : hasRemoteArtwork
+                    ? Image.network(
+                        item.artworkUrl!,
+                        fit: BoxFit.cover,
+                        color: Colors.black.withOpacity(0.15),
+                        colorBlendMode: BlendMode.darken,
+                        errorBuilder: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                _dominantColor(),
+                                _dominantColor().withOpacity(0.4),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,

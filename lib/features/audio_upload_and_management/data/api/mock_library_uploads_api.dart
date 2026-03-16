@@ -80,6 +80,8 @@ class MockLibraryUploadsApi {
       title: item.title,
       artists: item.artistDisplay.split(', '),
       durationSeconds: item.durationSeconds,
+      audioUrl: item.audioUrl,
+      waveformUrl: item.waveformUrl,
       artworkUrl: item.artworkUrl,
       localArtworkPath: item.localArtworkPath,
       localFilePath: item.localFilePath,

@@ -39,7 +39,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState> {
       description: item.description ?? '',
       privacy: item.visibility == UploadVisibility.public ? 'public' : 'private',
       artists: artists.isEmpty ? [_primaryArtist] : artists,
-      artworkPath: item.localArtworkPath,
+      artworkPath: item.localArtworkPath ?? item.artworkUrl,
       recordLabel: item.recordLabel,
       publisher: item.publisher,
       isrc: item.isrc,

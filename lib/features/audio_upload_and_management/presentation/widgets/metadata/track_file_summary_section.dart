@@ -136,10 +136,25 @@ class _ArtworkTile extends StatelessWidget {
               )
             : ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.file(
-                  File(artworkPath!),
-                  fit: BoxFit.cover,
-                ),
+                child: artworkPath!.startsWith('http')
+                    ? Image.network(
+                        artworkPath!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const ColoredBox(
+                          color: Color(0xFF1A1A1A),
+                          child: Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.white54,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Image.file(
+                        File(artworkPath!),
+                        fit: BoxFit.cover,
+                      ),
               ),
       ),
     );

@@ -11,6 +11,8 @@ extension UploadItemDtoMapper on UploadItemDto {
       artistDisplay: artists.join(', '),
       durationLabel: _formatDuration(durationSeconds),
       durationSeconds: durationSeconds,
+      audioUrl: audioUrl,
+      waveformUrl: waveformUrl,
       artworkUrl: artworkUrl,
       localArtworkPath: localArtworkPath,
       localFilePath: localFilePath,

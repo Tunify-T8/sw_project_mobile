@@ -8,6 +8,8 @@ class UploadItem {
   final String artistDisplay;
   final String durationLabel;
   final int durationSeconds;
+  final String? audioUrl;
+  final String? waveformUrl;
   final String? artworkUrl;
   final String? localArtworkPath;
   final String? localFilePath;
@@ -39,6 +41,8 @@ class UploadItem {
     required this.artistDisplay,
     required this.durationLabel,
     required this.durationSeconds,
+    this.audioUrl,
+    this.waveformUrl,
     required this.artworkUrl,
     this.localArtworkPath,
     this.localFilePath,
@@ -74,6 +78,8 @@ class UploadItem {
     String? artistDisplay,
     String? durationLabel,
     int? durationSeconds,
+    String? audioUrl,
+    String? waveformUrl,
     String? artworkUrl,
     String? localArtworkPath,
     String? localFilePath,
@@ -105,6 +111,8 @@ class UploadItem {
       artistDisplay: artistDisplay ?? this.artistDisplay,
       durationLabel: durationLabel ?? this.durationLabel,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      audioUrl: audioUrl ?? this.audioUrl,
+      waveformUrl: waveformUrl ?? this.waveformUrl,
       artworkUrl: artworkUrl ?? this.artworkUrl,
       localArtworkPath: localArtworkPath ?? this.localArtworkPath,
       localFilePath: localFilePath ?? this.localFilePath,

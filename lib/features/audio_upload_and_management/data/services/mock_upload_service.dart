@@ -218,6 +218,8 @@ class MockUploadService {
   artistDisplay: artists.join(', '),
   durationLabel: _fmt(duration),
   durationSeconds: duration,
+  audioUrl: data['audioUrl'] as String?,
+  waveformUrl: data['waveformUrl'] as String?,
   artworkUrl: artworkUrl,
   localArtworkPath:
       (artworkUrl != null && !artworkUrl.startsWith('http')) ? artworkUrl : null,
