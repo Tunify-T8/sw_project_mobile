@@ -7,6 +7,7 @@ import '../../data/dto/profile_dto.dart';
 import 'package:flutter/foundation.dart';
 import '../providers/profile_provider.dart';
 import '../providers/profile_state.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';//for cool icons
 //import '../../data/dto/profile_dto.dart';
 //import 'package:share_plus/share_plus.dart';
 class ProfileScreen extends StatefulWidget {
@@ -176,11 +177,11 @@ class  _ProfileScreenState extends State<ProfileScreen> {
  Widget buildSocialLinks() {
   final links = [
     if (instagram != null && instagram!.isNotEmpty)
-      {'icon': Icons.camera_alt, 'url': instagram!, 'label': instagram!},
+      {'icon': FontAwesomeIcons.instagram, 'url': instagram!, 'label': instagram!},
     if (twitter != null && twitter!.isNotEmpty)
-      {'icon': Icons.alternate_email, 'url': twitter!, 'label': twitter!},
+      {'icon': FontAwesomeIcons.xTwitter, 'url': twitter!, 'label': twitter!},
     if (website != null && website!.isNotEmpty)
-      {'icon': Icons.language, 'url': website!, 'label': website!},
+      {'icon': FontAwesomeIcons.globe, 'url': website!, 'label': website!},
   ];
 
   if (links.isEmpty) return const SizedBox.shrink();
@@ -198,7 +199,7 @@ class  _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
-              Icon(link['icon'] as IconData, color: Colors.white, size: 20),
+              FaIcon(link['icon'] as IconData, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text(link['label'] as String, style: bioStyle),
             ],
@@ -325,12 +326,17 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                   //   Share.share('https://soundcloud.com/darineelfeel');
                   // }),
                   ///// bgrb copy to clipboard
-                  buildShareAction(Icons.message, 'WhatsApp'),
-                  buildShareAction(Icons.messenger_outline, 'SMS'),
-                  buildShareAction(Icons.person, 'Instagram stories'),
-                  buildShareAction(Icons.person, 'Facebook stories'),
-                  buildShareAction(Icons.message, 'WhatsApp'),
-                  buildShareAction(Icons.more, 'More'),
+                  buildShareAction(FontAwesomeIcons.whatsapp, 'WhatsApp'),
+                  buildShareAction(Icons.message, 'SMS'),
+                  //buildShareAction(Icons.messenger_outline, 'SMS'),
+                  //buildShareAction(Icons.person, 'Instagram stories'),
+                  //buildShareAction(Icons.person, 'Facebook stories'),
+                  //buildShareAction(Icons.message, 'WhatsApp'),
+                  //buildShareAction(Icons.more, 'More'),
+                  buildShareAction(FontAwesomeIcons.facebookMessenger, 'Messenger'),
+                  buildShareAction(FontAwesomeIcons.instagram, 'Instagram'),
+                  buildShareAction(FontAwesomeIcons.facebook, 'Facebook'),
+                  buildShareAction(Icons.more_horiz, 'More'),
                   //add more when needed
                 ],
               ),
@@ -369,7 +375,8 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.grey.shade800,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: Colors.white, size: 24),
+              //child: Icon(icon, color: Colors.white, size: 24),
+              child: FaIcon(icon, color: Colors.white, size: 24),
             ),
             const SizedBox(height: 6),
             Text(

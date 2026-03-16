@@ -29,3 +29,4 @@ class ProfileEntity {
     this.userType = 'ARTIST',
   });
 }
+///this here is the object itself

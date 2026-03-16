@@ -3,14 +3,25 @@ import 'package:http/http.dart' as http;
 import '../dto/profile_dto.dart';
 import '../mappers/profile_mapper.dart';
 import '../../domain/repositories/profile_repository.dart';
+//this file: goes to backend fetches raw json data
+
+//when real backend is ready:
+//1)make usemock=false->baseurl will be that of actual backend
+//2)Right now no token is needed for MockAPI. 
+//When real backend is ready I'll get the token from wherever it is
+// saved (SharedPreferences) and add it to headers
+
+
+
 
 class ProfileRepositoryImpl implements ProfileRepository {
   // Toggle this when real backend is ready
   static const bool useMock = true;
-
+    // static const bool useMock = false; //when I et the real api that is what will change
+    // // calls localhost:3000/users/me with real token
   static const String mockBaseUrl = 'https://69b5b11a583f543fbd9c3072.mockapi.io';
   static const String realBaseUrl = 'http://localhost:3000';
-
+    //if usemock is false it will use actual api; and will be baseurl used for everything
   String get baseUrl => useMock ? mockBaseUrl : realBaseUrl;
 
   @override
@@ -36,7 +47,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
     @override
     Future<ProfileDto> updateProfile(ProfileDto profile) async {
-    if (useMock) {
+    if (useMock) {///if I am using mockapi
         // MockAPI — just PATCH /users/1
         await http.patch(
         Uri.parse('$baseUrl/users/1'),
@@ -74,6 +85,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
             'avatarUrl': profile.profileImagePath,
             'coverUrl': profile.coverImagePath,
             'visibility': profile.visibility,
+            'userType': profile.userType,
         }),
         );
 

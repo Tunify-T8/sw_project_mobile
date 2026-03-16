@@ -30,9 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  image_picker: ^1.0.4
-  url_launcher: ^6.2.4
+  image_picker: ^1.0.4 #images
+  url_launcher: ^6.2.4 #url
   country_picker: ^2.0.20 #darine added this(3)
+  font_awesome_flutter: ^10.6.0 #for icons
   http: ^1.2.0    
  #darine added this
   # The following adds the Cupertino Icons font to your application.
