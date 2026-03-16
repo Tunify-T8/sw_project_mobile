@@ -7,6 +7,8 @@ import '../widgets/edit_profile_images.dart';
 import '../widgets/edit_profile_text_fields.dart';
 import 'package:country_picker/country_picker.dart';
 import '../widgets/edit_profile_links.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class EditProfileScreen extends StatefulWidget {
     final String userName;
@@ -39,10 +41,34 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  ////////////variables
+  ////////////cloudinary
+
+Future<String?> uploadImage(File imageFile) async {
+  final url = Uri.parse('https://api.cloudinary.com/v1_1/denreb1dd/upload');
+
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = 'ml_default'
+    ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+  final response = await request.send();
+
+  if (response.statusCode == 200) {
+    final responseData = await response.stream.toBytes();
+    final responseString = String.fromCharCodes(responseData);
+    final jsonMap = jsonDecode(responseString);
+
+    return jsonMap['secure_url'];
+  }
+
+  return null;
+}
+
+  //////////variables
   File? profileImage;
   File? coverImage;
   final _picker = ImagePicker();
+///////////ba2fel el save le7ad ma ye
+   //bool _isUploading = false; 
   // pre-filled with current profile data, user edits these
   late final TextEditingController _nameController;
   late final TextEditingController _bioController;
@@ -95,22 +121,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
       child: ElevatedButton(
-        onPressed: () {
+          onPressed: () async {
+
+          String? profileUrl;
+          String? coverUrl;
+
+          if (profileImage != null) {
+            profileUrl = await uploadImage(profileImage!);
+          }
+
+          if (coverImage != null) {
+            coverUrl = await uploadImage(coverImage!);
+          }
+
           setState(() => _hasChanges = false);
-        Navigator.pop(context, ProfileDto(
-          userName: _nameController.text,
-          city: _cityController.text,
-          country: _countryController.text,
-          bio: _bioController.text,
-          profileImagePath: profileImage?.path,
-          coverImagePath: coverImage?.path,
-          instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
-          twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
-          website: _websiteController.text.isEmpty ? null : _websiteController.text,
-          userType: _isArtist ? 'ARTIST' : 'LISTENER',
-        ));
-          //btrg3 el profile el mt3dl fih
+
+          Navigator.pop(context, ProfileDto(
+            userName: _nameController.text,
+            city: _cityController.text,
+            country: _countryController.text,
+            bio: _bioController.text,
+            profileImagePath: profileUrl,
+            coverImagePath: coverUrl,
+            instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
+            twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
+            website: _websiteController.text.isEmpty ? null : _websiteController.text,
+            userType: _isArtist ? 'ARTIST' : 'LISTENER',
+          ));
         },
+        // onPressed: () {
+        //   setState(() => _hasChanges = false);
+        // Navigator.pop(context, ProfileDto(
+        //   userName: _nameController.text,
+        //   city: _cityController.text,
+        //   country: _countryController.text,
+        //   bio: _bioController.text,
+        //   profileImagePath: profileImage?.path,
+        //   coverImagePath: coverImage?.path,
+        //   instagram: _instagramController.text.isEmpty ? null : _instagramController.text,
+        //   twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
+        //   website: _websiteController.text.isEmpty ? null : _websiteController.text,
+        //   userType: _isArtist ? 'ARTIST' : 'LISTENER',
+        // ));
+        //   //btrg3 el profile el mt3dl fih
+        // },
+        //////////////
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,

@@ -7,6 +7,9 @@ class EditProfileImages extends StatelessWidget {
   final VoidCallback onCoverTap;
   final VoidCallback onProfileTap;
 
+  final VoidCallback onCoverDelete;    // ← add
+  final VoidCallback onProfileDelete;
+
   static const double coverHeight = 150;
   static const double profileHeight = 150;
 
