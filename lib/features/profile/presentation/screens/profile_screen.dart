@@ -80,7 +80,7 @@ class  _ProfileScreenState extends State<ProfileScreen> {
         website = profile.website;
         userType = profile.userType;
         if (profile.profileImagePath != null) {
-          // network image — handle separately
+          // network image; handle separately
         }
       });
     }
@@ -230,23 +230,6 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                 userType: userType,
               ))
             );
-            // if (result != null) {
-            //   setState(() {
-            //     userName = result.userName;
-            //     bio = result.bio;
-            //     city = result.city;
-            //     country= result.country;
-            //     instagram = result.instagram;
-            //     twitter = result.twitter;
-            //     website = result.website;
-            //     if (result.profileImagePath != null) profileImage = File(result.profileImagePath!);
-            //     if (result.coverImagePath != null) coverImage = File(result.coverImagePath!);
-            //   });
-            // }
-
-            // if (result != null) {
-            //   await _provider.updateProfile(result);
-            // }
             if (result != null) {
               final updated = ProfileDto(
                 userName: result.userName,
@@ -328,7 +311,6 @@ class  _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 children: [
                   buildShareAction(Icons.send, 'Message'),
-                 buildShareAction(Icons.copy, 'Copy Link'),
                   buildShareAction(Icons.copy, 'Copy Link', onTap: () {
                     Clipboard.setData(const ClipboardData(text: 'https://soundcloud.com/darineelfeel'));
                     Navigator.pop(context); // close bottom sheet
@@ -364,7 +346,10 @@ class  _ProfileScreenState extends State<ProfileScreen> {
             ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.white),
               title: const Text('View info', style: TextStyle(color: Colors.white)),
-              onTap: () {},
+              onTap: () {
+                Navigator.pop(context);
+                showInfoSheet();
+              },
             ),
           ],
         ),
@@ -398,6 +383,68 @@ class  _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+    Widget buildShowMore() => Padding(
+  padding: const EdgeInsets.only(left: 25),
+  child: GestureDetector(
+    onTap: () => showInfoSheet(),
+    child: const Text(
+      'Show more',
+      style: TextStyle(color: Color(0xFF0066CC), fontSize: 14),
+    ),
+  ),
+);
+void showInfoSheet() {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.black,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) => Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // header
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              const Text('Info', style: TextStyle(
+                color: Colors.white,
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              )),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // bio
+          const Text('Bio', style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 19,
+          )),
+          const SizedBox(height: 8),
+          Text(bio, style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+          const SizedBox(height: 20),
+          // links
+          const Text('Links', style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 19,
+          )),
+          const SizedBox(height: 8),
+          // links from social links
+          buildSocialLinks(),
+          const SizedBox(height: 35),
+        ],
+      ),
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -440,15 +487,17 @@ body: _provider.state.isLoading
             const SizedBox(height: 18),
             buildLocation(),
             const SizedBox(height:18),
-            buildBio(),
-            const SizedBox(height:18),
             buildFollowerCount(),
             const SizedBox(height:18),
             //buildEditIcon(),
             buildActionButtons(),
             const SizedBox(height: 18),
-            buildSocialLinks(),
+            buildBio(),
             const SizedBox(height:18),
+            buildShowMore(),
+            const SizedBox(height:18),
+            // buildSocialLinks(),
+            // const SizedBox(height:18),
           ],
         ),
       ),
