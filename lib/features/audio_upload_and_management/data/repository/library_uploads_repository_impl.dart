@@ -18,7 +18,9 @@ class LibraryUploadsRepositoryImpl implements LibraryUploadsRepository {
 
   @override
   Future<List<UploadItem>> getMyUploads() async {
-    final dtos = useMock ? await mockApi.getMyUploads() : await api.getMyUploads();
+    final dtos =
+        useMock ? await mockApi.getMyUploads() : await api.getMyUploads();
+
     return dtos.map((dto) => dto.toEntity()).toList();
   }
 
@@ -35,10 +37,9 @@ class LibraryUploadsRepositoryImpl implements LibraryUploadsRepository {
   Future<void> deleteUpload(String trackId) async {
     if (useMock) {
       await mockApi.deleteUpload(trackId);
-      return;
+    } else {
+      await api.deleteUpload(trackId);
     }
-
-    await api.deleteUpload(trackId);
   }
 
   @override
@@ -51,12 +52,38 @@ class LibraryUploadsRepositoryImpl implements LibraryUploadsRepository {
         trackId: trackId,
         filePath: filePath,
       );
-      return;
+    } else {
+      await api.replaceUploadFile(
+        trackId: trackId,
+        filePath: filePath,
+      );
     }
+  }
 
-    await api.replaceUploadFile(
-      trackId: trackId,
-      filePath: filePath,
-    );
+  @override
+  Future<UploadItem> updateUpload({
+    required String trackId,
+    required String title,
+    required String description,
+    required String privacy,
+    String? localArtworkPath,
+  }) async {
+    final dto = useMock
+        ? await mockApi.updateUpload(
+            trackId: trackId,
+            title: title,
+            description: description,
+            privacy: privacy,
+            localArtworkPath: localArtworkPath,
+          )
+        : await api.updateUpload(
+            trackId: trackId,
+            title: title,
+            description: description,
+            privacy: privacy,
+            localArtworkPath: localArtworkPath,
+          );
+
+    return dto.toEntity();
   }
 }

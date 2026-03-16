@@ -8,10 +8,6 @@ class TrackMetadataValidator {
       return 'Title is required.';
     }
 
-    if (state.genreSubGenre.trim().isEmpty) {
-      return 'Genre is required.';
-    }
-
     final hasAtLeastOneArtist = state.artists.any(
       (artist) => artist.trim().isNotEmpty,
     );

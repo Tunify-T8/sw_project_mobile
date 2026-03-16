@@ -9,4 +9,11 @@ abstract class LibraryUploadsRepository {
     required String trackId,
     required String filePath,
   });
+  Future<UploadItem> updateUpload({
+    required String trackId,
+    required String title,
+    required String description,
+    required String privacy,
+    String? localArtworkPath,
+  });
 }

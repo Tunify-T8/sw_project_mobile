@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/picked_upload_file.dart';
+import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import 'upload_dependencies_provider.dart';
 import 'upload_repository_provider.dart';
@@ -33,6 +34,16 @@ class UploadNotifier extends Notifier<UploadState> {
         error: e.toString(),
       );
     }
+  }
+
+  void primeTrackForEditing({required String trackId}) {
+    state = state.copyWith(
+      currentTrack: UploadedTrack(
+        trackId: trackId,
+        status: UploadStatus.finished,
+      ),
+      error: null,
+    );
   }
 
   Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(String userId) async {

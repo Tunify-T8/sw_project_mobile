@@ -9,6 +9,7 @@ import '../../domain/usecases/get_artist_tools_quota_usecase.dart';
 import '../../domain/usecases/get_my_uploads_usecase.dart';
 import '../../domain/usecases/replace_file_usecase.dart';
 import '../../domain/usecases/search_my_uploads_usecase.dart';
+import '../../domain/usecases/update_upload_usecase.dart';
 import 'library_uploads_dependencies_provider.dart';
 
 final libraryUploadsApiProvider = Provider<LibraryUploadsApi>((ref) {
@@ -32,8 +33,7 @@ final getMyUploadsUsecaseProvider = Provider<GetMyUploadsUsecase>((ref) {
   return GetMyUploadsUsecase(ref.watch(libraryUploadsRepositoryProvider));
 });
 
-final getArtistToolsQuotaUsecaseProvider =
-    Provider<GetArtistToolsQuotaUsecase>((ref) {
+final getArtistToolsQuotaUsecaseProvider = Provider<GetArtistToolsQuotaUsecase>((ref) {
   return GetArtistToolsQuotaUsecase(ref.watch(libraryUploadsRepositoryProvider));
 });
 
@@ -47,4 +47,8 @@ final replaceFileUsecaseProvider = Provider<ReplaceFileUsecase>((ref) {
 
 final searchMyUploadsUsecaseProvider = Provider<SearchMyUploadsUsecase>((ref) {
   return const SearchMyUploadsUsecase();
+});
+
+final updateUploadUsecaseProvider = Provider<UpdateUploadUsecase>((ref) {
+  return UpdateUploadUsecase(ref.watch(libraryUploadsRepositoryProvider));
 });

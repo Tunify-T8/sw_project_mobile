@@ -1,6 +1,10 @@
 import '../../domain/entities/artist_tools_quota.dart';
 import '../../domain/entities/upload_item.dart';
 
+enum UploadSortOrder { recentlyAdded, firstAdded, trackName }
+
+enum UploadVisibilityFilter { all, public, private }
+
 class LibraryUploadsState {
   final bool isLoading;
   final bool isRefreshing;
@@ -10,6 +14,8 @@ class LibraryUploadsState {
   final String query;
   final String? busyTrackId;
   final String? error;
+  final UploadSortOrder sortOrder;
+  final UploadVisibilityFilter visibilityFilter;
 
   const LibraryUploadsState({
     this.isLoading = false,
@@ -20,10 +26,12 @@ class LibraryUploadsState {
     this.query = '',
     this.busyTrackId,
     this.error,
+    this.sortOrder = UploadSortOrder.recentlyAdded,
+    this.visibilityFilter = UploadVisibilityFilter.all,
   });
 
   bool get isEmpty => !isLoading && filteredItems.isEmpty;
-  int get totalCount => filteredItems.length;
+  int get totalCount => items.length;
 
   LibraryUploadsState copyWith({
     bool? isLoading,
@@ -36,6 +44,8 @@ class LibraryUploadsState {
     String? error,
     bool clearBusyTrackId = false,
     bool clearError = false,
+    UploadSortOrder? sortOrder,
+    UploadVisibilityFilter? visibilityFilter,
   }) {
     return LibraryUploadsState(
       isLoading: isLoading ?? this.isLoading,
@@ -44,8 +54,11 @@ class LibraryUploadsState {
       filteredItems: filteredItems ?? this.filteredItems,
       quota: quota ?? this.quota,
       query: query ?? this.query,
-      busyTrackId: clearBusyTrackId ? null : (busyTrackId ?? this.busyTrackId),
+      busyTrackId:
+          clearBusyTrackId ? null : (busyTrackId ?? this.busyTrackId),
       error: clearError ? null : (error ?? this.error),
+      sortOrder: sortOrder ?? this.sortOrder,
+      visibilityFilter: visibilityFilter ?? this.visibilityFilter,
     );
   }
 }

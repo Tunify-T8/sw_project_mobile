@@ -12,10 +12,30 @@ extension UploadItemDtoMapper on UploadItemDto {
       durationLabel: _formatDuration(durationSeconds),
       durationSeconds: durationSeconds,
       artworkUrl: artworkUrl,
-      visibility:
-          privacy == 'public' ? UploadVisibility.public : UploadVisibility.private,
+      localArtworkPath: localArtworkPath,
+      localFilePath: localFilePath,
+      description: description,
+      tags: tags,
+      genreCategory: genreCategory,
+      genreSubGenre: genreSubGenre,
+      visibility: privacy == 'public' ? UploadVisibility.public : UploadVisibility.private,
       status: _mapStatus(status),
       isExplicit: contentWarning,
+      recordLabel: recordLabel,
+      publisher: publisher,
+      isrc: isrc,
+      pLine: pLine,
+      scheduledReleaseDate: scheduledReleaseDate == null
+          ? null
+          : DateTime.tryParse(scheduledReleaseDate!),
+      allowDownloads: allowDownloads,
+      offlineListening: offlineListening,
+      includeInRss: includeInRss,
+      displayEmbedCode: displayEmbedCode,
+      appPlaybackEnabled: appPlaybackEnabled,
+      availabilityType: availabilityType,
+      availabilityRegions: availabilityRegions,
+      licensing: licensing,
       createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
     );
   }
@@ -29,7 +49,6 @@ extension UploadItemDtoMapper on UploadItemDto {
         return UploadProcessingStatus.failed;
       case 'deleted':
         return UploadProcessingStatus.deleted;
-      case 'finished':
       default:
         return UploadProcessingStatus.finished;
     }

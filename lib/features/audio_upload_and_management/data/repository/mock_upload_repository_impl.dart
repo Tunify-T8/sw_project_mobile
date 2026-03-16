@@ -58,8 +58,10 @@ class MockUploadRepository implements UploadRepository {
       onProgress(progress);
     }
 
-    final data = await service.uploadAudio(trackId: trackId);
-
+final data = await service.uploadAudio(
+  trackId: trackId,
+  localFilePath: file.path,
+);
     return UploadedTrack(
       trackId: data['trackId'] as String,
       status: _mapStatus(data['status'] as String),
@@ -97,6 +99,7 @@ class MockUploadRepository implements UploadRepository {
         'availabilityType': metadata.availabilityType,
         'availabilityRegions': metadata.availabilityRegions,
         'licensing': metadata.licensing,
+        'pLine': metadata.pLine,
       },
     );
 
@@ -171,6 +174,7 @@ class MockUploadRepository implements UploadRepository {
         'availabilityType': metadata.availabilityType,
         'availabilityRegions': metadata.availabilityRegions,
         'licensing': metadata.licensing,
+        'pLine': metadata.pLine,
       },
     );
 
