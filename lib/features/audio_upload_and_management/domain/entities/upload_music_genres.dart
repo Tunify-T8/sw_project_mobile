@@ -36,11 +36,7 @@ const List<UploadGenre> uploadMusicGenres = [
     group: UploadGenreGroup.music,
     subGenre: 'deep_house',
   ),
-  UploadGenre(
-    label: 'Disco',
-    group: UploadGenreGroup.music,
-    subGenre: 'disco',
-  ),
+  UploadGenre(label: 'Disco', group: UploadGenreGroup.music, subGenre: 'disco'),
   UploadGenre(
     label: 'Drum & Bass',
     group: UploadGenreGroup.music,
@@ -66,41 +62,17 @@ const List<UploadGenre> uploadMusicGenres = [
     group: UploadGenreGroup.music,
     subGenre: 'hip_hop_rap',
   ),
-  UploadGenre(
-    label: 'House',
-    group: UploadGenreGroup.music,
-    subGenre: 'house',
-  ),
-  UploadGenre(
-    label: 'Indie',
-    group: UploadGenreGroup.music,
-    subGenre: 'indie',
-  ),
+  UploadGenre(label: 'House', group: UploadGenreGroup.music, subGenre: 'house'),
+  UploadGenre(label: 'Indie', group: UploadGenreGroup.music, subGenre: 'indie'),
   UploadGenre(
     label: 'Jazz & Blues',
     group: UploadGenreGroup.music,
     subGenre: 'jazz_blues',
   ),
-  UploadGenre(
-    label: 'Latin',
-    group: UploadGenreGroup.music,
-    subGenre: 'latin',
-  ),
-  UploadGenre(
-    label: 'Metal',
-    group: UploadGenreGroup.music,
-    subGenre: 'metal',
-  ),
-  UploadGenre(
-    label: 'Piano',
-    group: UploadGenreGroup.music,
-    subGenre: 'piano',
-  ),
-  UploadGenre(
-    label: 'Pop',
-    group: UploadGenreGroup.music,
-    subGenre: 'pop',
-  ),
+  UploadGenre(label: 'Latin', group: UploadGenreGroup.music, subGenre: 'latin'),
+  UploadGenre(label: 'Metal', group: UploadGenreGroup.music, subGenre: 'metal'),
+  UploadGenre(label: 'Piano', group: UploadGenreGroup.music, subGenre: 'piano'),
+  UploadGenre(label: 'Pop', group: UploadGenreGroup.music, subGenre: 'pop'),
   UploadGenre(
     label: 'R&B & Soul',
     group: UploadGenreGroup.music,
@@ -116,11 +88,7 @@ const List<UploadGenre> uploadMusicGenres = [
     group: UploadGenreGroup.music,
     subGenre: 'reggaeton',
   ),
-  UploadGenre(
-    label: 'Rock',
-    group: UploadGenreGroup.music,
-    subGenre: 'rock',
-  ),
+  UploadGenre(label: 'Rock', group: UploadGenreGroup.music, subGenre: 'rock'),
   UploadGenre(
     label: 'Soundtrack',
     group: UploadGenreGroup.music,
@@ -141,19 +109,11 @@ const List<UploadGenre> uploadMusicGenres = [
     group: UploadGenreGroup.music,
     subGenre: 'trance',
   ),
-  UploadGenre(
-    label: 'Trap',
-    group: UploadGenreGroup.music,
-    subGenre: 'trap',
-  ),
+  UploadGenre(label: 'Trap', group: UploadGenreGroup.music, subGenre: 'trap'),
   UploadGenre(
     label: 'Triphop',
     group: UploadGenreGroup.music,
     subGenre: 'triphop',
   ),
-  UploadGenre(
-    label: 'World',
-    group: UploadGenreGroup.music,
-    subGenre: 'world',
-  ),
+  UploadGenre(label: 'World', group: UploadGenreGroup.music, subGenre: 'world'),
 ];

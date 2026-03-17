@@ -20,9 +20,7 @@ final cloudinaryDioProvider = Provider<Dio>((ref) {
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
-      headers: const {
-        'Accept': 'application/json',
-      },
+      headers: const {'Accept': 'application/json'},
     ),
   );
 });
@@ -31,8 +29,14 @@ final cloudinaryMediaServiceProvider = Provider<CloudinaryMediaService>((ref) {
   return CloudinaryMediaService(
     dio: ref.read(cloudinaryDioProvider),
     cloudName: const String.fromEnvironment('CLOUDINARY_CLOUD_NAME'),
-    audioUploadPreset: const String.fromEnvironment('CLOUDINARY_AUDIO_UPLOAD_PRESET'),
-    imageUploadPreset: const String.fromEnvironment('CLOUDINARY_IMAGE_UPLOAD_PRESET'),
+    audioUploadPreset: const String.fromEnvironment(
+      'CLOUDINARY_AUDIO_UPLOAD_PRESET',
+    ),
+    imageUploadPreset: const String.fromEnvironment(
+      'CLOUDINARY_IMAGE_UPLOAD_PRESET',
+    ),
+    apiKey: const String.fromEnvironment('CLOUDINARY_API_KEY'),
+    apiSecret: const String.fromEnvironment('CLOUDINARY_API_SECRET'),
   );
 });
 
@@ -40,18 +44,12 @@ final uploadRepositoryProvider = Provider<UploadRepository>((ref) {
   final mode = ref.read(uploadBackendModeProvider);
 
   if (mode == UploadBackendMode.real) {
-    return RealUploadRepository(
-      ref.read(uploadApiProvider),
-    );
+    return RealUploadRepository(ref.read(uploadApiProvider));
   }
 
   if (mode == UploadBackendMode.cloudinary) {
-    return CloudinaryUploadRepository(
-      ref.read(cloudinaryMediaServiceProvider),
-    );
+    return CloudinaryUploadRepository(ref.read(cloudinaryMediaServiceProvider));
   }
 
-  return MockUploadRepository(
-    service: ref.read(mockUploadServiceProvider),
-  );
+  return MockUploadRepository(service: ref.read(mockUploadServiceProvider));
 });

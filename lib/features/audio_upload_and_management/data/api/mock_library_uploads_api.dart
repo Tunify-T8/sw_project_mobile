@@ -89,7 +89,9 @@ class MockLibraryUploadsApi {
       tags: item.tags,
       genreCategory: item.genreCategory,
       genreSubGenre: item.genreSubGenre,
-      privacy: item.visibility == UploadVisibility.public ? 'public' : 'private',
+      privacy: item.visibility == UploadVisibility.public
+          ? 'public'
+          : 'private',
       status: _statusString(item.status),
       contentWarning: item.isExplicit,
       recordLabel: item.recordLabel,

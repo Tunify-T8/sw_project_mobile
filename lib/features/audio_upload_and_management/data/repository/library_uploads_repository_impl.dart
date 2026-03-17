@@ -18,8 +18,9 @@ class LibraryUploadsRepositoryImpl implements LibraryUploadsRepository {
 
   @override
   Future<List<UploadItem>> getMyUploads() async {
-    final dtos =
-        useMock ? await mockApi.getMyUploads() : await api.getMyUploads();
+    final dtos = useMock
+        ? await mockApi.getMyUploads()
+        : await api.getMyUploads();
 
     return dtos.map((dto) => dto.toEntity()).toList();
   }
@@ -48,15 +49,9 @@ class LibraryUploadsRepositoryImpl implements LibraryUploadsRepository {
     required String filePath,
   }) async {
     if (useMock) {
-      await mockApi.replaceUploadFile(
-        trackId: trackId,
-        filePath: filePath,
-      );
+      await mockApi.replaceUploadFile(trackId: trackId, filePath: filePath);
     } else {
-      await api.replaceUploadFile(
-        trackId: trackId,
-        filePath: filePath,
-      );
+      await api.replaceUploadFile(trackId: trackId, filePath: filePath);
     }
   }
 

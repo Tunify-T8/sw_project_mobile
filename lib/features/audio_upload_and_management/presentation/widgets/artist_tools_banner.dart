@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ArtistToolsBanner extends StatelessWidget {
-  const ArtistToolsBanner({
-    super.key,
-    required this.onTap,
-  });
+  const ArtistToolsBanner({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
@@ -21,9 +18,7 @@ class ArtistToolsBanner extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.08),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
           child: const Row(
             children: [

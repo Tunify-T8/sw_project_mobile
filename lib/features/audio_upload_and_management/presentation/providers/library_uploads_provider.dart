@@ -6,8 +6,8 @@ import 'library_uploads_state.dart';
 
 final libraryUploadsProvider =
     NotifierProvider<LibraryUploadsNotifier, LibraryUploadsState>(
-  LibraryUploadsNotifier.new,
-);
+      LibraryUploadsNotifier.new,
+    );
 
 class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   @override
@@ -21,7 +21,12 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       state = state.copyWith(
         isLoading: false,
         items: uploads,
-        filteredItems: _apply(uploads, state.query, state.sortOrder, state.visibilityFilter),
+        filteredItems: _apply(
+          uploads,
+          state.query,
+          state.sortOrder,
+          state.visibilityFilter,
+        ),
         quota: quota,
       );
     } catch (e) {
@@ -37,7 +42,12 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       state = state.copyWith(
         isRefreshing: false,
         items: uploads,
-        filteredItems: _apply(uploads, state.query, state.sortOrder, state.visibilityFilter),
+        filteredItems: _apply(
+          uploads,
+          state.query,
+          state.sortOrder,
+          state.visibilityFilter,
+        ),
         quota: quota,
       );
     } catch (e) {
@@ -48,14 +58,24 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   void setQuery(String value) {
     state = state.copyWith(
       query: value,
-      filteredItems: _apply(state.items, value, state.sortOrder, state.visibilityFilter),
+      filteredItems: _apply(
+        state.items,
+        value,
+        state.sortOrder,
+        state.visibilityFilter,
+      ),
     );
   }
 
   void setSortOrder(UploadSortOrder order) {
     state = state.copyWith(
       sortOrder: order,
-      filteredItems: _apply(state.items, state.query, order, state.visibilityFilter),
+      filteredItems: _apply(
+        state.items,
+        state.query,
+        order,
+        state.visibilityFilter,
+      ),
     );
   }
 
@@ -73,7 +93,12 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       final updated = state.items.where((i) => i.id != trackId).toList();
       state = state.copyWith(
         items: updated,
-        filteredItems: _apply(updated, state.query, state.sortOrder, state.visibilityFilter),
+        filteredItems: _apply(
+          updated,
+          state.query,
+          state.sortOrder,
+          state.visibilityFilter,
+        ),
         clearBusyTrackId: true,
       );
     } catch (e) {
@@ -87,7 +112,9 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   }) async {
     state = state.copyWith(busyTrackId: trackId, clearError: true);
     try {
-      await ref.read(replaceFileUsecaseProvider).call(trackId: trackId, filePath: filePath);
+      await ref
+          .read(replaceFileUsecaseProvider)
+          .call(trackId: trackId, filePath: filePath);
       await refresh();
       state = state.copyWith(clearBusyTrackId: true);
     } catch (e) {
@@ -104,7 +131,9 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   }) async {
     state = state.copyWith(busyTrackId: trackId, clearError: true);
     try {
-      await ref.read(updateUploadUsecaseProvider).call(
+      await ref
+          .read(updateUploadUsecaseProvider)
+          .call(
             trackId: trackId,
             title: title,
             description: description,
@@ -130,18 +159,24 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
 
     // 1. Visibility filter
     if (visibility == UploadVisibilityFilter.public) {
-      result = result.where((i) => i.visibility == UploadVisibility.public).toList();
+      result = result
+          .where((i) => i.visibility == UploadVisibility.public)
+          .toList();
     } else if (visibility == UploadVisibilityFilter.private) {
-      result = result.where((i) => i.visibility == UploadVisibility.private).toList();
+      result = result
+          .where((i) => i.visibility == UploadVisibility.private)
+          .toList();
     }
 
     // 2. Search query
     if (query.trim().isNotEmpty) {
       final q = query.toLowerCase();
       result = result
-          .where((i) =>
-              i.title.toLowerCase().contains(q) ||
-              i.artistDisplay.toLowerCase().contains(q))
+          .where(
+            (i) =>
+                i.title.toLowerCase().contains(q) ||
+                i.artistDisplay.toLowerCase().contains(q),
+          )
           .toList();
     }
 
@@ -155,7 +190,8 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
         break;
       case UploadSortOrder.trackName:
         result.sort(
-            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        );
         break;
     }
 

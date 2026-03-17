@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class HomePlaceholderCard extends StatelessWidget {
   final String title;
 
-  const HomePlaceholderCard({
-    super.key,
-    required this.title,
-  });
+  const HomePlaceholderCard({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {

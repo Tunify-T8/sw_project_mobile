@@ -31,10 +31,7 @@ class UploadApi {
     required ProgressCallback onSendProgress,
   }) async {
     final formData = FormData.fromMap({
-      'audioFile': await MultipartFile.fromFile(
-        filePath,
-        filename: fileName,
-      ),
+      'audioFile': await MultipartFile.fromFile(filePath, filename: fileName),
     });
 
     final response = await dio.post(

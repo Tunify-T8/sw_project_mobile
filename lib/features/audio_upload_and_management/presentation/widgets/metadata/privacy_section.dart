@@ -100,11 +100,7 @@ class _PrivacyOptionTile extends StatelessWidget {
                 color: isSelected ? Colors.white : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.black,
-                      size: 18,
-                    )
+                  ? const Icon(Icons.check, color: Colors.black, size: 18)
                   : null,
             ),
           ],

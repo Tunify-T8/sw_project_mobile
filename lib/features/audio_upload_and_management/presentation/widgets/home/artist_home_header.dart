@@ -16,10 +16,7 @@ class ArtistHomeHeader extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
             borderRadius: BorderRadius.circular(28),
@@ -28,11 +25,7 @@ class ArtistHomeHeader extends StatelessWidget {
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.graphic_eq,
-                color: Colors.white,
-                size: 18,
-              ),
+              Icon(Icons.graphic_eq, color: Colors.white, size: 18),
               SizedBox(width: 8),
               Text(
                 'Artist Home',
@@ -46,10 +39,7 @@ class ArtistHomeHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        HomeUploadButton(
-          isBusy: isUploadBusy,
-          onTap: onUploadTap,
-        ),
+        HomeUploadButton(isBusy: isUploadBusy, onTap: onUploadTap),
       ],
     );
   }

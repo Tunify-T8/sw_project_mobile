@@ -19,10 +19,7 @@ class TrackMetadataTabSwitcher extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: const Color(0xFF595959),
-          width: 1.15,
-        ),
+        border: Border.all(color: const Color(0xFF595959), width: 1.15),
       ),
       child: Row(
         children: [

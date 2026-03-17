@@ -1,5 +1,1 @@
-enum UploadMetadataTab {
-  trackInfo,
-  advanced,
-  permissions,
-}
+enum UploadMetadataTab { trackInfo, advanced, permissions }

@@ -1,7 +1,4 @@
-enum ArtistTier {
-  free,
-  pro,
-}
+enum ArtistTier { free, pro }
 
 class ArtistToolsQuota {
   final ArtistTier tier;

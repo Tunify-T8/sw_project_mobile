@@ -1,21 +1,10 @@
 import 'package:flutter/material.dart';
 
-class AdvancedMetadataSection extends StatelessWidget {
-  final TextEditingController recordLabelController;
-  final TextEditingController publisherController;
-  final TextEditingController isrcController;
-  final TextEditingController pLineController;
-  final bool hasScheduledRelease;
-  final String scheduledReleaseLabel;
-  final bool contentWarning;
-  final ValueChanged<String> onRecordLabelChanged;
-  final ValueChanged<String> onPublisherChanged;
-  final ValueChanged<String> onIsrcChanged;
-  final ValueChanged<String> onPLineChanged;
-  final ValueChanged<bool> onScheduledReleaseChanged;
-  final VoidCallback onPickReleaseDate;
-  final ValueChanged<bool> onContentWarningChanged;
+import 'metadata_input_decoration.dart';
+import 'metadata_label_with_info.dart';
+import 'metadata_section_title.dart';
 
+class AdvancedMetadataSection extends StatelessWidget {
   const AdvancedMetadataSection({
     super.key,
     required this.recordLabelController,
@@ -34,51 +23,20 @@ class AdvancedMetadataSection extends StatelessWidget {
     required this.onContentWarningChanged,
   });
 
-  InputDecoration _inputDecoration(String label, {String? hintText}) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hintText,
-      floatingLabelBehavior: FloatingLabelBehavior.always,
-      labelStyle: const TextStyle(
-        color: Color(0xFFD0D0D0),
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-      ),
-      hintStyle: const TextStyle(
-        color: Color(0xFF666666),
-        fontSize: 17,
-      ),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF464646), width: 1),
-      ),
-      focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF7A7A7A), width: 1),
-      ),
-      contentPadding: const EdgeInsets.only(top: 6, bottom: 12),
-      isDense: true,
-    );
-  }
-
-  Widget _labelWithInfo(String label) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFD0D0D0),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Icon(
-          Icons.info_outline,
-          size: 18,
-          color: Colors.white70,
-        ),
-      ],
-    );
-  }
+  final TextEditingController recordLabelController;
+  final TextEditingController publisherController;
+  final TextEditingController isrcController;
+  final TextEditingController pLineController;
+  final bool hasScheduledRelease;
+  final String scheduledReleaseLabel;
+  final bool contentWarning;
+  final ValueChanged<String> onRecordLabelChanged;
+  final ValueChanged<String> onPublisherChanged;
+  final ValueChanged<String> onIsrcChanged;
+  final ValueChanged<String> onPLineChanged;
+  final ValueChanged<bool> onScheduledReleaseChanged;
+  final VoidCallback onPickReleaseDate;
+  final ValueChanged<bool> onContentWarningChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -88,21 +46,14 @@ class AdvancedMetadataSection extends StatelessWidget {
         TextField(
           controller: recordLabelController,
           style: const TextStyle(color: Colors.white, fontSize: 17),
-          decoration: _inputDecoration(
+          decoration: buildMetadataInputDecoration(
             'Record label',
             hintText: 'Add your record label if applicable',
           ),
           onChanged: onRecordLabelChanged,
         ),
         const SizedBox(height: 30),
-        const Text(
-          'Release date',
-          style: TextStyle(
-            color: Color(0xFFD0D0D0),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const MetadataSectionTitle('Release date'),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -135,7 +86,7 @@ class AdvancedMetadataSection extends StatelessWidget {
             Switch(
               value: hasScheduledRelease,
               onChanged: onScheduledReleaseChanged,
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: const Color(0xFF4A4A4A),
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: const Color(0xFF2F2F2F),
@@ -143,38 +94,31 @@ class AdvancedMetadataSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 30),
-        _labelWithInfo('Publisher'),
+        const MetadataLabelWithInfo('Publisher'),
         const SizedBox(height: 8),
         TextField(
           controller: publisherController,
           style: const TextStyle(color: Colors.white, fontSize: 17),
-          decoration: _inputDecoration(
+          decoration: buildMetadataInputDecoration(
             '',
             hintText: 'Add your publisher if you have one',
           ),
           onChanged: onPublisherChanged,
         ),
         const SizedBox(height: 30),
-        _labelWithInfo('ISRC'),
+        const MetadataLabelWithInfo('ISRC'),
         const SizedBox(height: 8),
         TextField(
           controller: isrcController,
           style: const TextStyle(color: Colors.white, fontSize: 17),
-          decoration: _inputDecoration(
+          decoration: buildMetadataInputDecoration(
             '',
             hintText: 'e.g. USABC2312345',
           ),
           onChanged: onIsrcChanged,
         ),
         const SizedBox(height: 30),
-        const Text(
-          'Content warning',
-          style: TextStyle(
-            color: Color(0xFFD0D0D0),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        const MetadataSectionTitle('Content warning'),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -209,7 +153,7 @@ class AdvancedMetadataSection extends StatelessWidget {
             Switch(
               value: contentWarning,
               onChanged: onContentWarningChanged,
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: const Color(0xFF4A4A4A),
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: const Color(0xFF2F2F2F),
@@ -217,12 +161,12 @@ class AdvancedMetadataSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 30),
-        _labelWithInfo('P line'),
+        const MetadataLabelWithInfo('P line'),
         const SizedBox(height: 8),
         TextField(
           controller: pLineController,
           style: const TextStyle(color: Colors.white, fontSize: 17),
-          decoration: _inputDecoration(
+          decoration: buildMetadataInputDecoration(
             '',
             hintText: 'e.g. 2024 [Owner Name]',
           ),

@@ -15,24 +15,15 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   Future<void> loadQuota(String userId) async {
-    state = state.copyWith(
-      isLoadingQuota: true,
-      error: null,
-    );
+    state = state.copyWith(isLoadingQuota: true, error: null);
 
     try {
       final repository = ref.read(uploadRepositoryProvider);
       final quota = await repository.getUploadQuota(userId);
 
-      state = state.copyWith(
-        isLoadingQuota: false,
-        quota: quota,
-      );
+      state = state.copyWith(isLoadingQuota: false, quota: quota);
     } catch (e) {
-      state = state.copyWith(
-        isLoadingQuota: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoadingQuota: false, error: e.toString());
     }
   }
 
@@ -46,7 +37,9 @@ class UploadNotifier extends Notifier<UploadState> {
     );
   }
 
-  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(String userId) async {
+  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(
+    String userId,
+  ) async {
     try {
       final picker = ref.read(filePickerServiceProvider);
       final file = await picker.pickAudioFile();
@@ -73,10 +66,7 @@ class UploadNotifier extends Notifier<UploadState> {
       );
 
       unawaited(
-        _uploadAudioInBackground(
-          trackId: createdTrack.trackId,
-          file: file,
-        ),
+        _uploadAudioInBackground(trackId: createdTrack.trackId, file: file),
       );
 
       return createdTrack;
@@ -117,16 +107,10 @@ class UploadNotifier extends Notifier<UploadState> {
       );
 
       unawaited(
-        _uploadAudioInBackground(
-          trackId: currentTrack.trackId,
-          file: file,
-        ),
+        _uploadAudioInBackground(trackId: currentTrack.trackId, file: file),
       );
     } catch (e) {
-      state = state.copyWith(
-        isUploading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isUploading: false, error: e.toString());
     }
   }
 
@@ -141,9 +125,7 @@ class UploadNotifier extends Notifier<UploadState> {
         trackId: trackId,
         file: file,
         onProgress: (progress) {
-          state = state.copyWith(
-            uploadProgress: progress,
-          );
+          state = state.copyWith(uploadProgress: progress);
         },
       );
 
@@ -167,5 +149,6 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 }
 
-final uploadProvider =
-    NotifierProvider<UploadNotifier, UploadState>(UploadNotifier.new);
+final uploadProvider = NotifierProvider<UploadNotifier, UploadState>(
+  UploadNotifier.new,
+);

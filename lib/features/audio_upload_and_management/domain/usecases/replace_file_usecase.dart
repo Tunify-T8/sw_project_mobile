@@ -5,13 +5,7 @@ class ReplaceFileUsecase {
 
   const ReplaceFileUsecase(this.repository);
 
-  Future<void> call({
-    required String trackId,
-    required String filePath,
-  }) {
-    return repository.replaceUploadFile(
-      trackId: trackId,
-      filePath: filePath,
-    );
+  Future<void> call({required String trackId, required String filePath}) {
+    return repository.replaceUploadFile(trackId: trackId, filePath: filePath);
   }
 }

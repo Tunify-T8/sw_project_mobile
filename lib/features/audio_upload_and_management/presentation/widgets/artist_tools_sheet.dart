@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/artist_tools_quota.dart';
+import 'artist_tool_paywall_data.dart';
 import 'artist_tool_paywall_sheet.dart';
 
 Future<void> showArtistToolsSheet({
@@ -36,9 +37,7 @@ class ArtistToolsSheet extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF111113),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(26),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       child: SafeArea(
         top: false,
@@ -76,10 +75,8 @@ class ArtistToolsSheet extends StatelessWidget {
                       iconColor: const Color(0xFFB873FF),
                       title: 'Amplify',
                       subtitle: quota.canAmplify ? 'OPEN' : 'TRY IT',
-                      onTap: () => _openPaywall(
-                        context,
-                        ArtistToolKind.amplify,
-                      ),
+                      onTap: () =>
+                          _openPaywall(context, ArtistToolKind.amplify),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -92,10 +89,8 @@ class ArtistToolsSheet extends StatelessWidget {
                           ? '${quota.uploadMinutesRemaining}/${quota.uploadMinutesLimit} mins left'
                           : 'Unlimited',
                       underlineSubtitle: false,
-                      onTap: () => _openPaywall(
-                        context,
-                        ArtistToolKind.uploadTime,
-                      ),
+                      onTap: () =>
+                          _openPaywall(context, ArtistToolKind.uploadTime),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -105,10 +100,8 @@ class ArtistToolsSheet extends StatelessWidget {
                       iconColor: const Color(0xFF7CB4FF),
                       title: 'Replace file',
                       subtitle: quota.canReplaceFiles ? 'OPEN' : 'TRY IT',
-                      onTap: () => _openPaywall(
-                        context,
-                        ArtistToolKind.replaceFile,
-                      ),
+                      onTap: () =>
+                          _openPaywall(context, ArtistToolKind.replaceFile),
                     ),
                   ),
                 ],
@@ -120,10 +113,7 @@ class ArtistToolsSheet extends StatelessWidget {
     );
   }
 
-  void _openPaywall(
-    BuildContext context,
-    ArtistToolKind kind,
-  ) {
+  void _openPaywall(BuildContext context, ArtistToolKind kind) {
     Navigator.of(context).pop();
 
     showArtistToolPaywallSheet(
@@ -167,11 +157,7 @@ class _ArtistToolCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                icon,
-                color: iconColor,
-                size: 30,
-              ),
+              Icon(icon, color: iconColor, size: 30),
               const Spacer(),
               Text(
                 title,
@@ -188,8 +174,9 @@ class _ArtistToolCard extends StatelessWidget {
                   color: Colors.white70,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  decoration:
-                      underlineSubtitle ? TextDecoration.underline : null,
+                  decoration: underlineSubtitle
+                      ? TextDecoration.underline
+                      : null,
                   decorationColor: Colors.white70,
                 ),
               ),

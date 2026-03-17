@@ -54,8 +54,7 @@ class LibraryUploadsState {
       filteredItems: filteredItems ?? this.filteredItems,
       quota: quota ?? this.quota,
       query: query ?? this.query,
-      busyTrackId:
-          clearBusyTrackId ? null : (busyTrackId ?? this.busyTrackId),
+      busyTrackId: clearBusyTrackId ? null : (busyTrackId ?? this.busyTrackId),
       error: clearError ? null : (error ?? this.error),
       sortOrder: sortOrder ?? this.sortOrder,
       visibilityFilter: visibilityFilter ?? this.visibilityFilter,

@@ -20,7 +20,9 @@ extension UploadItemDtoMapper on UploadItemDto {
       tags: tags,
       genreCategory: genreCategory,
       genreSubGenre: genreSubGenre,
-      visibility: privacy == 'public' ? UploadVisibility.public : UploadVisibility.private,
+      visibility: privacy == 'public'
+          ? UploadVisibility.public
+          : UploadVisibility.private,
       status: _mapStatus(status),
       isExplicit: contentWarning,
       recordLabel: recordLabel,

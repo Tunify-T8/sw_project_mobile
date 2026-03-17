@@ -21,7 +21,9 @@ final mockLibraryUploadsApiProvider = Provider<MockLibraryUploadsApi>((ref) {
   return MockLibraryUploadsApi();
 });
 
-final libraryUploadsRepositoryProvider = Provider<LibraryUploadsRepository>((ref) {
+final libraryUploadsRepositoryProvider = Provider<LibraryUploadsRepository>((
+  ref,
+) {
   return LibraryUploadsRepositoryImpl(
     api: ref.watch(libraryUploadsApiProvider),
     mockApi: ref.watch(mockLibraryUploadsApiProvider),
@@ -33,9 +35,13 @@ final getMyUploadsUsecaseProvider = Provider<GetMyUploadsUsecase>((ref) {
   return GetMyUploadsUsecase(ref.watch(libraryUploadsRepositoryProvider));
 });
 
-final getArtistToolsQuotaUsecaseProvider = Provider<GetArtistToolsQuotaUsecase>((ref) {
-  return GetArtistToolsQuotaUsecase(ref.watch(libraryUploadsRepositoryProvider));
-});
+final getArtistToolsQuotaUsecaseProvider = Provider<GetArtistToolsQuotaUsecase>(
+  (ref) {
+    return GetArtistToolsQuotaUsecase(
+      ref.watch(libraryUploadsRepositoryProvider),
+    );
+  },
+);
 
 final deleteUploadUsecaseProvider = Provider<DeleteUploadUsecase>((ref) {
   return DeleteUploadUsecase(ref.watch(libraryUploadsRepositoryProvider));

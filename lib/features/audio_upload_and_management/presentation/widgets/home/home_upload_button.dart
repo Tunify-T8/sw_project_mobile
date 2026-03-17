@@ -25,10 +25,7 @@ class HomeUploadButton extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const Icon(
-              Icons.cloud_upload_outlined,
-              color: Colors.white,
-            ),
+            const Icon(Icons.cloud_upload_outlined, color: Colors.white),
             if (isBusy)
               const SizedBox(
                 width: 36,

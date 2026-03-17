@@ -1,25 +1,36 @@
 import 'package:dio/dio.dart';
 
+import 'cloudinary_asset_delete_service.dart';
+
 class CloudinaryMediaService {
   CloudinaryMediaService({
     required Dio dio,
     required String cloudName,
     required String audioUploadPreset,
     required String imageUploadPreset,
-  })  : _dio = dio,
-        _cloudName = cloudName,
-        _audioUploadPreset = audioUploadPreset,
-        _imageUploadPreset = imageUploadPreset;
+    this.apiKey = '',
+    this.apiSecret = '',
+  }) : _dio = dio,
+       _cloudName = cloudName,
+       _audioUploadPreset = audioUploadPreset,
+       _imageUploadPreset = imageUploadPreset;
 
   final Dio _dio;
   final String _cloudName;
   final String _audioUploadPreset;
   final String _imageUploadPreset;
+  final String apiKey;
+  final String apiSecret;
 
   bool get isConfigured =>
       _cloudName.trim().isNotEmpty &&
       _audioUploadPreset.trim().isNotEmpty &&
       _imageUploadPreset.trim().isNotEmpty;
+
+  bool get canDeleteAssets =>
+      _cloudName.trim().isNotEmpty &&
+      apiKey.trim().isNotEmpty &&
+      apiSecret.trim().isNotEmpty;
 
   Future<CloudinaryAsset> uploadAudio({
     required String filePath,
@@ -50,10 +61,31 @@ class CloudinaryMediaService {
   String buildWaveformImageUrl({
     required String audioPublicId,
     int width = 1200,
-    int height = 180,
+    int height = 240,
   }) {
     final base = 'https://res.cloudinary.com/$_cloudName/video/upload';
-    return '$base/fl_waveform,w_$width,h_$height,c_fill,co_rgb:ffffff,b_rgb:111111/$audioPublicId.png';
+    return '$base/fl_waveform,w_$width,h_$height,c_fit,co_rgb:ffffff/$audioPublicId.png';
+  }
+
+  Future<void> deleteTrackAssets({String? audioUrl, String? artworkUrl}) async {
+    await Future.wait([
+      deleteCloudinaryAssetByUrl(
+        dio: _dio,
+        cloudName: _cloudName,
+        apiKey: apiKey,
+        apiSecret: apiSecret,
+        assetUrl: audioUrl,
+        resourceType: 'video',
+      ),
+      deleteCloudinaryAssetByUrl(
+        dio: _dio,
+        cloudName: _cloudName,
+        apiKey: apiKey,
+        apiSecret: apiSecret,
+        assetUrl: artworkUrl,
+        resourceType: 'image',
+      ),
+    ]);
   }
 
   Future<CloudinaryAsset> _upload({
@@ -91,7 +123,9 @@ class CloudinaryMediaService {
     final publicId = data['public_id'] as String?;
 
     if (secureUrl == null || publicId == null) {
-      throw const FormatException('Cloudinary response is missing secure_url or public_id.');
+      throw const FormatException(
+        'Cloudinary response is missing secure_url or public_id.',
+      );
     }
 
     return CloudinaryAsset(

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 class UploadsEmptyState extends StatelessWidget {
-  const UploadsEmptyState({
-    super.key,
-    required this.onUploadTap,
-  });
+  const UploadsEmptyState({super.key, required this.onUploadTap});
 
   final VoidCallback onUploadTap;
 

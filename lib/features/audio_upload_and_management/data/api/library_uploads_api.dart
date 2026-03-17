@@ -21,7 +21,8 @@ class LibraryUploadsApi {
     if (raw is List) {
       data = raw;
     } else if (raw is Map<String, dynamic>) {
-      data = (raw['items'] as List?) ??
+      data =
+          (raw['items'] as List?) ??
           (raw['uploads'] as List?) ??
           (raw['data'] as List?) ??
           const <dynamic>[];
@@ -65,10 +66,7 @@ class LibraryUploadsApi {
       'newAudioFile': await MultipartFile.fromFile(filePath),
     });
 
-    await dio.post(
-      ApiEndpoints.replaceUploadFile(trackId),
-      data: formData,
-    );
+    await dio.post(ApiEndpoints.replaceUploadFile(trackId), data: formData);
   }
 
   /// PATCH /tracks/:id

@@ -49,14 +49,13 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
       return;
     }
 
-    final audioName = ref.read(uploadProvider).selectedAudio?.name ?? 'Audio file';
+    final audioName =
+        ref.read(uploadProvider).selectedAudio?.name ?? 'Audio file';
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => TrackMetadataScreen(
-          trackId: track.trackId,
-          fileName: audioName,
-        ),
+        builder: (_) =>
+            TrackMetadataScreen(trackId: track.trackId, fileName: audioName),
       ),
     );
   }
@@ -84,25 +83,32 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
                 state.isLoadingQuota
                     ? 'Loading…'
                     : state.isPreparingUpload
-                        ? 'Preparing…'
-                        : state.isUploading
-                            ? 'Starting upload…'
-                            : 'Opening file picker…',
+                    ? 'Preparing…'
+                    : state.isUploading
+                    ? 'Starting upload…'
+                    : 'Opening file picker…',
                 style: const TextStyle(color: Colors.white70, fontSize: 15),
               ),
               if (state.error != null) ...[
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(state.error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                  child: Text(
+                    state.error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: _startFlow,
-                  child: const Text('Try again',
-                      style: TextStyle(color: Color(0xFFFF5500), fontSize: 15)),
+                  child: const Text(
+                    'Try again',
+                    style: TextStyle(color: Color(0xFFFF5500), fontSize: 15),
+                  ),
                 ),
               ],
             ],

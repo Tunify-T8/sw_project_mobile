@@ -72,6 +72,18 @@ class UploadItem {
   bool get isPlayable => status == UploadProcessingStatus.finished;
   bool get isDeleted => status == UploadProcessingStatus.deleted;
 
+  // ── Equality ────────────────────────────────────────────────────────────────
+  // Required so Riverpod .family providers can correctly distinguish between
+  // two different UploadItem instances used as keys.
+  // We key on `id` — every upload gets a unique millisecond-based id.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UploadItem && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
+
   UploadItem copyWith({
     String? id,
     String? title,

@@ -26,7 +26,7 @@ Future<void> showGenrePickerSheet(
     final isSelected = genre.isNone
         ? selectedGenre.isNone
         : selectedGenre.categoryValue == genre.categoryValue &&
-            selectedGenre.subGenre == genre.subGenre;
+              selectedGenre.subGenre == genre.subGenre;
 
     return InkWell(
       onTap: () {
@@ -37,10 +37,7 @@ Future<void> showGenrePickerSheet(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
         decoration: const BoxDecoration(
           border: Border(
-            bottom: BorderSide(
-              color: Color(0xFF444444),
-              width: 0.7,
-            ),
+            bottom: BorderSide(color: Color(0xFF444444), width: 0.7),
           ),
         ),
         child: Row(
@@ -56,11 +53,7 @@ Future<void> showGenrePickerSheet(
               ),
             ),
             if (isSelected)
-              const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 20,
-              ),
+              const Icon(Icons.check, color: Colors.white, size: 20),
           ],
         ),
       ),
@@ -74,10 +67,7 @@ Future<void> showGenrePickerSheet(
       return Dialog(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: 34,
-          vertical: 86,
-        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 34, vertical: 86),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: Container(
@@ -91,11 +81,13 @@ Future<void> showGenrePickerSheet(
               children: [
                 buildGenreTile(dialogContext, UploadGenres.none),
                 buildSectionLabel('Music'),
-                ...UploadGenres.music
-                    .map((genre) => buildGenreTile(dialogContext, genre)),
+                ...UploadGenres.music.map(
+                  (genre) => buildGenreTile(dialogContext, genre),
+                ),
                 buildSectionLabel('Audio'),
-                ...UploadGenres.audio
-                    .map((genre) => buildGenreTile(dialogContext, genre)),
+                ...UploadGenres.audio.map(
+                  (genre) => buildGenreTile(dialogContext, genre),
+                ),
               ],
             ),
           ),

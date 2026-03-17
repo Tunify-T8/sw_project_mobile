@@ -19,19 +19,12 @@ class UploadPromoBanner extends StatelessWidget {
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF7B2DFF),
-                  Color(0xFFB026FF),
-                ],
+                colors: [Color(0xFF7B2DFF), Color(0xFFB026FF)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
-            child: const Icon(
-              Icons.bolt,
-              color: Colors.white,
-              size: 26,
-            ),
+            child: const Icon(Icons.bolt, color: Colors.white, size: 26),
           ),
           const SizedBox(width: 14),
           const Expanded(
@@ -46,9 +39,7 @@ class UploadPromoBanner extends StatelessWidget {
                 children: [
                   TextSpan(
                     text: 'Artist Pro',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ],
               ),

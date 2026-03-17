@@ -14,11 +14,9 @@ Future<bool> ensureUploadAuthenticated(
     return true;
   }
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Sign in to upload tracks.'),
-    ),
-  );
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('Sign in to upload tracks.')));
 
   Navigator.pushNamedAndRemoveUntil(
     context,

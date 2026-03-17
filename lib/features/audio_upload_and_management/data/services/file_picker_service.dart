@@ -10,7 +10,8 @@ class FilePickerService {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['mp3', 'wav', 'flac', 'm4a', 'aac'],
-      withData: false, //do not load full file bytes into memory immediately ; audio files can be large.
+      withData:
+          false, //do not load full file bytes into memory immediately ; audio files can be large.
     );
 
     if (result == null || result.files.isEmpty) {
@@ -29,7 +30,8 @@ class FilePickerService {
       sizeBytes: file.size,
     );
   }
-// is the image an entity ,
+
+  // is the image an entity ,
   Future<String?> pickArtworkImage({bool fromCamera = false}) // why false
   async {
     final pickedImage = await _imagePicker.pickImage(

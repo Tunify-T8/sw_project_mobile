@@ -15,11 +15,7 @@ class UploadGenres {
 
   static List<UploadGenre> get audio => uploadAudioGenres;
 
-  static List<UploadGenre> get all => [
-        none,
-        ...music,
-        ...audio,
-      ];
+  static List<UploadGenre> get all => [none, ...music, ...audio];
 
   static UploadGenre fromValues({
     required String category,

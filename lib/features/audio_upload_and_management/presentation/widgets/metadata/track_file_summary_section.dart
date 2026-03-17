@@ -1,19 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
+import 'track_file_artwork_tile.dart';
+import 'upload_progress_pill.dart';
 
-// refactor again
 class TrackFileSummarySection extends StatelessWidget {
-  final String displayedFileName;
-  final String? artworkPath;
-  final bool uploadFinished;
-  final bool isPreparingUpload;
-  final bool isUploading;
-  final double uploadProgress;
-  final VoidCallback onPickArtwork;
-  final VoidCallback onReplaceAudio;
-
   const TrackFileSummarySection({
     super.key,
     required this.displayedFileName,
@@ -26,15 +16,21 @@ class TrackFileSummarySection extends StatelessWidget {
     required this.onReplaceAudio,
   });
 
+  final String displayedFileName;
+  final String? artworkPath;
+  final bool uploadFinished;
+  final bool isPreparingUpload;
+  final bool isUploading;
+  final double uploadProgress;
+  final VoidCallback onPickArtwork;
+  final VoidCallback onReplaceAudio;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _ArtworkTile(
-          artworkPath: artworkPath,
-          onTap: onPickArtwork,
-        ),
+        TrackFileArtworkTile(artworkPath: artworkPath, onTap: onPickArtwork),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -42,22 +38,16 @@ class TrackFileSummarySection extends StatelessWidget {
             children: [
               const Text(
                 'Filename',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 15),
               ),
               const SizedBox(height: 6),
               Text(
                 displayedFileName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
               ),
               const SizedBox(height: 14),
               if (!uploadFinished)
-                _UploadProgressPill(
+                UploadProgressPill(
                   isPreparingUpload: isPreparingUpload,
                   isUploading: isUploading,
                   progress: uploadProgress,
@@ -88,10 +78,7 @@ class TrackFileSummarySection extends StatelessWidget {
                         color: Color(0xFF37B26C),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.black,
-                      ),
+                      child: const Icon(Icons.check, color: Colors.black),
                     ),
                   ],
                 ),
@@ -99,146 +86,6 @@ class TrackFileSummarySection extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ArtworkTile extends StatelessWidget {
-  final String? artworkPath;
-  final VoidCallback onTap;
-
-  const _ArtworkTile({
-    required this.artworkPath,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 120,
-        height: 120,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white54,
-            width: 1.2,
-          ),
-        ),
-        child: artworkPath == null || artworkPath!.isEmpty
-            ? const Center(
-                child: Icon(
-                  Icons.camera_alt_outlined,
-                  color: Colors.white,
-                  size: 34,
-                ),
-              )
-            : ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: artworkPath!.startsWith('http')
-                    ? Image.network(
-                        artworkPath!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const ColoredBox(
-                          color: Color(0xFF1A1A1A),
-                          child: Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              color: Colors.white54,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                      )
-                    : Image.file(
-                        File(artworkPath!),
-                        fit: BoxFit.cover,
-                      ),
-              ),
-      ),
-    );
-  }
-}
-
-class _UploadProgressPill extends StatelessWidget {
-  final bool isPreparingUpload;
-  final bool isUploading;
-  final double progress;
-
-  const _UploadProgressPill({
-    required this.isPreparingUpload,
-    required this.isUploading,
-    required this.progress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    String label;
-
-    if (isPreparingUpload) {
-      label = 'PREPARING TO UPLOAD';
-    } else if (isUploading) {
-      label = 'UPLOADING ${(progress * 100).toStringAsFixed(0)}%';
-    } else {
-      label = 'UPLOADING 100%';
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        height: 46,
-        decoration: BoxDecoration(
-          color: const Color(0xFF0C5F3B),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Stack(
-          children: [
-            FractionallySizedBox(
-              widthFactor: isPreparingUpload ? 0.15 : progress.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF11A85B),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-            ),
-            const Positioned.fill(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(),
-                    ),
-                    Icon(
-                      Icons.close,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

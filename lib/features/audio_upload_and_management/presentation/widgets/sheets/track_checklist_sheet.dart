@@ -28,18 +28,12 @@ Future<void> showTrackChecklistSheet(
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 17),
               ),
               const SizedBox(height: 2),
               Text(
                 tip,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
               ),
             ],
           ),
@@ -86,10 +80,7 @@ Future<void> showTrackChecklistSheet(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Fans are more likely to play your track when you complete these:',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 18,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 18),
                   ),
                 ),
                 const SizedBox(height: 22),
@@ -145,7 +136,8 @@ Future<void> showTrackChecklistSheet(
                               const SizedBox(height: 16),
                               checklistItem(
                                 label: 'Description',
-                                tip: 'Add any details about your track for fans',
+                                tip:
+                                    'Add any details about your track for fans',
                                 done: state.hasDescription,
                               ),
                             ],

@@ -1,7 +1,4 @@
-enum UploadGenreGroup {
-  music,
-  audio,
-}
+enum UploadGenreGroup { music, audio }
 
 class UploadGenre {
   final String label;

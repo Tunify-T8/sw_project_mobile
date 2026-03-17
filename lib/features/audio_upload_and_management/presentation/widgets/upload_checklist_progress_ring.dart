@@ -23,9 +23,7 @@ class UploadChecklistProgressRing extends StatelessWidget {
         value: normalizedProgress,
         strokeWidth: strokeWidth,
         backgroundColor: Colors.white12,
-        valueColor: const AlwaysStoppedAnimation<Color>(
-          Color(0xFFA855F7),
-        ),
+        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFA855F7)),
       ),
     );
   }

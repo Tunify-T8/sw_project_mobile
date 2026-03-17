@@ -73,10 +73,7 @@ class TrackInfoFormSection extends StatelessWidget {
           const SizedBox(height: 22),
           const Text(
             'Artists *',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 15),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -124,15 +121,16 @@ class TrackInfoFormSection extends StatelessWidget {
           TextField(
             controller: artistController,
             style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration(
-              '',
-              hintText: 'Add any other collaborators of the track',
-            ).copyWith(
-              suffixIcon: IconButton(
-                onPressed: _submitArtist,
-                icon: const Icon(Icons.add, color: Colors.white70),
-              ),
-            ),
+            decoration:
+                _inputDecoration(
+                  '',
+                  hintText: 'Add any other collaborators of the track',
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    onPressed: _submitArtist,
+                    icon: const Icon(Icons.add, color: Colors.white70),
+                  ),
+                ),
             onSubmitted: (_) => _submitArtist(),
           ),
           const SizedBox(height: 22),
@@ -143,10 +141,7 @@ class TrackInfoFormSection extends StatelessWidget {
               children: [
                 const Text(
                   'Genre',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 15),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -162,17 +157,11 @@ class TrackInfoFormSection extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Icon(
-                      Icons.unfold_more,
-                      color: Colors.white70,
-                    ),
+                    const Icon(Icons.unfold_more, color: Colors.white70),
                   ],
                 ),
                 const SizedBox(height: 10),
-                Container(
-                  height: 1,
-                  color: Colors.white24,
-                ),
+                Container(height: 1, color: Colors.white24),
               ],
             ),
           ),

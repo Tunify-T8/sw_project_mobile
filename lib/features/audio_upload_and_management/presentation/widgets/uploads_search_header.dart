@@ -28,9 +28,7 @@ class UploadsSearchHeader extends StatelessWidget {
         children: [
           Positioned.fill(
             child: IgnorePointer(
-              child: CustomPaint(
-                painter: _UploadsHeaderPainter(),
-              ),
+              child: CustomPaint(painter: _UploadsHeaderPainter()),
             ),
           ),
           Padding(
@@ -49,10 +47,10 @@ class UploadsSearchHeader extends StatelessWidget {
                       child: Container(
                         height: 56,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.45),
+                          color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.08),
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
                         ),
                         child: Row(
@@ -77,7 +75,7 @@ class UploadsSearchHeader extends StatelessWidget {
                                   border: InputBorder.none,
                                   hintText: 'Search $trackCount tracks',
                                   hintStyle: TextStyle(
-                                    color: Colors.white.withOpacity(0.75),
+                                    color: Colors.white.withValues(alpha: 0.75),
                                     fontSize: 19,
                                   ),
                                 ),
@@ -115,10 +113,7 @@ class UploadsSearchHeader extends StatelessWidget {
 }
 
 class _CircleHeaderButton extends StatelessWidget {
-  const _CircleHeaderButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _CircleHeaderButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -126,7 +121,7 @@ class _CircleHeaderButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black.withOpacity(0.45),
+      color: Colors.black.withValues(alpha: 0.45),
       shape: const CircleBorder(),
       child: InkWell(
         onTap: onTap,
@@ -134,11 +129,7 @@ class _CircleHeaderButton extends StatelessWidget {
         child: SizedBox(
           width: 46,
           height: 46,
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 24,
-          ),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
       ),
     );
@@ -157,22 +148,14 @@ class _UploadsHeaderPainter extends CustomPainter {
       ..shader = ui.Gradient.radial(
         glowRect.center,
         glowRect.width * 0.55,
-        [
-          const Color(0xAA9B4DFF),
-          const Color(0x449B4DFF),
-          Colors.transparent,
-        ],
+        [const Color(0xAA9B4DFF), const Color(0x449B4DFF), Colors.transparent],
         const [0, 0.45, 1],
       );
 
-    canvas.drawCircle(
-      glowRect.center,
-      glowRect.width * 0.55,
-      glowPaint,
-    );
+    canvas.drawCircle(glowRect.center, glowRect.width * 0.55, glowPaint);
 
     final linePaint = Paint()
-      ..color = const Color(0xFF8F45FF).withOpacity(0.75)
+      ..color = const Color(0xFF8F45FF).withValues(alpha: 0.75)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -182,10 +165,7 @@ class _UploadsHeaderPainter extends CustomPainter {
       final width = size.width * 0.82;
       final height = size.height * 0.95;
 
-      canvas.drawRect(
-        Rect.fromLTWH(left, top, width, height),
-        linePaint,
-      );
+      canvas.drawRect(Rect.fromLTWH(left, top, width, height), linePaint);
     }
 
     final accentPaint = Paint()
