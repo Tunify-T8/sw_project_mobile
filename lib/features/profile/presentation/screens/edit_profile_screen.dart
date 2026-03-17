@@ -22,6 +22,8 @@ class EditProfileScreen extends StatefulWidget {
     final String? twitter;
     final String? website;
     final String userType;
+    final String? profileImageUrl;
+    final String? coverImageUrl;//3lshan yfdal shayef el soora
 
   const EditProfileScreen({
     super.key,
@@ -34,6 +36,8 @@ class EditProfileScreen extends StatefulWidget {
     this.instagram,
     this.twitter,
     this.website,
+    this.profileImageUrl,
+    this.coverImageUrl,
     this.userType = 'ARTIST',
   });
 
@@ -48,9 +52,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   //////////variables
   File? profileImage;
   File? coverImage;
-  ////as url
+  /////to have editscreen up to date with images
   String? profileImageUrl;
   String? coverImageUrl;
+  //// 3lshan amsa7 el sa7
+  bool _profileImageDeleted = false;
+  bool _coverImageDeleted = false;
   /////
   final _picker = ImagePicker();
 ///////////ba2fel el save le7ad ma ye
@@ -68,19 +75,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late bool _isArtist;
   @override
   void initState() {
-    super.initState();//thsi is what the values are initially
-      _nameController = TextEditingController(text: widget.userName);
-      _cityController = TextEditingController(text: widget.city);
-      _countryController = TextEditingController(text: widget.country);
-      _bioController = TextEditingController(text: widget.bio);
-      _instagramController = TextEditingController(text: widget.instagram ?? '');
-      _twitterController = TextEditingController(text: widget.twitter ?? '');
-      _websiteController = TextEditingController(text: widget.website ?? '');
-      profileImage = widget.profileImage;
-      coverImage = widget.coverImage;
-      _isArtist = widget.userType == 'ARTIST';
-  }
-
+    super.initState();
+    _nameController = TextEditingController(text: widget.userName);
+    _cityController = TextEditingController(text: widget.city);
+    _countryController = TextEditingController(text: widget.country);
+    _bioController = TextEditingController(text: widget.bio);
+    _instagramController = TextEditingController(text: widget.instagram ?? '');
+    _twitterController = TextEditingController(text: widget.twitter ?? '');
+    _websiteController = TextEditingController(text: widget.website ?? '');
+    profileImage = widget.profileImage;
+    coverImage = widget.coverImage;
+    profileImageUrl = widget.profileImageUrl;
+    coverImageUrl = widget.coverImageUrl;
+    _isArtist = widget.userType == 'ARTIST';
+  } 
   @override
   void dispose() {//dipose happens when teh screen is closed to clear the memory of controllers and avoid memory leaks
     _nameController.dispose();
@@ -133,9 +141,14 @@ Future<String?> uploadImage(File imageFile) async {
           if (profileImage != null) {
             profileUrl = await uploadImage(profileImage!);
           }
+          else if (_profileImageDeleted){
+             profileUrl = '';  // says "deleted"
+          }
 
           if (coverImage != null) {
             coverUrl = await uploadImage(coverImage!);
+          }else if (_coverImageDeleted) {
+             coverUrl = '';  // says "deleted"
           }
 
           setState(() => _hasChanges = false);
@@ -213,14 +226,18 @@ Future<void> pickImage({required bool isCover, ImageSource source = ImageSource.
           EditProfileImages(
             coverImage: coverImage,
             profileImage: profileImage,
+            coverImageUrl: coverImageUrl,    // add
+            profileImageUrl: profileImageUrl,
             onCoverPick: (source) => pickImage(isCover: true, source: source),//8yrataha 3lshan ta5od camera aw gallery
             onProfilePick: (source) => pickImage(isCover: false, source: source),
             onCoverDelete: () => setState(() {   // to delete
               coverImage = null;
+              _coverImageDeleted = true;
               _hasChanges = true;
             }),
             onProfileDelete: () => setState(() { // to delete
               profileImage = null;
+              _profileImageDeleted= true;
               _hasChanges = true;
             }),
           ),

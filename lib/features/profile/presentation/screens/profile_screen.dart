@@ -229,6 +229,8 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                 twitter: twitter,
                 website: website,
                 userType: userType,
+                profileImageUrl: _provider.state.profile?.profileImagePath,  // add
+                coverImageUrl: _provider.state.profile?.coverImagePath,
               ))
             );
             if (result != null) {
@@ -244,8 +246,14 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                 twitter: result.twitter,
                 website: result.website,
                 userType: result.userType,
-                profileImagePath: result.profileImagePath ?? _provider.state.profile?.profileImagePath,
-                coverImagePath: result.coverImagePath ?? _provider.state.profile?.coverImagePath,
+                // profileImagePath: result.profileImagePath ?? _provider.state.profile?.profileImagePath,
+                // coverImagePath: result.coverImagePath ?? _provider.state.profile?.coverImagePath,
+                profileImagePath: result.profileImagePath == '' 
+                    ? null 
+                    : (result.profileImagePath ?? _provider.state.profile?.profileImagePath),
+                coverImagePath: result.coverImagePath == '' 
+                    ? null 
+                    : (result.coverImagePath ?? _provider.state.profile?.coverImagePath),
               );
               setState(() => userType = result.userType);
               await _provider.updateProfile(updated);
@@ -313,7 +321,7 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   buildShareAction(Icons.send, 'Message'),
                   buildShareAction(Icons.copy, 'Copy Link', onTap: () {
-                    Clipboard.setData(const ClipboardData(text: 'https://soundcloud.com/darineelfeel'));
+                    Clipboard.setData( ClipboardData(text: 'https://soundcloud.com/$userName'));
                     Navigator.pop(context); // close bottom sheet
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -322,17 +330,8 @@ class  _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     );
                   }),
-                  // buildShareAction(Icons.share, 'Share', onTap: () {
-                  //   Share.share('https://soundcloud.com/darineelfeel');
-                  // }),
-                  ///// bgrb copy to clipboard
                   buildShareAction(FontAwesomeIcons.whatsapp, 'WhatsApp'),
                   buildShareAction(Icons.message, 'SMS'),
-                  //buildShareAction(Icons.messenger_outline, 'SMS'),
-                  //buildShareAction(Icons.person, 'Instagram stories'),
-                  //buildShareAction(Icons.person, 'Facebook stories'),
-                  //buildShareAction(Icons.message, 'WhatsApp'),
-                  //buildShareAction(Icons.more, 'More'),
                   buildShareAction(FontAwesomeIcons.facebookMessenger, 'Messenger'),
                   buildShareAction(FontAwesomeIcons.instagram, 'Instagram'),
                   buildShareAction(FontAwesomeIcons.facebook, 'Facebook'),
@@ -503,8 +502,6 @@ body: _provider.state.isLoading
             const SizedBox(height:18),
             buildShowMore(),
             const SizedBox(height:18),
-            // buildSocialLinks(),
-            // const SizedBox(height:18),
           ],
         ),
       ),

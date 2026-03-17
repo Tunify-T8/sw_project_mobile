@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 class EditProfileImages extends StatelessWidget {
   final File? coverImage;
   final File? profileImage;
+  final String? profileImageUrl;
+  final String? coverImageUrl;
   // final VoidCallback onCoverTap;
   // final VoidCallback onProfileTap;
   final void Function(ImageSource) onCoverPick;
@@ -24,6 +26,8 @@ class EditProfileImages extends StatelessWidget {
     required this.onProfilePick,
     required this.onCoverDelete,    //el zwedtohom fo2
     required this.onProfileDelete,  
+    this.profileImageUrl,   // add
+    this.coverImageUrl,  
   });
 
 void showImageOptions(BuildContext context, {required bool isCover}) {
@@ -75,6 +79,8 @@ void showImageOptions(BuildContext context, {required bool isCover}) {
   Widget coverContent;
   if (coverImage != null) {
     coverContent = Image.file(coverImage!, fit: BoxFit.cover);
+  } else if (coverImageUrl != null) {                          // add this
+    coverContent = Image.network(coverImageUrl!, fit: BoxFit.cover);
   } else {
     coverContent = const SizedBox.shrink();
   }
@@ -111,6 +117,8 @@ Widget buildProfileImage(BuildContext context) {
   ImageProvider? image;
   if (profileImage != null) {
     image = FileImage(profileImage!);
+  } else if (profileImageUrl != null) {
+    image = NetworkImage(profileImageUrl!);  // add this
   }
 
   Widget? avatarChild;
