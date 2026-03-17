@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:flutter/services.dart';
-import 'edit_profile_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../data/dto/profile_dto.dart';
-import 'package:flutter/foundation.dart';
 import '../providers/profile_provider.dart';
-import '../providers/profile_state.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';//for cool icons
-//import '../../data/dto/profile_dto.dart';
-//import 'package:share_plus/share_plus.dart';
+import '../widgets/profile_header.dart';
+import '../widgets/profile_info.dart';
+import '../widgets/profile_action_buttons.dart';
+import '../widgets/profile_share_sheet.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -17,23 +13,15 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class  _ProfileScreenState extends State<ProfileScreen> {
-  late ProfileProvider _provider;//di bel apis
+class _ProfileScreenState extends State<ProfileScreen> {
+  late ProfileProvider _provider;
   final double profileHeight = 150;
   final double coverHeight = 150;
-  ///styles 
-  final nameStyle = TextStyle(fontSize: 25,fontWeight: FontWeight.bold, color: Colors.white);
-  final followerStyle = TextStyle( fontSize: 18, color: Colors.grey.shade200);
+
+  final nameStyle = TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white);
+  final followerStyle = TextStyle(fontSize: 18, color: Colors.grey.shade200);
   final bioStyle = TextStyle(fontSize: 16, color: Colors.grey.shade400, height: 1.5);
-  // I wrote the mockdata i used as variables to easily replace with api later
-  // String userName = 'Darine Sherif';
-  // String city = 'Cairo';
-  // String country = 'Egypt';
-  // String? instagram;
-  // String? twitter;
-  // String? website;
-  // int followersCount = 300;
-  // int followingCount = 1;
+
   String userName = '';
   String city = '';
   String country = '';
@@ -47,17 +35,12 @@ class  _ProfileScreenState extends State<ProfileScreen> {
   File? profileImage;
   File? coverImage;
   String userType = 'ARTIST';
- // List<String> genres = ['HipHop', 'Jazz', 'Electronic'];
-  //String bio = 'Music lover based in Cairo 🎧';
-  //image files
-  //File? profileImage;
-  //File? coverImage;
-  //////tracks for now
+
   List<Map<String, String>> tracks = [
     {'title': 'Track 1', 'duration': '3:45'},
     {'title': 'Track 2', 'duration': '4:20'},
   ];
-  ///////////////////////
+
   @override
   void initState() {
     super.initState();
@@ -80,9 +63,6 @@ class  _ProfileScreenState extends State<ProfileScreen> {
         twitter = profile.twitter;
         website = profile.website;
         userType = profile.userType;
-        if (profile.profileImagePath != null) {
-          // network image; handle separately
-        }
       });
     }
   }
@@ -92,365 +72,7 @@ class  _ProfileScreenState extends State<ProfileScreen> {
     _provider.removeListener(_onProfileLoaded);
     super.dispose();
   }
-  //////
-  Widget buildProfileImage() {
-    final avatarUrl = _provider.state.profile?.profileImagePath;
-    if (avatarUrl != null) {
-      return CircleAvatar(
-        radius: profileHeight / 2,
-        backgroundColor: Colors.grey,
-        backgroundImage: NetworkImage(avatarUrl),
-      );
-    } else if (profileImage != null) {
-      return CircleAvatar(
-        radius: profileHeight / 2,
-        backgroundColor: Colors.grey,
-        backgroundImage: FileImage(profileImage!),
-      );
-    } else {
-      return CircleAvatar(
-        radius: profileHeight / 2,
-        backgroundColor: Colors.grey,
-        child: const Icon(Icons.person, size: 50, color: Color(0xFF3A5F8A)),
-      );
-    }
-  }
 
-  Widget buildCoverImage() {
-    final coverUrl = _provider.state.profile?.coverImagePath;
-    if (coverUrl != null) {
-      return Container(
-        width: double.infinity,
-        height: coverHeight,
-        color: Colors.grey.shade800,
-        child: Image.network(coverUrl, fit: BoxFit.cover),
-      );
-    } else if (coverImage != null) {
-      return Container(
-        width: double.infinity,
-        height: coverHeight,
-        color: Colors.grey.shade800,
-        child: Image.file(coverImage!, fit: BoxFit.cover),
-      );
-    } else {
-      return Container(
-        width: double.infinity,
-        height: coverHeight,
-        color: Colors.grey.shade800,
-      );
-    }
-  }
-  Widget buildName() => Padding(
-    padding: const EdgeInsets.only(left: 25),
-    child: Text(userName,style:nameStyle),
-  );
-    Widget buildBio() => Padding(
-    padding: const EdgeInsets.only(left: 25),
-    child: Text(bio,style:bioStyle),
-  );
-  Widget buildLocation() => Padding(
-    padding: const EdgeInsets.only(left: 25),
-    child: Text('📍$city, $country', style: bioStyle),
-  );
-  Widget buildFollowerCount() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 25),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap:(){
-              //Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowerScreen()));
-            },
-          child: Text('$followersCount Followers', style: followerStyle),
-          ),
-          Text('  ·  ', style: followerStyle),
-          GestureDetector(
-            onTap:(){
-              //Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowingScreen()));
-            },
-            child:Text('$followingCount Following', style: followerStyle),
-          ),
-        ],
-      ),
-    );
-  }
- Widget buildSocialLinks() {
-  final links = [
-    if (instagram != null && instagram!.isNotEmpty)
-      {'icon': FontAwesomeIcons.instagram, 'url': instagram!, 'label': instagram!},
-    if (twitter != null && twitter!.isNotEmpty)
-      {'icon': FontAwesomeIcons.xTwitter, 'url': twitter!, 'label': twitter!},
-    if (website != null && website!.isNotEmpty)
-      {'icon': FontAwesomeIcons.globe, 'url': website!, 'label': website!},
-  ];
-
-  if (links.isEmpty) return const SizedBox.shrink();
-
-  return Padding(
-    padding: const EdgeInsets.only(left: 25),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: links.map((link) => GestureDetector(
-        onTap: () async {
-          final url = Uri.parse(link['url'] as String);
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              FaIcon(link['icon'] as IconData, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(link['label'] as String, style: bioStyle),
-            ],
-          ),
-        ),
-      )).toList(),
-    ),
-  );
-}
-  Widget buildActionButtons() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 25),
-    child: Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 28),
-          onPressed: () async {
-            final result = await Navigator.push<ProfileDto>(
-              context,
-              MaterialPageRoute(builder: (_) => EditProfileScreen(
-                userName: userName,
-                bio: bio,
-                city: city,
-                country: country,
-                profileImage: profileImage,
-                coverImage: coverImage,
-                instagram: instagram,
-                twitter: twitter,
-                website: website,
-                userType: userType,
-                profileImageUrl: _provider.state.profile?.profileImagePath,  // add
-                coverImageUrl: _provider.state.profile?.coverImagePath,
-              ))
-            );
-            if (result != null) {
-              final updated = ProfileDto(
-                userName: result.userName,
-                bio: result.bio,
-                city: result.city,
-                country: result.country,
-                visibility: result.visibility,
-                followersCount: result.followersCount,
-                followingCount: result.followingCount,
-                instagram: result.instagram,
-                twitter: result.twitter,
-                website: result.website,
-                userType: result.userType,
-                // profileImagePath: result.profileImagePath ?? _provider.state.profile?.profileImagePath,
-                // coverImagePath: result.coverImagePath ?? _provider.state.profile?.coverImagePath,
-                profileImagePath: result.profileImagePath == '' 
-                    ? null 
-                    : (result.profileImagePath ?? _provider.state.profile?.profileImagePath),
-                coverImagePath: result.coverImagePath == '' 
-                    ? null 
-                    : (result.coverImagePath ?? _provider.state.profile?.coverImagePath),
-              );
-              setState(() => userType = result.userType);
-              await _provider.updateProfile(updated);
-            }
-          },
-        ),
-        const Spacer(),
-        IconButton(
-          icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
-          onPressed: () {},
-        ),
-      // play needs to be like this to show the filled circle
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
-          onPressed: () {},
-        ),
-      ),
-      ],
-    ),
-  );
-  ////da el three dots menu
-    void showShareSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // profile info el heya elmafrodd bas el name,followers, tracks
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.grey,
-                  backgroundImage: profileImage != null ? FileImage(profileImage!) : null,
-                  child: profileImage == null ? const Icon(Icons.person, color: Colors.white) : null,
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(userName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text('$followersCount Followers · ${tracks.length} Tracks',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // share actions row el gowa el three dots
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),//bdl ma kont ba3od a3mlo be eidi
-              child: Row(
-                children: [
-                  buildShareAction(Icons.send, 'Message'),
-                  buildShareAction(Icons.copy, 'Copy Link', onTap: () {
-                    Clipboard.setData( ClipboardData(text: 'https://soundcloud.com/$userName'));
-                    Navigator.pop(context); // close bottom sheet
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Link copied to clipboard!'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }),
-                  buildShareAction(FontAwesomeIcons.whatsapp, 'WhatsApp'),
-                  buildShareAction(Icons.message, 'SMS'),
-                  buildShareAction(FontAwesomeIcons.facebookMessenger, 'Messenger'),
-                  buildShareAction(FontAwesomeIcons.instagram, 'Instagram'),
-                  buildShareAction(FontAwesomeIcons.facebook, 'Facebook'),
-                  buildShareAction(Icons.more_horiz, 'More'),
-                  //add more when needed
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            //start station
-            ListTile(
-              leading: const Icon(Icons.radio, color: Colors.white),
-              title: const Text('Start station', style: TextStyle(color: Colors.white)),
-              onTap: () {},
-            ),
-            // view info
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.white),
-              title: const Text('View info', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-                showInfoSheet();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-    
-    Widget buildShareAction(IconData icon, String label, {VoidCallback? onTap}) => SizedBox(
-      width: 80,
-      child: GestureDetector(
-        onTap: onTap,  // ← uses the passed onTap
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade800,
-                shape: BoxShape.circle,
-              ),
-              //child: Icon(icon, color: Colors.white, size: 24),
-              child: FaIcon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-    Widget buildShowMore() => Padding(
-  padding: const EdgeInsets.only(left: 25),
-  child: GestureDetector(
-    onTap: () => showInfoSheet(),
-    child: const Text(
-      'Show more',
-      style: TextStyle(color: Color(0xFF0066CC), fontSize: 14),
-    ),
-  ),
-);
-void showInfoSheet() {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.black,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (context) => Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // header
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const Text('Info', style: TextStyle(
-                color: Colors.white,
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-              )),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // bio
-          const Text('Bio', style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 19,
-          )),
-          const SizedBox(height: 8),
-          Text(bio, style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
-          const SizedBox(height: 20),
-          // links
-          const Text('Links', style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 19,
-          )),
-          const SizedBox(height: 8),
-          // links from social links
-          buildSocialLinks(),
-          const SizedBox(height: 35),
-        ],
-      ),
-    ),
-  );
-}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -464,49 +86,78 @@ void showInfoSheet() {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => showShareSheet(),
+            onPressed: () => ProfileShareSheet(
+              context: context,
+              userName: userName,
+              bio: bio,
+              followersCount: followersCount,
+              tracksCount: tracks.length,
+              profileImage: profileImage,
+              instagram: instagram,
+              twitter: twitter,
+              website: website,
+              bioStyle: bioStyle,
+            ).show(),
           ),
-          // buildMoreMenu(),
         ],
       ),
-body: _provider.state.isLoading
-  ? const Center(child: CircularProgressIndicator())
-  : _provider.state.isError
-    ? Center(child: Text(_provider.state.errorMessage ?? 'Error', style: const TextStyle(color: Colors.white)))
-    : SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                buildCoverImage(),
-                Positioned(
-                  top: coverHeight - profileHeight / 2,
-                  left: 25,
-                  child: buildProfileImage(),//built like a stack this way, profile and cover overlapping is easy
+      body: _provider.state.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _provider.state.isError
+              ? Center(child: Text(_provider.state.errorMessage ?? 'Error',
+                  style: const TextStyle(color: Colors.white)))
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ProfileHeader(
+                        coverHeight: coverHeight,
+                        profileHeight: profileHeight,
+                        coverUrl: _provider.state.profile?.coverImagePath,
+                        profileUrl: _provider.state.profile?.profileImagePath,
+                      ),
+                      SizedBox(height: profileHeight / 2 + 8),
+                      ProfileInfo(
+                        userName: userName,
+                        city: city,
+                        country: country,
+                        bio: bio,
+                        followersCount: followersCount,
+                        followingCount: followingCount,
+                        nameStyle: nameStyle,
+                        bioStyle: bioStyle,
+                        followerStyle: followerStyle,
+                        onShowMore: () => ProfileShareSheet(
+                          context: context,
+                          userName: userName,
+                          bio: bio,
+                          followersCount: followersCount,
+                          tracksCount: tracks.length,
+                          profileImage: profileImage,
+                          instagram: instagram,
+                          twitter: twitter,
+                          website: website,
+                          bioStyle: bioStyle,
+                        ).showInfoSheet(),
+                        actionButtons: ProfileActionButtons(
+                          userName: userName,
+                          bio: bio,
+                          city: city,
+                          country: country,
+                          profileImage: profileImage,
+                          coverImage: coverImage,
+                          instagram: instagram,
+                          twitter: twitter,
+                          website: website,
+                          userType: userType,
+                          provider: _provider,
+                          onUpdate: (updated) => _provider.updateProfile(updated),
+                          onUserTypeChanged: (type) => setState(() => userType = type),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            SizedBox(height: profileHeight / 2 + 8),//I am putting sizeboxes to add space
-            buildName(),
-            const SizedBox(height: 18),
-            buildLocation(),
-            const SizedBox(height:18),
-            buildFollowerCount(),
-            const SizedBox(height:18),
-            //buildEditIcon(),
-            buildActionButtons(),
-            const SizedBox(height: 18),
-            buildBio(),
-            const SizedBox(height:18),
-            buildShowMore(),
-            const SizedBox(height:18),
-          ],
-        ),
-      ),
-    
     );
   }
-  
 }
