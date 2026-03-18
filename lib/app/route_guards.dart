@@ -14,6 +14,7 @@ class RouteGuard {
 
   static const List<String> _protectedRoutes = [
     AppRoutes.home,
+    AppRoutes.settings,
     AppRoutes.account,
     AppRoutes.deleteAccount,
     Routes.shell,
@@ -54,13 +55,11 @@ class RouteGuard {
 class AuthProtectedScreen extends ConsumerStatefulWidget {
   final Widget child;
 
-  const AuthProtectedScreen({
-    super.key,
-    required this.child,
-  });
+  const AuthProtectedScreen({super.key, required this.child});
 
   @override
-  ConsumerState<AuthProtectedScreen> createState() => _AuthProtectedScreenState();
+  ConsumerState<AuthProtectedScreen> createState() =>
+      _AuthProtectedScreenState();
 }
 
 class _AuthProtectedScreenState extends ConsumerState<AuthProtectedScreen> {
@@ -87,7 +86,9 @@ class _AuthProtectedScreenState extends ConsumerState<AuthProtectedScreen> {
       return;
     }
 
-    final user = await ref.read(authControllerProvider.notifier).restoreSession();
+    final user = await ref
+        .read(authControllerProvider.notifier)
+        .restoreSession();
 
     if (!mounted) return;
 
@@ -110,9 +111,7 @@ class _AuthProtectedScreenState extends ConsumerState<AuthProtectedScreen> {
     if (_isChecking) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
@@ -141,7 +140,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     String destination = AppRoutes.landing;
 
     if (hasToken) {
-      final user = await ref.read(authControllerProvider.notifier).restoreSession();
+      final user = await ref
+          .read(authControllerProvider.notifier)
+          .restoreSession();
       if (user != null) {
         destination = AppRoutes.home;
       } else {

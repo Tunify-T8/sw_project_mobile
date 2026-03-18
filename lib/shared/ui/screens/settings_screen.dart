@@ -1,47 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/app/router.dart';
+import 'package:software_project/core/design_system/colors.dart';
+import 'package:software_project/core/routing/routes.dart';
+import 'package:software_project/features/auth/presentation/widgets/signout_button.dart';
+import 'package:software_project/shared/providers/app_settings_provider.dart';
+
 import '../widgets/library_menu_tile.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool autoplay = true;
-  bool classicFeed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> topSettings = [
-      {'label': 'Import my music', 'onTap': () {}},
-      {'label': 'Account', 'onTap': () {}},
-      {'label': 'Inbox', 'onTap': () {}},
-      {'label': 'Social', 'onTap': () {}},
-      {'label': 'Notifications', 'onTap': () {}},
-      {'label': 'App Icon', 'onTap': () {}},
-      {'label': 'App Language', 'onTap': () {}},
-      {'label': 'Storage', 'onTap': () {}},
-    ];
-
-    final List<Map<String, dynamic>> middleSettings = [
-      {'label': 'Analytics', 'onTap': () {}},
-      {'label': 'Communications', 'onTap': () {}},
-      {'label': 'Advertising', 'onTap': () {}},
-      {'label': 'Tell a friend', 'onTap': () {}},
-    ];
-
-    final List<Map<String, dynamic>> bottomSettings = [
-      {'label': 'Troubleshooting', 'onTap': () {}},
-      {'label': 'Contact support', 'onTap': () {}},
-      {'label': 'Legal', 'onTap': () {}},
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final settingsNotifier = ref.read(appSettingsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text('Settings', style: TextStyle(color: Colors.white)),
         leading: IconButton(
@@ -50,70 +28,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
           LibraryMenuTile(
             label: 'Autoplay related tracks',
-            onTap: () {},
+            onTap: () => settingsNotifier.setAutoplayRelatedTracks(
+              !settings.autoplayRelatedTracks,
+            ),
             trailing: Switch(
-              value: autoplay,
-              onChanged: (value) {
-                setState(() => autoplay = value);
-              },
-              activeThumbColor: Color(0xFFFF5500),
+              value: settings.autoplayRelatedTracks,
+              onChanged: settingsNotifier.setAutoplayRelatedTracks,
+              activeThumbColor: AppColors.primary,
             ),
           ),
           LibraryMenuTile(
             label: 'Use Classic feed',
-            onTap: () {},
+            onTap: () =>
+                settingsNotifier.setUseClassicFeed(!settings.useClassicFeed),
             trailing: Switch(
-              value: classicFeed,
-              onChanged: (value) {
-                setState(() => classicFeed = value);
-              },
-              activeThumbColor: Color(0xFFFF5500),
+              value: settings.useClassicFeed,
+              onChanged: settingsNotifier.setUseClassicFeed,
+              activeThumbColor: AppColors.primary,
             ),
           ),
-
-          ...topSettings.map(
-            (item) =>
-                LibraryMenuTile(label: item['label'], onTap: item['onTap']),
+          LibraryMenuTile(
+            label: 'Import my music',
+            onTap: () => Navigator.of(context).pushNamed(Routes.uploadEntry),
           ),
-
+          LibraryMenuTile(
+            label: 'Account',
+            onTap: () => Navigator.of(context).pushNamed(AppRoutes.account),
+          ),
+          LibraryMenuTile(
+            label: 'Inbox',
+            onTap: () => _showComingSoon(context, 'Inbox'),
+          ),
+          LibraryMenuTile(
+            label: 'Social',
+            onTap: () => _showComingSoon(context, 'Social'),
+          ),
+          LibraryMenuTile(
+            label: 'Notifications',
+            onTap: () => _showComingSoon(context, 'Notifications'),
+          ),
+          LibraryMenuTile(
+            label: 'App Icon',
+            onTap: () => _showComingSoon(context, 'App Icon'),
+          ),
+          LibraryMenuTile(
+            label: 'App Language',
+            onTap: () => _showComingSoon(context, 'App Language'),
+          ),
+          LibraryMenuTile(
+            label: 'Storage',
+            onTap: () => _showComingSoon(context, 'Storage'),
+          ),
           const SizedBox(height: 15),
-
-          ...middleSettings.map(
-            (item) =>
-                LibraryMenuTile(label: item['label'], onTap: item['onTap']),
+          LibraryMenuTile(
+            label: 'Analytics',
+            onTap: () => _showComingSoon(context, 'Analytics'),
           ),
-
+          LibraryMenuTile(
+            label: 'Communications',
+            onTap: () => _showComingSoon(context, 'Communications'),
+          ),
+          LibraryMenuTile(
+            label: 'Advertising',
+            onTap: () => _showComingSoon(context, 'Advertising'),
+          ),
+          LibraryMenuTile(
+            label: 'Tell a friend',
+            onTap: () => _showComingSoon(context, 'Tell a friend'),
+          ),
           const SizedBox(height: 15),
-
-          ...bottomSettings.map(
-            (item) =>
-                LibraryMenuTile(label: item['label'], onTap: item['onTap']),
+          LibraryMenuTile(
+            label: 'Troubleshooting',
+            onTap: () => _showComingSoon(context, 'Troubleshooting'),
           ),
-
+          LibraryMenuTile(
+            label: 'Contact support',
+            onTap: () => _showComingSoon(context, 'Contact support'),
+          ),
+          LibraryMenuTile(
+            label: 'Legal',
+            onTap: () => _showComingSoon(context, 'Legal'),
+          ),
           const SizedBox(height: 12),
-
-          Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF303030),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Sign out',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-            ),
-          ),
+          const Padding(padding: EdgeInsets.all(15), child: SignOutButton()),
         ],
       ),
     );
+  }
+
+  void _showComingSoon(BuildContext context, String label) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label coming soon')));
   }
 }

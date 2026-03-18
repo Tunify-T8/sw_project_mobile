@@ -21,6 +21,7 @@ import '../features/auth/presentation/screens/sign_in_or_create_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
+import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
 
@@ -39,6 +40,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String checkYourEmail = '/check-your-email';
   static const String resetPassword = '/reset-password';
+  static const String settings = '/settings';
   static const String account = '/account';
   static const String deleteAccount = '/delete-account';
   static const String home = '/home';
@@ -135,6 +137,12 @@ class AppRouter {
           settings,
         );
 
+      case AppRoutes.settings:
+        return _slide(
+          const AuthProtectedScreen(child: SettingsScreen()),
+          settings,
+        );
+
       case AppRoutes.account:
         return _fade(
           const AuthProtectedScreen(child: AccountScreen()),
@@ -209,38 +217,27 @@ class AppRouter {
     return <String, dynamic>{};
   }
 
-  static PageRouteBuilder<T> _fade<T>(
-    Widget page,
-    RouteSettings settings,
-  ) {
+  static PageRouteBuilder<T> _fade<T>(Widget page, RouteSettings settings) {
     return PageRouteBuilder<T>(
       settings: settings,
-      pageBuilder: (_, __, ___) => page,
-      transitionsBuilder: (_, animation, __, child) => FadeTransition(
-        opacity: CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-        ),
+      pageBuilder: (_, _, _) => page,
+      transitionsBuilder: (_, animation, _, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
         child: child,
       ),
       transitionDuration: const Duration(milliseconds: 300),
     );
   }
 
-  static PageRouteBuilder<T> _slide<T>(
-    Widget page,
-    RouteSettings settings,
-  ) {
+  static PageRouteBuilder<T> _slide<T>(Widget page, RouteSettings settings) {
     return PageRouteBuilder<T>(
       settings: settings,
-      pageBuilder: (_, __, ___) => page,
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => page,
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
           end: Offset.zero,
-        ).chain(
-          CurveTween(curve: Curves.ease),
-        ).animate(animation),
+        ).chain(CurveTween(curve: Curves.ease)).animate(animation),
         child: child,
       ),
       transitionDuration: const Duration(milliseconds: 300),

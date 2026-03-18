@@ -28,6 +28,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           const _PlaceholderTab(label: 'Search'),
           LibraryScreen(
             onOpenSettings: () =>
+                Navigator.of(context).pushNamed(AppRoutes.settings),
+            onOpenProfile: () =>
                 Navigator.of(context).pushNamed(AppRoutes.account),
             onOpenYourUploads: () =>
                 Navigator.of(context).pushNamed(Routes.yourUploads),

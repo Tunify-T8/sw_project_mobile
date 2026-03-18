@@ -1,69 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:software_project/shared/ui/screens/settings_screen.dart';
+import 'package:software_project/core/design_system/colors.dart';
+
 import '../widgets/library_menu_tile.dart';
 
 class LibraryScreen extends StatelessWidget {
-  const LibraryScreen({super.key});
+  const LibraryScreen({
+    super.key,
+    this.onOpenSettings,
+    this.onOpenProfile,
+    this.onMenuTap,
+  });
+
+  final VoidCallback? onOpenSettings;
+  final VoidCallback? onOpenProfile;
+  final ValueChanged<String>? onMenuTap;
+
+  static const _libraryItems = [
+    'Your likes',
+    'Playlists',
+    'Albums',
+    'Following',
+    'Stations',
+    'Your insights',
+    'Your uploads',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    //i think this should be seperated in a seperate folder
-    final List<Map<String, dynamic>> libraryItems = [ 
-      {
-        'label': 'Your likes',
-        'onTap': () {
-          print('likes');
-        },
-      },
-      {
-        'label': 'Playlists',
-        'onTap': () {
-          print('playlists');
-        },
-      },
-      {'label': 'Albums', 'onTap': () {}},
-      {'label': 'Following', 'onTap': () {}},
-      {'label': 'Stations', 'onTap': () {}},
-      {'label': 'Your insights', 'onTap': () {}},
-      {'label': 'Your uploads', 'onTap': () {}},
-    ];
-
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppColors.background,
         title: const Text('Library', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
+            onPressed: onOpenSettings,
             icon: const Icon(Icons.settings),
             color: Colors.white,
           ),
           GestureDetector(
-            onTap: () {
-              //navigate to profile
-              print('go to user profile');
-            },
-            child: CircleAvatar(
-              radius: 18.0,
-              backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=1'),
+            onTap: onOpenProfile,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: Color(0xFF9BB4E8),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 22),
             ),
           ),
+          const SizedBox(width: 12),
         ],
       ),
       body: ListView.builder(
-        itemCount: libraryItems.length,
+        itemCount: _libraryItems.length,
         itemBuilder: (context, index) {
-          final item = libraryItems[index];
+          final label = _libraryItems[index];
 
-          return LibraryMenuTile(label: item['label'], onTap: item['onTap']);
+          return LibraryMenuTile(
+            label: label,
+            onTap: () => _handleMenuTap(context, label),
+          );
         },
       ),
     );
+  }
+
+  void _handleMenuTap(BuildContext context, String label) {
+    if (onMenuTap != null) {
+      onMenuTap!(label);
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label coming soon')));
   }
 }

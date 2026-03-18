@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/shared/ui/screens/library_screen.dart'
+    as shared_library;
 
-import '../widgets/library/library_header.dart';
-import '../widgets/library/library_history_sections.dart';
-import '../widgets/library/library_menu_list.dart';
 import 'your_uploads_screen.dart';
 
 class LibraryScreen extends StatelessWidget {
@@ -21,39 +20,12 @@ class LibraryScreen extends StatelessWidget {
   final VoidCallback? onOpenSubscription;
   final VoidCallback? onOpenYourUploads;
 
-  static const _menuItems = [
-    'Your likes',
-    'Playlists',
-    'Albums',
-    'Following',
-    'Stations',
-    'Your insights',
-    'Your uploads',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: LibraryHeader(
-                onOpenSettings: onOpenSettings,
-                onOpenProfile: onOpenProfile,
-              ),
-            ),
-            LibraryMenuList(
-              items: _menuItems,
-              onTap: (label) => _handleTap(context, label),
-            ),
-            const LibraryHistorySections(),
-          ],
-        ),
-      ),
+    return shared_library.LibraryScreen(
+      onOpenSettings: onOpenSettings,
+      onOpenProfile: onOpenProfile,
+      onMenuTap: (label) => _handleTap(context, label),
     );
   }
 
