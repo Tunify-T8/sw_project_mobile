@@ -23,17 +23,24 @@ mixin TrackMetadataNotifierFields on Notifier<TrackMetadataState> {
 
   void addArtist(String value) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty) {
+      state = state.copyWith(error: 'Enter an artist name before adding it.');
+      return;
+    }
     if (state.artists.any(
       (artist) => artist.toLowerCase() == trimmed.toLowerCase(),
     )) {
+      state = state.copyWith(error: '$trimmed is already in the artist list.');
       return;
     }
     state = state.copyWith(artists: [...state.artists, trimmed], error: null);
   }
 
   void removeArtist(String artist) {
-    if (state.artists.length == 1) return;
+    if (state.artists.length == 1) {
+      state = state.copyWith(error: 'At least one artist is required.');
+      return;
+    }
     state = state.copyWith(
       artists: state.artists.where((value) => value != artist).toList(),
       error: null,
@@ -46,8 +53,15 @@ mixin TrackMetadataNotifierFields on Notifier<TrackMetadataState> {
       final path = await picker.pickArtworkImage(fromCamera: fromCamera);
       if (path == null) return;
       state = state.copyWith(artworkPath: path, error: null);
-    } catch (error) {
-      state = state.copyWith(error: error.toString());
+    } catch (error, stackTrace) {
+      logUploadError('pick artwork', error, stackTrace);
+      state = state.copyWith(
+        error: userFriendlyUploadError(
+          error,
+          fallback:
+              'We could not use that artwork image. Please try another one.',
+        ),
+      );
     }
   }
 

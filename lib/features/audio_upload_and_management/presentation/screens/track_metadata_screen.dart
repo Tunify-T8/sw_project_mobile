@@ -122,7 +122,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
               ),
             ),
             SaveMetadataFooter(
-              errorMessage: metadataState.error,
+              errorMessage: metadataState.error ?? uploadState.error,
               buttonText: buildTrackMetadataSaveButtonText(
                 metadataState,
                 isEditMode: widget.isEditMode,

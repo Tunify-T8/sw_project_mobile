@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../shared/upload_error_helpers.dart';
 import 'cloudinary_asset_delete_service.dart';
 
 class CloudinaryMediaService {
@@ -96,9 +97,8 @@ class CloudinaryMediaService {
     ProgressCallback? onSendProgress,
   }) async {
     if (!isConfigured) {
-      throw StateError(
-        'Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, '
-        'CLOUDINARY_AUDIO_UPLOAD_PRESET, and CLOUDINARY_IMAGE_UPLOAD_PRESET to your --dart-define values.',
+      throw const UploadFlowException(
+        'Uploads are not configured right now. Please try again later.',
       );
     }
 
@@ -116,15 +116,17 @@ class CloudinaryMediaService {
 
     final data = response.data;
     if (data == null) {
-      throw const FormatException('Cloudinary returned an empty response.');
+      throw const UploadFlowException(
+        'The upload service returned an empty response. Please try again.',
+      );
     }
 
     final secureUrl = data['secure_url'] as String?;
     final publicId = data['public_id'] as String?;
 
     if (secureUrl == null || publicId == null) {
-      throw const FormatException(
-        'Cloudinary response is missing secure_url or public_id.',
+      throw const UploadFlowException(
+        'The upload service returned incomplete track data. Please try again.',
       );
     }
 

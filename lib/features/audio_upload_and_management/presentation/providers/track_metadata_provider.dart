@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/upload_genre.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../domain/entities/upload_status.dart';
+import '../../shared/upload_error_helpers.dart';
 import 'track_metadata_mapper.dart';
 import 'track_metadata_state_factory.dart';
 import 'track_metadata_state.dart';
@@ -57,8 +58,13 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
         error: null,
       );
       return finalTrack.status == UploadStatus.finished;
-    } catch (e) {
-      _failSave(e);
+    } catch (error, stackTrace) {
+      _failSave(
+        error,
+        stackTrace,
+        fallback:
+            'We could not publish this track right now. Please try again.',
+      );
       return false;
     }
   }
@@ -79,8 +85,12 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
         finalTrack: updated,
       );
       return true;
-    } catch (e) {
-      _failSave(e);
+    } catch (error, stackTrace) {
+      _failSave(
+        error,
+        stackTrace,
+        fallback: 'We could not save those track changes. Please try again.',
+      );
       return false;
     }
   }
@@ -101,12 +111,17 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
     return true;
   }
 
-  void _failSave(Object error) {
+  void _failSave(
+    Object error,
+    StackTrace stackTrace, {
+    required String fallback,
+  }) {
+    logUploadError('save track metadata', error, stackTrace);
     state = state.copyWith(
       isSaving: false,
       isPolling: false,
       processingStatus: UploadStatus.failed,
-      error: error.toString(),
+      error: userFriendlyUploadError(error, fallback: fallback),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
+import '../../../shared/upload_error_helpers.dart';
 import '../../providers/track_detail_waveform_provider.dart';
 import 'track_detail_soundcloud_waveform.dart';
 
@@ -21,10 +22,14 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final waveformBarsAsync = ref.watch(trackDetailWaveformBarsProvider(item));
     final bars = waveformBarsAsync.asData?.value;
-    final isLoading = waveformBarsAsync.isLoading;
-
+    final errorMessage = waveformBarsAsync.hasError
+        ? userFriendlyUploadError(
+            waveformBarsAsync.error!,
+            fallback:
+                'We could not generate the waveform for this track right now.',
+          )
+        : null;
     final description = item.description?.trim() ?? '';
-    final hasDescription = description.isNotEmpty;
 
     return Positioned.fill(
       child: SafeArea(
@@ -34,15 +39,27 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              if (hasDescription) ...[
+              if (description.isNotEmpty) ...[
                 _WaveformCommentBubble(text: description),
                 const SizedBox(height: 18),
               ],
               TrackDetailSoundcloudWaveform(
                 state: state,
                 bars: bars,
-                isLoading: isLoading,
+                isLoading: waveformBarsAsync.isLoading,
               ),
+              if (errorMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  errorMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               const _CommentComposerBar(),
               const SizedBox(height: 18),
@@ -71,18 +88,14 @@ class _WaveformCommentBubble extends StatelessWidget {
             color: Colors.white24,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.person,
-            color: Colors.white70,
-            size: 18,
-          ),
+          child: const Icon(Icons.person, color: Colors.white70, size: 18),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade600.withOpacity(0.72),
+              color: Colors.grey.shade600.withValues(alpha: 0.72),
               borderRadius: BorderRadius.circular(26),
             ),
             child: Text(
@@ -111,7 +124,7 @@ class _CommentComposerBar extends StatelessWidget {
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade700.withOpacity(0.68),
+        color: Colors.grey.shade700.withValues(alpha: 0.68),
         borderRadius: BorderRadius.circular(30),
       ),
       child: const Row(
@@ -119,33 +132,16 @@ class _CommentComposerBar extends StatelessWidget {
           Expanded(
             child: Text(
               'Comment...',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
           ),
-          _ReactionEmoji('🔥'),
+          Text('\u{1F525}', style: TextStyle(fontSize: 28)),
           SizedBox(width: 14),
-          _ReactionEmoji('👏'),
+          Text('\u{1F44F}', style: TextStyle(fontSize: 28)),
           SizedBox(width: 14),
-          _ReactionEmoji('🥹'),
+          Text('\u{1F979}', style: TextStyle(fontSize: 28)),
         ],
       ),
-    );
-  }
-}
-
-class _ReactionEmoji extends StatelessWidget {
-  const _ReactionEmoji(this.emoji);
-
-  final String emoji;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      emoji,
-      style: const TextStyle(fontSize: 28),
     );
   }
 }
@@ -174,10 +170,7 @@ class _BottomActionBar extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.icon,
-    this.onTap,
-  });
+  const _ActionButton({required this.icon, this.onTap});
 
   final IconData icon;
   final VoidCallback? onTap;
@@ -189,11 +182,7 @@ class _ActionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 28,
-        ),
+        child: Icon(icon, color: Colors.white, size: 28),
       ),
     );
   }

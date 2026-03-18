@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
+import '../../shared/upload_error_helpers.dart';
+
 Future<void> deleteCloudinaryAssetByUrl({
   required Dio dio,
   required String cloudName,
@@ -40,7 +42,9 @@ Future<void> deleteCloudinaryAssetByUrl({
 
   final result = response.data?['result'] as String?;
   if (result != null && result != 'ok' && result != 'not found') {
-    throw StateError('Cloudinary failed to delete $resourceType asset.');
+    throw const UploadFlowException(
+      'We could not delete the cloud file right now. Please try again.',
+    );
   }
 }
 

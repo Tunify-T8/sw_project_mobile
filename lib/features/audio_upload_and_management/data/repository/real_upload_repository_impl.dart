@@ -5,6 +5,7 @@ import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
+import '../../shared/upload_error_helpers.dart';
 import '../api/upload_api.dart';
 import '../dto/create_track_request_dto.dart';
 import '../dto/finalize_track_metadata_request_dto.dart';
@@ -77,7 +78,9 @@ class RealUploadRepository implements UploadRepository {
       await Future.delayed(const Duration(seconds: 2));
     }
 
-    throw Exception('Processing timeout: track did not finish in time.');
+    throw const UploadFlowException(
+      'Your track is still processing. Please check back in a moment.',
+    );
   }
 
   @override

@@ -5,6 +5,7 @@ import '../../domain/entities/upload_item.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
+import '../utils/upload_error_snackbar.dart';
 import '../widgets/artist_tools_banner.dart';
 import '../widgets/artist_tools_sheet.dart';
 import '../widgets/uploads_search_header.dart';
@@ -51,12 +52,12 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
   Widget build(BuildContext context) {
     ref.listen(libraryUploadsProvider, (_, next) {
       if (next.error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF1C1C1E),
-            content: Text(next.error!),
-          ),
-        );
+        showUploadErrorSnackBar(context, next.error!);
+      }
+    });
+    ref.listen(uploadProvider, (_, next) {
+      if (next.error != null && mounted) {
+        showUploadErrorSnackBar(context, next.error!);
       }
     });
 

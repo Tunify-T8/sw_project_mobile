@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
+import '../utils/upload_error_snackbar.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
 import '../widgets/home/home_top_bar.dart';
@@ -26,6 +27,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(uploadProvider, (_, next) {
+      if (next.error != null && mounted) {
+        showUploadErrorSnackBar(context, next.error!);
+      }
+    });
+    ref.listen(libraryUploadsProvider, (_, next) {
+      if (next.error != null && mounted) {
+        showUploadErrorSnackBar(context, next.error!);
+      }
+    });
+
     final uploadState = ref.watch(uploadProvider);
     final libraryState = ref.watch(libraryUploadsProvider);
     final latestTrack = libraryState.items.isEmpty

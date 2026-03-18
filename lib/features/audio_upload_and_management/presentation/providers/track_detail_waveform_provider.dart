@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waveform_extractor/waveform_extractor.dart';
 
 import '../../domain/entities/upload_item.dart';
+import '../../shared/upload_error_helpers.dart';
 import 'track_detail_waveform_source.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ Future<List<double>?> _extractWaveformBars(UploadItem item) async {
         .timeout(const Duration(seconds: 30));
 
     final raw = result.waveformData;
-    if (raw == null || raw.isEmpty) return null;
+    if (raw.isEmpty) return null;
 
     final bars = _buildDisplayBars(
       raw.map((v) => v.toDouble()).toList(),
@@ -113,8 +114,11 @@ Future<List<double>?> _extractWaveformBars(UploadItem item) async {
       return bars;
     }
     return null;
-  } catch (_) {
-    return null;
+  } catch (error, stackTrace) {
+    logUploadError('extract waveform bars', error, stackTrace);
+    throw const UploadFlowException(
+      'We could not generate the waveform for this track right now.',
+    );
   }
 }
 

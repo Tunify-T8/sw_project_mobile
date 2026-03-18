@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
+import '../../shared/upload_error_helpers.dart';
 import 'upload_dependencies_provider.dart';
 import 'upload_repository_provider.dart';
 import 'upload_state.dart';
@@ -22,8 +23,15 @@ class UploadNotifier extends Notifier<UploadState> {
       final quota = await repository.getUploadQuota(userId);
 
       state = state.copyWith(isLoadingQuota: false, quota: quota);
-    } catch (e) {
-      state = state.copyWith(isLoadingQuota: false, error: e.toString());
+    } catch (error, stackTrace) {
+      logUploadError('load upload quota', error, stackTrace);
+      state = state.copyWith(
+        isLoadingQuota: false,
+        error: userFriendlyUploadError(
+          error,
+          fallback: 'We could not load your upload tools right now.',
+        ),
+      );
     }
   }
 
@@ -70,11 +78,16 @@ class UploadNotifier extends Notifier<UploadState> {
       );
 
       return createdTrack;
-    } catch (e) {
+    } catch (error, stackTrace) {
+      logUploadError('start upload flow', error, stackTrace);
       state = state.copyWith(
         isPreparingUpload: false,
         isUploading: false,
-        error: e.toString(),
+        error: userFriendlyUploadError(
+          error,
+          fallback:
+              'We could not start the upload. Please pick your file again.',
+        ),
       );
       return null;
     }
@@ -85,7 +98,7 @@ class UploadNotifier extends Notifier<UploadState> {
 
     if (currentTrack == null) {
       state = state.copyWith(
-        error: 'No track exists yet to replace its audio.',
+        error: 'Create the track draft first, then replace the audio file.',
       );
       return;
     }
@@ -109,8 +122,15 @@ class UploadNotifier extends Notifier<UploadState> {
       unawaited(
         _uploadAudioInBackground(trackId: currentTrack.trackId, file: file),
       );
-    } catch (e) {
-      state = state.copyWith(isUploading: false, error: e.toString());
+    } catch (error, stackTrace) {
+      logUploadError('replace upload audio', error, stackTrace);
+      state = state.copyWith(
+        isUploading: false,
+        error: userFriendlyUploadError(
+          error,
+          fallback: 'We could not replace that audio file. Please try again.',
+        ),
+      );
     }
   }
 
@@ -135,11 +155,15 @@ class UploadNotifier extends Notifier<UploadState> {
         uploadProgress: 1.0,
         currentTrack: uploadedTrack,
       );
-    } catch (e) {
+    } catch (error, stackTrace) {
+      logUploadError('upload audio in background', error, stackTrace);
       state = state.copyWith(
         isPreparingUpload: false,
         isUploading: false,
-        error: e.toString(),
+        error: userFriendlyUploadError(
+          error,
+          fallback: 'We could not upload that audio file. Please try again.',
+        ),
       );
     }
   }

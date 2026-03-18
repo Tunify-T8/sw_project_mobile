@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/upload_item.dart';
+import '../../shared/upload_error_helpers.dart';
+import 'library_uploads_filter.dart';
 import 'library_uploads_repository_provider.dart';
 import 'library_uploads_state.dart';
 
@@ -21,16 +23,18 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       state = state.copyWith(
         isLoading: false,
         items: uploads,
-        filteredItems: _apply(
-          uploads,
-          state.query,
-          state.sortOrder,
-          state.visibilityFilter,
-        ),
+        filteredItems: _filtered(uploads),
         quota: quota,
       );
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+    } catch (error, stackTrace) {
+      _setError(
+        error,
+        stackTrace,
+        context: 'load your uploads',
+        fallback: 'We could not load your uploads right now.',
+        updateState: (message) =>
+            state = state.copyWith(isLoading: false, error: message),
+      );
     }
   }
 
@@ -42,47 +46,33 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       state = state.copyWith(
         isRefreshing: false,
         items: uploads,
-        filteredItems: _apply(
-          uploads,
-          state.query,
-          state.sortOrder,
-          state.visibilityFilter,
-        ),
+        filteredItems: _filtered(uploads),
         quota: quota,
       );
-    } catch (e) {
-      state = state.copyWith(isRefreshing: false, error: e.toString());
+    } catch (error, stackTrace) {
+      _setError(
+        error,
+        stackTrace,
+        context: 'refresh your uploads',
+        fallback: 'We could not refresh your uploads right now.',
+        updateState: (message) =>
+            state = state.copyWith(isRefreshing: false, error: message),
+      );
     }
   }
 
   void setQuery(String value) {
-    state = state.copyWith(
-      query: value,
-      filteredItems: _apply(
-        state.items,
-        value,
-        state.sortOrder,
-        state.visibilityFilter,
-      ),
-    );
+    state = state.copyWith(query: value, filteredItems: _filtered());
   }
 
   void setSortOrder(UploadSortOrder order) {
-    state = state.copyWith(
-      sortOrder: order,
-      filteredItems: _apply(
-        state.items,
-        state.query,
-        order,
-        state.visibilityFilter,
-      ),
-    );
+    state = state.copyWith(sortOrder: order, filteredItems: _filtered());
   }
 
   void setVisibilityFilter(UploadVisibilityFilter filter) {
     state = state.copyWith(
       visibilityFilter: filter,
-      filteredItems: _apply(state.items, state.query, state.sortOrder, filter),
+      filteredItems: _filtered(),
     );
   }
 
@@ -90,19 +80,19 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     state = state.copyWith(busyTrackId: trackId, clearError: true);
     try {
       await ref.read(deleteUploadUsecaseProvider).call(trackId);
-      final updated = state.items.where((i) => i.id != trackId).toList();
+      final updated = state.items.where((item) => item.id != trackId).toList();
       state = state.copyWith(
         items: updated,
-        filteredItems: _apply(
-          updated,
-          state.query,
-          state.sortOrder,
-          state.visibilityFilter,
-        ),
+        filteredItems: _filtered(updated),
         clearBusyTrackId: true,
       );
-    } catch (e) {
-      state = state.copyWith(error: e.toString(), clearBusyTrackId: true);
+    } catch (error, stackTrace) {
+      _setBusyActionError(
+        error,
+        stackTrace,
+        context: 'delete track from uploads',
+        fallback: 'We could not delete that track. Please try again.',
+      );
     }
   }
 
@@ -117,8 +107,13 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
           .call(trackId: trackId, filePath: filePath);
       await refresh();
       state = state.copyWith(clearBusyTrackId: true);
-    } catch (e) {
-      state = state.copyWith(error: e.toString(), clearBusyTrackId: true);
+    } catch (error, stackTrace) {
+      _setBusyActionError(
+        error,
+        stackTrace,
+        context: 'replace upload file',
+        fallback: 'We could not replace that file. Please try again.',
+      );
     }
   }
 
@@ -142,59 +137,48 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
           );
       await refresh();
       state = state.copyWith(clearBusyTrackId: true);
-    } catch (e) {
-      state = state.copyWith(error: e.toString(), clearBusyTrackId: true);
+    } catch (error, stackTrace) {
+      _setBusyActionError(
+        error,
+        stackTrace,
+        context: 'update upload metadata',
+        fallback: 'We could not save those track changes. Please try again.',
+      );
     }
   }
 
-  // ── Private helpers ──────────────────────────────────────────────────────
+  List<UploadItem> _filtered([List<UploadItem>? source]) =>
+      applyLibraryUploadsFilter(
+        source: source ?? state.items,
+        query: state.query,
+        sort: state.sortOrder,
+        visibility: state.visibilityFilter,
+      );
 
-  List<UploadItem> _apply(
-    List<UploadItem> source,
-    String query,
-    UploadSortOrder sort,
-    UploadVisibilityFilter visibility,
-  ) {
-    var result = List<UploadItem>.from(source);
+  void _setBusyActionError(
+    Object error,
+    StackTrace stackTrace, {
+    required String context,
+    required String fallback,
+  }) {
+    _setError(
+      error,
+      stackTrace,
+      context: context,
+      fallback: fallback,
+      updateState: (message) =>
+          state = state.copyWith(error: message, clearBusyTrackId: true),
+    );
+  }
 
-    // 1. Visibility filter
-    if (visibility == UploadVisibilityFilter.public) {
-      result = result
-          .where((i) => i.visibility == UploadVisibility.public)
-          .toList();
-    } else if (visibility == UploadVisibilityFilter.private) {
-      result = result
-          .where((i) => i.visibility == UploadVisibility.private)
-          .toList();
-    }
-
-    // 2. Search query
-    if (query.trim().isNotEmpty) {
-      final q = query.toLowerCase();
-      result = result
-          .where(
-            (i) =>
-                i.title.toLowerCase().contains(q) ||
-                i.artistDisplay.toLowerCase().contains(q),
-          )
-          .toList();
-    }
-
-    // 3. Sort
-    switch (sort) {
-      case UploadSortOrder.recentlyAdded:
-        result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-      case UploadSortOrder.firstAdded:
-        result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        break;
-      case UploadSortOrder.trackName:
-        result.sort(
-          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
-        );
-        break;
-    }
-
-    return result;
+  void _setError(
+    Object error,
+    StackTrace stackTrace, {
+    required String context,
+    required String fallback,
+    required void Function(String message) updateState,
+  }) {
+    logUploadError(context, error, stackTrace);
+    updateState(userFriendlyUploadError(error, fallback: fallback));
   }
 }

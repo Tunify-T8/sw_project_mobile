@@ -4,6 +4,7 @@ import '../../domain/entities/upload_item.dart';
 import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
+import '../../shared/upload_error_helpers.dart';
 import '../services/cloudinary_media_service.dart';
 import '../services/global_track_store.dart';
 import 'cloudinary_pending_track.dart';
@@ -73,7 +74,9 @@ class CloudinaryUploadWorkflow {
   }) async {
     final current = _drafts[trackId];
     if (current == null || current.audioUrl == null) {
-      throw StateError('Audio must be uploaded before metadata is finalized.');
+      throw const UploadFlowException(
+        'Finish uploading the audio file before saving track details.',
+      );
     }
 
     final artwork = await resolveCloudinaryArtwork(
@@ -94,7 +97,11 @@ class CloudinaryUploadWorkflow {
 
   Future<UploadedTrack> waitUntilProcessed(String trackId) async {
     final current = _drafts[trackId];
-    if (current == null) throw StateError('Track draft not found for $trackId');
+    if (current == null) {
+      throw const UploadFlowException(
+        'We could not find that upload draft anymore. Please start again.',
+      );
+    }
 
     await Future.delayed(const Duration(milliseconds: 900));
     savePendingTrackToGlobalStore(
@@ -106,7 +113,11 @@ class CloudinaryUploadWorkflow {
 
   Future<UploadedTrack> getTrackDetails(String trackId) async {
     final item = GlobalTrackStore.instance.find(trackId);
-    if (item == null) throw StateError('Track not found: $trackId');
+    if (item == null) {
+      throw const UploadFlowException(
+        'We could not find that track anymore. Please refresh and try again.',
+      );
+    }
 
     return UploadedTrack(
       trackId: item.id,
@@ -131,7 +142,11 @@ class CloudinaryUploadWorkflow {
     final current =
         _drafts[trackId] ??
         PendingCloudinaryTrack.maybeFromUploadItem(existing);
-    if (current == null) throw StateError('Track not found: $trackId');
+    if (current == null) {
+      throw const UploadFlowException(
+        'We could not find that track anymore. Please refresh and try again.',
+      );
+    }
 
     final artwork = await resolveCloudinaryArtwork(
       mediaService: _mediaService,
@@ -156,10 +171,18 @@ class CloudinaryUploadWorkflow {
         PendingCloudinaryTrack.maybeFromUploadItem(existing);
 
     if (current != null) {
-      await _mediaService.deleteTrackAssets(
-        audioUrl: current.audioUrl,
-        artworkUrl: current.artworkUrl,
-      );
+      try {
+        await _mediaService.deleteTrackAssets(
+          audioUrl: current.audioUrl,
+          artworkUrl: current.artworkUrl,
+        );
+      } catch (error, stackTrace) {
+        logUploadError('delete cloud track assets', error, stackTrace);
+        throw UploadFlowException(
+          'We could not delete that track right now. Please try again.',
+          cause: error,
+        );
+      }
     }
     GlobalTrackStore.instance.remove(trackId);
     _drafts.remove(trackId);

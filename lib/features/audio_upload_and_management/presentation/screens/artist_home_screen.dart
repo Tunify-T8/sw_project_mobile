@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
+import '../utils/upload_error_snackbar.dart';
 import '../widgets/artist_home/artist_home_app_bar.dart';
 import '../widgets/artist_home/artist_home_credits_section.dart';
 import '../widgets/artist_home/artist_home_dashboard_section.dart';
@@ -26,6 +27,17 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(uploadProvider, (_, next) {
+      if (next.error != null && mounted) {
+        showUploadErrorSnackBar(context, next.error!);
+      }
+    });
+    ref.listen(libraryUploadsProvider, (_, next) {
+      if (next.error != null && mounted) {
+        showUploadErrorSnackBar(context, next.error!);
+      }
+    });
+
     final uploadState = ref.watch(uploadProvider);
     final libraryState = ref.watch(libraryUploadsProvider);
     final latest = libraryState.items.isEmpty ? null : libraryState.items.first;

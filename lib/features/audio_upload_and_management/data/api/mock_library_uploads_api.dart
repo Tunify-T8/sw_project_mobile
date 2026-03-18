@@ -2,6 +2,7 @@ import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
 import '../services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
+import '../../shared/upload_error_helpers.dart';
 
 /// Mock API for the Library / Your Uploads screen.
 /// Starts EMPTY — tracks only appear after the user uploads them via the upload flow.
@@ -58,7 +59,11 @@ class MockLibraryUploadsApi {
   }) async {
     await Future.delayed(const Duration(milliseconds: 250));
     final existing = GlobalTrackStore.instance.find(trackId);
-    if (existing == null) throw Exception('Track not found: $trackId');
+    if (existing == null) {
+      throw const UploadFlowException(
+        'We could not find that track anymore. Please refresh and try again.',
+      );
+    }
 
     final updated = existing.copyWith(
       title: title,

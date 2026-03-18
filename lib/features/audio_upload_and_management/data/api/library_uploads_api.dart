@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../../shared/upload_error_helpers.dart';
 import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
 
@@ -49,7 +50,9 @@ class LibraryUploadsApi {
       );
     }
 
-    throw const FormatException('Invalid artist tools quota response format.');
+    throw const UploadFlowException(
+      'We could not load your artist tools right now. Please try again.',
+    );
   }
 
   /// DELETE /tracks/:id
@@ -114,6 +117,8 @@ class LibraryUploadsApi {
       );
     }
 
-    throw const FormatException('Invalid update upload response format.');
+    throw const UploadFlowException(
+      'We could not save those track changes right now. Please try again.',
+    );
   }
 }

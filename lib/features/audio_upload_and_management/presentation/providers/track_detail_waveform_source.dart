@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/upload_item.dart';
+import '../../shared/upload_error_helpers.dart';
 
 bool supportsTrackDetailWaveformExtraction() {
   if (kIsWeb) {
@@ -43,18 +44,24 @@ Future<String?> _downloadRemoteAudio(UploadItem item) async {
     final request = await client.getUrl(Uri.parse(audioUrl));
     final response = await request.close().timeout(const Duration(seconds: 20));
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      return null;
+      throw const UploadFlowException(
+        'We could not download the audio to build its waveform.',
+      );
     }
 
     sink = targetFile.openWrite();
     await response.forEach(sink.add);
     await sink.flush();
     return targetFile.path;
-  } catch (_) {
+  } catch (error, stackTrace) {
     if (targetFile.existsSync()) {
       await targetFile.delete();
     }
-    return null;
+    logUploadError('download waveform source audio', error, stackTrace);
+    if (error is UploadFlowException) rethrow;
+    throw const UploadFlowException(
+      'We could not download the audio to build its waveform.',
+    );
   } finally {
     await sink?.close();
     client.close(force: true);
