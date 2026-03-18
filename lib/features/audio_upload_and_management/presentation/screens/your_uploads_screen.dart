@@ -64,6 +64,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
     final uploadState = ref.watch(uploadProvider);
     final isUploadBusy =
         uploadState.isPreparingUpload || uploadState.isUploading;
+    final hasVisibleUploads = state.filteredItems.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -86,14 +87,16 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
               ),
             ),
             SliverToBoxAdapter(
-              child: YourUploadsActionRow(
-                hasItems: state.filteredItems.isNotEmpty,
-                isUploadBusy: isUploadBusy,
-                onUploadTap: _handleUploadTap,
-                onPlayTap: () => _openFirst(state.filteredItems),
-              ),
+              child: hasVisibleUploads
+                  ? YourUploadsActionRow(
+                      hasItems: hasVisibleUploads,
+                      isUploadBusy: isUploadBusy,
+                      onUploadTap: _handleUploadTap,
+                      onPlayTap: () => _openFirst(state.filteredItems),
+                    )
+                  : const SizedBox.shrink(),
             ),
-            if (state.quota != null)
+            if (state.quota != null && hasVisibleUploads)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
@@ -113,7 +116,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
               )
-            else if (state.filteredItems.isEmpty)
+            else if (!hasVisibleUploads)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: YourUploadsEmptyState(onUpload: _handleUploadTap),
@@ -161,11 +164,9 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
     startUploadFlow(context, ref);
   }
 
-  void _openDetail(UploadItem item) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)));
-  }
+  void _openDetail(UploadItem item) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)));
 
   void _showOptions(UploadItem item) {
     showYourUploadsOptionsSheet(
@@ -190,9 +191,8 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
     );
   }
 
-  Future<void> _deleteTrack(UploadItem item) async {
-    if (await confirmYourUploadsDeletion(context, item)) {
-      await ref.read(libraryUploadsProvider.notifier).deleteTrack(item.id);
-    }
-  }
+  Future<void> _deleteTrack(UploadItem item) async =>
+      await confirmYourUploadsDeletion(context, item)
+      ? ref.read(libraryUploadsProvider.notifier).deleteTrack(item.id)
+      : Future<void>.value();
 }

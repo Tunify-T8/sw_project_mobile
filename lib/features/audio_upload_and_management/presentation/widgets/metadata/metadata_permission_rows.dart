@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+const _activeSelectionGreen = Color(0xFF1DB954);
+
 class MetadataPermissionToggleRow extends StatelessWidget {
   const MetadataPermissionToggleRow({
     super.key,
@@ -36,7 +38,7 @@ class MetadataPermissionToggleRow extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeThumbColor: Colors.white,
-            activeTrackColor: const Color(0xFF4A4A4A),
+            activeTrackColor: _activeSelectionGreen,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: const Color(0xFF2F2F2F),
           ),
@@ -85,11 +87,14 @@ class MetadataPermissionRadioRow extends StatelessWidget {
               height: 30,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white70, width: 1.5),
-                color: selected ? Colors.white : Colors.transparent,
+                border: Border.all(
+                  color: selected ? _activeSelectionGreen : Colors.white70,
+                  width: 1.5,
+                ),
+                color: selected ? _activeSelectionGreen : Colors.transparent,
               ),
               child: selected
-                  ? const Icon(Icons.check, color: Colors.black, size: 18)
+                  ? const Icon(Icons.check, color: Colors.white, size: 18)
                   : null,
             ),
           ],

@@ -30,8 +30,7 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
     final libraryState = ref.watch(libraryUploadsProvider);
     final latest = libraryState.items.isEmpty ? null : libraryState.items.first;
     final isBusy = uploadState.isPreparingUpload || uploadState.isUploading;
-    final remainingMinutes = uploadState.quota?.uploadMinutesRemaining ?? 172;
-    final totalMinutes = uploadState.quota?.uploadMinutesLimit ?? 180;
+    final artistToolsQuota = libraryState.quota;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -53,11 +52,10 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
             ),
             const SizedBox(height: 28),
             ArtistHomeLatestUploadSection(latest: latest),
-            const SizedBox(height: 28),
-            ArtistHomeCreditsSection(
-              remainingMinutes: remainingMinutes,
-              totalMinutes: totalMinutes,
-            ),
+            if (artistToolsQuota != null) ...[
+              const SizedBox(height: 28),
+              ArtistHomeCreditsSection(quota: artistToolsQuota),
+            ],
             const SizedBox(height: 100),
           ],
         ),

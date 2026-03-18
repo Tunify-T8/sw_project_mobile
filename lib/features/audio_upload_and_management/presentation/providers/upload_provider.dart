@@ -147,6 +147,13 @@ class UploadNotifier extends Notifier<UploadState> {
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  void discardDraft() {
+    state = UploadState(
+      quota: state.quota,
+      isLoadingQuota: state.isLoadingQuota,
+    );
+  }
 }
 
 final uploadProvider = NotifierProvider<UploadNotifier, UploadState>(

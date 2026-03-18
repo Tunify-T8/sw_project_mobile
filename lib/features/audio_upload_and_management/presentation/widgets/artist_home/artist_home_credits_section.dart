@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/entities/artist_tools_quota.dart';
+import '../artist_tool_paywall_data.dart';
+import '../artist_tool_paywall_sheet.dart';
+
 class ArtistHomeCreditsSection extends StatelessWidget {
   const ArtistHomeCreditsSection({
     super.key,
-    required this.remainingMinutes,
-    required this.totalMinutes,
+    required this.quota,
+    this.onOpenSubscription,
   });
 
-  final int remainingMinutes;
-  final int totalMinutes;
+  final ArtistToolsQuota quota;
+  final VoidCallback? onOpenSubscription;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +22,7 @@ class ArtistHomeCreditsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Your remaining credits',
+            'Artist tools',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -28,38 +32,53 @@ class ArtistHomeCreditsSection extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: _CreditCard(
-                  icon: Icons.bolt,
-                  iconColor: Color(0xFFBB86FC),
+                  icon: Icons.bolt_rounded,
+                  iconColor: const Color(0xFFB873FF),
                   label: 'Amplify',
-                  subText: 'TRY IT',
-                  isLink: true,
+                  subText: quota.canAmplify ? 'OPEN' : 'TRY IT',
+                  onTap: () => _openPaywall(context, ArtistToolKind.amplify),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _CreditCard(
-                  icon: Icons.cloud_upload,
-                  iconColor: const Color(0xFF4FC3F7),
+                  icon: Icons.cloud_upload_outlined,
+                  iconColor: const Color(0xFF7CB4FF),
                   label: 'Upload time',
-                  subText: '$remainingMinutes/$totalMinutes mins left',
+                  subText: quota.isFree
+                      ? '${quota.uploadMinutesRemaining}/${quota.uploadMinutesLimit} mins left'
+                      : 'Unlimited',
+                  underlineSubtitle: false,
+                  onTap: () => _openPaywall(context, ArtistToolKind.uploadTime),
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: _CreditCard(
-                  icon: Icons.swap_horiz,
-                  iconColor: Color(0xFF4FC3F7),
+                  icon: Icons.swap_horiz_rounded,
+                  iconColor: const Color(0xFF7CB4FF),
                   label: 'Replace file',
-                  subText: 'TRY IT',
-                  isLink: true,
+                  subText: quota.canReplaceFiles ? 'OPEN' : 'TRY IT',
+                  onTap: () =>
+                      _openPaywall(context, ArtistToolKind.replaceFile),
                 ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  void _openPaywall(BuildContext context, ArtistToolKind kind) {
+    showArtistToolPaywallSheet(
+      context: context,
+      kind: kind,
+      onSubscribe: onOpenSubscription,
+      uploadMinutesRemaining: quota.uploadMinutesRemaining,
+      uploadMinutesLimit: quota.uploadMinutesLimit,
     );
   }
 }
@@ -70,44 +89,57 @@ class _CreditCard extends StatelessWidget {
     required this.iconColor,
     required this.label,
     required this.subText,
-    this.isLink = false,
+    required this.onTap,
+    this.underlineSubtitle = true,
   });
 
   final IconData icon;
   final Color iconColor;
   final String label;
   final String subText;
-  final bool isLink;
+  final VoidCallback onTap;
+  final bool underlineSubtitle;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor, size: 24),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
+    return Material(
+      color: const Color(0xFF212124),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 128,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: iconColor, size: 30),
+              const Spacer(),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subText,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  decoration: underlineSubtitle
+                      ? TextDecoration.underline
+                      : null,
+                  decorationColor: Colors.white70,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            subText,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              decoration: isLink ? TextDecoration.underline : null,
-              decorationColor: Colors.white,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

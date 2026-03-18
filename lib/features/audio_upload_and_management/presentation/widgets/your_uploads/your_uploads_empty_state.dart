@@ -8,39 +8,43 @@ class YourUploadsEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(28, 18, 28, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 32),
           const Text(
             'No uploads yet',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           const Text(
             'Your uploads will show up here.',
-            style: TextStyle(color: Colors.white54, fontSize: 15),
+            style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.45),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 34),
           GestureDetector(
             onTap: onUpload,
+            behavior: HitTestBehavior.opaque,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Upload a track',
-                  style: TextStyle(color: Colors.white54, fontSize: 15),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 10),
                 Icon(
                   Icons.cloud_upload_outlined,
-                  color: Colors.white54,
-                  size: 32,
+                  color: Colors.white70,
+                  size: 34,
                 ),
               ],
             ),

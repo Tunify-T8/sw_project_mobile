@@ -4,6 +4,8 @@ import 'metadata_input_decoration.dart';
 import 'metadata_label_with_info.dart';
 import 'metadata_section_title.dart';
 
+const _advancedToggleGreen = Color(0xFF1DB954);
+
 class AdvancedMetadataSection extends StatelessWidget {
   const AdvancedMetadataSection({
     super.key,
@@ -87,7 +89,7 @@ class AdvancedMetadataSection extends StatelessWidget {
               value: hasScheduledRelease,
               onChanged: onScheduledReleaseChanged,
               activeThumbColor: Colors.white,
-              activeTrackColor: const Color(0xFF4A4A4A),
+              activeTrackColor: _advancedToggleGreen,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: const Color(0xFF2F2F2F),
             ),
@@ -154,7 +156,7 @@ class AdvancedMetadataSection extends StatelessWidget {
               value: contentWarning,
               onChanged: onContentWarningChanged,
               activeThumbColor: Colors.white,
-              activeTrackColor: const Color(0xFF4A4A4A),
+              activeTrackColor: _advancedToggleGreen,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: const Color(0xFF2F2F2F),
             ),

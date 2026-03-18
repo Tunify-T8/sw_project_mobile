@@ -21,26 +21,60 @@ class TrackMetadataTabSwitcher extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: const Color(0xFF595959), width: 1.15),
       ),
-      child: Row(
-        children: [
-          _TabButton(
-            label: 'Track Info',
-            isSelected: selectedTab == UploadMetadataTab.trackInfo,
-            onTap: () => onTabSelected(UploadMetadataTab.trackInfo),
-          ),
-          _TabButton(
-            label: 'Advanced',
-            isSelected: selectedTab == UploadMetadataTab.advanced,
-            onTap: () => onTabSelected(UploadMetadataTab.advanced),
-          ),
-          _TabButton(
-            label: 'Permissions',
-            isSelected: selectedTab == UploadMetadataTab.permissions,
-            onTap: () => onTabSelected(UploadMetadataTab.permissions),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final pillWidth = constraints.maxWidth / 3;
+
+          return Stack(
+            children: [
+              AnimatedAlign(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeInOutCubic,
+                alignment: _alignmentFor(selectedTab),
+                child: Container(
+                  width: pillWidth,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3A3A3A),
+                    borderRadius: BorderRadius.circular(27),
+                    border: Border.all(
+                      color: const Color(0xFF8A8A8A),
+                      width: 1,
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  _TabButton(
+                    label: 'Track Info',
+                    isSelected: selectedTab == UploadMetadataTab.trackInfo,
+                    onTap: () => onTabSelected(UploadMetadataTab.trackInfo),
+                  ),
+                  _TabButton(
+                    label: 'Advanced',
+                    isSelected: selectedTab == UploadMetadataTab.advanced,
+                    onTap: () => onTabSelected(UploadMetadataTab.advanced),
+                  ),
+                  _TabButton(
+                    label: 'Permissions',
+                    isSelected: selectedTab == UploadMetadataTab.permissions,
+                    onTap: () => onTabSelected(UploadMetadataTab.permissions),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Alignment _alignmentFor(UploadMetadataTab tab) {
+    return switch (tab) {
+      UploadMetadataTab.trackInfo => Alignment.centerLeft,
+      UploadMetadataTab.advanced => Alignment.center,
+      UploadMetadataTab.permissions => Alignment.centerRight,
+    };
   }
 }
 
@@ -60,17 +94,8 @@ class _TabButton extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF3A3A3A) : Colors.transparent,
-            borderRadius: BorderRadius.circular(27),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF8A8A8A) : Colors.transparent,
-              width: 1,
-            ),
-          ),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
           alignment: Alignment.center,
           child: Text(
             label,

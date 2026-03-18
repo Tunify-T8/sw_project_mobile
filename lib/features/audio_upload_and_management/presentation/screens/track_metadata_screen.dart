@@ -7,9 +7,11 @@ import '../providers/library_uploads_provider.dart';
 import '../providers/track_metadata_provider.dart';
 import '../providers/track_metadata_tab_provider.dart';
 import '../providers/upload_provider.dart';
+import '../providers/upload_repository_provider.dart';
 import 'track_metadata_screen_utils.dart';
 import '../widgets/metadata/save_metadata_footer.dart';
 import '../widgets/metadata/track_metadata_body.dart';
+import '../widgets/metadata/track_metadata_cancel_dialog.dart';
 import '../widgets/metadata/track_metadata_delete_dialog.dart';
 import '../widgets/metadata/track_metadata_header.dart';
 import '../widgets/sheets/track_checklist_sheet.dart';
@@ -98,7 +100,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
               title: widget.isEditMode ? 'Edit track' : 'Upload',
               state: metadataState,
               selectedTab: selectedTab,
-              onCancel: () => Navigator.pop(context),
+              onCancel: _handleCancel,
               onChecklistTap: () =>
                   showTrackChecklistSheet(context, metadataState),
               onTabSelected: tabNotifier.setTab,
@@ -171,5 +173,26 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
       await ref.read(libraryUploadsProvider.notifier).deleteTrack(item.id);
       if (mounted) Navigator.of(context).pop(true);
     }
+  }
+
+  Future<void> _handleCancel() async {
+    if (widget.isEditMode) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldCancel = await confirmTrackMetadataCancel(context);
+    if (!shouldCancel || !mounted) return;
+
+    try {
+      await ref.read(uploadRepositoryProvider).deleteTrack(widget.trackId);
+    } catch (_) {
+      // Best-effort cleanup: still leave the flow if local draft state exists.
+    }
+
+    ref.read(uploadProvider.notifier).discardDraft();
+    ref.invalidate(trackMetadataProvider);
+
+    if (mounted) Navigator.of(context).pop();
   }
 }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/library_uploads_provider.dart';
 import '../../providers/library_uploads_state.dart';
 
+const _selectedFilterGreen = Color(0xFF1DB954);
+
 Future<void> showYourUploadsFilterSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -115,7 +117,7 @@ class _FilterRow extends StatelessWidget {
       onTap: onTap,
       leading: Icon(
         Icons.check,
-        color: selected ? Colors.white : Colors.transparent,
+        color: selected ? _selectedFilterGreen : Colors.transparent,
         size: 20,
       ),
       title: Text(
