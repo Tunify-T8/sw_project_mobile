@@ -23,7 +23,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       state = state.copyWith(
         isLoading: false,
         items: uploads,
-        filteredItems: _filtered(uploads),
+        filteredItems: _filtered(source: uploads),
         quota: quota,
       );
     } catch (error, stackTrace) {
@@ -46,7 +46,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       state = state.copyWith(
         isRefreshing: false,
         items: uploads,
-        filteredItems: _filtered(uploads),
+        filteredItems: _filtered(source: uploads),
         quota: quota,
       );
     } catch (error, stackTrace) {
@@ -62,17 +62,23 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   }
 
   void setQuery(String value) {
-    state = state.copyWith(query: value, filteredItems: _filtered());
+    state = state.copyWith(
+      query: value,
+      filteredItems: _filtered(query: value),
+    );
   }
 
   void setSortOrder(UploadSortOrder order) {
-    state = state.copyWith(sortOrder: order, filteredItems: _filtered());
+    state = state.copyWith(
+      sortOrder: order,
+      filteredItems: _filtered(sort: order),
+    );
   }
 
   void setVisibilityFilter(UploadVisibilityFilter filter) {
     state = state.copyWith(
       visibilityFilter: filter,
-      filteredItems: _filtered(),
+      filteredItems: _filtered(visibility: filter),
     );
   }
 
@@ -83,7 +89,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       final updated = state.items.where((item) => item.id != trackId).toList();
       state = state.copyWith(
         items: updated,
-        filteredItems: _filtered(updated),
+        filteredItems: _filtered(source: updated),
         clearBusyTrackId: true,
       );
     } catch (error, stackTrace) {
@@ -147,13 +153,17 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     }
   }
 
-  List<UploadItem> _filtered([List<UploadItem>? source]) =>
-      applyLibraryUploadsFilter(
-        source: source ?? state.items,
-        query: state.query,
-        sort: state.sortOrder,
-        visibility: state.visibilityFilter,
-      );
+  List<UploadItem> _filtered({
+    List<UploadItem>? source,
+    String? query,
+    UploadSortOrder? sort,
+    UploadVisibilityFilter? visibility,
+  }) => applyLibraryUploadsFilter(
+    source: source ?? state.items,
+    query: query ?? state.query,
+    sort: sort ?? state.sortOrder,
+    visibility: visibility ?? state.visibilityFilter,
+  );
 
   void _setBusyActionError(
     Object error,

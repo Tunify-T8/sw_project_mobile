@@ -35,6 +35,7 @@ Map<String, dynamic> createMockTrackRecord(String trackId) {
     },
     'audioUrl': null,
     'waveformUrl': null,
+    'waveformBars': null,
     'artworkUrl': null,
     'createdAt': DateTime.now().toIso8601String(),
     'updatedAt': DateTime.now().toIso8601String(),

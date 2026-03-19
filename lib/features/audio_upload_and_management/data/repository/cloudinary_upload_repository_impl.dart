@@ -5,11 +5,15 @@ import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../services/cloudinary_media_service.dart';
+import '../services/upload_waveform_service.dart';
 import 'cloudinary_upload_workflow.dart';
 
 class CloudinaryUploadRepository implements UploadRepository {
   CloudinaryUploadRepository(CloudinaryMediaService mediaService)
-    : _workflow = CloudinaryUploadWorkflow(mediaService);
+    : _workflow = CloudinaryUploadWorkflow(
+        mediaService,
+        UploadWaveformService(),
+      );
 
   final CloudinaryUploadWorkflow _workflow;
 

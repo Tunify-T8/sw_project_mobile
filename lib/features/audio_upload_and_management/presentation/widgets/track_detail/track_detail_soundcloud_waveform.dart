@@ -15,6 +15,7 @@ class TrackDetailSoundcloudWaveform extends StatelessWidget {
     required this.state,
     required this.isLoading,
     this.bars,
+
     /// Progress fraction 0.0–1.0 of how far through the track we are.
     /// Default 0 = all bars white (unplayed), for display-only mode.
     this.progress = 0.0,
@@ -102,10 +103,7 @@ class _DynamicWaveform extends StatelessWidget {
           left: 0,
           right: 0,
           top: centreY,
-          child: Container(
-            height: 1.2,
-            color: Colors.white,
-          ),
+          child: Container(height: 1.2, color: Colors.white),
         ),
         // ── Waveform bars (upper + mirrored lower) ──────────────────────
         Positioned.fill(
@@ -121,10 +119,7 @@ class _DynamicWaveform extends StatelessWidget {
         Positioned(
           left: badgeLeft,
           top: badgeTop,
-          child: _TimeBadge(
-            progress: progress,
-            duration: duration,
-          ),
+          child: _TimeBadge(progress: progress, duration: duration),
         ),
       ],
     );
@@ -152,6 +147,9 @@ class _FallbackWaveform extends StatelessWidget {
   Widget build(BuildContext context) {
     final centreY = totalHeight * 0.54;
     final badgeTop = centreY - 42.0;
+    final trimmedWaveformUrl = waveformUrl?.trim();
+    final hasWaveformImage =
+        trimmedWaveformUrl != null && trimmedWaveformUrl.isNotEmpty;
     const badgeWidth = 100.0;
     final maxLeft = math.max(0.0, containerWidth - badgeWidth);
     final badgeLeft = (maxLeft * progress).clamp(0.0, maxLeft);
@@ -165,23 +163,31 @@ class _FallbackWaveform extends StatelessWidget {
           top: centreY,
           child: Container(
             height: 1.2,
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
           ),
         ),
-        // Skeleton bars — same painter but with generated placeholder data
         Positioned.fill(
-          child: CustomPaint(
-            painter: _SkeletonWaveformPainter(centreRatio: 0.54),
-          ),
+          child: hasWaveformImage
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Image.network(
+                    trimmedWaveformUrl,
+                    fit: BoxFit.fill,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (_, _, _) => CustomPaint(
+                      painter: _SkeletonWaveformPainter(centreRatio: 0.54),
+                    ),
+                  ),
+                )
+              : CustomPaint(
+                  painter: _SkeletonWaveformPainter(centreRatio: 0.54),
+                ),
         ),
         // Time badge always visible even on fallback
         Positioned(
           left: badgeLeft,
           top: badgeTop,
-          child: _TimeBadge(
-            progress: progress,
-            duration: duration,
-          ),
+          child: _TimeBadge(progress: progress, duration: duration),
         ),
       ],
     );
@@ -241,7 +247,7 @@ class _TimeBadge extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.88),
+        color: Colors.black.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Padding(
@@ -304,7 +310,6 @@ class _SCWaveformPainter extends CustomPainter {
 
     final centreY = size.height * centreRatio;
     final upperZone = centreY; // pixels available above centre
-    final lowerZone = size.height - centreY; // pixels available below centre
 
     // Bar geometry — exactly like SoundCloud tight packing
     const gap = 1.6;
@@ -332,7 +337,7 @@ class _SCWaveformPainter extends CustomPainter {
       final upperPaint = Paint()
         ..color = isPlayed
             ? const Color(0xFFFF5500)
-            : Colors.white.withOpacity(0.95)
+            : Colors.white.withValues(alpha: 0.95)
         ..strokeCap = StrokeCap.round
         ..strokeWidth = barWidth;
 
@@ -345,8 +350,8 @@ class _SCWaveformPainter extends CustomPainter {
       // ── Lower mirror (reduced opacity) ─────────────────────────────
       final lowerPaint = Paint()
         ..color = isPlayed
-            ? const Color(0xFFFF5500).withOpacity(0.32)
-            : Colors.white.withOpacity(0.32)
+            ? const Color(0xFFFF5500).withValues(alpha: 0.32)
+            : Colors.white.withValues(alpha: 0.32)
         ..strokeCap = StrokeCap.round
         ..strokeWidth = barWidth;
 
@@ -383,7 +388,8 @@ class _SkeletonWaveformPainter extends CustomPainter {
     final result = <double>[];
     for (int i = 0; i < count; i++) {
       final t = i / count;
-      final v = 0.18 +
+      final v =
+          0.18 +
           0.50 * math.pow(math.sin(t * math.pi * 6.8).abs(), 0.6) +
           0.18 * math.pow(math.cos(t * math.pi * 14.2).abs(), 1.2) +
           0.12 * math.sin(t * math.pi * 31.4 + 0.7).abs();
@@ -414,7 +420,7 @@ class _SkeletonWaveformPainter extends CustomPainter {
       final lowerH = math.max(4.0, upperH * 0.55);
 
       final upperPaint = Paint()
-        ..color = Colors.white.withOpacity(opacity)
+        ..color = Colors.white.withValues(alpha: opacity)
         ..strokeCap = StrokeCap.round
         ..strokeWidth = barWidth;
 
@@ -425,7 +431,7 @@ class _SkeletonWaveformPainter extends CustomPainter {
       );
 
       final lowerPaint = Paint()
-        ..color = Colors.white.withOpacity(opacity * 0.35)
+        ..color = Colors.white.withValues(alpha: opacity * 0.35)
         ..strokeCap = StrokeCap.round
         ..strokeWidth = barWidth;
 

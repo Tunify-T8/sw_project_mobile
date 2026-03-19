@@ -22,6 +22,10 @@ void persistMockTrackToStore(
       durationSeconds: (data['durationSeconds'] as int?) ?? 0,
       audioUrl: data['audioUrl'] as String?,
       waveformUrl: data['waveformUrl'] as String?,
+      waveformBars: (data['waveformBars'] as List?)
+          ?.map((entry) => (entry as num?)?.toDouble())
+          .whereType<double>()
+          .toList(),
       artworkUrl: artworkUrl,
       localArtworkPath: (artworkUrl != null && !artworkUrl.startsWith('http'))
           ? artworkUrl

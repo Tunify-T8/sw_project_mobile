@@ -13,6 +13,7 @@ extension UploadItemDtoMapper on UploadItemDto {
       durationSeconds: durationSeconds,
       audioUrl: audioUrl,
       waveformUrl: waveformUrl,
+      waveformBars: waveformBars,
       artworkUrl: artworkUrl,
       localArtworkPath: localArtworkPath,
       localFilePath: localFilePath,

@@ -6,6 +6,7 @@ class UploadState {
   final bool isLoadingQuota;
   final bool isPreparingUpload;
   final bool isUploading;
+  final bool isCompletingUpload;
   final bool hasUploadedAudio;
   final UploadQuota? quota;
   final PickedUploadFile? selectedAudio;
@@ -17,6 +18,7 @@ class UploadState {
     this.isLoadingQuota = false,
     this.isPreparingUpload = false,
     this.isUploading = false,
+    this.isCompletingUpload = false,
     this.hasUploadedAudio = false,
     this.quota,
     this.selectedAudio,
@@ -25,7 +27,7 @@ class UploadState {
     this.error,
   });
 
-  bool get isBusy => isPreparingUpload || isUploading;
+  bool get isBusy => isPreparingUpload || isUploading || isCompletingUpload;
 
   bool get uploadFinished =>
       hasUploadedAudio && !isPreparingUpload && !isUploading;
@@ -34,6 +36,7 @@ class UploadState {
     bool? isLoadingQuota,
     bool? isPreparingUpload,
     bool? isUploading,
+    bool? isCompletingUpload,
     bool? hasUploadedAudio,
     UploadQuota? quota,
     PickedUploadFile? selectedAudio,
@@ -47,6 +50,7 @@ class UploadState {
       isLoadingQuota: isLoadingQuota ?? this.isLoadingQuota,
       isPreparingUpload: isPreparingUpload ?? this.isPreparingUpload,
       isUploading: isUploading ?? this.isUploading,
+      isCompletingUpload: isCompletingUpload ?? this.isCompletingUpload,
       hasUploadedAudio: hasUploadedAudio ?? this.hasUploadedAudio,
       quota: quota ?? this.quota,
       selectedAudio: clearSelectedAudio

@@ -159,8 +159,14 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
         : await notifier.saveForNewUpload(widget.trackId);
 
     if (!success || !mounted) return;
-    await ref.read(libraryUploadsProvider.notifier).refresh();
-    if (mounted) Navigator.of(context).pop(true);
+
+    if (widget.isEditMode) {
+      await ref.read(libraryUploadsProvider.notifier).refresh();
+    }
+
+    if (mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   Future<void> _handleDelete() async {

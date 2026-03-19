@@ -87,6 +87,7 @@ class MockLibraryUploadsApi {
       durationSeconds: item.durationSeconds,
       audioUrl: item.audioUrl,
       waveformUrl: item.waveformUrl,
+      waveformBars: item.waveformBars,
       artworkUrl: item.artworkUrl,
       localArtworkPath: item.localArtworkPath,
       localFilePath: item.localFilePath,

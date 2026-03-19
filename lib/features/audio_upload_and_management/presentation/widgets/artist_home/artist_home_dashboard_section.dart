@@ -4,11 +4,13 @@ class ArtistHomeDashboardSection extends StatelessWidget {
   const ArtistHomeDashboardSection({
     super.key,
     required this.isBusy,
+    required this.busyLabel,
     required this.onUpload,
     required this.onOpenUploads,
   });
 
   final bool isBusy;
+  final String busyLabel;
   final VoidCallback onUpload;
   final VoidCallback onOpenUploads;
 
@@ -48,7 +50,7 @@ class ArtistHomeDashboardSection extends StatelessWidget {
                     ),
                   const SizedBox(width: 10),
                   Text(
-                    isBusy ? 'Uploading...' : 'Upload a track',
+                    isBusy ? busyLabel : 'Upload a track',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,

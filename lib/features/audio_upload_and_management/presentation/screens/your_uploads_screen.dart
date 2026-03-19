@@ -63,8 +63,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
 
     final state = ref.watch(libraryUploadsProvider);
     final uploadState = ref.watch(uploadProvider);
-    final isUploadBusy =
-        uploadState.isPreparingUpload || uploadState.isUploading;
+    final isUploadBusy = uploadState.isBusy;
     final hasVisibleUploads = state.filteredItems.isNotEmpty;
 
     return Scaffold(

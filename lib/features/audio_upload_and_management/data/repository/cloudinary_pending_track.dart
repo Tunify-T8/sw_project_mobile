@@ -7,6 +7,7 @@ class PendingCloudinaryTrack {
     this.audioUrl,
     this.audioPublicId,
     this.waveformUrl,
+    this.waveformBars,
     this.artworkUrl,
     this.localArtworkPath,
     this.localFilePath,
@@ -39,6 +40,7 @@ class PendingCloudinaryTrack {
   final String? audioUrl;
   final String? audioPublicId;
   final String? waveformUrl;
+  final List<double>? waveformBars;
   final String? artworkUrl;
   final String? localArtworkPath;
   final String? localFilePath;
@@ -73,6 +75,7 @@ class PendingCloudinaryTrack {
       createdAt: item.createdAt,
       audioUrl: item.audioUrl,
       waveformUrl: item.waveformUrl,
+      waveformBars: item.waveformBars,
       artworkUrl: item.artworkUrl,
       localArtworkPath: item.localArtworkPath,
       localFilePath: item.localFilePath,
@@ -111,6 +114,7 @@ class PendingCloudinaryTrack {
     String? audioUrl,
     String? audioPublicId,
     String? waveformUrl,
+    List<double>? waveformBars,
     String? artworkUrl,
     String? localArtworkPath,
     String? localFilePath,
@@ -143,6 +147,7 @@ class PendingCloudinaryTrack {
       audioUrl: audioUrl ?? this.audioUrl,
       audioPublicId: audioPublicId ?? this.audioPublicId,
       waveformUrl: waveformUrl ?? this.waveformUrl,
+      waveformBars: waveformBars ?? this.waveformBars,
       artworkUrl: artworkUrl ?? this.artworkUrl,
       localArtworkPath: localArtworkPath ?? this.localArtworkPath,
       localFilePath: localFilePath ?? this.localFilePath,

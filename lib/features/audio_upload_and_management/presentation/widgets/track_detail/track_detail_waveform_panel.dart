@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
-import '../../../shared/upload_error_helpers.dart';
 import '../../providers/track_detail_waveform_provider.dart';
 import 'track_detail_soundcloud_waveform.dart';
 
@@ -21,14 +20,7 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final waveformBarsAsync = ref.watch(trackDetailWaveformBarsProvider(item));
-    final bars = waveformBarsAsync.asData?.value;
-    final errorMessage = waveformBarsAsync.hasError
-        ? userFriendlyUploadError(
-            waveformBarsAsync.error!,
-            fallback:
-                'We could not generate the waveform for this track right now.',
-          )
-        : null;
+    final bars = item.waveformBars ?? waveformBarsAsync.asData?.value;
     final description = item.description?.trim() ?? '';
 
     return Positioned.fill(
@@ -46,20 +38,9 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
               TrackDetailSoundcloudWaveform(
                 state: state,
                 bars: bars,
-                isLoading: waveformBarsAsync.isLoading,
+                isLoading:
+                    item.waveformBars == null && waveformBarsAsync.isLoading,
               ),
-              if (errorMessage != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  errorMessage,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                ),
-              ],
               const SizedBox(height: 18),
               const _CommentComposerBar(),
               const SizedBox(height: 18),
@@ -138,8 +119,8 @@ class _CommentComposerBar extends StatelessWidget {
           Text('\u{1F525}', style: TextStyle(fontSize: 28)),
           SizedBox(width: 14),
           Text('\u{1F44F}', style: TextStyle(fontSize: 28)),
-          SizedBox(width: 14),
-          Text('\u{1F979}', style: TextStyle(fontSize: 28)),
+          // SizedBox(width: 14),
+          // Text('\u{1F44F}', style: TextStyle(fontSize: 28)),
         ],
       ),
     );

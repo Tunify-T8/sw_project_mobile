@@ -8,6 +8,8 @@ import 'package:software_project/shared/providers/app_settings_provider.dart';
 
 import '../widgets/library_menu_tile.dart';
 
+const _settingsToggleGreen = Color(0xFF1DB954);
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -38,7 +40,8 @@ class SettingsScreen extends ConsumerWidget {
             trailing: Switch(
               value: settings.autoplayRelatedTracks,
               onChanged: settingsNotifier.setAutoplayRelatedTracks,
-              activeThumbColor: AppColors.primary,
+              activeThumbColor: _settingsToggleGreen,
+              activeTrackColor: _settingsToggleGreen.withValues(alpha: 0.45),
             ),
           ),
           LibraryMenuTile(
@@ -48,7 +51,8 @@ class SettingsScreen extends ConsumerWidget {
             trailing: Switch(
               value: settings.useClassicFeed,
               onChanged: settingsNotifier.setUseClassicFeed,
-              activeThumbColor: AppColors.primary,
+              activeThumbColor: _settingsToggleGreen,
+              activeTrackColor: _settingsToggleGreen.withValues(alpha: 0.45),
             ),
           ),
           LibraryMenuTile(

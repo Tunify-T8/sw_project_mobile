@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/library_uploads_provider.dart';
 import '../../providers/library_uploads_state.dart';
 
-const _selectedFilterGreen = Color(0xFF1DB954);
+const _selectedFilterGrey = Color(0xFF8E8E93);
 
 Future<void> showYourUploadsFilterSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -23,6 +23,7 @@ class _YourUploadsFilterSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(libraryUploadsProvider);
+    final notifier = ref.read(libraryUploadsProvider.notifier);
 
     return Container(
       decoration: const BoxDecoration(
@@ -49,47 +50,53 @@ class _YourUploadsFilterSheet extends ConsumerWidget {
               _FilterRow(
                 label: 'Recently added',
                 selected: state.sortOrder == UploadSortOrder.recentlyAdded,
-                onTap: () => ref
-                    .read(libraryUploadsProvider.notifier)
-                    .setSortOrder(UploadSortOrder.recentlyAdded),
+                onTap: () {
+                  notifier.setSortOrder(UploadSortOrder.recentlyAdded);
+                  Navigator.of(context).pop();
+                },
               ),
               _FilterRow(
                 label: 'First added',
                 selected: state.sortOrder == UploadSortOrder.firstAdded,
-                onTap: () => ref
-                    .read(libraryUploadsProvider.notifier)
-                    .setSortOrder(UploadSortOrder.firstAdded),
+                onTap: () {
+                  notifier.setSortOrder(UploadSortOrder.firstAdded);
+                  Navigator.of(context).pop();
+                },
               ),
               _FilterRow(
                 label: 'Track name',
                 selected: state.sortOrder == UploadSortOrder.trackName,
-                onTap: () => ref
-                    .read(libraryUploadsProvider.notifier)
-                    .setSortOrder(UploadSortOrder.trackName),
+                onTap: () {
+                  notifier.setSortOrder(UploadSortOrder.trackName);
+                  Navigator.of(context).pop();
+                },
               ),
               const Divider(color: Colors.white12, height: 1),
               _FilterRow(
                 label: 'All',
                 selected: state.visibilityFilter == UploadVisibilityFilter.all,
-                onTap: () => ref
-                    .read(libraryUploadsProvider.notifier)
-                    .setVisibilityFilter(UploadVisibilityFilter.all),
+                onTap: () {
+                  notifier.setVisibilityFilter(UploadVisibilityFilter.all);
+                  Navigator.of(context).pop();
+                },
               ),
               _FilterRow(
                 label: 'Public',
                 selected:
                     state.visibilityFilter == UploadVisibilityFilter.public,
-                onTap: () => ref
-                    .read(libraryUploadsProvider.notifier)
-                    .setVisibilityFilter(UploadVisibilityFilter.public),
+                onTap: () {
+                  notifier.setVisibilityFilter(UploadVisibilityFilter.public);
+                  Navigator.of(context).pop();
+                },
               ),
               _FilterRow(
                 label: 'Private',
                 selected:
                     state.visibilityFilter == UploadVisibilityFilter.private,
-                onTap: () => ref
-                    .read(libraryUploadsProvider.notifier)
-                    .setVisibilityFilter(UploadVisibilityFilter.private),
+                onTap: () {
+                  notifier.setVisibilityFilter(UploadVisibilityFilter.private);
+                  Navigator.of(context).pop();
+                },
               ),
               const SizedBox(height: 8),
             ],
@@ -117,7 +124,7 @@ class _FilterRow extends StatelessWidget {
       onTap: onTap,
       leading: Icon(
         Icons.check,
-        color: selected ? _selectedFilterGreen : Colors.transparent,
+        color: selected ? _selectedFilterGrey : Colors.transparent,
         size: 20,
       ),
       title: Text(

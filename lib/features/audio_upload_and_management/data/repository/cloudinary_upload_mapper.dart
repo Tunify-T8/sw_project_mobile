@@ -38,6 +38,7 @@ void savePendingTrackToGlobalStore(
       durationSeconds: draft.durationSeconds,
       audioUrl: draft.audioUrl,
       waveformUrl: draft.waveformUrl,
+      waveformBars: draft.waveformBars,
       artworkUrl: draft.artworkUrl,
       localArtworkPath: draft.localArtworkPath,
       localFilePath: draft.localFilePath,

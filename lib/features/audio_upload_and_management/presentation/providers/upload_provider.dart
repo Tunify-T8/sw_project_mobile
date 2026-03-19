@@ -7,12 +7,14 @@ import '../../domain/entities/upload_cancellation_token.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../shared/upload_error_helpers.dart';
+import 'library_uploads_provider.dart';
 import 'upload_dependencies_provider.dart';
 import 'upload_repository_provider.dart';
 import 'upload_state.dart';
 
 class UploadNotifier extends Notifier<UploadState> {
   int _activeUploadRequestId = 0;
+  int _activeCompletionRequestId = 0;
   UploadCancellationToken? _activeCancellationToken;
   _UploadRestorePoint? _activeRestorePoint;
 
@@ -193,6 +195,12 @@ class UploadNotifier extends Notifier<UploadState> {
     return true;
   }
 
+  void completeSavedUploadInBackground(String trackId) {
+    final requestId = ++_activeCompletionRequestId;
+    state = state.copyWith(isCompletingUpload: true, error: null);
+    unawaited(_completeSavedUploadInBackground(requestId, trackId));
+  }
+
   Future<void> _uploadAudioInBackground({
     required int requestId,
     required String trackId,
@@ -265,6 +273,7 @@ class UploadNotifier extends Notifier<UploadState> {
 
   void discardDraft() {
     _activeUploadRequestId++;
+    _activeCompletionRequestId++;
     _activeCancellationToken?.cancel();
     _activeCancellationToken = null;
     _activeRestorePoint = null;
@@ -276,6 +285,9 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   bool _isActiveRequest(int requestId) => _activeUploadRequestId == requestId;
+
+  bool _isActiveCompletionRequest(int requestId) =>
+      _activeCompletionRequestId == requestId;
 
   bool _isCancellationError(Object error) {
     return error is UploadCancelledException ||
@@ -311,6 +323,49 @@ class UploadNotifier extends Notifier<UploadState> {
       uploadProgress: restorePoint.uploadProgress,
       error: errorMessage,
     );
+  }
+
+  Future<void> _completeSavedUploadInBackground(
+    int requestId,
+    String trackId,
+  ) async {
+    try {
+      final repository = ref.read(uploadRepositoryProvider);
+      final finalTrack = await repository.waitUntilProcessed(trackId);
+      if (!_isActiveCompletionRequest(requestId)) {
+        return;
+      }
+
+      state = state.copyWith(
+        isCompletingUpload: false,
+        currentTrack: finalTrack,
+        error: null,
+      );
+
+      await ref.read(libraryUploadsProvider.notifier).refresh();
+      if (!_isActiveCompletionRequest(requestId)) {
+        return;
+      }
+
+      state = UploadState(
+        quota: state.quota,
+        isLoadingQuota: state.isLoadingQuota,
+      );
+    } catch (error, stackTrace) {
+      if (!_isActiveCompletionRequest(requestId)) {
+        return;
+      }
+
+      logUploadError('complete saved upload in background', error, stackTrace);
+      state = state.copyWith(
+        isCompletingUpload: false,
+        error: userFriendlyUploadError(
+          error,
+          fallback:
+              'We could not finish processing that upload. Please try again.',
+        ),
+      );
+    }
   }
 }
 

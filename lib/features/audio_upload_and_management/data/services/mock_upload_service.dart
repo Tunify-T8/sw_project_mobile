@@ -3,10 +3,12 @@ import 'dart:async';
 import 'global_track_store.dart';
 import 'mock_upload_defaults.dart';
 import 'mock_upload_store_mapper.dart';
+import 'upload_waveform_service.dart';
 
 class MockUploadService {
   final Map<String, Map<String, dynamic>> _tracks = {};
   final Map<String, String> _localFilePaths = {};
+  final UploadWaveformService _waveformService = UploadWaveformService();
 
   Future<Map<String, dynamic>> getUploadQuota({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 400));
@@ -80,11 +82,13 @@ class MockUploadService {
   }) async {
     await Future.delayed(const Duration(seconds: 2));
     final current = _currentTrack(trackId);
+    final waveformBars = await _buildWaveformBars(trackId);
     final updated = await _mergeTrack(trackId, {
       'status': 'finished',
       'audioUrl': current['audioUrl'] ?? 'https://mock.cdn/audio/$trackId.mp3',
       'waveformUrl':
           current['waveformUrl'] ?? 'https://mock.cdn/waveform/$trackId.json',
+      'waveformBars': waveformBars ?? current['waveformBars'],
       'durationSeconds': current['durationSeconds'] ?? 0,
       'audioMetadata':
           current['audioMetadata'] ??
@@ -127,11 +131,13 @@ class MockUploadService {
     required Map<String, dynamic> metadata,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
+    final waveformBars = await _buildWaveformBars(trackId);
     final updated = await _mergeTrack(trackId, {
       ...metadata,
       'status': 'finished',
       'artworkUrl':
           metadata['artworkPath'] ?? _currentTrack(trackId)['artworkUrl'],
+      'waveformBars': waveformBars ?? _currentTrack(trackId)['waveformBars'],
     });
     persistMockTrackToStore(updated, _localFilePaths);
     return updated;
@@ -152,5 +158,13 @@ class MockUploadService {
     };
     _tracks[trackId] = updated;
     return Map<String, dynamic>.from(updated);
+  }
+
+  Future<List<double>?> _buildWaveformBars(String trackId) async {
+    final localFilePath = _localFilePaths[trackId]?.trim();
+    if (localFilePath == null || localFilePath.isEmpty) {
+      return null;
+    }
+    return _waveformService.generateDisplayBarsFromFile(localFilePath);
   }
 }

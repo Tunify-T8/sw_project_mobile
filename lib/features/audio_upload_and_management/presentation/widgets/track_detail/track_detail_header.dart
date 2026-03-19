@@ -36,28 +36,28 @@ class TrackDetailHeader extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 12),
             Column(
-              children: const [
+              children: [
+                GestureDetector(
+                  onTap: onDismiss,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
                 SizedBox(height: 16),
                 Icon(Icons.devices_other, color: Colors.white70, size: 24),
               ],
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: onDismiss,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Colors.black,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
             ),
           ],
         ),

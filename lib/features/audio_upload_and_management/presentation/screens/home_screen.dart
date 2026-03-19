@@ -43,7 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final latestTrack = libraryState.items.isEmpty
         ? null
         : libraryState.items.first;
-    final isBusy = uploadState.isPreparingUpload || uploadState.isUploading;
+    final isBusy = uploadState.isBusy;
 
     return Scaffold(
       backgroundColor: Colors.black,

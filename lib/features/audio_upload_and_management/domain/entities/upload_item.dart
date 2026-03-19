@@ -10,6 +10,7 @@ class UploadItem {
   final int durationSeconds;
   final String? audioUrl;
   final String? waveformUrl;
+  final List<double>? waveformBars;
   final String? artworkUrl;
   final String? localArtworkPath;
   final String? localFilePath;
@@ -43,6 +44,7 @@ class UploadItem {
     required this.durationSeconds,
     this.audioUrl,
     this.waveformUrl,
+    this.waveformBars,
     required this.artworkUrl,
     this.localArtworkPath,
     this.localFilePath,
@@ -78,8 +80,7 @@ class UploadItem {
   // We key on `id` — every upload gets a unique millisecond-based id.
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is UploadItem && other.id == id);
+      identical(this, other) || (other is UploadItem && other.id == id);
 
   @override
   int get hashCode => id.hashCode;
@@ -92,6 +93,7 @@ class UploadItem {
     int? durationSeconds,
     String? audioUrl,
     String? waveformUrl,
+    List<double>? waveformBars,
     String? artworkUrl,
     String? localArtworkPath,
     String? localFilePath,
@@ -125,6 +127,7 @@ class UploadItem {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       audioUrl: audioUrl ?? this.audioUrl,
       waveformUrl: waveformUrl ?? this.waveformUrl,
+      waveformBars: waveformBars ?? this.waveformBars,
       artworkUrl: artworkUrl ?? this.artworkUrl,
       localArtworkPath: localArtworkPath ?? this.localArtworkPath,
       localFilePath: localFilePath ?? this.localFilePath,

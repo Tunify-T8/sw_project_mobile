@@ -41,7 +41,7 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
     final uploadState = ref.watch(uploadProvider);
     final libraryState = ref.watch(libraryUploadsProvider);
     final latest = libraryState.items.isEmpty ? null : libraryState.items.first;
-    final isBusy = uploadState.isPreparingUpload || uploadState.isUploading;
+    final isBusy = uploadState.isBusy;
     final artistToolsQuota = libraryState.quota;
 
     return Scaffold(
@@ -55,6 +55,9 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
             const SizedBox(height: 6),
             ArtistHomeDashboardSection(
               isBusy: isBusy,
+              busyLabel: uploadState.isCompletingUpload
+                  ? 'Generating waveform...'
+                  : 'Uploading...',
               onUpload: () => startUploadFlow(context, ref),
               onOpenUploads: () {
                 Navigator.of(context).push(

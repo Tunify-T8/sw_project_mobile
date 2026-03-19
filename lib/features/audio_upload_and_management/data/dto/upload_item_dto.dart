@@ -13,6 +13,7 @@ class UploadItemDto {
     required this.createdAt,
     this.audioUrl,
     this.waveformUrl,
+    this.waveformBars,
     this.localArtworkPath,
     this.localFilePath,
     this.description,
@@ -51,6 +52,7 @@ class UploadItemDto {
   final int durationSeconds;
   final String? audioUrl;
   final String? waveformUrl;
+  final List<double>? waveformBars;
   final String? artworkUrl;
   final String? localArtworkPath;
   final String? localFilePath;
@@ -75,6 +77,10 @@ class UploadItemDto {
       durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
       audioUrl: json['audioUrl'] as String?,
       waveformUrl: json['waveformUrl'] as String?,
+      waveformBars: (json['waveformBars'] as List?)
+          ?.map((entry) => (entry as num?)?.toDouble())
+          .whereType<double>()
+          .toList(),
       artworkUrl: json['artworkUrl'] as String?,
       localArtworkPath: json['localArtworkPath'] as String?,
       localFilePath: json['localFilePath'] as String?,
@@ -115,6 +121,7 @@ class UploadItemDto {
     'durationSeconds': durationSeconds,
     'audioUrl': audioUrl,
     'waveformUrl': waveformUrl,
+    'waveformBars': waveformBars,
     'artworkUrl': artworkUrl,
     'localArtworkPath': localArtworkPath,
     'localFilePath': localFilePath,

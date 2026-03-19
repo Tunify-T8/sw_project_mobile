@@ -8,14 +8,16 @@ import '../../domain/entities/uploaded_track.dart';
 import '../../shared/upload_error_helpers.dart';
 import '../services/cloudinary_media_service.dart';
 import '../services/global_track_store.dart';
+import '../services/upload_waveform_service.dart';
 import 'cloudinary_pending_track.dart';
 import 'cloudinary_upload_artwork_resolver.dart';
 import 'cloudinary_upload_mapper.dart';
 
 class CloudinaryUploadWorkflow {
-  CloudinaryUploadWorkflow(this._mediaService);
+  CloudinaryUploadWorkflow(this._mediaService, this._waveformService);
 
   final CloudinaryMediaService _mediaService;
+  final UploadWaveformService _waveformService;
   final Map<String, PendingCloudinaryTrack> _drafts = {};
 
   Future<UploadQuota> getUploadQuota(String userId) async {
@@ -90,10 +92,6 @@ class CloudinaryUploadWorkflow {
     );
     final updated = applyCloudinaryTrackMetadata(current, metadata, artwork);
     _drafts[trackId] = updated;
-    savePendingTrackToGlobalStore(
-      updated,
-      status: UploadProcessingStatus.processing,
-    );
 
     return mapPendingTrackToUploadedTrack(updated, UploadStatus.processing);
   }
@@ -107,11 +105,13 @@ class CloudinaryUploadWorkflow {
     }
 
     await Future.delayed(const Duration(milliseconds: 900));
+    final completed = await _attachGeneratedWaveform(current);
+    _drafts[trackId] = completed;
     savePendingTrackToGlobalStore(
-      current,
+      completed,
       status: UploadProcessingStatus.finished,
     );
-    return mapPendingTrackToUploadedTrack(current, UploadStatus.finished);
+    return mapPendingTrackToUploadedTrack(completed, UploadStatus.finished);
   }
 
   Future<UploadedTrack> getTrackDetails(String trackId) async {
@@ -157,7 +157,9 @@ class CloudinaryUploadWorkflow {
       currentArtworkUrl: current.artworkUrl,
       currentLocalArtworkPath: current.localArtworkPath,
     );
-    final updated = applyCloudinaryTrackMetadata(current, metadata, artwork);
+    final updated = await _attachGeneratedWaveform(
+      applyCloudinaryTrackMetadata(current, metadata, artwork),
+    );
     _drafts[trackId] = updated;
     savePendingTrackToGlobalStore(
       updated,
@@ -189,5 +191,23 @@ class CloudinaryUploadWorkflow {
     }
     GlobalTrackStore.instance.remove(trackId);
     _drafts.remove(trackId);
+  }
+
+  Future<PendingCloudinaryTrack> _attachGeneratedWaveform(
+    PendingCloudinaryTrack draft,
+  ) async {
+    final localFilePath = draft.localFilePath?.trim();
+    if (localFilePath == null || localFilePath.isEmpty) {
+      return draft;
+    }
+
+    final waveformBars = await _waveformService.generateDisplayBarsFromFile(
+      localFilePath,
+    );
+    if (waveformBars == null || waveformBars.isEmpty) {
+      return draft;
+    }
+
+    return draft.copyWith(waveformBars: waveformBars);
   }
 }

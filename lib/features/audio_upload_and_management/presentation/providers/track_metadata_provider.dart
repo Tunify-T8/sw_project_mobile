@@ -9,6 +9,7 @@ import 'track_metadata_state_factory.dart';
 import 'track_metadata_state.dart';
 import 'track_metadata_validator.dart';
 import 'upload_dependencies_provider.dart';
+import 'upload_provider.dart';
 import 'upload_repository_provider.dart';
 
 part 'track_metadata_notifier_fields.dart';
@@ -46,18 +47,15 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
       );
       state = state.copyWith(
         isSaving: false,
-        isPolling: true,
-        processingStatus: processing.status,
-      );
-
-      final finalTrack = await repository.waitUntilProcessed(trackId);
-      state = state.copyWith(
         isPolling: false,
-        processingStatus: finalTrack.status,
-        finalTrack: finalTrack,
+        processingStatus: processing.status,
+        finalTrack: processing,
         error: null,
       );
-      return finalTrack.status == UploadStatus.finished;
+      ref
+          .read(uploadProvider.notifier)
+          .completeSavedUploadInBackground(trackId);
+      return true;
     } catch (error, stackTrace) {
       _failSave(
         error,
