@@ -19,7 +19,8 @@ void main() {
   late MockResetPasswordUseCase mockResetPassword;
   late MockDeleteAccountUseCase mockDeleteAccount;
   late MockGoogleSignInService mockGoogle;
-  late AuthController controller;
+  late ProviderContainer container;
+  late AuthController ctrl;
 
   const tUser = AuthUserEntity(
     id: '1',
@@ -27,26 +28,6 @@ void main() {
     username: 'testuser',
     role: 'LISTENER',
     isVerified: true,
-  );
-
-  /// Builds a fresh [AuthController] with all mocks injected.
-  ///
-  /// Because [MockAuthConfig.useMock] is a compile-time constant we cannot
-  /// flip it in tests. The controller is therefore constructed directly
-  /// (bypassing the provider tree) so the injected use cases are always
-  /// reached regardless of the mock config flag.
-  AuthController build() => AuthController(
-    checkEmail: mockCheckEmail,
-    register: mockRegister,
-    verifyEmail: mockVerifyEmail,
-    resendVerification: mockResend,
-    login: mockLogin,
-    logout: mockLogout,
-    logoutAll: mockLogoutAll,
-    forgotPassword: mockForgotPassword,
-    resetPassword: mockResetPassword,
-    deleteAccount: mockDeleteAccount,
-    googleSignInService: mockGoogle,
   );
 
   setUp(() {
@@ -61,14 +42,36 @@ void main() {
     mockResetPassword = MockResetPasswordUseCase();
     mockDeleteAccount = MockDeleteAccountUseCase();
     mockGoogle = MockGoogleSignInService();
-    controller = build();
+
+    // AuthController is a Notifier — it reads its dependencies via ref.
+    // We override every use-case provider with a mock so the controller
+    // gets mocks without any constructor parameters needed.
+    container = ProviderContainer(
+      overrides: [
+        checkEmailUseCaseProvider.overrideWithValue(mockCheckEmail),
+        registerUseCaseProvider.overrideWithValue(mockRegister),
+        verifyEmailUseCaseProvider.overrideWithValue(mockVerifyEmail),
+        resendVerificationUseCaseProvider.overrideWithValue(mockResend),
+        loginUseCaseProvider.overrideWithValue(mockLogin),
+        logoutUseCaseProvider.overrideWithValue(mockLogout),
+        logoutAllUseCaseProvider.overrideWithValue(mockLogoutAll),
+        forgotPasswordUseCaseProvider.overrideWithValue(mockForgotPassword),
+        resetPasswordUseCaseProvider.overrideWithValue(mockResetPassword),
+        deleteAccountUseCaseProvider.overrideWithValue(mockDeleteAccount),
+        googleSignInServiceProvider.overrideWithValue(mockGoogle),
+      ],
+    );
+
+    ctrl = container.read(authControllerProvider.notifier);
   });
+
+  tearDown(() => container.dispose());
 
   // ── Initial state ──────────────────────────────────────────────────────────
 
   test('initial state is AsyncData(null)', () {
     expect(
-      controller.state,
+      container.read(authControllerProvider),
       equals(const AsyncValue<AuthUserEntity?>.data(null)),
     );
   });
@@ -81,7 +84,7 @@ void main() {
         mockCheckEmail('existing@example.com'),
       ).thenAnswer((_) async => true);
 
-      final result = await controller.checkEmail('existing@example.com');
+      final result = await ctrl.checkEmail('existing@example.com');
 
       expect(result, isTrue);
     });
@@ -89,7 +92,7 @@ void main() {
     test('returns false when email is new', () async {
       when(mockCheckEmail('new@example.com')).thenAnswer((_) async => false);
 
-      final result = await controller.checkEmail('new@example.com');
+      final result = await ctrl.checkEmail('new@example.com');
 
       expect(result, isFalse);
     });
@@ -97,10 +100,10 @@ void main() {
     test('sets state to error and returns false on failure', () async {
       when(mockCheckEmail(any)).thenThrow(const NetworkFailure());
 
-      final result = await controller.checkEmail('user@example.com');
+      final result = await ctrl.checkEmail('user@example.com');
 
       expect(result, isFalse);
-      expect(controller.state, isA<AsyncError>());
+      expect(container.read(authControllerProvider), isA<AsyncError>());
     });
   });
 
@@ -109,13 +112,18 @@ void main() {
   group('login', () {
     test('transitions loading → data(user) on success', () async {
       final states = <AsyncValue<AuthUserEntity?>>[];
-      controller.addListener((s) => states.add(s), fireImmediately: false);
+      // container.listen is the correct way to observe Notifier state changes.
+      container.listen<AsyncValue<AuthUserEntity?>>(
+        authControllerProvider,
+        (_, next) => states.add(next),
+        fireImmediately: false,
+      );
 
       when(
         mockLogin('user@example.com', 'Secret1!'),
       ).thenAnswer((_) async => tUser);
 
-      await controller.login('user@example.com', 'Secret1!');
+      await ctrl.login('user@example.com', 'Secret1!');
 
       expect(states.first, isA<AsyncLoading>());
       expect(
@@ -129,10 +137,10 @@ void main() {
       () async {
         when(mockLogin(any, any)).thenThrow(const UnauthorizedFailure());
 
-        await controller.login('user@example.com', 'wrong');
+        await ctrl.login('user@example.com', 'wrong');
 
         expect(
-          (controller.state as AsyncError).error,
+          (container.read(authControllerProvider) as AsyncError).error,
           isA<UnauthorizedFailure>(),
         );
       },
@@ -143,10 +151,10 @@ void main() {
       () async {
         when(mockLogin(any, any)).thenThrow(const UnverifiedUserFailure());
 
-        await controller.login('user@example.com', 'Secret1!');
+        await ctrl.login('user@example.com', 'Secret1!');
 
         expect(
-          (controller.state as AsyncError).error,
+          (container.read(authControllerProvider) as AsyncError).error,
           isA<UnverifiedUserFailure>(),
         );
       },
@@ -156,33 +164,30 @@ void main() {
   // ── register ──────────────────────────────────────────────────────────────
 
   group('register', () {
-    test(
-      'sets state to data(null) on success (no tokens before verification)',
-      () async {
-        when(
-          mockRegister(
-            email: anyNamed('email'),
-            username: anyNamed('username'),
-            password: anyNamed('password'),
-            gender: anyNamed('gender'),
-            dateOfBirth: anyNamed('dateOfBirth'),
-          ),
-        ).thenAnswer((_) async {});
+    test('sets state to data(null) on success', () async {
+      when(
+        mockRegister(
+          email: anyNamed('email'),
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          gender: anyNamed('gender'),
+          dateOfBirth: anyNamed('dateOfBirth'),
+        ),
+      ).thenAnswer((_) async {});
 
-        await controller.register(
-          email: 'new@example.com',
-          username: 'newuser',
-          password: 'Secret1!',
-          gender: 'MALE',
-          dateOfBirth: '2000-01-01',
-        );
+      await ctrl.register(
+        email: 'new@example.com',
+        username: 'newuser',
+        password: 'Secret1!',
+        gender: 'MALE',
+        dateOfBirth: '2000-01-01',
+      );
 
-        expect(
-          controller.state,
-          equals(const AsyncValue<AuthUserEntity?>.data(null)),
-        );
-      },
-    );
+      expect(
+        container.read(authControllerProvider),
+        equals(const AsyncValue<AuthUserEntity?>.data(null)),
+      );
+    });
 
     test('sets state to error(ConflictFailure) for duplicate email', () async {
       when(
@@ -195,7 +200,7 @@ void main() {
         ),
       ).thenThrow(const ConflictFailure('Email already in use.'));
 
-      await controller.register(
+      await ctrl.register(
         email: 'dup@example.com',
         username: 'user',
         password: 'Secret1!',
@@ -203,7 +208,10 @@ void main() {
         dateOfBirth: '2000-01-01',
       );
 
-      expect((controller.state as AsyncError).error, isA<ConflictFailure>());
+      expect(
+        (container.read(authControllerProvider) as AsyncError).error,
+        isA<ConflictFailure>(),
+      );
     });
   });
 
@@ -215,10 +223,10 @@ void main() {
         mockVerifyEmail('user@example.com', 'ABC123'),
       ).thenAnswer((_) async => tUser);
 
-      await controller.verifyEmail('user@example.com', 'ABC123');
+      await ctrl.verifyEmail('user@example.com', 'ABC123');
 
       expect(
-        controller.state,
+        container.read(authControllerProvider),
         equals(const AsyncValue<AuthUserEntity?>.data(tUser)),
       );
     });
@@ -226,9 +234,9 @@ void main() {
     test('sets state to error for invalid token', () async {
       when(mockVerifyEmail(any, any)).thenThrow(const UnauthorizedFailure());
 
-      await controller.verifyEmail('user@example.com', 'WRONG1');
+      await ctrl.verifyEmail('user@example.com', 'WRONG1');
 
-      expect(controller.state, isA<AsyncError>());
+      expect(container.read(authControllerProvider), isA<AsyncError>());
     });
   });
 
@@ -237,12 +245,12 @@ void main() {
   group('resendVerification', () {
     test('calls use case without changing auth state', () async {
       when(mockResend(any)).thenAnswer((_) async {});
-      final stateBefore = controller.state;
+      final stateBefore = container.read(authControllerProvider);
 
-      await controller.resendVerification('user@example.com');
+      await ctrl.resendVerification('user@example.com');
 
       verify(mockResend('user@example.com')).called(1);
-      expect(controller.state, equals(stateBefore));
+      expect(container.read(authControllerProvider), equals(stateBefore));
     });
   });
 
@@ -253,15 +261,15 @@ void main() {
       'resets state to data(null) and calls signOut + Google signOut',
       () async {
         when(mockLogin(any, any)).thenAnswer((_) async => tUser);
-        await controller.login('user@example.com', 'Secret1!');
+        await ctrl.login('user@example.com', 'Secret1!');
 
         when(mockLogout()).thenAnswer((_) async {});
         when(mockGoogle.signOut()).thenAnswer((_) async {});
 
-        await controller.logout();
+        await ctrl.logout();
 
         expect(
-          controller.state,
+          container.read(authControllerProvider),
           equals(const AsyncValue<AuthUserEntity?>.data(null)),
         );
         verify(mockLogout()).called(1);
@@ -275,15 +283,15 @@ void main() {
   group('logoutAll', () {
     test('resets state to data(null) and calls signOutAll', () async {
       when(mockLogin(any, any)).thenAnswer((_) async => tUser);
-      await controller.login('user@example.com', 'Secret1!');
+      await ctrl.login('user@example.com', 'Secret1!');
 
       when(mockLogoutAll()).thenAnswer((_) async {});
       when(mockGoogle.signOut()).thenAnswer((_) async {});
 
-      await controller.logoutAll();
+      await ctrl.logoutAll();
 
       expect(
-        controller.state,
+        container.read(authControllerProvider),
         equals(const AsyncValue<AuthUserEntity?>.data(null)),
       );
       verify(mockLogoutAll()).called(1);
@@ -293,27 +301,34 @@ void main() {
   // ── forgotPassword ─────────────────────────────────────────────────────────
 
   group('forgotPassword', () {
-    test(
-      'does not change state on success (security: never reveal existence)',
-      () async {
-        when(mockForgotPassword(any)).thenAnswer((_) async {});
-        final stateBefore = controller.state;
+    test('does not change state on success', () async {
+      when(mockForgotPassword(any)).thenAnswer((_) async {});
+      final stateBefore = container.read(authControllerProvider);
 
-        await controller.forgotPassword('user@example.com');
+      await ctrl.forgotPassword('user@example.com');
 
-        expect(controller.state, equals(stateBefore));
-      },
-    );
+      expect(container.read(authControllerProvider), equals(stateBefore));
+    });
 
-    test('swallows network error without changing state', () async {
+    test('swallows NetworkFailure without changing state', () async {
       when(mockForgotPassword(any)).thenThrow(const NetworkFailure());
 
-      await expectLater(
-        controller.forgotPassword('user@example.com'),
-        completes,
+      await expectLater(ctrl.forgotPassword('user@example.com'), completes);
+
+      expect(container.read(authControllerProvider), isNot(isA<AsyncError>()));
+    });
+
+    test('sets state to error for ValidationFailure', () async {
+      when(
+        mockForgotPassword(any),
+      ).thenThrow(const ValidationFailure('Invalid email address format.'));
+
+      await ctrl.forgotPassword('not-an-email');
+
+      expect(
+        (container.read(authControllerProvider) as AsyncError).error,
+        isA<ValidationFailure>(),
       );
-      // Error is swallowed — state must not be an error.
-      expect(controller.state, isNot(isA<AsyncError>()));
     });
   });
 
@@ -331,7 +346,7 @@ void main() {
         ),
       ).thenAnswer((_) async {});
 
-      await controller.resetPassword(
+      await ctrl.resetPassword(
         email: 'user@example.com',
         token: 'ABC123',
         newPassword: 'NewSecret1!',
@@ -339,7 +354,7 @@ void main() {
       );
 
       expect(
-        controller.state,
+        container.read(authControllerProvider),
         equals(const AsyncValue<AuthUserEntity?>.data(null)),
       );
     });
@@ -355,14 +370,14 @@ void main() {
         ),
       ).thenThrow(const UnauthorizedFailure());
 
-      await controller.resetPassword(
+      await ctrl.resetPassword(
         email: 'user@example.com',
         token: 'EXPIRE',
         newPassword: 'NewSecret1!',
         confirmPassword: 'NewSecret1!',
       );
 
-      expect(controller.state, isA<AsyncError>());
+      expect(container.read(authControllerProvider), isA<AsyncError>());
     });
   });
 
@@ -374,10 +389,10 @@ void main() {
         mockDeleteAccount(password: anyNamed('password')),
       ).thenAnswer((_) async {});
 
-      await controller.deleteAccount(password: 'Secret1!');
+      await ctrl.deleteAccount(password: 'Secret1!');
 
       expect(
-        controller.state,
+        container.read(authControllerProvider),
         equals(const AsyncValue<AuthUserEntity?>.data(null)),
       );
       verify(mockDeleteAccount(password: 'Secret1!')).called(1);
@@ -388,9 +403,9 @@ void main() {
         mockDeleteAccount(password: anyNamed('password')),
       ).thenThrow(const UnauthorizedFailure());
 
-      await controller.deleteAccount(password: 'wrong');
+      await ctrl.deleteAccount(password: 'wrong');
 
-      expect(controller.state, isA<AsyncError>());
+      expect(container.read(authControllerProvider), isA<AsyncError>());
     });
   });
 
@@ -400,11 +415,11 @@ void main() {
     test('returns false and does not change state when user cancels', () async {
       when(mockGoogle.signIn()).thenAnswer((_) async => null);
 
-      final result = await controller.loginWithGoogle();
+      final result = await ctrl.loginWithGoogle();
 
       expect(result, isFalse);
       expect(
-        controller.state,
+        container.read(authControllerProvider),
         equals(const AsyncValue<AuthUserEntity?>.data(null)),
       );
     });

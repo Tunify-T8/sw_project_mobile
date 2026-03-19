@@ -16,25 +16,12 @@ import 'package:software_project/features/auth/domain/usecases/verify_email_usec
 
 /// Central mock generation file.
 ///
-/// ALL mocks for the auth module are declared here in a single
-/// @GenerateMocks annotation. Build_runner reads this file and
-/// generates test/helpers/mocks.mocks.dart containing every Mock class.
-///
-/// Every test file imports:
-///   import '../helpers/mocks.dart';          // for the type names
-///   import '../helpers/mocks.mocks.dart';    // for the generated MockXxx classes
-///
-/// To add a new mock: add the class to the list below, then run:
+/// Run after any change:
 ///   dart run build_runner build --delete-conflicting-outputs
 @GenerateMocks([
-  // ── Repository contract ───────────────────────────────────────────────────
   AuthRepository,
-
-  // ── Data layer ────────────────────────────────────────────────────────────
   AuthApi,
   TokenStorage,
-
-  // ── Use cases ─────────────────────────────────────────────────────────────
   CheckEmailUseCase,
   RegisterUseCase,
   VerifyEmailUseCase,
@@ -45,8 +32,6 @@ import 'package:software_project/features/auth/domain/usecases/verify_email_usec
   ForgotPasswordUseCase,
   ResetPasswordUseCase,
   DeleteAccountUseCase,
-
-  // ── Services ──────────────────────────────────────────────────────────────
   GoogleSignInService,
 ])
 void main() {}
