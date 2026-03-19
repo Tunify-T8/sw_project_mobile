@@ -1,25 +1,43 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/design_system/spacing.dart';
 import 'package:software_project/core/design_system/typography.dart';
 import 'package:software_project/core/utils/url_launcher_util.dart';
+import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
+
+// ── Google OAuth configuration ────────────────────────────────────────────────
+//
+// HOW TO COMPLETE GOOGLE SIGN-IN (once backend provides credentials):
+//
+//   FRONTEND (this file — already wired):
+//     1. In google_sign_in_service.dart, uncomment serverClientId and set it
+//        to the Web Client ID from Google Cloud Console.
+//     2. That's all the Flutter side needs. The rest is already implemented.
+//
+//   BACKEND (your backend developer):
+//     1. Receive the idToken POST'd to your /auth/google endpoint.
+//     2. Verify it using google-auth-library (Node) or equivalent.
+//     3. Check token.audience matches your Web Client ID.
+//     4. Create or fetch the user, then return your own JWT pair.
+//
+//   Once the backend endpoint is live:
+//     1. Implement OAuthLoginUseCase.call(idToken) to POST to /auth/google.
+//     2. In AuthController.loginWithGoogle(), call the use case after signIn().
 
 /// Sign in or create account — OAuth choice + email entry screen.
 ///
 /// [initialMode] is set by the landing screen:
 /// - `'login'`  → user pressed "Log in"
 /// - `'create'` → user pressed "Create an account" (default / null)
-///
-/// This mode is passed through to [EmailEntryScreen] so that the routing
-/// after checkEmail uses the correct logic per scenario.
-class SignInOrCreateScreen extends StatelessWidget {
+class SignInOrCreateScreen extends ConsumerWidget {
   final String? initialMode;
   const SignInOrCreateScreen({super.key, this.initialMode});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -47,13 +65,17 @@ class SignInOrCreateScreen extends StatelessWidget {
               _LegalText(),
               const SizedBox(height: AppSpacing.xxl),
 
+              // Facebook — no backend support yet, shows coming soon.
               _OAuthButton(
                 label: 'Continue with Facebook',
                 backgroundColor: AppColors.facebookBlue,
                 icon: const Icon(Icons.facebook, color: Colors.white, size: 22),
-                onTap: () => _onOAuth(context, 'facebook'),
+                onTap: () => _onUnsupportedOAuth(context, 'Facebook'),
               ),
               const SizedBox(height: AppSpacing.md),
+
+              // Google — fully wired. Needs serverClientId in
+              // google_sign_in_service.dart and the backend /auth/google endpoint.
               _OAuthButton(
                 label: 'Continue with Google',
                 backgroundColor: AppColors.googleGrey,
@@ -62,14 +84,20 @@ class SignInOrCreateScreen extends StatelessWidget {
                   color: Colors.white,
                   size: 26,
                 ),
-                onTap: () => _onOAuth(context, 'google'),
+                //Note: the commented line below can be used to bypass
+                //Google sign-in during development before the backend endpoint
+                // is ready. It shows a coming soon message instead of the native dialog.:
+                onTap: () => _onGoogleSignIn(context, ref),
+                //onTap: () => _onUnsupportedOAuth(context, 'Google')
               ),
               const SizedBox(height: AppSpacing.md),
+
+              // Apple — no backend support yet, shows coming soon.
               _OAuthButton(
                 label: 'Continue with Apple',
                 backgroundColor: AppColors.appleBlack,
                 icon: const Icon(Icons.apple, color: Colors.white, size: 22),
-                onTap: () => _onOAuth(context, 'apple'),
+                onTap: () => _onUnsupportedOAuth(context, 'Apple'),
               ),
 
               const SizedBox(height: AppSpacing.xl),
@@ -84,7 +112,6 @@ class SignInOrCreateScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Pass initialMode so EmailEntryScreen knows which flow we're in.
               _EmailEntryField(
                 onSubmit: (email) => Navigator.pushNamed(
                   context,
@@ -115,9 +142,49 @@ class SignInOrCreateScreen extends StatelessWidget {
     );
   }
 
-  void _onOAuth(BuildContext context, String provider) {
-    // TODO: Wire to authControllerProvider.loginWithGoogle() for 'google'
-    debugPrint('OAuth: $provider');
+  /// Handles Google Sign-In.
+  ///
+  /// Flow:
+  ///   1. Calls GoogleSignInService.signIn() (native dialog).
+  ///   2. If user cancels → does nothing.
+  ///   3. If successful → currently a stub (backend endpoint pending).
+  ///      Once /auth/google exists, OAuthLoginUseCase will post the idToken
+  ///      and the controller will set state to data(user).
+  ///
+  /// What you see today in mock mode: the native Google dialog appears,
+  /// but sign-in completes without setting an authenticated session because
+  /// the backend call is not yet implemented. When the endpoint is ready,
+  /// this screen needs no changes — only OAuthLoginUseCase and
+  /// AuthController.loginWithGoogle() need to be completed.
+  Future<void> _onGoogleSignIn(BuildContext context, WidgetRef ref) async {
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .loginWithGoogle();
+
+    if (!context.mounted) return;
+
+    if (!result) {
+      // User cancelled or Google sign-in failed — nothing to do.
+      return;
+    }
+
+    // TODO: Navigate to home once OAuthLoginUseCase is implemented and
+    // AuthController.loginWithGoogle() sets state to data(user).
+    // For now, show an informational message.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Google sign-in successful — backend endpoint coming soon.',
+        ),
+      ),
+    );
+  }
+
+  /// Shows a "coming soon" snackbar for OAuth providers not yet supported.
+  void _onUnsupportedOAuth(BuildContext context, String provider) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$provider sign-in coming soon.')));
   }
 }
 

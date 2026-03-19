@@ -17,9 +17,6 @@ void main() {
     repository = AuthRepositoryImpl(mockApi, mockStorage);
   });
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  // No leading underscores — Dart lint requires local functions to not start with _
-
   Response<dynamic> makeOk(Map<String, dynamic> data) => Response(
     data: data,
     requestOptions: RequestOptions(path: '/test'),
@@ -60,7 +57,6 @@ void main() {
       when(
         mockApi.checkEmail(any),
       ).thenAnswer((_) async => makeOk({'exists': true}));
-
       expect(await repository.checkEmail('existing@example.com'), isTrue);
     });
 
@@ -68,7 +64,6 @@ void main() {
       when(
         mockApi.checkEmail(any),
       ).thenAnswer((_) async => makeOk({'exists': false}));
-
       expect(await repository.checkEmail('new@example.com'), isFalse);
     });
 
@@ -79,7 +74,6 @@ void main() {
           type: DioExceptionType.connectionTimeout,
         ),
       );
-
       expect(
         () => repository.checkEmail('user@example.com'),
         throwsA(isA<NetworkFailure>()),
@@ -90,12 +84,14 @@ void main() {
   // ── login ────────────────────────────────────────────────────────────────────
 
   group('login', () {
-    test('returns AuthUserEntity and saves tokens on success', () async {
+    test('returns AuthUserEntity and saves session on success', () async {
       when(mockApi.login(any)).thenAnswer((_) async => makeOk(makeAuthJson()));
+      // FIX: repository now calls saveSession, not saveTokens
       when(
-        mockStorage.saveTokens(
+        mockStorage.saveSession(
           accessToken: anyNamed('accessToken'),
           refreshToken: anyNamed('refreshToken'),
+          user: anyNamed('user'),
         ),
       ).thenAnswer((_) async {});
 
@@ -104,9 +100,10 @@ void main() {
       expect(result.email, equals('user@example.com'));
       expect(result.isVerified, isTrue);
       verify(
-        mockStorage.saveTokens(
+        mockStorage.saveSession(
           accessToken: 'access-abc',
           refreshToken: 'refresh-xyz',
+          user: anyNamed('user'),
         ),
       ).called(1);
     });
@@ -115,7 +112,6 @@ void main() {
       when(
         mockApi.login(any),
       ).thenAnswer((_) async => makeOk(makeAuthJson(isVerified: false)));
-
       expect(
         () => repository.login('user@example.com', 'Secret1!'),
         throwsA(isA<UnverifiedUserFailure>()),
@@ -124,7 +120,6 @@ void main() {
 
     test('throws UnauthorizedFailure on 401', () {
       when(mockApi.login(any)).thenThrow(makeDioError(401, '/auth/login'));
-
       expect(
         () => repository.login('user@example.com', 'wrong'),
         throwsA(isA<UnauthorizedFailure>()),
@@ -133,7 +128,6 @@ void main() {
 
     test('throws ConflictFailure on 409', () {
       when(mockApi.login(any)).thenThrow(makeDioError(409, '/auth/login'));
-
       expect(
         () => repository.login('user@example.com', 'pass'),
         throwsA(isA<ConflictFailure>()),
@@ -142,7 +136,6 @@ void main() {
 
     test('throws UnknownFailure on unexpected exception', () {
       when(mockApi.login(any)).thenThrow(Exception('unexpected'));
-
       expect(
         () => repository.login('user@example.com', 'pass'),
         throwsA(isA<UnknownFailure>()),
@@ -157,7 +150,6 @@ void main() {
       when(
         mockApi.register(any),
       ).thenAnswer((_) async => makeOk({'message': 'User created'}));
-
       await expectLater(
         repository.register(
           email: 'new@example.com',
@@ -174,7 +166,6 @@ void main() {
       when(
         mockApi.register(any),
       ).thenThrow(makeDioError(409, '/auth/register'));
-
       expect(
         () => repository.register(
           email: 'dup@example.com',
@@ -191,7 +182,6 @@ void main() {
       when(
         mockApi.register(any),
       ).thenThrow(makeDioError(400, '/auth/register'));
-
       expect(
         () => repository.register(
           email: 'bad',
@@ -208,14 +198,16 @@ void main() {
   // ── verifyEmail ──────────────────────────────────────────────────────────────
 
   group('verifyEmail', () {
-    test('returns AuthUserEntity and saves tokens on success', () async {
+    test('returns AuthUserEntity and saves session on success', () async {
       when(
         mockApi.verifyEmail(any),
       ).thenAnswer((_) async => makeOk(makeAuthJson()));
+      // FIX: repository now calls saveSession, not saveTokens
       when(
-        mockStorage.saveTokens(
+        mockStorage.saveSession(
           accessToken: anyNamed('accessToken'),
           refreshToken: anyNamed('refreshToken'),
+          user: anyNamed('user'),
         ),
       ).thenAnswer((_) async {});
 
@@ -223,9 +215,10 @@ void main() {
 
       expect(result.email, equals('user@example.com'));
       verify(
-        mockStorage.saveTokens(
+        mockStorage.saveSession(
           accessToken: 'access-abc',
           refreshToken: 'refresh-xyz',
+          user: anyNamed('user'),
         ),
       ).called(1);
     });
@@ -234,7 +227,6 @@ void main() {
       when(
         mockApi.verifyEmail(any),
       ).thenThrow(makeDioError(401, '/auth/verify-email'));
-
       expect(
         () => repository.verifyEmail('user@example.com', 'WRONG1'),
         throwsA(isA<UnauthorizedFailure>()),
@@ -245,36 +237,38 @@ void main() {
   // ── signOut ──────────────────────────────────────────────────────────────────
 
   group('signOut', () {
-    test('calls clearTokens on success', () async {
+    test('calls clearSession on success', () async {
       when(
         mockStorage.getRefreshToken(),
       ).thenAnswer((_) async => 'refresh-xyz');
       when(
         mockApi.signOut(any),
       ).thenAnswer((_) async => makeOk({'message': 'OK'}));
-      when(mockStorage.clearTokens()).thenAnswer((_) async {});
+      // FIX: repository now calls clearSession, not clearTokens
+      when(mockStorage.clearSession()).thenAnswer((_) async {});
 
       await repository.signOut();
 
-      verify(mockStorage.clearTokens()).called(1);
+      verify(mockStorage.clearSession()).called(1);
     });
   });
 
   // ── signOutAll ───────────────────────────────────────────────────────────────
 
   group('signOutAll', () {
-    test('calls clearTokens after signing out all devices', () async {
+    test('calls clearSession after signing out all devices', () async {
       when(
         mockStorage.getRefreshToken(),
       ).thenAnswer((_) async => 'refresh-xyz');
       when(
         mockApi.signOutAll(any),
       ).thenAnswer((_) async => makeOk({'message': 'OK'}));
-      when(mockStorage.clearTokens()).thenAnswer((_) async {});
+      // FIX: repository now calls clearSession, not clearTokens
+      when(mockStorage.clearSession()).thenAnswer((_) async {});
 
       await repository.signOutAll();
 
-      verify(mockStorage.clearTokens()).called(1);
+      verify(mockStorage.clearSession()).called(1);
     });
   });
 
@@ -285,7 +279,6 @@ void main() {
       when(
         mockApi.forgotPassword(any),
       ).thenAnswer((_) async => makeOk({'message': 'Email sent'}));
-
       await expectLater(
         repository.forgotPassword('user@example.com'),
         completes,
@@ -294,7 +287,6 @@ void main() {
   });
 
   // ── resetPassword ────────────────────────────────────────────────────────────
-  // resetPassword on AuthApi takes NAMED parameters — use anyNamed(), not any()
 
   group('resetPassword', () {
     test('completes without error on valid token', () async {
@@ -307,6 +299,8 @@ void main() {
           signoutAll: anyNamed('signoutAll'),
         ),
       ).thenAnswer((_) async => makeOk({'message': 'Password reset'}));
+      // signoutAll=true by default, so clearSession is called
+      when(mockStorage.clearSession()).thenAnswer((_) async {});
 
       await expectLater(
         repository.resetPassword(
@@ -343,27 +337,26 @@ void main() {
   });
 
   // ── deleteAccount ────────────────────────────────────────────────────────────
-  // deleteAccount on AuthApi takes a NAMED parameter — use password: anyNamed('password')
 
   group('deleteAccount', () {
-    test('completes and clears tokens on success', () async {
+    test('completes and clears session on success', () async {
       when(
         mockApi.deleteAccount(password: anyNamed('password')),
       ).thenAnswer((_) async => makeOk({'message': 'Deleted'}));
-      when(mockStorage.clearTokens()).thenAnswer((_) async {});
+      // FIX: repository now calls clearSession, not clearTokens
+      when(mockStorage.clearSession()).thenAnswer((_) async {});
 
       await expectLater(
         repository.deleteAccount(password: 'Secret1!'),
         completes,
       );
-      verify(mockStorage.clearTokens()).called(1);
+      verify(mockStorage.clearSession()).called(1);
     });
 
     test('throws UnauthorizedFailure for wrong password', () {
       when(
         mockApi.deleteAccount(password: anyNamed('password')),
       ).thenThrow(makeDioError(401, '/auth/delete-account'));
-
       expect(
         () => repository.deleteAccount(password: 'wrong'),
         throwsA(isA<UnauthorizedFailure>()),
@@ -374,7 +367,6 @@ void main() {
       when(
         mockApi.deleteAccount(password: anyNamed('password')),
       ).thenThrow(makeDioError(403, '/auth/delete-account'));
-
       expect(
         () => repository.deleteAccount(),
         throwsA(isA<ForbiddenFailure>()),
