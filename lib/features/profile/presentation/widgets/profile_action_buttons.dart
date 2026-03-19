@@ -3,41 +3,22 @@ import 'dart:io';
 import '../../data/dto/profile_dto.dart';
 import '../screens/edit_profile_screen.dart';
 import '../providers/profile_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileActionButtons extends StatelessWidget {
-  final String userName;
-  final String bio;
-  final String city;
-  final String country;
-  final File? profileImage;
-  final File? coverImage;
-  final String? instagram;
-  final String? twitter;
-  final String? website;
-  final String userType;
-  final ProfileProvider provider;
-  final Future<void> Function(ProfileDto) onUpdate;
-  final void Function(String) onUserTypeChanged;
+class ProfileActionButtons extends ConsumerWidget {
+final File? profileImage;
+final File? coverImage;
+final String userType;
 
-  const ProfileActionButtons({
-    super.key,
-    required this.userName,
-    required this.bio,
-    required this.city,
-    required this.country,
-    required this.profileImage,
-    required this.coverImage,
-    required this.instagram,
-    required this.twitter,
-    required this.website,
-    required this.userType,
-    required this.provider,
-    required this.onUpdate,
-    required this.onUserTypeChanged,
-  });
-
+const ProfileActionButtons({
+  super.key,
+  required this.profileImage,
+  required this.coverImage,
+  required this.userType,
+});
   @override
-  Widget build(BuildContext context) {
+Widget build(BuildContext context, WidgetRef ref) {
+     final profile = ref.watch(profileProvider).profile;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: Row(
@@ -48,33 +29,33 @@ class ProfileActionButtons extends StatelessWidget {
               final result = await Navigator.push<ProfileDto>(
                 context,
                 MaterialPageRoute(builder: (_) => EditProfileScreen(
-                  userName: userName,
-                  bio: bio,
-                  city: city,
-                  country: country,
-                  profileImage: profileImage,
-                  coverImage: coverImage,
-                  instagram: instagram,
-                  twitter: twitter,
-                  website: website,
-                  userType: userType,
-                  profileImageUrl: provider.state.profile?.profileImagePath,
-                  coverImageUrl: provider.state.profile?.coverImagePath,
+                userName: profile?.userName ?? '',
+                bio: profile?.bio ?? '',
+                city: profile?.city ?? '',
+                country: profile?.country ?? '',
+                profileImage: profileImage,
+                coverImage: coverImage,
+                instagram: profile?.instagram,
+                twitter: profile?.twitter,
+                website: profile?.website,
+                userType: profile?.userType ?? 'ARTIST',
+                profileImageUrl: profile?.profileImagePath,  // ← HERE
+                coverImageUrl: profile?.coverImagePath,      // ← HERE
                 )),
               );
               if (result != null) {
                 final updated = ProfileDto(
-                // server-controlled; carry from provider
-                id: provider.state.profile!.id,
-                email: provider.state.profile!.email,
-                role: provider.state.profile!.role,
-                tracksCount: provider.state.profile!.tracksCount,
-                likesReceived: provider.state.profile!.likesReceived,
-                isActive: provider.state.profile!.isActive,
-                isVerified: provider.state.profile!.isVerified,
-                followersCount: provider.state.profile!.followersCount,
-                followingCount: provider.state.profile!.followingCount,
-                // user-editable; from result of updates
+                // server-controlled
+                id: profile!.id,               // ← HERE
+                email: profile.email,          // ← HERE
+                role: profile.role,            // ← HERE
+                tracksCount: profile.tracksCount,     // ← HERE
+                likesReceived: profile.likesReceived, // ← HERE
+                isActive: profile.isActive,           // ← HERE
+                isVerified: profile.isVerified,       // ← HERE
+                followersCount: profile.followersCount, // ← HERE
+                followingCount: profile.followingCount, // ← HERE
+                // user-editable
                 userName: result.userName,
                 bio: result.bio,
                 city: result.city,
@@ -84,15 +65,14 @@ class ProfileActionButtons extends StatelessWidget {
                 twitter: result.twitter,
                 website: result.website,
                 userType: result.userType,
-                profileImagePath: result.profileImagePath == ''
+                profileImagePath: result.profileImagePath == ''  // ← HERE
                     ? null
-                    : (result.profileImagePath ?? provider.state.profile?.profileImagePath),
-                coverImagePath: result.coverImagePath == ''
+                    : (result.profileImagePath ?? profile.profileImagePath),
+                coverImagePath: result.coverImagePath == ''      // ← HERE
                     ? null
-                    : (result.coverImagePath ?? provider.state.profile?.coverImagePath),
+                    : (result.coverImagePath ?? profile.coverImagePath),
                 );
-                onUserTypeChanged(result.userType);
-                await onUpdate(updated);
+                    await ref.read(profileProvider.notifier).updateProfile(updated);
               }
             },
           ),

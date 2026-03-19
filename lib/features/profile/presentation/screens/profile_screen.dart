@@ -5,16 +5,17 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_info.dart';
 import '../widgets/profile_action_buttons.dart';
 import '../widgets/profile_share_sheet.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+ ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  late ProfileProvider _provider;
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  //late ProfileProvider _provider;
   final double profileHeight = 150;
   final double coverHeight = 150;
 
@@ -41,123 +42,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
     {'title': 'Track 2', 'duration': '4:20'},
   ];
 
-  @override
+ @override
   void initState() {
     super.initState();
-    _provider = ProfileProvider();
-    _provider.addListener(_onProfileLoaded);
-    _provider.loadProfile();
+    Future.microtask(() => ref.read(profileProvider.notifier).loadProfile());
   }
 
-  void _onProfileLoaded() {
-    if (_provider.state.isSuccess && _provider.state.profile != null) {
-      final profile = _provider.state.profile!;
-      setState(() {
-        userName = profile.userName;
-        bio = profile.bio;
-        city = profile.city;
-        country = profile.country;
-        followersCount = profile.followersCount;
-        followingCount = profile.followingCount;
-        instagram = profile.instagram;
-        twitter = profile.twitter;
-        website = profile.website;
-        userType = profile.userType;
-      });
-    }
-  }
+ @override
+Widget build(BuildContext context) {
+  final state = ref.watch(profileProvider);
+  final profile = state.profile;
 
-  @override
-  void dispose() {
-    _provider.removeListener(_onProfileLoaded);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  return Scaffold(
+    backgroundColor: Colors.black,
+    appBar: AppBar(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cast),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () => ProfileShareSheet(
-              context: context,
-              userName: userName,
-              bio: bio,
-              followersCount: followersCount,
-              tracksCount: _provider.state.profile?.tracksCount ?? 0,
-              profileImage: profileImage,
-              instagram: instagram,
-              twitter: twitter,
-              website: website,
-              bioStyle: bioStyle,
-            ).show(),
-          ),
-        ],
-      ),
-      body: _provider.state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _provider.state.isError
-              ? Center(child: Text(_provider.state.errorMessage ?? 'Error',
-                  style: const TextStyle(color: Colors.white)))
-              : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ProfileHeader(
-                        coverHeight: coverHeight,
-                        profileHeight: profileHeight,
-                        coverUrl: _provider.state.profile?.coverImagePath,
-                        profileUrl: _provider.state.profile?.profileImagePath,
-                      ),
-                      SizedBox(height: profileHeight / 2 + 8),
-                      ProfileInfo(
-                        userName: userName,
-                        city: city,
-                        country: country,
-                        bio: bio,
-                        followersCount: followersCount,
-                        followingCount: followingCount,
-                        nameStyle: nameStyle,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.cast),
+          onPressed: () {},
+        ),
+        IconButton(
+          icon: const Icon(Icons.more_vert),
+          onPressed: () => ProfileShareSheet(
+            context: context,
+            userName: profile?.userName ?? '',
+            bio: profile?.bio ?? '',
+            followersCount: profile?.followersCount ?? 0,
+            tracksCount: profile?.tracksCount ?? 0,
+            profileImage: profileImage,
+            instagram: profile?.instagram,
+            twitter: profile?.twitter,
+            website: profile?.website,
+            bioStyle: bioStyle,
+          ).show(),
+        ),
+      ],
+    ),
+    body: state.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : state.isError
+            ? Center(child: Text(state.errorMessage ?? 'Error',
+                style: const TextStyle(color: Colors.white)))
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ProfileHeader(
+                      coverHeight: coverHeight,
+                      profileHeight: profileHeight,
+                      coverUrl: profile?.coverImagePath,
+                      profileUrl: profile?.profileImagePath,
+                    ),
+                    SizedBox(height: profileHeight / 2 + 8),
+                    ProfileInfo(
+                      userName: profile?.userName ?? '',
+                      city: profile?.city ?? '',
+                      country: profile?.country ?? '',
+                      bio: profile?.bio ?? '',
+                      followersCount: profile?.followersCount ?? 0,
+                      followingCount: profile?.followingCount ?? 0,
+                      nameStyle: nameStyle,
+                      bioStyle: bioStyle,
+                      followerStyle: followerStyle,
+                      onShowMore: () => ProfileShareSheet(
+                        context: context,
+                        userName: profile?.userName ?? '',
+                        bio: profile?.bio ?? '',
+                        followersCount: profile?.followersCount ?? 0,
+                        tracksCount: profile?.tracksCount ?? 0,
+                        profileImage: profileImage,
+                        instagram: profile?.instagram,
+                        twitter: profile?.twitter,
+                        website: profile?.website,
                         bioStyle: bioStyle,
-                        followerStyle: followerStyle,
-                        onShowMore: () => ProfileShareSheet(
-                          context: context,
-                          userName: userName,
-                          bio: bio,
-                          followersCount: followersCount,
-                          tracksCount: _provider.state.profile?.tracksCount ?? 0,//to read I replaced the local variable
-                          profileImage: profileImage,
-                          instagram: instagram,
-                          twitter: twitter,
-                          website: website,
-                          bioStyle: bioStyle,
-                        ).showInfoSheet(),
-                        actionButtons: ProfileActionButtons(
-                          userName: userName,
-                          bio: bio,
-                          city: city,
-                          country: country,
-                          profileImage: profileImage,
-                          coverImage: coverImage,
-                          instagram: instagram,
-                          twitter: twitter,
-                          website: website,
-                          userType: userType,
-                          provider: _provider,
-                          onUpdate: (updated) => _provider.updateProfile(updated),
-                          onUserTypeChanged: (type) => setState(() => userType = type),
-                        ),
+                      ).showInfoSheet(),
+                      actionButtons: ProfileActionButtons(
+                        profileImage: profileImage,
+                        coverImage: coverImage,
+                        userType: profile?.userType ?? 'ARTIST',
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-    );
-  }
+              ),
+  );
+}
 }
