@@ -91,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               userName: userName,
               bio: bio,
               followersCount: followersCount,
-              tracksCount: tracks.length,
+              tracksCount: _provider.state.profile?.tracksCount ?? 0,
               profileImage: profileImage,
               instagram: instagram,
               twitter: twitter,
@@ -132,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           userName: userName,
                           bio: bio,
                           followersCount: followersCount,
-                          tracksCount: tracks.length,
+                          tracksCount: _provider.state.profile?.tracksCount ?? 0,//to read I replaced the local variable
                           profileImage: profileImage,
                           instagram: instagram,
                           twitter: twitter,

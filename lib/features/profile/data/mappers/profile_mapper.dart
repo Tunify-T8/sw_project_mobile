@@ -19,7 +19,11 @@ class ProfileMapper {
     final country = locationParts.length > 1 ? locationParts[1].trim() : '';
 
     return ProfileDto(
+      id: user['id'] ?? '',           // ADD
       userName: user['username'] ?? '',
+      displayName: user['displayName'],  // ADD
+      email: user['email'] ?? '',     // ADD
+      role: user['role'] ?? 'USER',   // ADD
       bio: user['bio'] ?? '',
       city: city,
       country: country,
@@ -27,13 +31,17 @@ class ProfileMapper {
       coverImagePath: user['coverUrl'],
       followersCount: user['followersCount'] ?? 0,
       followingCount: user['followingCount'] ?? 0,
+      tracksCount: user['tracksCount'] ?? 0,      // ADD
+      likesReceived: user['likesReceived'] ?? 0,  // ADD
       userType: user['userType'] ?? 'ARTIST',
       visibility: user['visibility'] ?? 'PUBLIC',
-      instagram: null, // comes from social_links call
-      twitter: null,   // comes from social_links call
-      website: null,   // comes from social_links call
+      isActive: user['isActive'] ?? true,         // ADD
+      isVerified: user['isVerified'] ?? false,    // ADD
+      instagram: null,
+      twitter: null,
+      website: null,
     );
-  }
+}
 
   static ProfileDto mergeSocialLinks(
     ProfileDto profile,
@@ -43,7 +51,11 @@ class ProfileMapper {
     final links = socialJson['socialLinks'] ?? socialJson;
 
     return ProfileDto(
+      id: profile.id,                        // added after be changed
       userName: profile.userName,
+      displayName: profile.displayName,      // added after be changed
+      email: profile.email,                  // added after be changed
+      role: profile.role,                   //added after be changed
       bio: profile.bio,
       city: profile.city,
       country: profile.country,
@@ -51,8 +63,12 @@ class ProfileMapper {
       coverImagePath: profile.coverImagePath,
       followersCount: profile.followersCount,
       followingCount: profile.followingCount,
+      tracksCount: profile.tracksCount,      // added after be changed
+      likesReceived: profile.likesReceived,  // added after be changed
       visibility: profile.visibility,
       userType: profile.userType,
+      isActive: profile.isActive,            // added after be changed
+      isVerified: profile.isVerified,        // added after be changed
       instagram: links['instagram'],
       twitter: links['twitter'],
       website: links['website'],

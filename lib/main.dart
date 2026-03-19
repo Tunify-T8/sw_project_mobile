@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'features/profile/presentation/screens/profile_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 void main() {
   runApp(const MyApp());
 }

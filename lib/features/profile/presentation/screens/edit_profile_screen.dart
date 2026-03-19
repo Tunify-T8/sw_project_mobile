@@ -181,6 +181,7 @@ Future<String?> uploadImage(File imageFile) async {
             twitter: _twitterController.text.isEmpty ? null : _twitterController.text,
             website: _websiteController.text.isEmpty ? null : _websiteController.text,
             userType: _isArtist ? 'ARTIST' : 'LISTENER',
+            visibility: 'PUBLIC', // carried over as is, edit screen doesn't change this
           ));
         },
         style: ElevatedButton.styleFrom(

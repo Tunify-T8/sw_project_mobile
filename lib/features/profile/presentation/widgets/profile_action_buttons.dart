@@ -64,23 +64,32 @@ class ProfileActionButtons extends StatelessWidget {
               );
               if (result != null) {
                 final updated = ProfileDto(
-                  userName: result.userName,
-                  bio: result.bio,
-                  city: result.city,
-                  country: result.country,
-                  visibility: result.visibility,
-                  followersCount: result.followersCount,
-                  followingCount: result.followingCount,
-                  instagram: result.instagram,
-                  twitter: result.twitter,
-                  website: result.website,
-                  userType: result.userType,
-                  profileImagePath: result.profileImagePath == ''
-                      ? null
-                      : (result.profileImagePath ?? provider.state.profile?.profileImagePath),
-                  coverImagePath: result.coverImagePath == ''
-                      ? null
-                      : (result.coverImagePath ?? provider.state.profile?.coverImagePath),
+                // server-controlled; carry from provider
+                id: provider.state.profile!.id,
+                email: provider.state.profile!.email,
+                role: provider.state.profile!.role,
+                tracksCount: provider.state.profile!.tracksCount,
+                likesReceived: provider.state.profile!.likesReceived,
+                isActive: provider.state.profile!.isActive,
+                isVerified: provider.state.profile!.isVerified,
+                followersCount: provider.state.profile!.followersCount,
+                followingCount: provider.state.profile!.followingCount,
+                // user-editable; from result of updates
+                userName: result.userName,
+                bio: result.bio,
+                city: result.city,
+                country: result.country,
+                visibility: result.visibility,
+                instagram: result.instagram,
+                twitter: result.twitter,
+                website: result.website,
+                userType: result.userType,
+                profileImagePath: result.profileImagePath == ''
+                    ? null
+                    : (result.profileImagePath ?? provider.state.profile?.profileImagePath),
+                coverImagePath: result.coverImagePath == ''
+                    ? null
+                    : (result.coverImagePath ?? provider.state.profile?.coverImagePath),
                 );
                 onUserTypeChanged(result.userType);
                 await onUpdate(updated);

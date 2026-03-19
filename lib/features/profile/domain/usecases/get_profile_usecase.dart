@@ -10,12 +10,15 @@ class GetProfileUsecase {
   Future<ProfileEntity> execute() async {
     final ProfileDto dto = await repository.getProfile();
 
-    // Convert DTO → Entity
     return ProfileEntity(
+      id: dto.id,
       userName: dto.userName,
+      displayName: dto.displayName,
+      email: dto.email,
+      role: dto.role,
+      bio: dto.bio,
       city: dto.city,
       country: dto.country,
-      bio: dto.bio,
       profileImagePath: dto.profileImagePath,
       coverImagePath: dto.coverImagePath,
       instagram: dto.instagram,
@@ -23,8 +26,12 @@ class GetProfileUsecase {
       website: dto.website,
       followersCount: dto.followersCount,
       followingCount: dto.followingCount,
+      tracksCount: dto.tracksCount,
+      likesReceived: dto.likesReceived,
       visibility: dto.visibility,
       userType: dto.userType,
+      isActive: dto.isActive,
+      isVerified: dto.isVerified,
     );
   }
 }
