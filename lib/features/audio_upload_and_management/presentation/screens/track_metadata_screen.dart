@@ -82,10 +82,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     final tabNotifier = ref.read(
       trackMetadataTabProvider(widget.trackId).notifier,
     );
-    final uploadFinished =
-        !uploadState.isPreparingUpload &&
-        !uploadState.isUploading &&
-        uploadState.uploadProgress >= 1;
+    final uploadFinished = uploadState.uploadFinished;
     final saveBusy = metadataState.isSaving || metadataState.isPolling;
 
     _formControllers.sync(metadataState);
@@ -119,6 +116,7 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                 ),
                 onPickReleaseDate: _pickReleaseDate,
                 onDelete: _handleDelete,
+                onCancelUpload: _handleInlineUploadCancel,
               ),
             ),
             SaveMetadataFooter(
@@ -184,6 +182,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     final shouldCancel = await confirmTrackMetadataCancel(context);
     if (!shouldCancel || !mounted) return;
 
+    await ref.read(uploadProvider.notifier).cancelCurrentUpload();
+
     try {
       await ref.read(uploadRepositoryProvider).deleteTrack(widget.trackId);
     } catch (_) {
@@ -194,5 +194,28 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     ref.invalidate(trackMetadataProvider);
 
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _handleInlineUploadCancel() async {
+    final shouldCancel = await confirmTrackMetadataCancel(context);
+    if (!shouldCancel || !mounted) return;
+
+    final restoredPreviousUpload = await ref
+        .read(uploadProvider.notifier)
+        .cancelCurrentUpload();
+    if (restoredPreviousUpload || widget.isEditMode || !mounted) return;
+
+    try {
+      await ref.read(uploadRepositoryProvider).deleteTrack(widget.trackId);
+    } catch (_) {
+      // Best-effort cleanup for partially created drafts.
+    }
+
+    ref.read(uploadProvider.notifier).discardDraft();
+    ref.invalidate(trackMetadataProvider);
+
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../domain/entities/upload_cancellation_token.dart';
 import '../dto/create_track_request_dto.dart';
 import '../dto/finalize_track_metadata_request_dto.dart';
 import '../dto/track_response_dto.dart';
@@ -29,7 +30,15 @@ class UploadApi {
     required String filePath,
     required String fileName,
     required ProgressCallback onSendProgress,
+    UploadCancellationToken? cancellationToken,
   }) async {
+    final cancelToken = CancelToken();
+    cancellationToken?.addListener(() {
+      if (!cancelToken.isCancelled) {
+        cancelToken.cancel('Upload cancelled by user.');
+      }
+    });
+
     final formData = FormData.fromMap({
       'audioFile': await MultipartFile.fromFile(filePath, filename: fileName),
     });
@@ -37,6 +46,7 @@ class UploadApi {
     final response = await dio.post(
       ApiEndpoints.uploadAudio(trackId),
       data: formData,
+      cancelToken: cancelToken,
       options: Options(contentType: 'multipart/form-data'),
       onSendProgress: onSendProgress,
     );

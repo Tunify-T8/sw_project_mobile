@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import '../../controllers/track_metadata_form_controllers.dart';
 import '../../providers/track_metadata_provider.dart';
@@ -28,6 +29,7 @@ class TrackMetadataBody extends ConsumerWidget {
     required this.scheduledReleaseLabel,
     required this.onPickReleaseDate,
     required this.onDelete,
+    required this.onCancelUpload,
   });
 
   final TrackMetadataFormControllers formControllers;
@@ -39,6 +41,7 @@ class TrackMetadataBody extends ConsumerWidget {
   final String scheduledReleaseLabel;
   final VoidCallback onPickReleaseDate;
   final VoidCallback onDelete;
+  final Future<void> Function() onCancelUpload;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -90,6 +93,7 @@ class TrackMetadataBody extends ConsumerWidget {
                         onReplaceAudio: ref
                             .read(uploadProvider.notifier)
                             .replaceCurrentAudioAndStartUpload,
+                        onCancelUpload: () => unawaited(onCancelUpload()),
                       ),
                       const SizedBox(height: 26),
                       TrackInfoFormSection(

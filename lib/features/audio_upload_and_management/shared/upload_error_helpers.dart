@@ -14,6 +14,10 @@ class UploadFlowException implements Exception {
   String toString() => message;
 }
 
+class UploadCancelledException implements Exception {
+  const UploadCancelledException();
+}
+
 String userFriendlyUploadError(
   Object error, {
   String fallback = 'Something went wrong. Please try again.',

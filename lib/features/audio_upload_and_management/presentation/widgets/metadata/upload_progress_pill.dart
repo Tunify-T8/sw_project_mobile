@@ -6,11 +6,13 @@ class UploadProgressPill extends StatelessWidget {
     required this.isPreparingUpload,
     required this.isUploading,
     required this.progress,
+    required this.onCancel,
   });
 
   final bool isPreparingUpload;
   final bool isUploading;
   final double progress;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -39,28 +41,41 @@ class UploadProgressPill extends StatelessWidget {
                 ),
               ),
             ),
-            const Positioned.fill(
+            Positioned.fill(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
-                    Spacer(),
-                    Icon(Icons.close, color: Colors.white70, size: 20),
+                    const Spacer(),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onCancel,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
             Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
+              child: IgnorePointer(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ),
                 ),

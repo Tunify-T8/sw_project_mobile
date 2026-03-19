@@ -1,5 +1,6 @@
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
+import '../../domain/entities/upload_cancellation_token.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/upload_status.dart';
@@ -42,10 +43,12 @@ class CloudinaryUploadWorkflow {
     required String trackId,
     required PickedUploadFile file,
     required void Function(double progress) onProgress,
+    UploadCancellationToken? cancellationToken,
   }) async {
     final uploadedAudio = await _mediaService.uploadAudio(
       filePath: file.path,
       fileName: file.name,
+      cancellationToken: cancellationToken,
       onSendProgress: (sent, total) {
         if (total > 0) onProgress(sent / total);
       },

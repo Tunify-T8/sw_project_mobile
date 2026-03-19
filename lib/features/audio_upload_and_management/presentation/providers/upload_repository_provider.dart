@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repository/cloudinary_upload_repository_impl.dart';
+import '../../data/services/cloudinary_upload_config.dart';
 import '../../data/repository/mock_upload_repository_impl.dart';
 import '../../data/repository/real_upload_repository_impl.dart';
 import '../../data/services/cloudinary_media_service.dart';
@@ -18,8 +19,8 @@ final cloudinaryDioProvider = Provider<Dio>((ref) {
   return Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      sendTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 5),
+      sendTimeout: const Duration(minutes: 10),
       headers: const {'Accept': 'application/json'},
     ),
   );
@@ -28,15 +29,11 @@ final cloudinaryDioProvider = Provider<Dio>((ref) {
 final cloudinaryMediaServiceProvider = Provider<CloudinaryMediaService>((ref) {
   return CloudinaryMediaService(
     dio: ref.read(cloudinaryDioProvider),
-    cloudName: const String.fromEnvironment('CLOUDINARY_CLOUD_NAME'),
-    audioUploadPreset: const String.fromEnvironment(
-      'CLOUDINARY_AUDIO_UPLOAD_PRESET',
-    ),
-    imageUploadPreset: const String.fromEnvironment(
-      'CLOUDINARY_IMAGE_UPLOAD_PRESET',
-    ),
-    apiKey: const String.fromEnvironment('CLOUDINARY_API_KEY'),
-    apiSecret: const String.fromEnvironment('CLOUDINARY_API_SECRET'),
+    cloudName: CloudinaryUploadConfig.cloudName,
+    audioUploadPreset: CloudinaryUploadConfig.audioUploadPreset,
+    imageUploadPreset: CloudinaryUploadConfig.imageUploadPreset,
+    apiKey: CloudinaryUploadConfig.apiKey,
+    apiSecret: CloudinaryUploadConfig.apiSecret,
   );
 });
 

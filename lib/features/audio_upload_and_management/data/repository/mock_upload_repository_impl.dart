@@ -1,8 +1,10 @@
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
+import '../../domain/entities/upload_cancellation_token.dart';
 import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
+import '../../shared/upload_error_helpers.dart';
 import '../services/mock_upload_service.dart';
 import 'mock_upload_repository_mapper.dart';
 
@@ -37,9 +39,17 @@ class MockUploadRepository implements UploadRepository {
     required String trackId,
     required PickedUploadFile file,
     required void Function(double progress) onProgress,
+    UploadCancellationToken? cancellationToken,
   }) async {
     await for (final progress in service.uploadProgress()) {
+      if (cancellationToken?.isCancelled ?? false) {
+        throw const UploadCancelledException();
+      }
       onProgress(progress);
+    }
+
+    if (cancellationToken?.isCancelled ?? false) {
+      throw const UploadCancelledException();
     }
 
     final data = await service.uploadAudio(

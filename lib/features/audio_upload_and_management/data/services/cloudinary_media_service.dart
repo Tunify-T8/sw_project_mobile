@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../domain/entities/upload_cancellation_token.dart';
 import '../../shared/upload_error_helpers.dart';
 import 'cloudinary_asset_delete_service.dart';
 
@@ -37,6 +38,7 @@ class CloudinaryMediaService {
     required String filePath,
     required String fileName,
     required ProgressCallback onSendProgress,
+    UploadCancellationToken? cancellationToken,
   }) {
     return _upload(
       resourceType: 'video',
@@ -44,6 +46,7 @@ class CloudinaryMediaService {
       fileName: fileName,
       uploadPreset: _audioUploadPreset,
       onSendProgress: onSendProgress,
+      cancellationToken: cancellationToken,
     );
   }
 
@@ -95,12 +98,20 @@ class CloudinaryMediaService {
     required String fileName,
     required String uploadPreset,
     ProgressCallback? onSendProgress,
+    UploadCancellationToken? cancellationToken,
   }) async {
     if (!isConfigured) {
       throw const UploadFlowException(
         'Uploads are not configured right now. Please try again later.',
       );
     }
+
+    final cancelToken = CancelToken();
+    cancellationToken?.addListener(() {
+      if (!cancelToken.isCancelled) {
+        cancelToken.cancel('Upload cancelled by user.');
+      }
+    });
 
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath, filename: fileName),
@@ -110,6 +121,7 @@ class CloudinaryMediaService {
     final response = await _dio.post<Map<String, dynamic>>(
       'https://api.cloudinary.com/v1_1/$_cloudName/$resourceType/upload',
       data: formData,
+      cancelToken: cancelToken,
       options: Options(contentType: 'multipart/form-data'),
       onSendProgress: onSendProgress,
     );

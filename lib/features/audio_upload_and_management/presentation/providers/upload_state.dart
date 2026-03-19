@@ -6,6 +6,7 @@ class UploadState {
   final bool isLoadingQuota;
   final bool isPreparingUpload;
   final bool isUploading;
+  final bool hasUploadedAudio;
   final UploadQuota? quota;
   final PickedUploadFile? selectedAudio;
   final UploadedTrack? currentTrack;
@@ -16,6 +17,7 @@ class UploadState {
     this.isLoadingQuota = false,
     this.isPreparingUpload = false,
     this.isUploading = false,
+    this.hasUploadedAudio = false,
     this.quota,
     this.selectedAudio,
     this.currentTrack,
@@ -26,15 +28,18 @@ class UploadState {
   bool get isBusy => isPreparingUpload || isUploading;
 
   bool get uploadFinished =>
-      !isPreparingUpload && !isUploading && uploadProgress >= 1.0;
+      hasUploadedAudio && !isPreparingUpload && !isUploading;
 
   UploadState copyWith({
     bool? isLoadingQuota,
     bool? isPreparingUpload,
     bool? isUploading,
+    bool? hasUploadedAudio,
     UploadQuota? quota,
     PickedUploadFile? selectedAudio,
+    bool clearSelectedAudio = false,
     UploadedTrack? currentTrack,
+    bool clearCurrentTrack = false,
     double? uploadProgress,
     String? error,
   }) {
@@ -42,9 +47,14 @@ class UploadState {
       isLoadingQuota: isLoadingQuota ?? this.isLoadingQuota,
       isPreparingUpload: isPreparingUpload ?? this.isPreparingUpload,
       isUploading: isUploading ?? this.isUploading,
+      hasUploadedAudio: hasUploadedAudio ?? this.hasUploadedAudio,
       quota: quota ?? this.quota,
-      selectedAudio: selectedAudio ?? this.selectedAudio,
-      currentTrack: currentTrack ?? this.currentTrack,
+      selectedAudio: clearSelectedAudio
+          ? null
+          : selectedAudio ?? this.selectedAudio,
+      currentTrack: clearCurrentTrack
+          ? null
+          : currentTrack ?? this.currentTrack,
       uploadProgress: uploadProgress ?? this.uploadProgress,
       error: error,
     );

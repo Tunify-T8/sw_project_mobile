@@ -1,5 +1,6 @@
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
+import '../../domain/entities/upload_cancellation_token.dart';
 import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
@@ -25,11 +26,13 @@ class CloudinaryUploadRepository implements UploadRepository {
     required String trackId,
     required PickedUploadFile file,
     required void Function(double progress) onProgress,
+    UploadCancellationToken? cancellationToken,
   }) {
     return _workflow.uploadAudio(
       trackId: trackId,
       file: file,
       onProgress: onProgress,
+      cancellationToken: cancellationToken,
     );
   }
 

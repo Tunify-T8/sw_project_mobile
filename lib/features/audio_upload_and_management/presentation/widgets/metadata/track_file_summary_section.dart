@@ -14,6 +14,7 @@ class TrackFileSummarySection extends StatelessWidget {
     required this.uploadProgress,
     required this.onPickArtwork,
     required this.onReplaceAudio,
+    required this.onCancelUpload,
   });
 
   final String displayedFileName;
@@ -24,6 +25,7 @@ class TrackFileSummarySection extends StatelessWidget {
   final double uploadProgress;
   final VoidCallback onPickArtwork;
   final VoidCallback onReplaceAudio;
+  final VoidCallback onCancelUpload;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +53,7 @@ class TrackFileSummarySection extends StatelessWidget {
                   isPreparingUpload: isPreparingUpload,
                   isUploading: isUploading,
                   progress: uploadProgress,
+                  onCancel: onCancelUpload,
                 )
               else
                 Row(

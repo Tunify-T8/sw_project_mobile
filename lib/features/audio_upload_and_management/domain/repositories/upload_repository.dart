@@ -1,5 +1,6 @@
 import '../entities/picked_upload_file.dart';
 import '../entities/track_metadata.dart';
+import '../entities/upload_cancellation_token.dart';
 import '../entities/upload_quota.dart';
 import '../entities/uploaded_track.dart';
 //contract for the upload repository,
@@ -17,6 +18,7 @@ abstract class UploadRepository {
     required String trackId,
     required PickedUploadFile file,
     required void Function(double progress) onProgress,
+    UploadCancellationToken? cancellationToken,
   });
 
   Future<UploadedTrack> finalizeMetadata({
