@@ -9,6 +9,7 @@ extension SocialUserDtoMapper on SocialUserDTO {
       avatarUrl: avatarUrl,
       coverUrl: coverUrl,
       userType: userType,
+      location: location,
       followersCount: followersCount,
       followingCount: followingCount,
       tracksUploadedCount: tracksUploadedCount,
@@ -16,7 +17,7 @@ extension SocialUserDtoMapper on SocialUserDTO {
       isVerified: isVerified,
       isFollowing: isFollowing,
       isNotificationEnabled: isNotificationEnabled,
-      blockedAt: blockedAt,
+      isBlocked: isBlocked,
     );
   }
 }

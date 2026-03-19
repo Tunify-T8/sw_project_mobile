@@ -15,8 +15,10 @@ class MockSocialGraphService {
         'id': 'follower_$number',
         'username': 'follower_user_$number',
         'avatarUrl': null,
+        'location': number.isEven ? 'Cairo, Egypt' : 'Alexandria, Egypt',
         'isFollowing': number.isEven,
         'isVerified': number % 3 == 0,
+        'isBlocked': false,
         'followersCount': 100 + number,
         'followingCount': 50 + number,
       };
@@ -37,9 +39,11 @@ class MockSocialGraphService {
         'id': 'following_$number',
         'username': 'following_user_$number',
         'avatarUrl': null,
+        'location': number.isEven ? 'Giza, Egypt' : 'Mansoura, Egypt',
         'isFollowing': true,
         'isVerified': number % 3 == 0,
         'isNotificationEnabled': number.isEven,
+        'isBlocked': false,
         'followersCount': 200 + number,
         'followingCount': 80 + number,
       };
@@ -75,11 +79,12 @@ class MockSocialGraphService {
         'id': 'blocked_$number',
         'username': 'blocked_user_$number',
         'avatarUrl': null,
+        'location': number.isEven ? 'Tanta, Egypt' : 'Aswan, Egypt',
         'isFollowing': false,
         'isVerified': false,
-        'blockedAt': DateTime.now()
-            .subtract(Duration(days: number))
-            .toIso8601String(),
+        'isBlocked': true,
+        'followersCount': 20 + number,
+        'followingCount': 10 + number,
       };
     });
   }
@@ -99,6 +104,7 @@ class MockSocialGraphService {
         'username': 'suggested_user_$number',
         'avatarUrl': null,
         'coverUrl': null,
+        'location': number.isEven ? 'Dubai, UAE' : 'Beirut, Lebanon',
         'userType': number.isEven ? 'ARTIST' : 'LISTENER',
         'mutualFollowersCount': number % 8,
         'tracksUploadedCount': number * 2,
@@ -106,6 +112,7 @@ class MockSocialGraphService {
         'followingCount': 50 + number,
         'isVerified': number % 4 == 0,
         'isFollowing': false,
+        'isBlocked': false,
         if (genre != null) 'genre': genre,
       };
     });
@@ -138,8 +145,10 @@ class MockSocialGraphService {
         'id': 'mutual_$number',
         'username': 'mutual_friend_$number',
         'avatarUrl': null,
+        'location': number.isEven ? 'Amman, Jordan' : 'Riyadh, Saudi Arabia',
         'isFollowing': true,
         'isVerified': number % 5 == 0,
+        'isBlocked': false,
         'mutualFollowersCount': 3 + (number % 7),
       };
     });

@@ -4,6 +4,7 @@ class SocialUserDTO {
   final String? avatarUrl;
   final String? coverUrl;
   final String? userType;
+  final String? location;
   final int? followersCount;
   final int? followingCount;
   final int? tracksUploadedCount;
@@ -11,7 +12,7 @@ class SocialUserDTO {
   final bool isVerified;
   final bool isFollowing;
   final bool isNotificationEnabled;
-  final String? blockedAt;
+  final bool isBlocked;
 
   const SocialUserDTO({
     required this.id,
@@ -19,6 +20,7 @@ class SocialUserDTO {
     this.avatarUrl,
     this.coverUrl,
     this.userType,
+    this.location,
     this.followersCount,
     this.followingCount,
     this.tracksUploadedCount,
@@ -26,7 +28,7 @@ class SocialUserDTO {
     this.isVerified = false,
     this.isFollowing = false,
     this.isNotificationEnabled = false,
-    this.blockedAt,
+    this.isBlocked = false,
   });
 
   factory SocialUserDTO.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class SocialUserDTO {
       avatarUrl: json['avatarUrl']?.toString(),
       coverUrl: json['coverUrl']?.toString(),
       userType: json['userType']?.toString(),
+      location: json['location']?.toString(),
       followersCount: json['followersCount'] as int?,
       followingCount: json['followingCount'] as int?,
       tracksUploadedCount: json['tracksUploadedCount'] as int?,
@@ -43,7 +46,7 @@ class SocialUserDTO {
       isVerified: json['isVerified'] ?? false,
       isFollowing: json['isFollowing'] ?? false,
       isNotificationEnabled: json['isNotificationEnabled'] ?? false,
-      blockedAt: json['blockedAt']?.toString(),
+      isBlocked: json['isBlocked'] ?? false,
     );
   }
 }

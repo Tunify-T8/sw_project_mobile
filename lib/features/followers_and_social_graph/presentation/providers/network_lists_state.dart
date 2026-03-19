@@ -1,59 +1,45 @@
 import '../../domain/entities/social_user_entity.dart';
 
 class NetworkListsState {
-  final List<SocialUserEntity> followingUsers;
-  final List<SocialUserEntity> followersUsers;
+  final List<SocialUserEntity> following;
+  final List<SocialUserEntity> followers;
   final List<SocialUserEntity> suggestedUsers;
   final List<SocialUserEntity> blockedUsers;
-  final List<SocialUserEntity> mutualUsers;
-
-  final bool isLoadingFollowing;
-  final bool isLoadingFollowers;
-  final bool isLoadingSuggested;
-  final bool isLoadingBlocked;
-  final bool isLoadingMutual;
-
+  final List<SocialUserEntity> mutualFriends;
+  final bool isLoading;
   final String? error;
+  final bool hasLoadedOnce;
 
   const NetworkListsState({
-    this.followingUsers = const [],
-    this.followersUsers = const [],
+    this.following = const [],
+    this.followers = const [],
     this.suggestedUsers = const [],
     this.blockedUsers = const [],
-    this.mutualUsers = const [],
-    this.isLoadingFollowing = false,
-    this.isLoadingFollowers = false,
-    this.isLoadingSuggested = false,
-    this.isLoadingBlocked = false,
-    this.isLoadingMutual = false,
+    this.mutualFriends = const [],
+    this.isLoading = false,
     this.error,
+    this.hasLoadedOnce = false,
   });
 
   NetworkListsState copyWith({
-    List<SocialUserEntity>? followingUsers,
-    List<SocialUserEntity>? followersUsers,
+    List<SocialUserEntity>? following,
+    List<SocialUserEntity>? followers,
     List<SocialUserEntity>? suggestedUsers,
     List<SocialUserEntity>? blockedUsers,
-    List<SocialUserEntity>? mutualUsers,
-    bool? isLoadingFollowing,
-    bool? isLoadingFollowers,
-    bool? isLoadingSuggested,
-    bool? isLoadingBlocked,
-    bool? isLoadingMutual,
+    List<SocialUserEntity>? mutualFriends,
+    bool? isLoading,
     String? error,
+    bool? hasLoadedOnce,
   }) {
     return NetworkListsState(
-      followingUsers: followingUsers ?? this.followingUsers,
-      followersUsers: followersUsers ?? this.followersUsers,
+      following: following ?? this.following,
+      followers: followers ?? this.followers,
       suggestedUsers: suggestedUsers ?? this.suggestedUsers,
       blockedUsers: blockedUsers ?? this.blockedUsers,
-      mutualUsers: mutualUsers ?? this.mutualUsers,
-      isLoadingFollowing: isLoadingFollowing ?? this.isLoadingFollowing,
-      isLoadingFollowers: isLoadingFollowers ?? this.isLoadingFollowers,
-      isLoadingSuggested: isLoadingSuggested ?? this.isLoadingSuggested,
-      isLoadingBlocked: isLoadingBlocked ?? this.isLoadingBlocked,
-      isLoadingMutual: isLoadingMutual ?? this.isLoadingMutual,
+      mutualFriends: mutualFriends ?? this.mutualFriends,
+      isLoading: isLoading ?? this.isLoading,
       error: error,
+      hasLoadedOnce: hasLoadedOnce ?? this.hasLoadedOnce,
     );
   }
 }

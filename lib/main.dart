@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       ),
       home: const NetworkListsScreen(
         userId: 'u2',
-        listType: NetworkListType.blocked,
+        listType: NetworkListType.following,
       ),
     );
   }
