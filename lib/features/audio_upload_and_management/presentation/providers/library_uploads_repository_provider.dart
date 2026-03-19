@@ -10,6 +10,7 @@ import '../../domain/usecases/get_my_uploads_usecase.dart';
 import '../../domain/usecases/replace_file_usecase.dart';
 import '../../domain/usecases/search_my_uploads_usecase.dart';
 import '../../domain/usecases/update_upload_usecase.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import 'library_uploads_dependencies_provider.dart';
 
 final libraryUploadsApiProvider = Provider<LibraryUploadsApi>((ref) {
@@ -18,7 +19,7 @@ final libraryUploadsApiProvider = Provider<LibraryUploadsApi>((ref) {
 });
 
 final mockLibraryUploadsApiProvider = Provider<MockLibraryUploadsApi>((ref) {
-  return MockLibraryUploadsApi();
+  return MockLibraryUploadsApi(tokenStorage: ref.read(tokenStorageProvider));
 });
 
 final libraryUploadsRepositoryProvider = Provider<LibraryUploadsRepository>((

@@ -21,6 +21,7 @@ import '../features/auth/presentation/screens/sign_in_or_create_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
+import '../features/profile/presentation/screens/profile_screen.dart';
 import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
@@ -42,6 +43,7 @@ class AppRoutes {
   static const String resetPassword = '/reset-password';
   static const String settings = '/settings';
   static const String account = '/account';
+  static const String profile = '/profile';
   static const String deleteAccount = '/delete-account';
   static const String home = '/home';
 }
@@ -146,6 +148,12 @@ class AppRouter {
       case AppRoutes.account:
         return _fade(
           const AuthProtectedScreen(child: AccountScreen()),
+          settings,
+        );
+
+      case AppRoutes.profile:
+        return _fade(
+          const AuthProtectedScreen(child: ProfileScreen()),
           settings,
         );
 

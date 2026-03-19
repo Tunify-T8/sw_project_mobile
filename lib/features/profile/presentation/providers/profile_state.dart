@@ -17,11 +17,14 @@ class ProfileState {
     ProfileStatus? status,
     ProfileEntity? profile,
     String? errorMessage,
+    bool clearErrorMessage = false,
   }) {
     return ProfileState(
       status: status ?? this.status,
       profile: profile ?? this.profile,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
     );
   }
 

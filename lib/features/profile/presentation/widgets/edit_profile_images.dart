@@ -27,6 +27,12 @@ class EditProfileImages extends StatelessWidget {
     this.coverImageUrl,
   });
 
+  bool _isRemotePath(String? value) =>
+      value != null && value.trim().startsWith('http');
+
+  bool _isLocalPath(String? value) =>
+      value != null && value.trim().isNotEmpty && File(value).existsSync();
+
   void showImageOptions(BuildContext context, {required bool isCover}) {
     showModalBottomSheet(
       context: context,
@@ -39,18 +45,31 @@ class EditProfileImages extends StatelessWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.camera_alt_outlined, color: Colors.white),
-            title: const Text('Take photo', style: TextStyle(color: Colors.white)),
+            title: const Text(
+              'Take photo',
+              style: TextStyle(color: Colors.white),
+            ),
             onTap: () {
               Navigator.pop(sheetContext);
-              isCover ? onCoverPick(ImageSource.camera) : onProfilePick(ImageSource.camera);
+              isCover
+                  ? onCoverPick(ImageSource.camera)
+                  : onProfilePick(ImageSource.camera);
             },
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
-            title: const Text('Choose from library', style: TextStyle(color: Colors.white)),
+            leading: const Icon(
+              Icons.photo_library_outlined,
+              color: Colors.white,
+            ),
+            title: const Text(
+              'Choose from library',
+              style: TextStyle(color: Colors.white),
+            ),
             onTap: () {
               Navigator.pop(sheetContext);
-              isCover ? onCoverPick(ImageSource.gallery) : onProfilePick(ImageSource.gallery);
+              isCover
+                  ? onCoverPick(ImageSource.gallery)
+                  : onProfilePick(ImageSource.gallery);
             },
           ),
           ListTile(
@@ -73,7 +92,9 @@ class EditProfileImages extends StatelessWidget {
     Widget coverContent;
     if (coverImage != null) {
       coverContent = Image.file(coverImage!, fit: BoxFit.cover);
-    } else if (coverImageUrl != null) {
+    } else if (_isLocalPath(coverImageUrl)) {
+      coverContent = Image.file(File(coverImageUrl!), fit: BoxFit.cover);
+    } else if (_isRemotePath(coverImageUrl)) {
       coverContent = Image.network(coverImageUrl!, fit: BoxFit.cover);
     } else {
       coverContent = const SizedBox.shrink();
@@ -95,11 +116,15 @@ class EditProfileImages extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white24),
               ),
-              child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.camera_alt_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -111,13 +136,19 @@ class EditProfileImages extends StatelessWidget {
     ImageProvider? image;
     if (profileImage != null) {
       image = FileImage(profileImage!);
-    } else if (profileImageUrl != null) {
+    } else if (_isLocalPath(profileImageUrl)) {
+      image = FileImage(File(profileImageUrl!));
+    } else if (_isRemotePath(profileImageUrl)) {
       image = NetworkImage(profileImageUrl!);
     }
 
     Widget? avatarChild;
     if (image == null) {
-      avatarChild = const Icon(Icons.person, size: 50, color: Color(0xFF3A5F8A));
+      avatarChild = const Icon(
+        Icons.person,
+        size: 50,
+        color: Color(0xFF3A5F8A),
+      );
     }
 
     return GestureDetector(
@@ -136,11 +167,15 @@ class EditProfileImages extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white24),
               ),
-              child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.camera_alt_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],

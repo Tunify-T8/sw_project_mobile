@@ -25,6 +25,8 @@ void savePendingTrackToGlobalStore(
   PendingCloudinaryTrack draft, {
   required UploadProcessingStatus status,
 }) {
+  final ownerUserId = draft.ownerUserId?.trim();
+
   GlobalTrackStore.instance.add(
     UploadItem(
       id: draft.trackId,
@@ -66,6 +68,9 @@ void savePendingTrackToGlobalStore(
       licensing: draft.licensing,
       createdAt: draft.createdAt,
     ),
+    ownerUserId: ownerUserId == null || ownerUserId.isEmpty
+        ? '__global__'
+        : ownerUserId,
   );
 }
 

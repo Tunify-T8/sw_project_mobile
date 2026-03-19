@@ -57,5 +57,19 @@ void main() {
       expect(updated.status, ProfileStatus.error);
       expect(updated.errorMessage, 'old error');
     });
+
+    test('copyWith can clear the previous error message', () {
+      const state = ProfileState(
+        status: ProfileStatus.error,
+        errorMessage: 'old error',
+      );
+      final updated = state.copyWith(
+        status: ProfileStatus.success,
+        clearErrorMessage: true,
+      );
+
+      expect(updated.status, ProfileStatus.success);
+      expect(updated.errorMessage, isNull);
+    });
   });
 }

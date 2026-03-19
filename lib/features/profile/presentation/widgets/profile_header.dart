@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class ProfileHeader extends StatelessWidget {
@@ -14,13 +16,32 @@ class ProfileHeader extends StatelessWidget {
     this.profileUrl,
   });
 
+  bool _isRemotePath(String? value) =>
+      value != null && value.trim().startsWith('http');
+
+  bool _isLocalPath(String? value) =>
+      value != null && value.trim().isNotEmpty && File(value).existsSync();
+
   Widget buildCoverImage() {
-    if (coverUrl != null) {
+    if (_isLocalPath(coverUrl)) {
       return Container(
         width: double.infinity,
         height: coverHeight,
         color: Colors.grey.shade800,
-        child: Image.network(coverUrl!, fit: BoxFit.cover),
+        child: Image.file(File(coverUrl!), fit: BoxFit.cover),
+      );
+    }
+
+    if (_isRemotePath(coverUrl)) {
+      return Container(
+        width: double.infinity,
+        height: coverHeight,
+        color: Colors.grey.shade800,
+        child: Image.network(
+          coverUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        ),
       );
     }
     return Container(
@@ -31,7 +52,15 @@ class ProfileHeader extends StatelessWidget {
   }
 
   Widget buildProfileImage() {
-    if (profileUrl != null) {
+    if (_isLocalPath(profileUrl)) {
+      return CircleAvatar(
+        radius: profileHeight / 2,
+        backgroundColor: Colors.grey,
+        backgroundImage: FileImage(File(profileUrl!)),
+      );
+    }
+
+    if (_isRemotePath(profileUrl)) {
       return CircleAvatar(
         radius: profileHeight / 2,
         backgroundColor: Colors.grey,

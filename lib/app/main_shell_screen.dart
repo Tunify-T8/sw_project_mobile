@@ -30,7 +30,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
             onOpenSettings: () =>
                 Navigator.of(context).pushNamed(AppRoutes.settings),
             onOpenProfile: () =>
-                Navigator.of(context).pushNamed(AppRoutes.account),
+                Navigator.of(context).pushNamed(AppRoutes.profile),
             onOpenYourUploads: () =>
                 Navigator.of(context).pushNamed(Routes.yourUploads),
           ),

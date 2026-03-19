@@ -37,6 +37,7 @@ class CloudinaryUploadWorkflow {
     _drafts[trackId] = PendingCloudinaryTrack(
       trackId: trackId,
       createdAt: DateTime.now(),
+      ownerUserId: userId,
     );
     return UploadedTrack(trackId: trackId, status: UploadStatus.idle);
   }
@@ -144,7 +145,10 @@ class CloudinaryUploadWorkflow {
     final existing = GlobalTrackStore.instance.find(trackId);
     final current =
         _drafts[trackId] ??
-        PendingCloudinaryTrack.maybeFromUploadItem(existing);
+        PendingCloudinaryTrack.maybeFromUploadItem(
+          existing,
+          ownerUserId: GlobalTrackStore.instance.ownerUserIdForTrack(trackId),
+        );
     if (current == null) {
       throw const UploadFlowException(
         'We could not find that track anymore. Please refresh and try again.',

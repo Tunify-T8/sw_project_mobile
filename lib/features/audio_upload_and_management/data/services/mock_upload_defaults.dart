@@ -1,6 +1,10 @@
-Map<String, dynamic> createMockTrackRecord(String trackId) {
+Map<String, dynamic> createMockTrackRecord(
+  String trackId, {
+  required String ownerUserId,
+}) {
   return {
     'trackId': trackId,
+    'ownerUserId': ownerUserId,
     'status': 'idle',
     'title': '',
     'description': '',

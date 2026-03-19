@@ -4,6 +4,7 @@ class PendingCloudinaryTrack {
   const PendingCloudinaryTrack({
     required this.trackId,
     required this.createdAt,
+    this.ownerUserId,
     this.audioUrl,
     this.audioPublicId,
     this.waveformUrl,
@@ -37,6 +38,7 @@ class PendingCloudinaryTrack {
 
   final String trackId;
   final DateTime createdAt;
+  final String? ownerUserId;
   final String? audioUrl;
   final String? audioPublicId;
   final String? waveformUrl;
@@ -67,12 +69,16 @@ class PendingCloudinaryTrack {
   final List<String> availabilityRegions;
   final String licensing;
 
-  static PendingCloudinaryTrack? maybeFromUploadItem(UploadItem? item) {
+  static PendingCloudinaryTrack? maybeFromUploadItem(
+    UploadItem? item, {
+    String? ownerUserId,
+  }) {
     if (item == null) return null;
 
     return PendingCloudinaryTrack(
       trackId: item.id,
       createdAt: item.createdAt,
+      ownerUserId: ownerUserId,
       audioUrl: item.audioUrl,
       waveformUrl: item.waveformUrl,
       waveformBars: item.waveformBars,
@@ -111,6 +117,7 @@ class PendingCloudinaryTrack {
   }
 
   PendingCloudinaryTrack copyWith({
+    String? ownerUserId,
     String? audioUrl,
     String? audioPublicId,
     String? waveformUrl,
@@ -144,6 +151,7 @@ class PendingCloudinaryTrack {
     return PendingCloudinaryTrack(
       trackId: trackId,
       createdAt: createdAt,
+      ownerUserId: ownerUserId ?? this.ownerUserId,
       audioUrl: audioUrl ?? this.audioUrl,
       audioPublicId: audioPublicId ?? this.audioPublicId,
       waveformUrl: waveformUrl ?? this.waveformUrl,

@@ -24,9 +24,7 @@ void main() {
   }
 
   void clearStore() {
-    for (final item in GlobalTrackStore.instance.all.toList()) {
-      GlobalTrackStore.instance.remove(item.id);
-    }
+    GlobalTrackStore.instance.clear();
   }
 
   setUp(clearStore);
@@ -93,6 +91,31 @@ void main() {
     expect(
       container.read(globalTrackStoreProvider),
       same(GlobalTrackStore.instance),
+    );
+  });
+
+  test('allForUser isolates uploads by owner', () {
+    final firstUserItem = buildItem(
+      id: 'track-1',
+      title: 'User One Track',
+      createdAt: DateTime.utc(2026, 1, 1),
+    );
+    final secondUserItem = buildItem(
+      id: 'track-2',
+      title: 'User Two Track',
+      createdAt: DateTime.utc(2026, 1, 2),
+    );
+
+    GlobalTrackStore.instance.add(firstUserItem, ownerUserId: 'user-1');
+    GlobalTrackStore.instance.add(secondUserItem, ownerUserId: 'user-2');
+
+    expect(
+      GlobalTrackStore.instance.allForUser('user-1').map((item) => item.id),
+      ['track-1'],
+    );
+    expect(
+      GlobalTrackStore.instance.allForUser('user-2').map((item) => item.id),
+      ['track-2'],
     );
   });
 }

@@ -19,6 +19,7 @@ void main() {
   late MockResetPasswordUseCase mockResetPassword;
   late MockDeleteAccountUseCase mockDeleteAccount;
   late MockGoogleSignInService mockGoogle;
+  late MockTokenStorage mockTokenStorage;
   late ProviderContainer container;
   late AuthController ctrl;
 
@@ -42,6 +43,7 @@ void main() {
     mockResetPassword = MockResetPasswordUseCase();
     mockDeleteAccount = MockDeleteAccountUseCase();
     mockGoogle = MockGoogleSignInService();
+    mockTokenStorage = MockTokenStorage();
 
     // AuthController is a Notifier — it reads its dependencies via ref.
     // We override every use-case provider with a mock so the controller
@@ -59,6 +61,7 @@ void main() {
         resetPasswordUseCaseProvider.overrideWithValue(mockResetPassword),
         deleteAccountUseCaseProvider.overrideWithValue(mockDeleteAccount),
         googleSignInServiceProvider.overrideWithValue(mockGoogle),
+        tokenStorageProvider.overrideWithValue(mockTokenStorage),
       ],
     );
 
@@ -422,6 +425,38 @@ void main() {
         container.read(authControllerProvider),
         equals(const AsyncValue<AuthUserEntity?>.data(null)),
       );
+    });
+  });
+
+  group('syncProfileIdentity', () {
+    test('updates the stored authenticated user after profile edits', () async {
+      when(mockTokenStorage.getUser()).thenAnswer((_) async => tUser);
+      when(mockTokenStorage.saveUser(any)).thenAnswer((_) async {});
+
+      final updated = await ctrl.syncProfileIdentity(
+        username: 'artist-updated',
+        avatarUrl: 'https://cdn.example.com/avatar.png',
+      );
+
+      expect(updated?.username, 'artist-updated');
+      expect(updated?.avatarUrl, 'https://cdn.example.com/avatar.png');
+      expect(
+        container.read(authControllerProvider).value?.username,
+        'artist-updated',
+      );
+      verify(
+        mockTokenStorage.saveUser(
+          argThat(
+            isA<AuthUserEntity>()
+                .having((user) => user.username, 'username', 'artist-updated')
+                .having(
+                  (user) => user.avatarUrl,
+                  'avatarUrl',
+                  'https://cdn.example.com/avatar.png',
+                ),
+          ),
+        ),
+      ).called(1);
     });
   });
 }

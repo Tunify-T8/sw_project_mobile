@@ -10,6 +10,7 @@ void persistMockTrackToStore(
       (data['artists'] as List?)?.map((entry) => entry.toString()).toList() ??
       ['Unknown'];
   final artworkUrl = data['artworkUrl'] as String?;
+  final ownerUserId = (data['ownerUserId'] as String?)?.trim();
 
   GlobalTrackStore.instance.add(
     UploadItem(
@@ -69,6 +70,9 @@ void persistMockTrackToStore(
           DateTime.tryParse(data['createdAt'] as String? ?? '') ??
           DateTime.now(),
     ),
+    ownerUserId: ownerUserId == null || ownerUserId.isEmpty
+        ? '__global__'
+        : ownerUserId,
   );
 }
 

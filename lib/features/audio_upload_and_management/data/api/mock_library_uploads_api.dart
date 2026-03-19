@@ -1,5 +1,6 @@
 import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../shared/upload_error_helpers.dart';
@@ -8,14 +9,19 @@ import '../../shared/upload_error_helpers.dart';
 /// Starts EMPTY — tracks only appear after the user uploads them via the upload flow.
 /// Reads/writes from GlobalTrackStore which is the single source of truth.
 class MockLibraryUploadsApi {
-  MockLibraryUploadsApi();
+  MockLibraryUploadsApi({TokenStorage tokenStorage = const TokenStorage()})
+    : _tokenStorage = tokenStorage;
+
+  final TokenStorage _tokenStorage;
 
   Future<List<UploadItemDto>> getMyUploads() async {
     await Future.delayed(const Duration(milliseconds: 250));
-    return GlobalTrackStore.instance.all
-        .where((item) => !item.isDeleted)
-        .map(_toDto)
-        .toList();
+    final user = await _tokenStorage.getUser();
+    final uploads = user == null
+        ? GlobalTrackStore.instance.all
+        : GlobalTrackStore.instance.allForUser(user.id);
+
+    return uploads.where((item) => !item.isDeleted).map(_toDto).toList();
   }
 
   Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {

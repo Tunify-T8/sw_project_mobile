@@ -26,7 +26,7 @@ class MockUploadService {
   Future<Map<String, dynamic>> createTrack({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final trackId = 'track_${DateTime.now().millisecondsSinceEpoch}';
-    final track = createMockTrackRecord(trackId);
+    final track = createMockTrackRecord(trackId, ownerUserId: userId);
     _tracks[trackId] = track;
     return Map<String, dynamic>.from(track);
   }

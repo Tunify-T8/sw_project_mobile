@@ -40,10 +40,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     return MockAuthRepository(tokenStorage: tokenStorage);
   }
 
-  return AuthRepositoryImpl(
-    ref.read(authApiProvider),
-    tokenStorage,
-  );
+  return AuthRepositoryImpl(ref.read(authApiProvider), tokenStorage);
 });
 
 final checkEmailUseCaseProvider = Provider<CheckEmailUseCase>(
@@ -119,6 +116,29 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     final user = await _tokenStorage.getUser();
     state = AsyncData<AuthUserEntity?>(user);
     return user;
+  }
+
+  Future<AuthUserEntity?> syncProfileIdentity({
+    required String username,
+    required String? avatarUrl,
+  }) async {
+    final currentUser = state.asData?.value ?? await _tokenStorage.getUser();
+    if (currentUser == null) {
+      return null;
+    }
+
+    final updatedUser = AuthUserEntity(
+      id: currentUser.id,
+      email: currentUser.email,
+      username: username,
+      role: currentUser.role,
+      isVerified: currentUser.isVerified,
+      avatarUrl: avatarUrl,
+    );
+
+    await _tokenStorage.saveUser(updatedUser);
+    state = AsyncData<AuthUserEntity?>(updatedUser);
+    return updatedUser;
   }
 
   Future<bool> checkEmail(String email) async {

@@ -16,6 +16,7 @@ class RouteGuard {
     AppRoutes.home,
     AppRoutes.settings,
     AppRoutes.account,
+    AppRoutes.profile,
     AppRoutes.deleteAccount,
     Routes.shell,
     Routes.uploadEntry,
