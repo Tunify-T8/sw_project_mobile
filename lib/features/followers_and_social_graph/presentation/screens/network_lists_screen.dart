@@ -7,6 +7,9 @@ import '../providers/mock_social_provider.dart';
 import '../providers/network_list_view_mapper.dart';
 import '../providers/network_lists_provider.dart';
 import '../providers/social_actions_provider.dart';
+import '../widgets/network_lists_empty_state.dart';
+import '../widgets/network_lists_error_state.dart';
+import '../widgets/network_lists_true_friends_tile.dart';
 import '../widgets/user_social_tile.dart';
 
 class NetworkListsScreen extends ConsumerStatefulWidget {
@@ -33,22 +36,15 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final dynamic notifier;
-    if (useMock) {
-      notifier = ref.read(mockSocialProvider.notifier);
-    } else {
-      notifier = ref.read(networkListsProvider.notifier);
-    }
+    final notifier = useMock
+        ? ref.read(mockSocialProvider.notifier)
+        : ref.read(networkListsProvider.notifier);
 
     await NetworkListViewMapper.loadInitialData(
       listType: widget.listType,
       userId: widget.userId,
       notifier: notifier,
     );
-  }
-
-  Future<void> _onRefresh() async {
-    await _loadInitialData();
   }
 
   Future<void> _handleFollowToggle(SocialUserEntity user) async {
@@ -71,14 +67,14 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dynamic listsState;
-    if (useMock) {
-      listsState = ref.watch(mockSocialProvider);
-    } else {
-      listsState = ref.watch(networkListsProvider);
-    }
+    final listsState = useMock
+        ? ref.watch(mockSocialProvider)
+        : ref.watch(networkListsProvider);
 
-    final users = NetworkListViewMapper.getUsers(widget.listType, listsState);
+    final List<SocialUserEntity> users = NetworkListViewMapper.getUsers(
+      widget.listType,
+      listsState,
+    );
 
     final isLoading = listsState.isLoading;
     final error = listsState.error;
@@ -108,193 +104,51 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
         title: Text(NetworkListViewMapper.getTitle(widget.listType)),
       ),
       body: SafeArea(
-        child: Stack(
-          children: [
-            if (showInitialLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (showInitialError)
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 100),
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.white70,
-                      size: 42,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Something went wrong',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _loadInitialData,
-                      child: const Text('Try Again'),
-                    ),
-                  ],
-                ),
-              )
-            else if (showEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    SizedBox(height: 100),
-                    Icon(Icons.people_outline, color: Colors.white70, size: 42),
-                    SizedBox(height: 12),
-                    Text(
-                      'No users found',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                  ],
-                ),
-              )
-            else
-              RefreshIndicator(
-                onRefresh: _onRefresh,
+        child: showInitialLoading
+            ? const Center(child: CircularProgressIndicator())
+            : showInitialError
+            ? NetworkListsErrorState(error: error, onRetry: _loadInitialData)
+            : showEmpty
+            ? const NetworkListsEmptyState()
+            : RefreshIndicator(
+                onRefresh: () async {
+                  await _loadInitialData();
+                },
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: users.length,
+                  itemCount: showTrueFriends ? users.length + 1 : users.length,
                   itemBuilder: (context, index) {
-                    if (showTrueFriends) {
-                      if (index == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: ListTile(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const NetworkListsScreen(
-                                        userId: 'u1',
-                                        listType: NetworkListType.mutual,
-                                      ),
-                                ),
-                              );
-                            },
-                            leading: CircleAvatar(child: Icon(Icons.people)),
-                            title: Text(
-                              'People who follow you back',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
+                    if (showTrueFriends && index == 0) {
+                      return NetworkListsTrueFriendsTile(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NetworkListsScreen(
+                                userId: 'u1',
+                                listType: NetworkListType.mutual,
                               ),
                             ),
-                            subtitle: Text(
-                              'See your true friends',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 17,
-                              ),
-                            ),
-                            tileColor: const Color(0xFF18181A),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: Colors.white,
-                              size: 28.0,
-                            ),
-                          ),
-                        );
-                      } else {
-                        final user = users[index - 1];
-
-                        return UserSocialTile(
-                          user: user,
-                          listType: widget.listType,
-                          onFollowToggle:
-                              widget.listType == NetworkListType.blocked
-                              ? null
-                              : () => _handleFollowToggle(user),
-                          onToggleNotifications: null,
-                          onBlock: () => _handleBlockAction(user),
-                        );
-                      }
-                    } else {
-                      final user = users[index];
-
-                      return UserSocialTile(
-                        user: user,
-                        listType: widget.listType,
-                        onFollowToggle:
-                            widget.listType == NetworkListType.blocked
-                            ? null
-                            : () => _handleFollowToggle(user),
-                        onToggleNotifications: null,
-                        onBlock: () => _handleBlockAction(user),
+                          );
+                        },
                       );
                     }
+
+                    final user = showTrueFriends
+                        ? users[index - 1]
+                        : users[index];
+
+                    return UserSocialTile(
+                      user: user,
+                      listType: widget.listType,
+                      onFollowToggle: widget.listType == NetworkListType.blocked
+                          ? null
+                          : () => _handleFollowToggle(user),
+                      onToggleNotifications: null,
+                      onBlock: () => _handleBlockAction(user),
+                    );
                   },
                 ),
               ),
-
-            if (isLoading && users.isNotEmpty)
-              const Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: LinearProgressIndicator(minHeight: 2),
-              ),
-
-            if (error != null && users.isNotEmpty)
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Material(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            error,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (useMock) {
-                              ref
-                                  .read(mockSocialProvider.notifier)
-                                  .clearError();
-                            } else {
-                              ref
-                                  .read(networkListsProvider.notifier)
-                                  .clearError();
-                            }
-                          },
-                          child: const Text(
-                            'Dismiss',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }

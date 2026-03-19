@@ -16,7 +16,7 @@ class NetworkListsState {
     this.suggestedUsers = const [],
     this.blockedUsers = const [],
     this.mutualFriends = const [],
-    this.isLoading = false,
+    this.isLoading = true,
     this.error,
     this.hasLoadedOnce = false,
   });

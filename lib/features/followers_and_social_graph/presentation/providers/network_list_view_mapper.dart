@@ -1,3 +1,5 @@
+import 'package:software_project/features/followers_and_social_graph/domain/entities/social_user_entity.dart';
+
 import '../../domain/entities/network_list_type.dart';
 import 'network_lists_state.dart';
 
@@ -26,7 +28,7 @@ class NetworkListViewMapper {
     }
   }
 
-  static List<dynamic> getUsers(
+  static List<SocialUserEntity> getUsers(
     NetworkListType listType,
     NetworkListsState state,
   ) {
