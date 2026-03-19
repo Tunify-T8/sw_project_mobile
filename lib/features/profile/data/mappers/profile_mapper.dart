@@ -19,11 +19,11 @@ class ProfileMapper {
     final country = locationParts.length > 1 ? locationParts[1].trim() : '';
 
     return ProfileDto(
-      id: user['id'] ?? '',           // ADD
+      id: user['id'] ?? '',          
       userName: user['username'] ?? '',
-      displayName: user['displayName'],  // ADD
-      email: user['email'] ?? '',     // ADD
-      role: user['role'] ?? 'USER',   // ADD
+      displayName: user['displayName'], 
+      email: user['email'] ?? '',     
+      role: user['role'] ?? 'USER',   
       bio: user['bio'] ?? '',
       city: city,
       country: country,
@@ -31,12 +31,12 @@ class ProfileMapper {
       coverImagePath: user['coverUrl'],
       followersCount: user['followersCount'] ?? 0,
       followingCount: user['followingCount'] ?? 0,
-      tracksCount: user['tracksCount'] ?? 0,      // ADD
-      likesReceived: user['likesReceived'] ?? 0,  // ADD
+      tracksCount: user['tracksCount'] ?? 0,     
+      likesReceived: user['likesReceived'] ?? 0,  
       userType: user['userType'] ?? 'ARTIST',
       visibility: user['visibility'] ?? 'PUBLIC',
-      isActive: user['isActive'] ?? true,         // ADD
-      isVerified: user['isVerified'] ?? false,    // ADD
+      isActive: user['isActive'] ?? true,         
+      isVerified: user['isVerified'] ?? false,    
       instagram: null,
       twitter: null,
       website: null,
@@ -51,11 +51,11 @@ class ProfileMapper {
     final links = socialJson['socialLinks'] ?? socialJson;
 
     return ProfileDto(
-      id: profile.id,                        // added after be changed
+      id: profile.id,                        // added after BE changed
       userName: profile.userName,
-      displayName: profile.displayName,      // added after be changed
-      email: profile.email,                  // added after be changed
-      role: profile.role,                   //added after be changed
+      displayName: profile.displayName,      // added after BE changed
+      email: profile.email,                  // added after BE changed
+      role: profile.role,                   //added after BE changed
       bio: profile.bio,
       city: profile.city,
       country: profile.country,
@@ -63,18 +63,19 @@ class ProfileMapper {
       coverImagePath: profile.coverImagePath,
       followersCount: profile.followersCount,
       followingCount: profile.followingCount,
-      tracksCount: profile.tracksCount,      // added after be changed
-      likesReceived: profile.likesReceived,  // added after be changed
+      tracksCount: profile.tracksCount,      // added after BE changed
+      likesReceived: profile.likesReceived,  // added after BE changed
       visibility: profile.visibility,
       userType: profile.userType,
-      isActive: profile.isActive,            // added after be changed
-      isVerified: profile.isVerified,        // added after be changed
+      isActive: profile.isActive,            // added after BE changed
+      isVerified: profile.isVerified,        // added after BE changed
       instagram: links['instagram'],
       twitter: links['twitter'],
       website: links['website'],
     );
   }
 }
+///logic for me to remember the flow:
 // Call 1 → GET /users/1
 // Returns: name, bio, location, followers etc.
 // no instagram, twitter, website
@@ -83,7 +84,6 @@ class ProfileMapper {
 // Returns: instagram, twitter, website
 // no name, bio, location etc.
 //the merge combines both into one Profiledto
-
 
 // When real backend is ready — if the backend changes to 
 // return everything in one call, 

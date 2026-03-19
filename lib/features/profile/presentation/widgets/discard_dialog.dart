@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';///here the messagae will appear if user tries to escape or to press back
     Future<bool?> showDiscardDialog(BuildContext context) {
     return showDialog<bool>(
     context: context,
@@ -14,7 +14,7 @@
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, true), // discard
+            onPressed: () => Navigator.pop(context, true), // discard the changes
             child: const Text(
               'DISCARD CHANGES',
               style: TextStyle(

@@ -25,6 +25,7 @@ void main() {
       country: 'Egypt',
       followersCount: 300,
       followingCount: 1,
+      visibility: 'PUBLIC',
       userType: 'ARTIST',
     );
 
@@ -52,8 +53,8 @@ void main() {
         followingCount: 1,
         profileImagePath: 'https://image.url/photo.jpg',
         coverImagePath: 'https://image.url/cover.jpg',
-        userType: 'ARTIST',
         visibility: 'PUBLIC',
+        userType: 'ARTIST',
       );
 
       when(mockRepository.getProfile()).thenAnswer((_) async => fullDto);
@@ -63,6 +64,29 @@ void main() {
       expect(result.instagram, 'https://instagram.com/darine');
       expect(result.profileImagePath, 'https://image.url/photo.jpg');
       expect(result.visibility, 'PUBLIC');
+    });
+
+    test('maps new DTO fields to entity correctly', () async {
+      final dto = ProfileDto(
+        userName: 'Darine',
+        bio: 'Music lover',
+        city: 'Cairo',
+        country: 'Egypt',
+        visibility: 'PUBLIC',
+        userType: 'ARTIST',
+        tracksCount: 5,
+        isVerified: true,
+        email: 'darine@email.com',
+        role: 'USER',
+      );
+
+      when(mockRepository.getProfile()).thenAnswer((_) async => dto);
+      final result = await usecase.execute();
+
+      expect(result.tracksCount, 5);
+      expect(result.isVerified, true);
+      expect(result.email, 'darine@email.com');
+      expect(result.role, 'USER');
     });
 
     test('throws exception when repository fails', () async {

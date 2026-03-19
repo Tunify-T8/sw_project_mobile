@@ -12,8 +12,6 @@ import '../../domain/repositories/profile_repository.dart';
 // saved (SharedPreferences) and add it to headers
 
 
-
-
 class ProfileRepositoryImpl implements ProfileRepository {
   // Toggle this when real backend is ready
   static const bool useMock = true;
@@ -51,7 +49,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
     return ProfileMapper.mergeSocialLinks(profile, socialJson);
   }
 
-    @override
     @override
 Future<ProfileDto> updateProfile(ProfileDto profile) async {
   if (useMock) {
@@ -115,7 +112,6 @@ Future<ProfileDto> updateProfile(ProfileDto profile) async {
       throw Exception('Failed to update social links: ${res2.statusCode}');
     }
   }
-
   return profile;
 }
 }
