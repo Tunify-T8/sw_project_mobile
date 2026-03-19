@@ -380,6 +380,32 @@ class MockTokenStorage extends _i1.Mock implements _i11.TokenStorage {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> saveUser(_i2.AuthUserEntity? user) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveUser, [user]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> saveSession({
+    required String? accessToken,
+    required String? refreshToken,
+    required _i2.AuthUserEntity? user,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveSession, [], {
+              #accessToken: accessToken,
+              #refreshToken: refreshToken,
+              #user: user,
+            }),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<String?> getAccessToken() =>
       (super.noSuchMethod(
             Invocation.method(#getAccessToken, []),
@@ -396,6 +422,14 @@ class MockTokenStorage extends _i1.Mock implements _i11.TokenStorage {
           as _i5.Future<String?>);
 
   @override
+  _i5.Future<_i2.AuthUserEntity?> getUser() =>
+      (super.noSuchMethod(
+            Invocation.method(#getUser, []),
+            returnValue: _i5.Future<_i2.AuthUserEntity?>.value(),
+          )
+          as _i5.Future<_i2.AuthUserEntity?>);
+
+  @override
   _i5.Future<bool> hasAccessToken() =>
       (super.noSuchMethod(
             Invocation.method(#hasAccessToken, []),
@@ -407,6 +441,24 @@ class MockTokenStorage extends _i1.Mock implements _i11.TokenStorage {
   _i5.Future<void> clearTokens() =>
       (super.noSuchMethod(
             Invocation.method(#clearTokens, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> clearUser() =>
+      (super.noSuchMethod(
+            Invocation.method(#clearUser, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> clearSession() =>
+      (super.noSuchMethod(
+            Invocation.method(#clearSession, []),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

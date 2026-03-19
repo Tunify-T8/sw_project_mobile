@@ -3,52 +3,158 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:software_project/features/audio_upload_and_management/data/services/file_picker_service.dart';
-import 'package:software_project/features/audio_upload_and_management/domain/entities/picked_upload_file.dart';
-import 'package:software_project/features/audio_upload_and_management/domain/entities/track_metadata.dart';
-import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_cancellation_token.dart';
-import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_quota.dart';
+import 'package:mockito/mockito.dart';
+import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_status.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/entities/uploaded_track.dart';
-import 'package:software_project/features/audio_upload_and_management/domain/repositories/upload_repository.dart';
+import 'package:software_project/features/audio_upload_and_management/presentation/providers/library_uploads_repository_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_dependencies_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/shared/upload_error_helpers.dart';
 
-void main() {
-  const pickedFile = PickedUploadFile(
-    name: 'replacement.mp3',
-    path: '/tmp/replacement.mp3',
-    sizeBytes: 1024,
-  );
+import '../../../helpers/upload_mocks.mocks.dart';
+import '../helpers/upload_test_data.dart';
 
-  test('restores the previous upload when replace times out', () async {
-    final container = ProviderContainer(
+void main() {
+  late MockUploadRepository mockRepository;
+  late MockFilePickerService mockFilePickerService;
+  late MockGetMyUploadsUsecase mockGetMyUploads;
+  late MockGetArtistToolsQuotaUsecase mockGetArtistToolsQuota;
+
+  ProviderContainer buildContainer() {
+    return ProviderContainer(
       overrides: [
-        filePickerServiceProvider.overrideWithValue(
-          _FakeFilePickerService(result: pickedFile),
-        ),
-        uploadRepositoryProvider.overrideWithValue(
-          _FakeUploadRepository(
-            uploadAudioHandler:
-                ({
-                  required trackId,
-                  required file,
-                  required onProgress,
-                  required cancellationToken,
-                }) async {
-                  onProgress(0.995);
-                  throw DioException(
-                    requestOptions: RequestOptions(path: '/cloudinary/upload'),
-                    type: DioExceptionType.receiveTimeout,
-                  );
-                },
-          ),
+        uploadRepositoryProvider.overrideWithValue(mockRepository),
+        filePickerServiceProvider.overrideWithValue(mockFilePickerService),
+        getMyUploadsUsecaseProvider.overrideWithValue(mockGetMyUploads),
+        getArtistToolsQuotaUsecaseProvider.overrideWithValue(
+          mockGetArtistToolsQuota,
         ),
       ],
     );
+  }
+
+  setUp(() {
+    mockRepository = MockUploadRepository();
+    mockFilePickerService = MockFilePickerService();
+    mockGetMyUploads = MockGetMyUploadsUsecase();
+    mockGetArtistToolsQuota = MockGetArtistToolsQuotaUsecase();
+    when(mockGetMyUploads.call()).thenAnswer((_) async => [sampleUploadItem]);
+    when(
+      mockGetArtistToolsQuota.call(),
+    ).thenAnswer((_) async => sampleArtistToolsQuota);
+  });
+
+  test('loadQuota stores the returned quota', () async {
+    when(
+      mockRepository.getUploadQuota('user-1'),
+    ).thenAnswer((_) async => sampleUploadQuota);
+
+    final container = buildContainer();
     addTearDown(container.dispose);
 
+    await container.read(uploadProvider.notifier).loadQuota('user-1');
+
+    final state = container.read(uploadProvider);
+    expect(state.quota?.tier, sampleUploadQuota.tier);
+    expect(
+      state.quota?.uploadMinutesRemaining,
+      sampleUploadQuota.uploadMinutesRemaining,
+    );
+    expect(state.isLoadingQuota, isFalse);
+  });
+
+  test('loadQuota stores a friendly error on failure', () async {
+    when(
+      mockRepository.getUploadQuota('user-1'),
+    ).thenThrow(const UploadFlowException('Quota failed.'));
+
+    final container = buildContainer();
+    addTearDown(container.dispose);
+
+    await container.read(uploadProvider.notifier).loadQuota('user-1');
+
+    expect(container.read(uploadProvider).error, 'Quota failed.');
+  });
+
+  test('pickAudioCreateDraftAndStartUpload returns null when picker is cancelled', () async {
+    when(mockFilePickerService.pickAudioFile()).thenAnswer((_) async => null);
+
+    final container = buildContainer();
+    addTearDown(container.dispose);
+
+    final result = await container
+        .read(uploadProvider.notifier)
+        .pickAudioCreateDraftAndStartUpload('user-1');
+
+    expect(result, isNull);
+    expect(container.read(uploadProvider).selectedAudio, isNull);
+  });
+
+  test('pickAudioCreateDraftAndStartUpload uploads the picked audio', () async {
+    const createdTrack = UploadedTrack(
+      trackId: 'track-1',
+      status: UploadStatus.idle,
+    );
+    when(
+      mockFilePickerService.pickAudioFile(),
+    ).thenAnswer((_) async => samplePickedUploadFile);
+    when(
+      mockRepository.createTrack('user-1'),
+    ).thenAnswer((_) async => createdTrack);
+    when(
+      mockRepository.uploadAudio(
+        trackId: 'track-1',
+        file: samplePickedUploadFile,
+        onProgress: anyNamed('onProgress'),
+        cancellationToken: anyNamed('cancellationToken'),
+      ),
+    ).thenAnswer((invocation) async {
+      final onProgress =
+          invocation.namedArguments[#onProgress] as void Function(double);
+      onProgress(0.4);
+      onProgress(1.0);
+      return sampleUploadedTrack;
+    });
+
+    final container = buildContainer();
+    addTearDown(container.dispose);
+
+    final result = await container
+        .read(uploadProvider.notifier)
+        .pickAudioCreateDraftAndStartUpload('user-1');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(result?.trackId, 'track-1');
+    final state = container.read(uploadProvider);
+    expect(state.uploadFinished, isTrue);
+    expect(state.currentTrack?.trackId, 'track-1');
+    expect(state.uploadProgress, 1.0);
+  });
+
+  test('restores the previous upload when replace times out', () async {
+    when(
+      mockFilePickerService.pickAudioFile(),
+    ).thenAnswer((_) async => samplePickedUploadFile);
+    when(
+      mockRepository.uploadAudio(
+        trackId: 'track-1',
+        file: samplePickedUploadFile,
+        onProgress: anyNamed('onProgress'),
+        cancellationToken: anyNamed('cancellationToken'),
+      ),
+    ).thenAnswer((invocation) async {
+      final onProgress =
+          invocation.namedArguments[#onProgress] as void Function(double);
+      onProgress(0.995);
+      throw DioException(
+        requestOptions: RequestOptions(path: '/cloudinary/upload'),
+        type: DioExceptionType.receiveTimeout,
+      );
+    });
+
+    final container = buildContainer();
+    addTearDown(container.dispose);
     final notifier = container.read(uploadProvider.notifier);
     notifier.primeTrackForEditing(trackId: 'track-1');
 
@@ -58,142 +164,95 @@ void main() {
     final state = container.read(uploadProvider);
     expect(state.isUploading, isFalse);
     expect(state.uploadFinished, isTrue);
-    expect(state.currentTrack?.trackId, equals('track-1'));
-    expect(state.error, equals('The request timed out. Please try again.'));
+    expect(state.currentTrack?.trackId, 'track-1');
+    expect(state.error, 'The request timed out. Please try again.');
   });
 
-  test(
-    'cancelling a replace restores the previous upload without an error',
-    () async {
-      final cancellationSeen = Completer<void>();
+  test('cancelling a replace restores the previous upload without an error', () async {
+    final cancellationSeen = Completer<void>();
+    when(
+      mockFilePickerService.pickAudioFile(),
+    ).thenAnswer((_) async => samplePickedUploadFile);
+    when(
+      mockRepository.uploadAudio(
+        trackId: 'track-1',
+        file: samplePickedUploadFile,
+        onProgress: anyNamed('onProgress'),
+        cancellationToken: anyNamed('cancellationToken'),
+      ),
+    ).thenAnswer((invocation) async {
+      final onProgress =
+          invocation.namedArguments[#onProgress] as void Function(double);
+      final cancellationToken =
+          invocation.namedArguments[#cancellationToken]
+              as dynamic;
+      onProgress(0.45);
+      final completer = Completer<UploadedTrack>();
 
-      final container = ProviderContainer(
-        overrides: [
-          filePickerServiceProvider.overrideWithValue(
-            _FakeFilePickerService(result: pickedFile),
-          ),
-          uploadRepositoryProvider.overrideWithValue(
-            _FakeUploadRepository(
-              uploadAudioHandler:
-                  ({
-                    required trackId,
-                    required file,
-                    required onProgress,
-                    required cancellationToken,
-                  }) async {
-                    onProgress(0.45);
-                    final completer = Completer<UploadedTrack>();
+      cancellationToken?.addListener(() {
+        if (!cancellationSeen.isCompleted) {
+          cancellationSeen.complete();
+        }
+        if (!completer.isCompleted) {
+          completer.completeError(const UploadCancelledException());
+        }
+      });
 
-                    cancellationToken?.addListener(() {
-                      if (!cancellationSeen.isCompleted) {
-                        cancellationSeen.complete();
-                      }
-                      if (!completer.isCompleted) {
-                        completer.completeError(
-                          const UploadCancelledException(),
-                        );
-                      }
-                    });
-
-                    return completer.future;
-                  },
-            ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final notifier = container.read(uploadProvider.notifier);
-      notifier.primeTrackForEditing(trackId: 'track-1');
-
-      await notifier.replaceCurrentAudioAndStartUpload();
-      final restored = await notifier.cancelCurrentUpload();
-      await cancellationSeen.future;
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-
-      final state = container.read(uploadProvider);
-      expect(restored, isTrue);
-      expect(state.isUploading, isFalse);
-      expect(state.error, isNull);
-      expect(state.uploadFinished, isTrue);
-      expect(state.currentTrack?.trackId, equals('track-1'));
-    },
-  );
-}
-
-typedef _UploadAudioHandler =
-    Future<UploadedTrack> Function({
-      required String trackId,
-      required PickedUploadFile file,
-      required void Function(double progress) onProgress,
-      required UploadCancellationToken? cancellationToken,
+      return completer.future;
     });
 
-class _FakeUploadRepository implements UploadRepository {
-  _FakeUploadRepository({required this.uploadAudioHandler});
+    final container = buildContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(uploadProvider.notifier);
+    notifier.primeTrackForEditing(trackId: 'track-1');
 
-  final _UploadAudioHandler uploadAudioHandler;
+    await notifier.replaceCurrentAudioAndStartUpload();
+    final restored = await notifier.cancelCurrentUpload();
+    await cancellationSeen.future;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
 
-  @override
-  Future<UploadQuota> getUploadQuota(String userId) async {
-    throw UnimplementedError();
-  }
+    final state = container.read(uploadProvider);
+    expect(restored, isTrue);
+    expect(state.isUploading, isFalse);
+    expect(state.error, isNull);
+    expect(state.uploadFinished, isTrue);
+    expect(state.currentTrack?.trackId, 'track-1');
+  });
 
-  @override
-  Future<UploadedTrack> createTrack(String userId) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<UploadedTrack> uploadAudio({
-    required String trackId,
-    required PickedUploadFile file,
-    required void Function(double progress) onProgress,
-    UploadCancellationToken? cancellationToken,
-  }) {
-    return uploadAudioHandler(
-      trackId: trackId,
-      file: file,
-      onProgress: onProgress,
-      cancellationToken: cancellationToken,
+  test('completeSavedUploadInBackground refreshes uploads and resets local state', () async {
+    when(
+      mockRepository.waitUntilProcessed('track-1'),
+    ).thenAnswer(
+      (_) async => sampleUploadedTrack.copyWith(status: UploadStatus.finished),
     );
-  }
 
-  @override
-  Future<UploadedTrack> finalizeMetadata({
-    required String trackId,
-    required TrackMetadata metadata,
-  }) async {
-    throw UnimplementedError();
-  }
+    final container = buildContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(uploadProvider.notifier);
+    notifier.primeTrackForEditing(trackId: 'track-1');
 
-  @override
-  Future<UploadedTrack> waitUntilProcessed(String trackId) async {
-    throw UnimplementedError();
-  }
+    notifier.completeSavedUploadInBackground('track-1');
+    await Future<void>.delayed(const Duration(milliseconds: 10));
 
-  @override
-  Future<UploadedTrack> getTrackDetails(String trackId) async {
-    throw UnimplementedError();
-  }
+    final state = container.read(uploadProvider);
+    expect(state.isCompletingUpload, isFalse);
+    expect(state.currentTrack, isNull);
+    expect(state.selectedAudio, isNull);
+    verify(mockGetMyUploads.call()).called(1);
+    verify(mockGetArtistToolsQuota.call()).called(1);
+  });
 
-  @override
-  Future<UploadedTrack> updateTrackMetadata({
-    required String trackId,
-    required TrackMetadata metadata,
-  }) async {
-    throw UnimplementedError();
-  }
+  test('discardDraft clears upload-specific state', () {
+    final container = buildContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(uploadProvider.notifier);
+    notifier.primeTrackForEditing(trackId: 'track-1');
 
-  @override
-  Future<void> deleteTrack(String trackId) async {}
-}
+    notifier.discardDraft();
 
-class _FakeFilePickerService extends FilePickerService {
-  _FakeFilePickerService({required this.result});
-
-  final PickedUploadFile? result;
-
-  @override
-  Future<PickedUploadFile?> pickAudioFile() async => result;
+    final state = container.read(uploadProvider);
+    expect(state.currentTrack, isNull);
+    expect(state.uploadProgress, 0);
+    expect(state.error, isNull);
+  });
 }

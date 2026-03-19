@@ -16,7 +16,7 @@ class GlobalTrackStore {
     _items.removeWhere((e) => e.id == item.id);
     _items.insert(0, item); // newest first
   }
-
+void clear() => _items.clear();
   void update(UploadItem item) {
     final idx = _items.indexWhere((e) => e.id == item.id);
     if (idx >= 0) {
