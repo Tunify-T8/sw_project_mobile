@@ -30,14 +30,20 @@ class ProfileRepositoryImpl implements ProfileRepository {
     final profileRes = await http.get(
       Uri.parse(useMock ? '$baseUrl/users/1' : '$baseUrl/users/me'),
     );
-
+    if (profileRes.statusCode != 200) {
+      throw Exception('Failed to load profile: ${profileRes.statusCode}');
+    }
     final profileJson = jsonDecode(profileRes.body);
+
     ProfileDto profile = ProfileMapper.fromJson(profileJson);
 
     // Step 2 — get social links
     final socialRes = await http.get(
       Uri.parse(useMock ? '$baseUrl/social_links/1' : '$baseUrl/users/me/social-links'),
     );
+    if (socialRes.statusCode != 200) {
+      throw Exception('Failed to load social links: ${socialRes.statusCode}');
+    }
 
     final socialJson = jsonDecode(socialRes.body);
 
@@ -46,60 +52,70 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
     @override
-    Future<ProfileDto> updateProfile(ProfileDto profile) async {
-    if (useMock) {///if I am using mockapi
-        // MockAPI — just PATCH /users/1
-        await http.patch(
-        Uri.parse('$baseUrl/users/1'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-            'username': profile.userName,
-            'bio': profile.bio,
-            'location': '${profile.city}, ${profile.country}',
-            'avatarUrl': profile.profileImagePath,
-            'coverUrl': profile.coverImagePath,
-            'visibility': profile.visibility,
-            'userType': profile.userType,
-        }),
-        );
-
-        // MockAPI — PATCH social links
-        await http.patch(
-        Uri.parse('$baseUrl/social_links/1'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-            'instagram': profile.instagram,
-            'twitter': profile.twitter,
-            'website': profile.website,
-        }),
-        );
-    } else {
-        // Real backend
-        await http.patch(
-        Uri.parse('$baseUrl/users/me/profile'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-            'username': profile.userName,
-            'bio': profile.bio,
-            'location': '${profile.city}, ${profile.country}',
-            'avatarUrl': profile.profileImagePath,
-            'coverUrl': profile.coverImagePath,
-            'visibility': profile.visibility,
-            'userType': profile.userType,
-        }),
-        );
-
-        await http.patch(
-        Uri.parse('$baseUrl/users/me/social-links'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-            'instagram': profile.instagram,
-            'twitter': profile.twitter,
-            'website': profile.website,
-        }),
-        );
+    @override
+Future<ProfileDto> updateProfile(ProfileDto profile) async {
+  if (useMock) {
+    final res1 = await http.patch(
+      Uri.parse('$baseUrl/users/1'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username': profile.userName,
+        'bio': profile.bio,
+        'location': '${profile.city}, ${profile.country}',
+        'avatarUrl': profile.profileImagePath,
+        'coverUrl': profile.coverImagePath,
+        'visibility': profile.visibility,
+        'userType': profile.userType,
+      }),
+    );
+    if (res1.statusCode != 200) {
+      throw Exception('Failed to update profile: ${res1.statusCode}');
     }
 
-    return profile;
+    final res2 = await http.patch(
+      Uri.parse('$baseUrl/social_links/1'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'instagram': profile.instagram,
+        'twitter': profile.twitter,
+        'website': profile.website,
+      }),
+    );
+    if (res2.statusCode != 200) {
+      throw Exception('Failed to update social links: ${res2.statusCode}');
     }
+  } else {
+    final res1 = await http.patch(
+      Uri.parse('$baseUrl/users/me/profile'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'username': profile.userName,
+        'bio': profile.bio,
+        'location': '${profile.city}, ${profile.country}',
+        'avatarUrl': profile.profileImagePath,
+        'coverUrl': profile.coverImagePath,
+        'visibility': profile.visibility,
+        'userType': profile.userType,
+      }),
+    );
+    if (res1.statusCode != 200) {
+      throw Exception('Failed to update profile: ${res1.statusCode}');
+    }
+
+    final res2 = await http.patch(
+      Uri.parse('$baseUrl/users/me/social-links'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'instagram': profile.instagram,
+        'twitter': profile.twitter,
+        'website': profile.website,
+      }),
+    );
+    if (res2.statusCode != 200) {
+      throw Exception('Failed to update social links: ${res2.statusCode}');
+    }
+  }
+
+  return profile;
+}
 }

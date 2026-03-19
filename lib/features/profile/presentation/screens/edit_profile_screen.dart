@@ -140,6 +140,14 @@ Future<String?> uploadImage(File imageFile) async {
           
           if (profileImage != null) {
             profileUrl = await uploadImage(profileImage!);
+            if (profileUrl == null) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Profile image upload failed, try again')),
+                );
+              }
+              return;
+            }
           }
           else if (_profileImageDeleted){
              profileUrl = '';  // says "deleted"
@@ -147,7 +155,16 @@ Future<String?> uploadImage(File imageFile) async {
 
           if (coverImage != null) {
             coverUrl = await uploadImage(coverImage!);
-          }else if (_coverImageDeleted) {
+            if (coverUrl == null) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Cover image upload failed, try again')),
+                );
+              }
+              return;
+            }
+          }
+          else if (_coverImageDeleted) {
              coverUrl = '';  // says "deleted"
           }
 
