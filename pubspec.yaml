@@ -39,13 +39,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-<<<<<<< HEAD
   flutter_riverpod: ^3.3.1
   dio: ^5.9.2
-=======
-  flutter_riverpod: ^3.2.1
   file_picker: ^10.3.10
-  dio: ^5.9.2
   crypto: ^3.0.6
   #image_picker: ^1.1.2
   audio_waveforms: ^1.0.5
@@ -75,15 +71,10 @@ dependencies:
   google_sign_in: ^6.3.0
   flutter_recaptcha_v2_compat: ^1.0.5
   just_audio: ^0.10.5
->>>>>>> origin/upload-auth-profile-integration-test
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-<<<<<<< HEAD
-  mockito: ^5.5.0
-  build_runner: ^2.5.4
-=======
   mockito: ^5.4.4
   build_runner: ^2.4.6 #lel unit tests
 
@@ -94,7 +85,6 @@ dev_dependencies:
   # The following adds build_runner in to your application.
   # Use for generating mock files for testing.
   #build_runner: ^2.4.9
->>>>>>> origin/upload-auth-profile-integration-test
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

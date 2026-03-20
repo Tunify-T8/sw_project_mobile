@@ -153,8 +153,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.2"
-<<<<<<< HEAD
-=======
   code_assets:
     dependency: transitive
     description:
@@ -163,7 +161,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
->>>>>>> origin/upload-auth-profile-integration-test
   code_builder:
     dependency: transitive
     description:
@@ -188,8 +185,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
-<<<<<<< HEAD
-=======
   country_picker:
     dependency: "direct main"
     description:
@@ -198,7 +193,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.27"
->>>>>>> origin/upload-auth-profile-integration-test
   coverage:
     dependency: transitive
     description:
@@ -207,11 +201,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.15.0"
-<<<<<<< HEAD
-  crypto:
-    dependency: transitive
-    description:
-=======
   cross_file:
     dependency: transitive
     description:
@@ -223,7 +212,6 @@ packages:
   crypto:
     dependency: "direct main"
     description:
->>>>>>> origin/upload-auth-profile-integration-test
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
       url: "https://pub.dev"
@@ -245,8 +233,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
-<<<<<<< HEAD
-=======
   dbus:
     dependency: transitive
     description:
@@ -255,7 +241,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.12"
->>>>>>> origin/upload-auth-profile-integration-test
   dio:
     dependency: "direct main"
     description:
@@ -272,8 +257,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
-<<<<<<< HEAD
-=======
   enum_annotation:
     dependency: transitive
     description:
@@ -282,7 +265,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.4"
->>>>>>> origin/upload-auth-profile-integration-test
   fake_async:
     dependency: transitive
     description:
@@ -291,8 +273,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.3"
-<<<<<<< HEAD
-=======
   ffi:
     dependency: transitive
     description:
@@ -301,7 +281,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
->>>>>>> origin/upload-auth-profile-integration-test
   file:
     dependency: transitive
     description:
@@ -310,8 +289,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
-<<<<<<< HEAD
-=======
   file_picker:
     dependency: "direct main"
     description:
@@ -352,7 +329,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+5"
->>>>>>> origin/upload-auth-profile-integration-test
   fixnum:
     dependency: transitive
     description:
@@ -382,8 +358,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
-<<<<<<< HEAD
-=======
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -400,7 +374,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
->>>>>>> origin/upload-auth-profile-integration-test
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -409,8 +382,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.1"
-<<<<<<< HEAD
-=======
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -467,14 +438,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.4"
->>>>>>> origin/upload-auth-profile-integration-test
   flutter_test:
     dependency: "direct dev"
     description: flutter
     source: sdk
     version: "0.0.0"
-<<<<<<< HEAD
-=======
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -496,7 +464,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.4"
->>>>>>> origin/upload-auth-profile-integration-test
   frontend_server_client:
     dependency: transitive
     description:
@@ -513,8 +480,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.3"
-<<<<<<< HEAD
-=======
   google_identity_services_web:
     dependency: transitive
     description:
@@ -563,7 +528,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.12.4+4"
->>>>>>> origin/upload-auth-profile-integration-test
   graphs:
     dependency: transitive
     description:
@@ -572,8 +536,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
-<<<<<<< HEAD
-=======
   hooks:
     dependency: transitive
     description:
@@ -590,7 +552,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.6.0"
->>>>>>> origin/upload-auth-profile-integration-test
   http_multi_server:
     dependency: transitive
     description:
@@ -607,8 +568,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
-<<<<<<< HEAD
-=======
   image_picker:
     dependency: "direct main"
     description:
@@ -681,7 +640,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.19.0"
->>>>>>> origin/upload-auth-profile-integration-test
   io:
     dependency: transitive
     description:
@@ -694,17 +652,10 @@ packages:
     dependency: transitive
     description:
       name: js
-<<<<<<< HEAD
-      sha256: "53385261521cc4a0c4658fd0ad07a7d14591cf8fc33abbceae306ddb974888dc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.2"
-=======
       sha256: f2c445dce49627136094980615a031419f7f3eb393237e4ecd97ac15dea343f3
       url: "https://pub.dev"
     source: hosted
     version: "0.6.7"
->>>>>>> origin/upload-auth-profile-integration-test
   json_annotation:
     dependency: transitive
     description:
@@ -713,8 +664,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.11.0"
-<<<<<<< HEAD
-=======
   just_audio:
     dependency: "direct main"
     description:
@@ -747,7 +696,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
->>>>>>> origin/upload-auth-profile-integration-test
   leak_tracker:
     dependency: transitive
     description:
@@ -828,8 +776,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.6.3"
-<<<<<<< HEAD
-=======
   native_toolchain_c:
     dependency: transitive
     description:
@@ -846,7 +792,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
->>>>>>> origin/upload-auth-profile-integration-test
   node_preamble:
     dependency: transitive
     description:
@@ -855,8 +800,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.2"
-<<<<<<< HEAD
-=======
   objective_c:
     dependency: transitive
     description:
@@ -865,7 +808,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.3.0"
->>>>>>> origin/upload-auth-profile-integration-test
   package_config:
     dependency: transitive
     description:
@@ -882,8 +824,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
-<<<<<<< HEAD
-=======
   path_parsing:
     dependency: transitive
     description:
@@ -964,7 +904,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
->>>>>>> origin/upload-auth-profile-integration-test
   pool:
     dependency: transitive
     description:
@@ -973,8 +912,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.2"
-<<<<<<< HEAD
-=======
   provider:
     dependency: transitive
     description:
@@ -983,7 +920,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.5+1"
->>>>>>> origin/upload-auth-profile-integration-test
   pub_semver:
     dependency: transitive
     description:
@@ -1008,8 +944,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.1"
-<<<<<<< HEAD
-=======
   rxdart:
     dependency: transitive
     description:
@@ -1018,7 +952,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.28.0"
->>>>>>> origin/upload-auth-profile-integration-test
   shelf:
     dependency: transitive
     description:
@@ -1176,8 +1109,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-<<<<<<< HEAD
-=======
   universal_io:
     dependency: transitive
     description:
@@ -1282,7 +1213,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
->>>>>>> origin/upload-auth-profile-integration-test
   vector_math:
     dependency: transitive
     description:
@@ -1307,8 +1237,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
-<<<<<<< HEAD
-=======
   waveform_extractor:
     dependency: "direct main"
     description:
@@ -1317,7 +1245,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.8"
->>>>>>> origin/upload-auth-profile-integration-test
   web:
     dependency: transitive
     description:
@@ -1350,8 +1277,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
-<<<<<<< HEAD
-=======
   webview_flutter:
     dependency: transitive
     description:
@@ -1408,7 +1333,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.6.1"
->>>>>>> origin/upload-auth-profile-integration-test
   yaml:
     dependency: transitive
     description:
