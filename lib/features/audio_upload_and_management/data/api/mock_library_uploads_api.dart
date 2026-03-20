@@ -24,16 +24,22 @@ class MockLibraryUploadsApi {
     return uploads.where((item) => !item.isDeleted).map(_toDto).toList();
   }
 
-  Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    return const ArtistToolsQuotaDto(
-      tier: 'free',
-      uploadMinutesLimit: 180,
-      uploadMinutesUsed: 8,
-      canReplaceFiles: false,
-      canUpgrade: true,
-    );
-  }
+Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
+  await Future.delayed(const Duration(milliseconds: 150));
+
+  final user = await _tokenStorage.getUser();
+  final usedMinutes = user == null
+      ? GlobalTrackStore.instance.usedUploadMinutesForAllTracks()
+      : GlobalTrackStore.instance.usedUploadMinutesForUser(user.id);
+
+  return ArtistToolsQuotaDto(
+    tier: 'free',
+    uploadMinutesLimit: 180,
+    uploadMinutesUsed: usedMinutes,
+    canReplaceFiles: false,
+    canUpgrade: true,
+  );
+}
 
   Future<void> deleteUpload(String trackId) async {
     await Future.delayed(const Duration(milliseconds: 200));

@@ -1,9 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:just_audio/just_audio.dart';
+
 import '../../domain/entities/picked_upload_file.dart';
 import '../../shared/upload_error_helpers.dart';
 
-// ask is the right thing to split file/image to separate services? maybe not worth it, but it does make the code cleaner and more focused. we can always merge them back if it becomes too much boilerplate
 class FilePickerService {
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -12,8 +13,7 @@ class FilePickerService {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['mp3', 'wav', 'flac', 'm4a', 'aac'],
-        withData:
-            false, //do not load full file bytes into memory immediately ; audio files can be large.
+        withData: false,
       );
 
       if (result == null || result.files.isEmpty) {
@@ -28,10 +28,13 @@ class FilePickerService {
         );
       }
 
+      final durationSeconds = await _readAudioDurationSeconds(path);
+
       return PickedUploadFile(
         name: file.name,
         path: path,
         sizeBytes: file.size,
+        durationSeconds: durationSeconds,
       );
     } catch (error, stackTrace) {
       logUploadError('pick audio file', error, stackTrace);
@@ -42,9 +45,21 @@ class FilePickerService {
     }
   }
 
-  // is the image an entity ,
-  Future<String?> pickArtworkImage({bool fromCamera = false}) // why false
-  async {
+  Future<int?> _readAudioDurationSeconds(String filePath) async {
+    final player = AudioPlayer();
+
+    try {
+      final duration = await player.setFilePath(filePath);
+      return duration?.inSeconds;
+    } catch (error, stackTrace) {
+      logUploadError('read audio duration', error, stackTrace);
+      return null;
+    } finally {
+      await player.dispose();
+    }
+  }
+
+  Future<String?> pickArtworkImage({bool fromCamera = false}) async {
     try {
       final pickedImage = await _imagePicker.pickImage(
         source: fromCamera ? ImageSource.camera : ImageSource.gallery,

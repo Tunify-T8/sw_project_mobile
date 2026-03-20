@@ -14,6 +14,9 @@ class UploadState {
   final double uploadProgress;
   final String? error;
 
+  /// Null = no quota-block popup is needed.
+  final int? blockedUploadMinutes;
+
   const UploadState({
     this.isLoadingQuota = false,
     this.isPreparingUpload = false,
@@ -25,12 +28,15 @@ class UploadState {
     this.currentTrack,
     this.uploadProgress = 0.0,
     this.error,
+    this.blockedUploadMinutes,
   });
 
   bool get isBusy => isPreparingUpload || isUploading || isCompletingUpload;
 
   bool get uploadFinished =>
       hasUploadedAudio && !isPreparingUpload && !isUploading;
+
+  bool get shouldShowQuotaLimitPrompt => blockedUploadMinutes != null;
 
   UploadState copyWith({
     bool? isLoadingQuota,
@@ -45,6 +51,8 @@ class UploadState {
     bool clearCurrentTrack = false,
     double? uploadProgress,
     String? error,
+    int? blockedUploadMinutes,
+    bool clearBlockedUploadMinutes = false,
   }) {
     return UploadState(
       isLoadingQuota: isLoadingQuota ?? this.isLoadingQuota,
@@ -61,6 +69,9 @@ class UploadState {
           : currentTrack ?? this.currentTrack,
       uploadProgress: uploadProgress ?? this.uploadProgress,
       error: error,
+      blockedUploadMinutes: clearBlockedUploadMinutes
+          ? null
+          : blockedUploadMinutes ?? this.blockedUploadMinutes,
     );
   }
 }

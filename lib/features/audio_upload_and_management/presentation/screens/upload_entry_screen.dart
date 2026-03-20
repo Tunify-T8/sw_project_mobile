@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../controllers/upload_flow_controller.dart';
 import '../providers/upload_dependencies_provider.dart';
 import '../providers/upload_provider.dart';
 import '../utils/upload_auth_guard.dart';
 import 'track_metadata_screen.dart';
 
-/// Entry point for the upload flow.
-/// Auto-opens file picker on first render, creates draft, starts upload,
-/// then navigates to TrackMetadataScreen.
 class UploadEntryScreen extends ConsumerStatefulWidget {
   const UploadEntryScreen({super.key});
 
@@ -44,8 +42,16 @@ class _UploadEntryScreenState extends ConsumerState<UploadEntryScreen> {
     if (!mounted) return;
 
     if (track == null) {
-      // User cancelled picker — go back
+      final showedQuotaPrompt = await maybeShowUploadQuotaLimitPrompt(
+        context,
+        ref,
+      );
+      if (!mounted) return;
+
       Navigator.of(context).maybePop();
+      if (showedQuotaPrompt) {
+        return;
+      }
       return;
     }
 

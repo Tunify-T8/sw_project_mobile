@@ -2,9 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/upload_item.dart';
 
-/// Singleton in-memory store for uploaded tracks.
-/// Both MockUploadService and MockLibraryUploadsApi read/write here,
-/// so a new upload immediately shows up in YourUploadsScreen.
 class GlobalTrackStore {
   GlobalTrackStore._();
 
@@ -21,6 +18,14 @@ class GlobalTrackStore {
       List.unmodifiable(_itemsByOwner[ownerUserId] ?? const <UploadItem>[]);
 
   String? ownerUserIdForTrack(String id) => _ownersByTrackId[id];
+
+  int usedUploadMinutesForUser(String ownerUserId) {
+    return _calculateUsedUploadMinutes(allForUser(ownerUserId));
+  }
+
+  int usedUploadMinutesForAllTracks() {
+    return _calculateUsedUploadMinutes(all);
+  }
 
   void add(UploadItem item, {String ownerUserId = _globalOwnerId}) {
     final resolvedOwner = _ownersByTrackId[item.id] ?? ownerUserId;
@@ -74,6 +79,16 @@ class GlobalTrackStore {
     return null;
   }
 
+  int _calculateUsedUploadMinutes(Iterable<UploadItem> items) {
+    return items.where((item) => !item.isDeleted).fold<int>(0, (total, item) {
+      final seconds = item.durationSeconds;
+      if (seconds <= 0) {
+        return total;
+      }
+      return total + ((seconds + 59) ~/ 60);
+    });
+  }
+
   void _removeFromBuckets(String id) {
     for (final entry in _itemsByOwner.entries.toList()) {
       entry.value.removeWhere((item) => item.id == id);
@@ -84,7 +99,6 @@ class GlobalTrackStore {
   }
 }
 
-/// Riverpod provider exposes the singleton store so notifiers can read it.
 final globalTrackStoreProvider = Provider<GlobalTrackStore>((ref) {
   return GlobalTrackStore.instance;
 });

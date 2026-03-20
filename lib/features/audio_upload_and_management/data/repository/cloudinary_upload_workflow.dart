@@ -20,17 +20,20 @@ class CloudinaryUploadWorkflow {
   final UploadWaveformService _waveformService;
   final Map<String, PendingCloudinaryTrack> _drafts = {};
 
-  Future<UploadQuota> getUploadQuota(String userId) async {
-    return const UploadQuota(
-      tier: 'free',
-      uploadMinutesLimit: 180,
-      uploadMinutesUsed: 8,
-      uploadMinutesRemaining: 172,
-      canReplaceFiles: false,
-      canScheduleRelease: false,
-      canAccessAdvancedTab: false,
-    );
-  }
+ Future<UploadQuota> getUploadQuota(String userId) async {
+  final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(userId);
+  final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
+
+  return UploadQuota(
+    tier: 'free',
+    uploadMinutesLimit: 180,
+    uploadMinutesUsed: usedMinutes,
+    uploadMinutesRemaining: remainingMinutes,
+    canReplaceFiles: false,
+    canScheduleRelease: false,
+    canAccessAdvancedTab: false,
+  );
+}
 
   Future<UploadedTrack> createTrack(String userId) async {
     final trackId = 'track_${DateTime.now().millisecondsSinceEpoch}';

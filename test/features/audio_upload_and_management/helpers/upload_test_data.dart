@@ -10,8 +10,8 @@ const samplePickedUploadFile = PickedUploadFile(
   name: 'track.mp3',
   path: '/tmp/track.mp3',
   sizeBytes: 2048,
+  durationSeconds: 245,
 );
-
 const sampleUploadQuota = UploadQuota(
   tier: 'free',
   uploadMinutesLimit: 180,

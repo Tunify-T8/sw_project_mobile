@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/upload_cancellation_token.dart';
+import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../shared/upload_error_helpers.dart';
@@ -24,13 +26,20 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   Future<void> loadQuota(String userId) async {
-    state = state.copyWith(isLoadingQuota: true, error: null);
+    state = state.copyWith(
+      isLoadingQuota: true,
+      clearBlockedUploadMinutes: true,
+      error: null,
+    );
 
     try {
       final repository = ref.read(uploadRepositoryProvider);
       final quota = await repository.getUploadQuota(userId);
 
-      state = state.copyWith(isLoadingQuota: false, quota: quota);
+      state = state.copyWith(
+        isLoadingQuota: false,
+        quota: quota,
+      );
     } catch (error, stackTrace) {
       logUploadError('load upload quota', error, stackTrace);
       state = state.copyWith(
@@ -43,6 +52,13 @@ class UploadNotifier extends Notifier<UploadState> {
     }
   }
 
+  void clearQuotaLimitPrompt() {
+    state = state.copyWith(
+      clearBlockedUploadMinutes: true,
+      error: null,
+    );
+  }
+
   void primeTrackForEditing({required String trackId}) {
     state = state.copyWith(
       currentTrack: UploadedTrack(
@@ -51,18 +67,32 @@ class UploadNotifier extends Notifier<UploadState> {
       ),
       hasUploadedAudio: true,
       uploadProgress: 1.0,
+      clearBlockedUploadMinutes: true,
       error: null,
     );
   }
 
-  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(
-    String userId,
-  ) async {
+  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(String userId) async {
     try {
       final picker = ref.read(filePickerServiceProvider);
       final file = await picker.pickAudioFile();
 
       if (file == null) {
+        return null;
+      }
+
+      final blockedUploadMinutes = _blockedUploadMinutesFor(file);
+      if (blockedUploadMinutes != null) {
+        state = state.copyWith(
+          isPreparingUpload: false,
+          isUploading: false,
+          hasUploadedAudio: false,
+          uploadProgress: 0.0,
+          clearSelectedAudio: true,
+          clearCurrentTrack: true,
+          blockedUploadMinutes: blockedUploadMinutes,
+          error: null,
+        );
         return null;
       }
 
@@ -72,6 +102,7 @@ class UploadNotifier extends Notifier<UploadState> {
         isUploading: false,
         hasUploadedAudio: false,
         uploadProgress: 0.0,
+        clearBlockedUploadMinutes: true,
         error: null,
       );
 
@@ -134,12 +165,14 @@ class UploadNotifier extends Notifier<UploadState> {
       }
 
       final restorePoint = _captureRestorePoint();
+
       state = state.copyWith(
         selectedAudio: file,
         isPreparingUpload: false,
         isUploading: true,
         hasUploadedAudio: false,
         uploadProgress: 0.0,
+        clearBlockedUploadMinutes: true,
         error: null,
       );
 
@@ -186,6 +219,7 @@ class UploadNotifier extends Notifier<UploadState> {
         isUploading: false,
         hasUploadedAudio: false,
         uploadProgress: 0.0,
+        clearBlockedUploadMinutes: true,
         error: null,
       );
       return false;
@@ -197,7 +231,11 @@ class UploadNotifier extends Notifier<UploadState> {
 
   void completeSavedUploadInBackground(String trackId) {
     final requestId = ++_activeCompletionRequestId;
-    state = state.copyWith(isCompletingUpload: true, error: null);
+    state = state.copyWith(
+      isCompletingUpload: true,
+      clearBlockedUploadMinutes: true,
+      error: null,
+    );
     unawaited(_completeSavedUploadInBackground(requestId, trackId));
   }
 
@@ -217,11 +255,17 @@ class UploadNotifier extends Notifier<UploadState> {
         cancellationToken: cancellationToken,
         onProgress: (progress) {
           if (!_isActiveRequest(requestId)) return;
-          state = state.copyWith(uploadProgress: progress.clamp(0.0, 1.0));
+          state = state.copyWith(
+            uploadProgress: progress.clamp(0.0, 1.0),
+          );
         },
       );
 
       if (!_isActiveRequest(requestId)) return;
+
+      final nextQuota = restorePoint == null
+          ? _consumeQuotaForNewUpload(state.quota, file)
+          : state.quota;
 
       state = state.copyWith(
         isPreparingUpload: false,
@@ -229,10 +273,13 @@ class UploadNotifier extends Notifier<UploadState> {
         hasUploadedAudio: true,
         uploadProgress: 1.0,
         currentTrack: uploadedTrack,
+        quota: nextQuota,
+        clearBlockedUploadMinutes: true,
         error: null,
       );
     } catch (error, stackTrace) {
       if (!_isActiveRequest(requestId)) return;
+
       if (_isCancellationError(error)) {
         if (restorePoint != null) {
           _restoreUploadState(restorePoint);
@@ -294,6 +341,34 @@ class UploadNotifier extends Notifier<UploadState> {
         (error is DioException && error.type == DioExceptionType.cancel);
   }
 
+  int? _blockedUploadMinutesFor(PickedUploadFile file) {
+    final quota = state.quota;
+    final durationSeconds = file.durationSeconds;
+
+    if (quota == null || durationSeconds == null || durationSeconds <= 0) {
+      return null;
+    }
+
+    if (quota.canUploadDuration(durationSeconds)) {
+      return null;
+    }
+
+    return quota.minutesRequiredForDuration(durationSeconds);
+  }
+
+  UploadQuota? _consumeQuotaForNewUpload(
+    UploadQuota? quota,
+    PickedUploadFile file,
+  ) {
+    final durationSeconds = file.durationSeconds;
+
+    if (quota == null || durationSeconds == null || durationSeconds <= 0) {
+      return quota;
+    }
+
+    return quota.consumeDuration(durationSeconds);
+  }
+
   _UploadRestorePoint? _captureRestorePoint() {
     final currentTrack = state.currentTrack;
     if (!state.uploadFinished || currentTrack == null) {
@@ -321,6 +396,7 @@ class UploadNotifier extends Notifier<UploadState> {
       currentTrack: restorePoint.currentTrack,
       clearCurrentTrack: restorePoint.currentTrack == null,
       uploadProgress: restorePoint.uploadProgress,
+      clearBlockedUploadMinutes: true,
       error: errorMessage,
     );
   }
@@ -332,6 +408,7 @@ class UploadNotifier extends Notifier<UploadState> {
     try {
       final repository = ref.read(uploadRepositoryProvider);
       final finalTrack = await repository.waitUntilProcessed(trackId);
+
       if (!_isActiveCompletionRequest(requestId)) {
         return;
       }
@@ -339,10 +416,12 @@ class UploadNotifier extends Notifier<UploadState> {
       state = state.copyWith(
         isCompletingUpload: false,
         currentTrack: finalTrack,
+        clearBlockedUploadMinutes: true,
         error: null,
       );
 
       await ref.read(libraryUploadsProvider.notifier).refresh();
+
       if (!_isActiveCompletionRequest(requestId)) {
         return;
       }
