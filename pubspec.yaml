@@ -2,7 +2,7 @@ name: software_project
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -30,18 +30,71 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  image_picker: ^1.0.4 #images
+  #url_launcher: ^6.2.4 #url
+  country_picker: ^2.0.20 #darine added this(3)
+  font_awesome_flutter: ^10.6.0 #for icons
+  http: ^1.2.0    
+ #darine added this
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+<<<<<<< HEAD
   flutter_riverpod: ^3.3.1
   dio: ^5.9.2
+=======
+  flutter_riverpod: ^3.2.1
+  file_picker: ^10.3.10
+  dio: ^5.9.2
+  crypto: ^3.0.6
+  #image_picker: ^1.1.2
+  audio_waveforms: ^1.0.5
+  waveform_extractor: ^1.2.8
+  #audioplayers: ^6.5.1
+
+  # The following adds Dio to your application.
+  # Use with the Dio class for API.
+
+  # The following adds flutter riverpod to your application.
+  # Use for state management.
+
+  # The following adds flutter secure storage to your application.
+  # Use for secure JWT storage.
+  flutter_secure_storage: ^9.0.0
+
+  # The following adds jwt decoder to your application.
+  # Use to check token expiration.
+  jwt_decoder: ^2.0.1
+
+  # The following adds Google Sign in to your application.
+  # Use for OAuth with Google.
+
+  # The following adds url_launcher in to your application.
+  # Use for launching urls.
+  url_launcher: ^6.3.1
+  google_sign_in: ^6.3.0
+  flutter_recaptcha_v2_compat: ^1.0.5
+  just_audio: ^0.10.5
+>>>>>>> origin/upload-auth-profile-integration-test
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+<<<<<<< HEAD
   mockito: ^5.5.0
   build_runner: ^2.5.4
+=======
+  mockito: ^5.4.4
+  build_runner: ^2.4.6 #lel unit tests
+
+  # The following adds Mockito in to your application.
+  # Use for Unit Tests.
+  #mockito: ^5.4.4
+
+  # The following adds build_runner in to your application.
+  # Use for generating mock files for testing.
+  #build_runner: ^2.4.9
+>>>>>>> origin/upload-auth-profile-integration-test
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -55,7 +108,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
