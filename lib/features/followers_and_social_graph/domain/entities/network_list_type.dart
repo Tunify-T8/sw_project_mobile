@@ -1,7 +1,1 @@
-enum NetworkListType {
-  following,
-  followers,
-  suggested, 
-  blocked,
-  mutual,
-}
+enum NetworkListType { following, followers, suggested, blocked, mutual }

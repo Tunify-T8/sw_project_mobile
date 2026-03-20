@@ -33,9 +33,7 @@ class UserSocialTile extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: (){
-        print('navigate to profile');
-      },
+      onTap: () {},
       child: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Row(
@@ -50,9 +48,9 @@ class UserSocialTile extends StatelessWidget {
                   ? const Icon(Icons.person, color: Colors.white)
                   : null,
             ),
-      
+
             const SizedBox(width: 20.0),
-      
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +71,11 @@ class UserSocialTile extends StatelessWidget {
                       if (user.isVerified)
                         Padding(
                           padding: const EdgeInsets.only(left: 5.0),
-                          child: Icon(Icons.verified, color: Colors.blue, size: 20.0),
+                          child: Icon(
+                            Icons.verified,
+                            color: Colors.blue,
+                            size: 20.0,
+                          ),
                         ),
                     ],
                   ),
@@ -97,23 +99,25 @@ class UserSocialTile extends StatelessWidget {
                 ],
               ),
             ),
-      
+
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
               child: TextButton(
                 onPressed: blockedList ? onBlock : onFollowToggle,
                 style: TextButton.styleFrom(
-                  backgroundColor: (blockedList ? user.isBlocked : user.isFollowing)
+                  backgroundColor:
+                      (blockedList ? user.isBlocked : user.isFollowing)
                       ? const Color(0xFF303030)
                       : Colors.white,
-                  foregroundColor: (blockedList ? user.isBlocked : user.isFollowing)
+                  foregroundColor:
+                      (blockedList ? user.isBlocked : user.isFollowing)
                       ? Colors.white
                       : Colors.black,
                 ),
                 child: Text(buttonText, style: const TextStyle(fontSize: 15.0)),
               ),
             ),
-      
+
             if (listType == NetworkListType.following)
               IconButton(
                 onPressed: onToggleNotifications,

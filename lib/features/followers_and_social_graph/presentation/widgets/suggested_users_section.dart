@@ -15,8 +15,7 @@ class SuggestedUsersSection extends ConsumerStatefulWidget {
       _SuggestedUsersSectionState();
 }
 
-class _SuggestedUsersSectionState
-    extends ConsumerState<SuggestedUsersSection> {
+class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
   final bool useMock = true;
 
   @override
@@ -55,18 +54,20 @@ class _SuggestedUsersSectionState
 
     final users = state.suggestedUsers;
 
-    final showInitialLoading = users.isEmpty && (state.isLoading || !state.hasLoadedOnce);
+    final showInitialLoading =
+        users.isEmpty && (state.isLoading || !state.hasLoadedOnce);
     final showInitialError =
         users.isEmpty && state.error != null && state.hasLoadedOnce;
     final showEmpty =
-        users.isEmpty && !state.isLoading && state.error == null && state.hasLoadedOnce;
+        users.isEmpty &&
+        !state.isLoading &&
+        state.error == null &&
+        state.hasLoadedOnce;
 
     if (showInitialLoading) {
       return const SizedBox(
         height: 200,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -74,10 +75,7 @@ class _SuggestedUsersSectionState
       return SizedBox(
         height: 200,
         child: Center(
-          child: Text(
-            state.error!,
-            style: const TextStyle(color: Colors.red),
-          ),
+          child: Text(state.error!, style: const TextStyle(color: Colors.red)),
         ),
       );
     }

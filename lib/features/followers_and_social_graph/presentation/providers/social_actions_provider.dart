@@ -21,16 +21,10 @@ class SocialActionsNotifier {
     try {
       if (user.isFollowing) {
         await repository.unfollowUser(user.id);
-        listsNotifier.updateFollowStatus(
-          userId: user.id,
-          isFollowing: false,
-        );
+        listsNotifier.updateFollowStatus(userId: user.id, isFollowing: false);
       } else {
         await repository.followUser(user.id);
-        listsNotifier.updateFollowStatus(
-          userId: user.id,
-          isFollowing: true,
-        );
+        listsNotifier.updateFollowStatus(userId: user.id, isFollowing: true);
       }
     } catch (e) {
       listsNotifier.setError(e.toString());
@@ -47,16 +41,10 @@ class SocialActionsNotifier {
     try {
       if (user.isBlocked) {
         await repository.unblockUser(user.id);
-        listsNotifier.updateBlockStatus(
-          userId: user.id,
-          isBlocked: false,
-        );
+        listsNotifier.updateBlockStatus(userId: user.id, isBlocked: false);
       } else {
         await repository.blockUser(user.id);
-        listsNotifier.updateBlockStatus(
-          userId: user.id,
-          isBlocked: true,
-        );
+        listsNotifier.updateBlockStatus(userId: user.id, isBlocked: true);
       }
     } catch (e) {
       listsNotifier.setError(e.toString());

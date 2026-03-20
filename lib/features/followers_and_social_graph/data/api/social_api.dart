@@ -15,10 +15,7 @@ class SocialApi {
   }) async {
     final response = await dio.get(
       ApiEndpoints.getFollowers(userId),
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-      },
+      queryParameters: {'page': page, 'limit': limit},
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -36,10 +33,7 @@ class SocialApi {
   }) async {
     final response = await dio.get(
       ApiEndpoints.getFollowing(userId),
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-      },
+      queryParameters: {'page': page, 'limit': limit},
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -72,10 +66,7 @@ class SocialApi {
   }) async {
     final response = await dio.get(
       ApiEndpoints.getBlockedUsers(),
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-      },
+      queryParameters: {'page': page, 'limit': limit},
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -93,11 +84,7 @@ class SocialApi {
   }) async {
     final response = await dio.get(
       ApiEndpoints.getSuggestedUsers(),
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        if (genre != null) 'genre': genre,
-      },
+      queryParameters: {'page': page, 'limit': limit, 'genre': ?genre},
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -111,9 +98,7 @@ class SocialApi {
   Future<SocialRelationDTO> getFollowStatus(String userId) async {
     final response = await dio.get(ApiEndpoints.getFollowStatus(userId));
 
-    return SocialRelationDTO.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return SocialRelationDTO.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<List<SocialUserDTO>> getMutualFriends({
@@ -123,10 +108,7 @@ class SocialApi {
   }) async {
     final response = await dio.get(
       ApiEndpoints.getMutualFriends(userId),
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-      },
+      queryParameters: {'page': page, 'limit': limit},
     );
 
     final data = response.data as Map<String, dynamic>;

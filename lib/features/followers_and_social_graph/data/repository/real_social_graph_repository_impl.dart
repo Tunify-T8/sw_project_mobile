@@ -65,10 +65,7 @@ class RealSocialGraphRepositoryImpl implements SocialGraphRepository {
     int page = 1,
     int limit = 20,
   }) async {
-    final dtos = await api.getBlockedUsers(
-      page: page,
-      limit: limit,
-    );
+    final dtos = await api.getBlockedUsers(page: page, limit: limit);
 
     return dtos.map((dto) => dto.toEntity()).toList();
   }

@@ -11,7 +11,7 @@ class SocialUserEntity {
   final int? mutualFollowersCount;
   final bool isVerified;
   final bool isFollowing;
-  final bool isBlocked; 
+  final bool isBlocked;
   final bool isNotificationEnabled;
 
   const SocialUserEntity({
@@ -27,7 +27,7 @@ class SocialUserEntity {
     this.mutualFollowersCount,
     this.isVerified = false,
     this.isFollowing = false,
-    this.isBlocked = false, 
+    this.isBlocked = false,
     this.isNotificationEnabled = false,
   });
 
@@ -44,7 +44,7 @@ class SocialUserEntity {
     int? mutualFollowersCount,
     bool? isVerified,
     bool? isFollowing,
-    bool? isBlocked, 
+    bool? isBlocked,
     bool? isNotificationEnabled,
   }) {
     return SocialUserEntity(
@@ -57,11 +57,10 @@ class SocialUserEntity {
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
       tracksUploadedCount: tracksUploadedCount ?? this.tracksUploadedCount,
-      mutualFollowersCount:
-          mutualFollowersCount ?? this.mutualFollowersCount,
+      mutualFollowersCount: mutualFollowersCount ?? this.mutualFollowersCount,
       isVerified: isVerified ?? this.isVerified,
       isFollowing: isFollowing ?? this.isFollowing,
-      isBlocked: isBlocked ?? this.isBlocked, 
+      isBlocked: isBlocked ?? this.isBlocked,
       isNotificationEnabled:
           isNotificationEnabled ?? this.isNotificationEnabled,
     );

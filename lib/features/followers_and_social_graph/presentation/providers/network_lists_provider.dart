@@ -5,8 +5,8 @@ import 'social_graph_repository_provider.dart';
 
 final networkListsProvider =
     NotifierProvider<NetworkListsNotifier, NetworkListsState>(
-  NetworkListsNotifier.new,
-);
+      NetworkListsNotifier.new,
+    );
 
 class NetworkListsNotifier extends Notifier<NetworkListsState> {
   @override
@@ -19,10 +19,7 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     int page = 1,
     int limit = 20,
   }) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-    );
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final repository = ref.read(socialGraphRepositoryProvider);
@@ -52,10 +49,7 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     int page = 1,
     int limit = 20,
   }) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-    );
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final repository = ref.read(socialGraphRepositoryProvider);
@@ -85,10 +79,7 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     int limit = 20,
     String? genre,
   }) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-    );
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final repository = ref.read(socialGraphRepositoryProvider);
@@ -113,14 +104,8 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     }
   }
 
-  Future<void> loadBlockedUsers({
-    int page = 1,
-    int limit = 20,
-  }) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-    );
+  Future<void> loadBlockedUsers({int page = 1, int limit = 20}) async {
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final repository = ref.read(socialGraphRepositoryProvider);
@@ -149,10 +134,7 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     int page = 1,
     int limit = 20,
   }) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-    );
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final repository = ref.read(socialGraphRepositoryProvider);
@@ -177,90 +159,84 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     }
   }
 
-  void updateFollowStatus({
-  required String userId,
-  required bool isFollowing,
-}) {
-  state = state.copyWith(
-    followers: state.followers
-        .map(
-          (user) => user.id == userId
-              ? user.copyWith(isFollowing: isFollowing)
-              : user,
-        )
-        .toList(),
-    following: state.following
-        .map(
-          (user) => user.id == userId
-              ? user.copyWith(isFollowing: isFollowing)
-              : user,
-        )
-        .toList(),
-    suggestedUsers: state.suggestedUsers
-        .map(
-          (user) => user.id == userId
-              ? user.copyWith(isFollowing: isFollowing)
-              : user,
-        )
-        .toList(),
-    mutualFriends: state.mutualFriends
-        .map(
-          (user) => user.id == userId
-              ? user.copyWith(isFollowing: isFollowing)
-              : user,
-        )
-        .toList(),
-    blockedUsers: state.blockedUsers
-        .map(
-          (user) => user.id == userId
-              ? user.copyWith(isFollowing: isFollowing)
-              : user,
-        )
-        .toList(),
-  );
-}
+  void updateFollowStatus({required String userId, required bool isFollowing}) {
+    state = state.copyWith(
+      followers: state.followers
+          .map(
+            (user) => user.id == userId
+                ? user.copyWith(isFollowing: isFollowing)
+                : user,
+          )
+          .toList(),
+      following: state.following
+          .map(
+            (user) => user.id == userId
+                ? user.copyWith(isFollowing: isFollowing)
+                : user,
+          )
+          .toList(),
+      suggestedUsers: state.suggestedUsers
+          .map(
+            (user) => user.id == userId
+                ? user.copyWith(isFollowing: isFollowing)
+                : user,
+          )
+          .toList(),
+      mutualFriends: state.mutualFriends
+          .map(
+            (user) => user.id == userId
+                ? user.copyWith(isFollowing: isFollowing)
+                : user,
+          )
+          .toList(),
+      blockedUsers: state.blockedUsers
+          .map(
+            (user) => user.id == userId
+                ? user.copyWith(isFollowing: isFollowing)
+                : user,
+          )
+          .toList(),
+    );
+  }
 
-void updateBlockStatus({
-  required String userId,
-  required bool isBlocked,
-}) {
-  state = state.copyWith(
-    followers: state.followers
-        .map(
-          (user) =>
-              user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
-        )
-        .toList(),
-    following: state.following
-        .map(
-          (user) =>
-              user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
-        )
-        .toList(),
-    suggestedUsers: state.suggestedUsers
-        .map(
-          (user) =>
-              user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
-        )
-        .toList(),
-    mutualFriends: state.mutualFriends
-        .map(
-          (user) =>
-              user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
-        )
-        .toList(),
-    blockedUsers: state.blockedUsers
-        .map(
-          (user) =>
-              user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
-        )
-        .toList(),
-  );
-}
+  void updateBlockStatus({required String userId, required bool isBlocked}) {
+    state = state.copyWith(
+      followers: state.followers
+          .map(
+            (user) =>
+                user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
+          )
+          .toList(),
+      following: state.following
+          .map(
+            (user) =>
+                user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
+          )
+          .toList(),
+      suggestedUsers: state.suggestedUsers
+          .map(
+            (user) =>
+                user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
+          )
+          .toList(),
+      mutualFriends: state.mutualFriends
+          .map(
+            (user) =>
+                user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
+          )
+          .toList(),
+      blockedUsers: state.blockedUsers
+          .map(
+            (user) =>
+                user.id == userId ? user.copyWith(isBlocked: isBlocked) : user,
+          )
+          .toList(),
+    );
+  }
 
-void setError(String errorMessage) {
-  state = state.copyWith(error: errorMessage);
-}
+  void setError(String errorMessage) {
+    state = state.copyWith(error: errorMessage);
+  }
 
   void clearError() {
     state = state.copyWith(error: null);

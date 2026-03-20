@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class NetworkListsTrueFriendsTile extends StatelessWidget {
   final VoidCallback onTap;
 
-  const NetworkListsTrueFriendsTile({
-    super.key,
-    required this.onTap,
-  });
+  const NetworkListsTrueFriendsTile({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -14,9 +11,7 @@ class NetworkListsTrueFriendsTile extends StatelessWidget {
       padding: const EdgeInsets.all(10.0),
       child: ListTile(
         onTap: onTap,
-        leading: const CircleAvatar(
-          child: Icon(Icons.people),
-        ),
+        leading: const CircleAvatar(child: Icon(Icons.people)),
         title: const Text(
           'People who follow you back',
           style: TextStyle(
@@ -27,10 +22,7 @@ class NetworkListsTrueFriendsTile extends StatelessWidget {
         ),
         subtitle: const Text(
           'See your true friends',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-          ),
+          style: TextStyle(color: Colors.white, fontSize: 17),
         ),
         tileColor: const Color(0xFF18181A),
         trailing: const Icon(

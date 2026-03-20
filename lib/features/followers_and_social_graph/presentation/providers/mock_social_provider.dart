@@ -155,19 +155,19 @@ class MockSocialNotifier extends Notifier<NetworkListsState> {
   }
 
   Future<void> toggleFollow(String userId) async {
-  final user = [
-    ...state.following,
-    ...state.followers,
-    ...state.suggestedUsers,
-    ...state.mutualFriends,
-  ].firstWhere((u) => u.id == userId);
+    final user = [
+      ...state.following,
+      ...state.followers,
+      ...state.suggestedUsers,
+      ...state.mutualFriends,
+    ].firstWhere((u) => u.id == userId);
 
-  if (user.isFollowing) {
-    await unfollowUser(userId);
-  } else {
-    await followUser(userId);
+    if (user.isFollowing) {
+      await unfollowUser(userId);
+    } else {
+      await followUser(userId);
+    }
   }
-}
 
   Future<void> followUser(String userId) async {
     try {
@@ -255,20 +255,20 @@ class MockSocialNotifier extends Notifier<NetworkListsState> {
   }
 
   Future<void> toggleBlock(String userId) async {
-  final user = [
-    ...state.blockedUsers,
-    ...state.followers,
-    ...state.following,
-    ...state.suggestedUsers,
-    ...state.mutualFriends,
-  ].firstWhere((u) => u.id == userId);
+    final user = [
+      ...state.blockedUsers,
+      ...state.followers,
+      ...state.following,
+      ...state.suggestedUsers,
+      ...state.mutualFriends,
+    ].firstWhere((u) => u.id == userId);
 
-  if (user.isBlocked) {
-    await unblockUser(userId);
-  } else {
-    await blockUser(userId);
+    if (user.isBlocked) {
+      await unblockUser(userId);
+    } else {
+      await blockUser(userId);
+    }
   }
-}
 
   Future<void> blockUser(String userId) async {
     try {
