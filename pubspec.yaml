@@ -70,6 +70,7 @@ dependencies:
   url_launcher: ^6.3.1
   google_sign_in: ^6.3.0
   flutter_recaptcha_v2_compat: ^1.0.5
+  just_audio: ^0.10.5
 
 dev_dependencies:
   flutter_test:
