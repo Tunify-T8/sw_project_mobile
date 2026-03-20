@@ -139,7 +139,7 @@ class _ArtistToolPaywallMessage extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              'As a free user, you can upload up to ${uploadMinutesLimit ?? 180 ~/ 60} hours of audio content.',
+              'As a free user, you can upload up to ${uploadMinutesLimit ?? 180 ~/ 60} minutes of audio content.',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 18,
