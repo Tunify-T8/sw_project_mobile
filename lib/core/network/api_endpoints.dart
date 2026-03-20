@@ -35,3 +35,21 @@ class ApiEndpoints {
   static String deleteUpload(String trackId) => '/tracks/$trackId';
   static String replaceUploadFile(String trackId) => '/tracks/$trackId/audio/replace';
 }
+
+//profile
+//when time comes to connect real backend
+//Reminder for darine:
+
+// Change this: (profile_api.dart)
+//static const String _baseUrl = 'https://69b5b11a583f543fbd9c3072.mockapi.io';
+// To this:
+//static const String _baseUrl = 'http://10.0.2.2:3000/api';
+
+// Change this:
+//final userRes = await _dio.get('$_baseUrl/users/1');
+// To this:
+//final userRes = await _dio.get('$_baseUrl/users/$userId');
+// In api_endpoints.dart add:
+// static String getProfile(String userId) => '/users/$userId';
+// static String updateProfile(String userId) => '/users/$userId';
+// static String getSocialLinks(String userId) => '/social_links/$userId';
