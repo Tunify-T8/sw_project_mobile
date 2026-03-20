@@ -9,6 +9,7 @@ import 'router.dart';
 /// SoundCloud-style bottom nav: Home | Feed | Search | Library | Upgrade
 class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({super.key});
+
   @override
   ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/features/followers_and_social_graph/domain/entities/network_list_type.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import 'package:software_project/shared/ui/screens/library_screen.dart'
     as shared_library;
 
@@ -30,6 +32,18 @@ class LibraryScreen extends StatelessWidget {
   }
 
   void _handleTap(BuildContext context, String label) {
+    if (label == 'Following') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const NetworkListsScreen(
+            userId: 'u2',
+            listType: NetworkListType.following,
+          ),
+        ),
+      );
+      return;
+    }
+
     if (label == 'Your uploads') {
       if (onOpenYourUploads != null) {
         onOpenYourUploads!();

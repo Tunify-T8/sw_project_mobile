@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/widgets/suggested_users_section.dart';
 
 import 'home_liked_by_list.dart';
 
@@ -13,6 +14,8 @@ class HomeDiscoverySections extends StatelessWidget {
         _MadeForYouList(),
         _SectionTitle(title: 'Liked By', topPadding: 24),
         HomeLikedByList(),
+        _SectionTitle(title: 'Suggested users', topPadding: 24),
+        SuggestedUsersSection(),
         SizedBox(height: 120),
       ],
     );

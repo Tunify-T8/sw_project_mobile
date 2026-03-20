@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/profile/presentation/screens/profile_screen.dart';
 
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
@@ -52,16 +53,6 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
       await ref.read(mockSocialProvider.notifier).toggleFollow(user.id);
     } else {
       await ref.read(socialActionsProvider).toggleFollow(user);
-    }
-  }
-
-  Future<void> _handleBlockAction(SocialUserEntity user) async {
-    if (useMock) {
-      await ref.read(mockSocialProvider.notifier).toggleBlock(user.id);
-    } else {
-      await ref
-          .read(socialActionsProvider)
-          .toggleBlock(user: user, listType: widget.listType);
     }
   }
 
@@ -140,11 +131,16 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                     return UserSocialTile(
                       user: user,
                       listType: widget.listType,
-                      onFollowToggle: widget.listType == NetworkListType.blocked
-                          ? null
-                          : () => _handleFollowToggle(user),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
+                        );
+                      },
+                      onFollowToggle: () => _handleFollowToggle(user),
                       onToggleNotifications: null,
-                      onBlock: () => _handleBlockAction(user),
                     );
                   },
                 ),

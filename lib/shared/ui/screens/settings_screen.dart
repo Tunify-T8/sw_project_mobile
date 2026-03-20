@@ -4,6 +4,8 @@ import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/routing/routes.dart';
 import 'package:software_project/features/auth/presentation/widgets/signout_button.dart';
+import 'package:software_project/features/followers_and_social_graph/domain/entities/network_list_type.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import 'package:software_project/shared/providers/app_settings_provider.dart';
 
 import '../widgets/library_menu_tile.dart';
@@ -70,6 +72,19 @@ class SettingsScreen extends ConsumerWidget {
           LibraryMenuTile(
             label: 'Social',
             onTap: () => _showComingSoon(context, 'Social'),
+          ),
+          LibraryMenuTile(
+            label: 'Blocked Users',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NetworkListsScreen(
+                    userId: 'u2',
+                    listType: NetworkListType.blocked,
+                  ),
+                ),
+              );
+            },
           ),
           LibraryMenuTile(
             label: 'Notifications',

@@ -5,6 +5,7 @@ import '../../domain/entities/social_user_entity.dart';
 class UserSocialTile extends StatelessWidget {
   final SocialUserEntity user;
   final NetworkListType listType;
+  final VoidCallback? onTap;
   final VoidCallback? onFollowToggle;
   final VoidCallback? onToggleNotifications;
   final VoidCallback? onBlock;
@@ -13,6 +14,7 @@ class UserSocialTile extends StatelessWidget {
     super.key,
     required this.user,
     required this.listType,
+    this.onTap,
     this.onFollowToggle,
     this.onToggleNotifications,
     this.onBlock,
@@ -33,7 +35,7 @@ class UserSocialTile extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Row(

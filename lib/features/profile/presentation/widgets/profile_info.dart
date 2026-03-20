@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
+import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 
 class ProfileInfo extends StatelessWidget {
   final String userName;
@@ -28,68 +30,84 @@ class ProfileInfo extends StatelessWidget {
     required this.actionButtons,
   });
 
-    Widget buildName() => Padding(
+  Widget buildName() => Padding(
     padding: const EdgeInsets.only(left: 25),
-    child: Text(userName,style:nameStyle),
+    child: Text(userName, style: nameStyle),
   );
-    Widget buildBio() => Padding(
+  Widget buildBio() => Padding(
     padding: const EdgeInsets.only(left: 25),
-    child: Text(bio,style:bioStyle),
+    child: Text(bio, style: bioStyle),
   );
   Widget buildLocation() => Padding(
     padding: const EdgeInsets.only(left: 25),
     child: Text('📍$city, $country', style: bioStyle),
   );
-  Widget buildFollowerCount() {
+  Widget buildFollowerCount(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 25),
       child: Row(
         children: [
           GestureDetector(
-            onTap:(){
-              //Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowerScreen()));
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NetworkListsScreen(
+                    userId: 'u2',
+                    listType: NetworkListType.followers,
+                  ),
+                ),
+              );
             },
-          child: Text('$followersCount Followers', style: followerStyle),
+            child: Text('$followersCount Followers', style: followerStyle),
           ),
           Text('  ·  ', style: followerStyle),
           GestureDetector(
-            onTap:(){
-              //Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowingScreen()));
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NetworkListsScreen(
+                    userId: 'u2',
+                    listType: NetworkListType.following,
+                  ),
+                ),
+              );
             },
-            child:Text('$followingCount Following', style: followerStyle),
+            child: Text('$followingCount Following', style: followerStyle),
           ),
         ],
       ),
     );
   }
-      Widget buildShowMore() => Padding(
-  padding: const EdgeInsets.only(left: 25),
-  child: GestureDetector(
-    onTap: () => onShowMore(),
-    child: const Text(
-      'Show more',
-      style: TextStyle(color: Color(0xFF0066CC), fontSize: 14),
-    ),
-  ),
-);
-@override
-Widget build(BuildContext context) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      buildName(),
-      const SizedBox(height: 18),
-      buildLocation(),
-      const SizedBox(height: 18),
-      buildFollowerCount(),
-      const SizedBox(height: 18),
-      actionButtons,  // use it here
-      const SizedBox(height: 18),
-      buildBio(),
-      const SizedBox(height: 18),
-      buildShowMore(),
-    ],
-  );
-}
 
+  Widget buildShowMore() => Padding(
+    padding: const EdgeInsets.only(left: 25),
+    child: GestureDetector(
+      onTap: () => onShowMore(),
+      child: const Text(
+        'Show more',
+        style: TextStyle(color: Color(0xFF0066CC), fontSize: 14),
+      ),
+    ),
+  );
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        buildName(),
+        const SizedBox(height: 18),
+        buildLocation(),
+        const SizedBox(height: 18),
+        buildFollowerCount(context),
+        const SizedBox(height: 18),
+        actionButtons, // use it here
+        const SizedBox(height: 18),
+        buildBio(),
+        const SizedBox(height: 18),
+        buildShowMore(),
+      ],
+    );
+  }
 }

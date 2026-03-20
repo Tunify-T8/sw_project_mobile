@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/profile/presentation/screens/profile_screen.dart';
 
 import '../../domain/entities/social_user_entity.dart';
 import '../providers/mock_social_provider.dart';
@@ -102,6 +103,12 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
 
           return SuggestedUserItem(
             user: user,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
             onFollowToggle: () => _handleFollowToggle(user),
           );
         },
