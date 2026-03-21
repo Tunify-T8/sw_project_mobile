@@ -3,14 +3,12 @@ import 'package:software_project/features/auth/domain/entities/auth_user_entity.
 import 'package:software_project/features/auth/domain/repositories/auth_repository.dart';
 import 'mock_auth_service.dart';
 
-/// Fake implementation of [AuthRepository] used during development
-/// when [MockAuthConfig.useMock] is true.
+/// Fake implementation of [AuthRepository] used when [MockAuthConfig.useMock] is true.
 class MockAuthRepository implements AuthRepository {
   final TokenStorage _tokenStorage;
 
-  const MockAuthRepository({
-    required TokenStorage tokenStorage,
-  }) : _tokenStorage = tokenStorage;
+  const MockAuthRepository({required TokenStorage tokenStorage})
+    : _tokenStorage = tokenStorage;
 
   @override
   Future<bool> checkEmail(String email) => MockAuthService.checkEmail(email);
@@ -22,15 +20,13 @@ class MockAuthRepository implements AuthRepository {
     required String password,
     required String gender,
     required String dateOfBirth,
-  }) {
-    return MockAuthService.register(
-      email: email,
-      username: username,
-      password: password,
-      gender: gender,
-      dateOfBirth: dateOfBirth,
-    );
-  }
+  }) => MockAuthService.register(
+    email: email,
+    username: username,
+    password: password,
+    gender: gender,
+    dateOfBirth: dateOfBirth,
+  );
 
   @override
   Future<AuthUserEntity> login(String email, String password) async {
@@ -44,11 +40,31 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthUserEntity> verifyEmail(String email, String token) async {
-    final user = await MockAuthService.verifyEmail(
-      email: email,
-      token: token,
+  Future<AuthUserEntity> oauthLogin({
+    required String idToken,
+    required String provider,
+  }) async {
+    // Mock OAuth always succeeds with the same fake user.
+    // In real mode, the backend verifies the idToken and returns a real user.
+    await Future.delayed(const Duration(milliseconds: 700));
+    const fakeUser = AuthUserEntity(
+      id: 'mock-oauth-001',
+      email: 'oauth.user@gmail.com',
+      username: 'OAuth User',
+      role: 'LISTENER',
+      isVerified: true,
     );
+    await _tokenStorage.saveSession(
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      user: fakeUser,
+    );
+    return fakeUser;
+  }
+
+  @override
+  Future<AuthUserEntity> verifyEmail(String email, String token) async {
+    final user = await MockAuthService.verifyEmail(email: email, token: token);
     await _tokenStorage.saveSession(
       accessToken: 'mock-access-token',
       refreshToken: 'mock-refresh-token',
@@ -75,9 +91,7 @@ class MockAuthRepository implements AuthRepository {
     bool signoutAll = true,
   }) async {
     await MockAuthService.resetPassword();
-    if (signoutAll) {
-      await _tokenStorage.clearSession();
-    }
+    if (signoutAll) await _tokenStorage.clearSession();
   }
 
   @override

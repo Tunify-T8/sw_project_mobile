@@ -15,10 +15,13 @@ import 'package:software_project/features/auth/domain/usecases/forgot_password_u
 import 'package:software_project/features/auth/domain/usecases/login_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/logout_all_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:software_project/features/auth/domain/usecases/oauth_login_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/register_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/resend_verification_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/verify_email_usecase.dart';
+
+// ─── Infrastructure ───────────────────────────────────────────────────────────
 
 final tokenStorageProvider = Provider<TokenStorage>(
   (_) => const TokenStorage(),
@@ -33,6 +36,8 @@ final googleSignInServiceProvider = Provider<GoogleSignInService>(
   (_) => GoogleSignInService(),
 );
 
+// ─── Repository ───────────────────────────────────────────────────────────────
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final tokenStorage = ref.read(tokenStorageProvider);
 
@@ -42,6 +47,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
   return AuthRepositoryImpl(ref.read(authApiProvider), tokenStorage);
 });
+
+// ─── Use Cases ────────────────────────────────────────────────────────────────
 
 final checkEmailUseCaseProvider = Provider<CheckEmailUseCase>(
   (ref) => CheckEmailUseCase(ref.read(authRepositoryProvider)),
@@ -61,6 +68,10 @@ final resendVerificationUseCaseProvider = Provider<ResendVerificationUseCase>(
 
 final loginUseCaseProvider = Provider<LoginUseCase>(
   (ref) => LoginUseCase(ref.read(authRepositoryProvider)),
+);
+
+final oauthLoginUseCaseProvider = Provider<OAuthLoginUseCase>(
+  (ref) => OAuthLoginUseCase(ref.read(authRepositoryProvider)),
 );
 
 final logoutUseCaseProvider = Provider<LogoutUseCase>(
@@ -83,6 +94,8 @@ final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>(
   (ref) => DeleteAccountUseCase(ref.read(authRepositoryProvider)),
 );
 
+// ─── Controller ───────────────────────────────────────────────────────────────
+
 final authControllerProvider =
     NotifierProvider<AuthController, AsyncValue<AuthUserEntity?>>(
       AuthController.new,
@@ -95,6 +108,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   ResendVerificationUseCase get _resendVerification =>
       ref.read(resendVerificationUseCaseProvider);
   LoginUseCase get _login => ref.read(loginUseCaseProvider);
+  OAuthLoginUseCase get _oauthLogin => ref.read(oauthLoginUseCaseProvider);
   LogoutUseCase get _logout => ref.read(logoutUseCaseProvider);
   LogoutAllUseCase get _logoutAll => ref.read(logoutAllUseCaseProvider);
   ForgotPasswordUseCase get _forgotPassword =>
@@ -200,10 +214,31 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Signs in with Google OAuth.
+  ///
+  /// Returns true on success (state set to authenticated user).
+  /// Returns false if the user cancelled the Google dialog.
+  ///
+  /// Full flow:
+  ///   1. Opens native Google account picker.
+  ///   2. Extracts ID token from Google response.
+  ///   3. Sends ID token to backend via OAuthLoginUseCase.
+  ///   4. Backend verifies token, returns JWT pair + user.
+  ///   5. Session saved, state set to data(user).
+  ///
+  /// Requires serverClientId to be set in google_sign_in_service.dart
+  /// and the backend /auth/google endpoint to be live.
   Future<bool> loginWithGoogle() async {
     try {
       final result = await _googleSignInService.signIn();
-      if (result == null) return false;
+      if (result == null) return false; // User cancelled.
+
+      state = const AsyncLoading<AuthUserEntity?>();
+      final user = await _oauthLogin(
+        idToken: result.idToken,
+        provider: 'google',
+      );
+      state = AsyncData<AuthUserEntity?>(user);
       return true;
     } catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
@@ -229,7 +264,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     } on ValidationFailure catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
     } catch (_) {
-      // Intentionally swallowed to avoid revealing account existence.
+      // Intentionally swallowed — never reveal whether the address exists.
     }
   }
 

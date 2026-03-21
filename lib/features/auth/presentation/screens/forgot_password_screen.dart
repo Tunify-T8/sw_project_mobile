@@ -14,10 +14,9 @@ import 'package:software_project/core/utils/url_launcher_util.dart';
 
 /// Forgot password screen.
 ///
-/// Users can request a password reset email. The email field may be
-/// pre-filled when navigating from the login flow.
-///
-/// Includes an inline "Help Center" link for additional support.
+/// User enters their email and taps "Send reset link".
+/// Navigates directly to [ResetPasswordScreen]
+/// so the user can enter the code from their inbox immediately.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   final String? initialEmail;
   const ForgotPasswordScreen({super.key, this.initialEmail});
@@ -55,10 +54,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // Always navigate — never reveal whether email exists (API spec).
+    // Always navigate regardless of outcome — never reveal whether
+    // the email exists (API security spec).
+    // Goes to ResetPasswordScreen with email pre-filled.
     Navigator.pushNamed(
       context,
-      AppRoutes.checkYourEmail,
+      AppRoutes.resetPassword,
       arguments: {'email': _emailController.text.trim()},
     );
   }
@@ -107,13 +108,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       text: TextSpan(
                         style: AppTextStyles.bodyMuted,
                         children: [
-                          const TextSpan(
-                            text:
-                                'If the email address is in our database, we will send you an '
-                                'email to reset your password. Need help? ',
-                          ),
+                          const TextSpan(text: 'Need help? '),
                           TextSpan(
-                            text: 'visit our Help Center',
+                            text: 'Visit our Help Center',
                             style: const TextStyle(color: AppColors.link),
                             recognizer: TapGestureRecognizer()
                               ..onTap = () => UrlLauncherUtil.open(

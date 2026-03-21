@@ -1,18 +1,31 @@
+import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 import '../repositories/auth_repository.dart';
 
-/// Placeholder use case for OAuth login via third-party providers.
+/// Authenticates a user via a third-party OAuth provider.
 ///
-/// The Tunify API doc marks POST /auth/google as "Coming Soon".
-/// This class will be implemented once the backend endpoint is available.
+/// The flow:
+///   1. Flutter gets an ID token from the provider (e.g. Google).
+///   2. This use case sends that token to your backend.
+///   3. The backend verifies it with Google, creates/fetches the user,
+///      and returns your own JWT pair.
+///   4. The repository saves the session and returns [AuthUserEntity].
 ///
-/// For now, OAuth is handled directly in [AuthController.loginWithGoogle]
-/// using the [GoogleSignInService] to obtain an identity token,
-/// without a matching backend call.
+/// Currently supports: Google (provider = 'google')
+/// Pending backend support: Facebook, Apple
 ///
-/// TODO: Implement once POST /auth/google is available on the backend.
+/// Usage:
+/// ```dart
+/// final user = await oauthLoginUseCase(
+///   idToken: result.idToken,
+///   provider: 'google',
+/// );
+/// ```
 class OAuthLoginUseCase {
-  // ignore: unused_field
   final AuthRepository _repository;
-
   const OAuthLoginUseCase(this._repository);
+
+  Future<AuthUserEntity> call({
+    required String idToken,
+    required String provider,
+  }) => _repository.oauthLogin(idToken: idToken, provider: provider);
 }

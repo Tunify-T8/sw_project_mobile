@@ -9,7 +9,7 @@ import '../features/audio_upload_and_management/presentation/screens/upload_entr
 import '../features/audio_upload_and_management/presentation/screens/upload_progress_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/your_uploads_screen.dart';
 import '../features/auth/presentation/screens/account_screen.dart';
-import '../features/auth/presentation/screens/check_your_email_screen.dart';
+import '../features/auth/presentation/screens/password_reset_success_screen.dart';
 import '../features/auth/presentation/screens/delete_account_screen.dart';
 import '../features/auth/presentation/screens/email_entry_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -39,7 +39,7 @@ class AppRoutes {
   static const String tellUsMore = '/tell-us-more';
   static const String verifyEmail = '/verify-email';
   static const String forgotPassword = '/forgot-password';
-  static const String checkYourEmail = '/check-your-email';
+  static const String passwordResetSuccess = '/password-reset-success';
   static const String resetPassword = '/reset-password';
   static const String settings = '/settings';
   static const String account = '/account';
@@ -124,9 +124,9 @@ class AppRouter {
           settings,
         );
 
-      case AppRoutes.checkYourEmail:
+      case AppRoutes.passwordResetSuccess:
         return _fade(
-          CheckYourEmailScreen(email: args['email'] as String? ?? ''),
+          PasswordResetSuccessScreen(email: args['email'] as String? ?? ''),
           settings,
         );
 

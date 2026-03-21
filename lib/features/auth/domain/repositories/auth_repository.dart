@@ -36,6 +36,18 @@ abstract class AuthRepository {
   /// Throws [UnauthorizedFailure] for wrong credentials.
   Future<AuthUserEntity> login(String email, String password);
 
+  /// Authenticates via a third-party OAuth provider.
+  ///
+  /// [idToken] — the JWT from the provider (Google, etc.)
+  /// [provider] — provider identifier e.g. 'google'
+  ///
+  /// Backend endpoint: POST /auth/google (or /auth/oauth)
+  /// Confirm exact path with your backend team.
+  Future<AuthUserEntity> oauthLogin({
+    required String idToken,
+    required String provider,
+  });
+
   /// Signs out the current device by revoking the stored refresh token.
   Future<void> signOut();
 

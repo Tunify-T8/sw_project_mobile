@@ -144,6 +144,35 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<AuthUserEntity> oauthLogin({
+    required String idToken,
+    required String provider,
+  }) async {
+    try {
+      final response = await _api.oauthLogin(
+        idToken: idToken,
+        provider: provider,
+      );
+      final dto = AuthResponseDto.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      final user = AuthUserMapper.toEntity(dto);
+      await _tokenStorage.saveSession(
+        accessToken: dto.accessToken,
+        refreshToken: dto.refreshToken,
+        user: user,
+      );
+      return user;
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } on Failure {
+      rethrow;
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();

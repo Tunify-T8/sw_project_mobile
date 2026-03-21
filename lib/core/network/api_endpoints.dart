@@ -17,11 +17,16 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password';
   static const String deleteAccount = '/auth/delete-account';
 
+  /// OAuth endpoint — confirm exact path with backend team.
+  /// Common options: '/auth/google', '/auth/oauth', '/auth/social'
+  static const String oauthLogin = '/auth/google';
+
   // Upload flow
   static String uploadQuota() => '/users/me/upload';
   static String createTrack() => '/tracks';
   static String uploadAudio(String trackId) => '/tracks/$trackId/audio';
-  static String replaceAudio(String trackId) => '/tracks/$trackId/audio/replace';
+  static String replaceAudio(String trackId) =>
+      '/tracks/$trackId/audio/replace';
   static String finalizeMetadata(String trackId) => '/tracks/$trackId';
   static String trackStatus(String trackId) => '/tracks/$trackId/status';
   static String trackDetails(String trackId) => '/tracks/$trackId';
@@ -34,10 +39,10 @@ class ApiEndpoints {
       '/users/$userId/artist-tools/upload-minutes';
   static String uploadDetails(String trackId) => '/tracks/$trackId';
   static String deleteUpload(String trackId) => '/tracks/$trackId';
-  static String replaceUploadFile(String trackId) => '/tracks/$trackId/audio/replace';
+  static String replaceUploadFile(String trackId) =>
+      '/tracks/$trackId/audio/replace';
 
-
-//Followers
+  //Followers
   static String getFollowers(String userId) => '/users/$userId/followers';
   static String getFollowing(String userId) => '/users/$userId/following';
   static String followUser(String userId) => '/users/$userId/follow';
@@ -51,11 +56,11 @@ class ApiEndpoints {
   static String getMutualFriends(String userId) =>
       '/users/$userId/mutual-friends';
 
-// Profile
+  // Profile
   static const String getProfile = '/users/me';
   static const String updateProfile = '/users/me/profile';
   static const String getSocialLinks = '/users/me/social-links';
-  static const String updateSocialLinks = '/users/me/social-links'; 
+  static const String updateSocialLinks = '/users/me/social-links';
 }
 
 //profile

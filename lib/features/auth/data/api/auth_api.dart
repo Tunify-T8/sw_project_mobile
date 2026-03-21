@@ -15,50 +15,52 @@ class AuthApi {
   const AuthApi(this._dio);
 
   /// POST /auth/check-email
-  Future<Response<dynamic>> checkEmail(CheckEmailRequestDto dto) {
-    return _dio.post(ApiEndpoints.checkEmail, data: dto.toJson());
-  }
+  Future<Response<dynamic>> checkEmail(CheckEmailRequestDto dto) =>
+      _dio.post(ApiEndpoints.checkEmail, data: dto.toJson());
 
   /// POST /auth/register
-  Future<Response<dynamic>> register(RegisterRequestDto dto) {
-    return _dio.post(ApiEndpoints.register, data: dto.toJson());
-  }
+  Future<Response<dynamic>> register(RegisterRequestDto dto) =>
+      _dio.post(ApiEndpoints.register, data: dto.toJson());
 
   /// POST /auth/verify-email
-  Future<Response<dynamic>> verifyEmail(VerifyEmailRequestDto dto) {
-    return _dio.post(ApiEndpoints.verifyEmail, data: dto.toJson());
-  }
+  Future<Response<dynamic>> verifyEmail(VerifyEmailRequestDto dto) =>
+      _dio.post(ApiEndpoints.verifyEmail, data: dto.toJson());
 
   /// POST /auth/resend-verification
-  Future<Response<dynamic>> resendVerification(String email) {
-    return _dio.post(ApiEndpoints.resendVerification, data: {'email': email});
-  }
+  Future<Response<dynamic>> resendVerification(String email) =>
+      _dio.post(ApiEndpoints.resendVerification, data: {'email': email});
 
   /// POST /auth/login
-  Future<Response<dynamic>> login(LoginRequestDto dto) {
-    return _dio.post(ApiEndpoints.login, data: dto.toJson());
-  }
+  Future<Response<dynamic>> login(LoginRequestDto dto) =>
+      _dio.post(ApiEndpoints.login, data: dto.toJson());
 
-  /// POST /auth/signout — revokes refresh token for current device.
-  Future<Response<dynamic>> signOut(String refreshToken) {
-    return _dio.post(
-      ApiEndpoints.signOut,
-      data: {'refreshToken': refreshToken},
-    );
-  }
+  /// POST /auth/google (or whatever path backend uses)
+  ///
+  /// Sends the Google ID token to the backend for verification.
+  /// Backend verifies it with Google, creates/fetches the user,
+  /// and returns your own JWT pair in the standard AuthResponseDto shape.
+  ///
+  /// Confirm the exact path with your backend team — update
+  /// [ApiEndpoints.oauthLogin] if they use a different route.
+  Future<Response<dynamic>> oauthLogin({
+    required String idToken,
+    required String provider,
+  }) => _dio.post(
+    ApiEndpoints.oauthLogin,
+    data: {'idToken': idToken, 'provider': provider},
+  );
 
-  /// POST /auth/signout-all — revokes all refresh tokens for this user.
-  Future<Response<dynamic>> signOutAll(String refreshToken) {
-    return _dio.post(
-      ApiEndpoints.signOutAll,
-      data: {'refreshToken': refreshToken},
-    );
-  }
+  /// POST /auth/signout
+  Future<Response<dynamic>> signOut(String refreshToken) =>
+      _dio.post(ApiEndpoints.signOut, data: {'refreshToken': refreshToken});
+
+  /// POST /auth/signout-all
+  Future<Response<dynamic>> signOutAll(String refreshToken) =>
+      _dio.post(ApiEndpoints.signOutAll, data: {'refreshToken': refreshToken});
 
   /// POST /auth/forgot-password
-  Future<Response<dynamic>> forgotPassword(String email) {
-    return _dio.post(ApiEndpoints.forgotPassword, data: {'email': email});
-  }
+  Future<Response<dynamic>> forgotPassword(String email) =>
+      _dio.post(ApiEndpoints.forgotPassword, data: {'email': email});
 
   /// POST /auth/reset-password
   Future<Response<dynamic>> resetPassword({
@@ -67,24 +69,20 @@ class AuthApi {
     required String newPassword,
     required String confirmPassword,
     bool signoutAll = true,
-  }) {
-    return _dio.post(
-      ApiEndpoints.resetPassword,
-      data: {
-        'email': email,
-        'token': token,
-        'newPassword': newPassword,
-        'confirmPassword': confirmPassword,
-        'signoutAll': signoutAll,
-      },
-    );
-  }
+  }) => _dio.post(
+    ApiEndpoints.resetPassword,
+    data: {
+      'email': email,
+      'token': token,
+      'newPassword': newPassword,
+      'confirmPassword': confirmPassword,
+      'signoutAll': signoutAll,
+    },
+  );
 
   /// DELETE /auth/delete-account
-  Future<Response<dynamic>> deleteAccount({String? password}) {
-    return _dio.delete(
-      ApiEndpoints.deleteAccount,
-      data: password != null ? {'password': password} : null,
-    );
-  }
+  Future<Response<dynamic>> deleteAccount({String? password}) => _dio.delete(
+    ApiEndpoints.deleteAccount,
+    data: password != null ? {'password': password} : null,
+  );
 }
