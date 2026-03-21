@@ -66,7 +66,7 @@ class GoogleSignInService {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     // TODO: Uncomment once backend provides Web Client ID:
-    // serverClientId: _kServerClientId,
+    // serverClientId: _kServerClientId, --> to know from Amir
   );
 
   /// Triggers the Google Sign-In UI.

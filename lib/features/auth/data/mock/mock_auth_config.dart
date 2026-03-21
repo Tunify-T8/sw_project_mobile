@@ -47,7 +47,8 @@ class MockAuthConfig {
 
   // ── Master switch ──────────────────────────────────────────────────────────
   /// Set to false to use the real backend instead of mock data.
-  static const bool useMock = true;
+  //static const bool useMock = true;
+  static const bool useMock = false;
 
   // ── Active scenarios ───────────────────────────────────────────────────────
   static const MockEmailScenario emailScenario = MockEmailScenario.newAccount;

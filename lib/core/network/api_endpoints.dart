@@ -1,7 +1,8 @@
 class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  //static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'https://tunify.duckdns.org/api';
 
   // Auth
   static const String checkEmail = '/auth/check-email';
@@ -49,6 +50,12 @@ class ApiEndpoints {
       '/users/$userId/follow-status';
   static String getMutualFriends(String userId) =>
       '/users/$userId/mutual-friends';
+
+// Profile
+  static const String getProfile = '/users/me';
+  static const String updateProfile = '/users/me/profile';
+  static const String getSocialLinks = '/users/me/social-links';
+  static const String updateSocialLinks = '/users/me/social-links'; 
 }
 
 //profile
@@ -65,6 +72,3 @@ class ApiEndpoints {
 // To this:
 //final userRes = await _dio.get('$_baseUrl/users/$userId');
 // In api_endpoints.dart add:
-// static String getProfile(String userId) => '/users/$userId';
-// static String updateProfile(String userId) => '/users/$userId';
-// static String getSocialLinks(String userId) => '/social_links/$userId';
