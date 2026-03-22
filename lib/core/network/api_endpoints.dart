@@ -61,6 +61,14 @@ class ApiEndpoints {
   static const String updateProfile = '/users/me/profile';
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';
+
+  
+  // Playback
+static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
+static String trackStream(String trackId) => '/tracks/$trackId/stream';
+static const String playbackEvents = '/me/playback/events';
+static const String playbackContext = '/playback/context';
+static const String listeningHistory = '/me/listening-history';
 }
 
 //profile
@@ -77,3 +85,4 @@ class ApiEndpoints {
 // To this:
 //final userRes = await _dio.get('$_baseUrl/users/$userId');
 // In api_endpoints.dart add:
+///////////////////////////////////////////////
