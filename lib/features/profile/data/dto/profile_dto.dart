@@ -20,7 +20,10 @@ class ProfileDto {
   final String? coverImagePath;
   final String? instagram;
   final String? twitter;
-  final String? website;
+  final String? youtube;
+  final String? spotify;
+  final String? tiktok;
+  final String? soundcloud;
   final String visibility;
   final String userType;
 
@@ -47,7 +50,10 @@ class ProfileDto {
     this.coverImagePath,
     this.instagram,
     this.twitter,
-    this.website,
+    this.youtube,
+    this.spotify,
+    this.tiktok,
+    this.soundcloud,
     this.visibility = 'PUBLIC',
     required this.userType,
   });

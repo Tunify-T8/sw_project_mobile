@@ -37,7 +37,10 @@ Widget build(BuildContext context, WidgetRef ref) {
                 coverImage: coverImage,
                 instagram: profile?.instagram,
                 twitter: profile?.twitter,
-                website: profile?.website,
+                youtube: profile?.youtube,
+                spotify: profile?.spotify,
+                tiktok: profile?.tiktok,
+                soundcloud: profile?.soundcloud,
                 userType: profile?.userType ?? 'ARTIST',
                 profileImageUrl: profile?.profileImagePath,  // ← HERE
                 coverImageUrl: profile?.coverImagePath,      // ← HERE
@@ -63,7 +66,10 @@ Widget build(BuildContext context, WidgetRef ref) {
                 visibility: result.visibility,
                 instagram: result.instagram,
                 twitter: result.twitter,
-                website: result.website,
+                youtube: result.youtube,
+                spotify: result.spotify,
+                tiktok: result.tiktok,
+                soundcloud: result.soundcloud,
                 userType: result.userType,
                 profileImagePath: result.profileImagePath == ''  // ← HERE
                     ? null

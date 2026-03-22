@@ -48,7 +48,6 @@ void main() {
         country: 'Egypt',
         instagram: 'https://instagram.com/darine',
         twitter: 'https://twitter.com/darine',
-        website: 'https://darine.com',
         followersCount: 300,
         followingCount: 1,
         profileImagePath: 'https://image.url/photo.jpg',

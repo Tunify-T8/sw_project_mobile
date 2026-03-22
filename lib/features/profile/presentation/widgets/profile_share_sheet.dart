@@ -14,7 +14,6 @@ class ProfileShareSheet {
   final String? profileImagePath;
   final String? instagram;
   final String? twitter;
-  final String? website;
   final TextStyle bioStyle;
 
   ProfileShareSheet({
@@ -27,7 +26,6 @@ class ProfileShareSheet {
     required this.profileImagePath,
     required this.instagram,
     required this.twitter,
-    required this.website,
     required this.bioStyle,
   });
 
@@ -49,8 +47,6 @@ class ProfileShareSheet {
         },
       if (twitter != null && twitter!.isNotEmpty)
         {'icon': FontAwesomeIcons.xTwitter, 'url': twitter!, 'label': twitter!},
-      if (website != null && website!.isNotEmpty)
-        {'icon': FontAwesomeIcons.globe, 'url': website!, 'label': website!},
     ];
 
     if (links.isEmpty) return const SizedBox.shrink();

@@ -19,11 +19,11 @@ class ProfileApi {
 
     try {
       final socialRes = await _dio.get(ApiEndpoints.getSocialLinks);
-      final socialData = socialRes.data is List
-          ? socialRes.data[0]
-          : socialRes.data;
+      final socialData = {'links': socialRes.data is List ? socialRes.data : [socialRes.data]};
       profile = ProfileMapper.mergeSocialLinks(profile, socialData);
-    } catch (_) {}
+    } catch (e) {
+      print('*** SOCIAL ERROR: $e ***');
+    }
 
     return profile;
   }
@@ -38,14 +38,27 @@ class ProfileApi {
       'avatarUrl': profile.profileImagePath,
       'coverUrl': profile.coverImagePath,
       'visibility': profile.visibility,
-      //'userType': profile.userType,
+      // 'userType' is read-only — managed by the server, cannot be updated
     });
 
-    await _dio.patch(ApiEndpoints.updateSocialLinks, data: {
-      'instagram': profile.instagram,
-      'twitter': profile.twitter,
-      'website': profile.website,
-    });
+    final links = [
+      if (profile.instagram != null && profile.instagram!.isNotEmpty)
+        {'platform': 'INSTAGRAM', 'url': profile.instagram},
+      if (profile.twitter != null && profile.twitter!.isNotEmpty)
+        {'platform': 'TWITTER', 'url': profile.twitter},
+      if (profile.youtube != null && profile.youtube!.isNotEmpty)
+        {'platform': 'YOUTUBE', 'url': profile.youtube},
+      if (profile.spotify != null && profile.spotify!.isNotEmpty)
+        {'platform': 'SPOTIFY', 'url': profile.spotify},
+      if (profile.tiktok != null && profile.tiktok!.isNotEmpty)
+        {'platform': 'TIKTOK', 'url': profile.tiktok},
+      if (profile.soundcloud != null && profile.soundcloud!.isNotEmpty)
+        {'platform': 'SOUNDCLOUD', 'url': profile.soundcloud},
+    ];
+
+    if (links.isNotEmpty) {
+      await _dio.patch(ApiEndpoints.updateSocialLinks, data: {'links': links});
+    }
 
     return getProfile(userId);
   }

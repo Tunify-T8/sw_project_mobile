@@ -91,7 +91,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               profileImagePath: profile?.profileImagePath,
               instagram: profile?.instagram,
               twitter: profile?.twitter,
-              website: profile?.website,
               bioStyle: bioStyle,
             ).show(),
           ),
@@ -137,7 +136,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       profileImagePath: profile?.profileImagePath,
                       instagram: profile?.instagram,
                       twitter: profile?.twitter,
-                      website: profile?.website,
                       bioStyle: bioStyle,
                     ).showInfoSheet(),
                     actionButtons: ProfileActionButtons(

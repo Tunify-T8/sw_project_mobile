@@ -62,7 +62,10 @@ void main() {
         displayName: 'Darine M',
         instagram: 'https://instagram.com/darine',
         twitter: 'https://twitter.com/darine',
-        website: 'https://darine.com',
+        youtube: 'https://youtube.com/darine',
+        spotify: 'https://spotify.com/darine',
+        tiktok: 'https://tiktok.com/darine',
+        soundcloud: 'https://soundcloud.com/darine',
         followersCount: 300,
         followingCount: 1,
         tracksCount: 5,
@@ -79,7 +82,10 @@ void main() {
       expect(dto.displayName, 'Darine M');
       expect(dto.instagram, 'https://instagram.com/darine');
       expect(dto.twitter, 'https://twitter.com/darine');
-      expect(dto.website, 'https://darine.com');
+      expect(dto.youtube, 'https://youtube.com/darine');
+      expect(dto.spotify, 'https://spotify.com/darine');
+      expect(dto.tiktok, 'https://tiktok.com/darine');
+      expect(dto.soundcloud, 'https://soundcloud.com/darine');
       expect(dto.followersCount, 300);
       expect(dto.followingCount, 1);
       expect(dto.tracksCount, 5);

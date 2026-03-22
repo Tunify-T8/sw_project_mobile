@@ -11,7 +11,10 @@ class ProfileEntity {
   final String? coverImagePath;
   final String? instagram;
   final String? twitter;
-  final String? website;
+  final String? youtube;
+  final String? spotify;
+  final String? tiktok;
+  final String? soundcloud;
   final int followersCount;
   final int followingCount;
   final int tracksCount;
@@ -34,7 +37,10 @@ class ProfileEntity {
     this.coverImagePath,
     this.instagram,
     this.twitter,
-    this.website,
+    this.youtube,
+    this.spotify,
+    this.tiktok,
+    this.soundcloud,
     this.followersCount = 0,
     this.followingCount = 0,
     this.tracksCount = 0,
