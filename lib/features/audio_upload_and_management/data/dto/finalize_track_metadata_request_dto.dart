@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: DTO model that represents upload-related request or response data at the API boundary.
-// Used by: upload_api, real_upload_repository_impl
-// Concerns: Metadata engine.
 import 'package:dio/dio.dart';
 import '../../domain/entities/track_metadata.dart';
 
@@ -89,14 +85,14 @@ class FinalizeTrackMetadataRequestDto {
       privacy: metadata.privacy,
       // Only send artists that look like UUIDs — plain display names cause a
       // DB lookup failure (500) on the backend. Empty list is safe.
-      artists: metadata.artists.where(_looksLikeUuid).toList(),
+      artists: metadata.artists
+          .where(_looksLikeUuid)
+          .toList(),
       artworkPath: metadata.artworkPath,
       recordLabel: metadata.recordLabel,
       publisher: metadata.publisher,
       isrc: metadata.isrc,
-      pLine: metadata.pLine.isNotEmpty
-          ? metadata.pLine
-          : '2026 SoundCloud Clone',
+      pLine: metadata.pLine.isNotEmpty ? metadata.pLine : '2026 SoundCloud Clone',
       contentWarning: metadata.contentWarning,
       scheduledReleaseDate: metadata.scheduledReleaseDate,
       enableDirectDownloads: metadata.allowDownloads,
@@ -129,19 +125,21 @@ class FinalizeTrackMetadataRequestDto {
   /// is present we must use multipart, so we rely on @Transform in the DTO
   /// and send the string representations NestJS expects.
 
-  bool get _hasLocalArtwork =>
+  /// True when the user picked a local artwork file (not an existing remote URL).
+  bool get hasLocalArtwork =>
       artworkPath != null &&
       artworkPath!.isNotEmpty &&
       !artworkPath!.startsWith('http');
 
-  /// Call this from the API layer.  Returns either a [Map] (JSON body) or
-  /// a [FormData] (multipart with artwork).
-  Future<dynamic> toRequestBody() async {
-    if (_hasLocalArtwork) {
-      return _toFormData();
-    }
-    return _toJson();
-  }
+  // Keep private alias for internal use
+  bool get _hasLocalArtwork => hasLocalArtwork;
+
+  /// Returns metadata as a plain JSON map — no artwork included.
+  /// Called by UploadApi as step 1 of the two-step PATCH.
+  Map<String, dynamic> toJsonBody() => _toJson();
+
+  /// Legacy async wrapper — kept for any callers outside UploadApi.
+  Future<dynamic> toRequestBody() async => _toJson();
 
   Map<String, dynamic> _toJson() {
     final body = <String, dynamic>{
@@ -150,7 +148,9 @@ class FinalizeTrackMetadataRequestDto {
       'tags': tags,
       'description': description,
       'privacy': privacy,
-      if (artists.isNotEmpty) 'artists': artists,
+      // artists omitted — backend does a DB UUID lookup on each entry.
+      // Display names like the user's own username cause a FK violation (P2003).
+      // Artists can only be set once a proper collaborator-picker UI exists.
       'recordLabel': recordLabel,
       'publisher': publisher,
       'isrc': isrc,
@@ -217,9 +217,8 @@ class FinalizeTrackMetadataRequestDto {
       'permissions[showInsightsPublic]': 'false',
       // Arrays — Dio repeats the key for each element
       if (tags.isNotEmpty) 'tags': tags,
-      if (artists.isNotEmpty) 'artists': artists,
-      if (availabilityRegions.isNotEmpty)
-        'availability[regions]': availabilityRegions,
+      // artists omitted — same FK violation reason as JSON path above.
+      if (availabilityRegions.isNotEmpty) 'availability[regions]': availabilityRegions,
       'artwork': await MultipartFile.fromFile(artworkPath!),
     };
 

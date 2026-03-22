@@ -1,11 +1,8 @@
-// Upload Feature Guide:
-// Purpose: Mock implementation of UploadRepository that simulates the upload lifecycle locally.
-// Used by: upload_repository_provider
-// Concerns: Multi-format support.
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_cancellation_token.dart';
 import '../../domain/entities/upload_quota.dart';
+import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
 import '../../shared/upload_error_helpers.dart';
@@ -82,6 +79,14 @@ class MockUploadRepository implements UploadRepository {
   }
 
   @override
+  Future<UploadedTrack> getTrackStatus(String trackId) async {
+    // Mock: return finished immediately for testing
+    return UploadedTrack(
+      trackId: trackId,
+      status: UploadStatus.finished,
+    );
+  }
+
   Future<UploadedTrack> getTrackDetails(String trackId) async {
     final data = await service.getTrackDetails(trackId: trackId);
     return mapMockTrackResponse(data);

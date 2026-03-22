@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Cloudinary-backed UploadRepository implementation that delegates to the Cloudinary workflow.
-// Used by: upload_repository_provider
-// Concerns: Multi-format support.
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_cancellation_token.dart';
@@ -55,6 +51,12 @@ class CloudinaryUploadRepository implements UploadRepository {
   @override
   Future<UploadedTrack> waitUntilProcessed(String trackId) {
     return _workflow.waitUntilProcessed(trackId);
+  }
+
+  @override
+  Future<UploadedTrack> getTrackStatus(String trackId) {
+    // Cloudinary mode: no separate status endpoint — delegate to getTrackDetails
+    return _workflow.getTrackDetails(trackId);
   }
 
   @override

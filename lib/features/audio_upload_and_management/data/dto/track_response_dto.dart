@@ -88,17 +88,21 @@ class TrackResponseDto {
       genre = rawGenre['category'] as String? ?? rawGenre['label'] as String?;
     }
 
-    // artists from backend is List<TrackArtist> objects, not plain strings
+    // 'artist' (singular string) from getMyTracks,
+    // 'artists' (List<TrackArtist>) from detail/PATCH endpoints.
     List<String>? artists;
+    final rawArtist = json['artist'];
     final rawArtists = json['artists'];
-    if (rawArtists is List) {
+    if (rawArtist is String && rawArtist.trim().isNotEmpty) {
+      artists = [rawArtist.trim()];
+    } else if (rawArtists is List) {
       artists = rawArtists.map((e) {
         if (e is String) return e;
         if (e is Map<String, dynamic>) {
           return (e['userId'] ?? e['name'] ?? e['username'] ?? '').toString();
         }
         return e.toString();
-      }).toList();
+      }).where((s) => s.isNotEmpty).toList();
     }
 
     return TrackResponseDto(
