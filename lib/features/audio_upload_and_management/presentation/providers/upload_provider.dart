@@ -420,7 +420,11 @@ class UploadNotifier extends Notifier<UploadState> {
         error: null,
       );
 
-      await ref.read(libraryUploadsProvider.notifier).refresh();
+      // Best-effort refresh — swallow errors so a broken /tracks/me route
+      // doesn't block the user from seeing their just-uploaded track.
+      try {
+        await ref.read(libraryUploadsProvider.notifier).refresh();
+      } catch (_) {}
 
       if (!_isActiveCompletionRequest(requestId)) {
         return;

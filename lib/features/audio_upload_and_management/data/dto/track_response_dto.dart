@@ -64,16 +64,48 @@ class TrackResponseDto {
     final permissionsJson = json['permissions'];
     final audioMetadataJson = json['audioMetadata'];
 
+    // `trackId` may come as 'trackId' (finalize/getTrack) or already
+    // normalised from 'id' by UploadApi._normalizeTrackJson.
+    final rawTrackId =
+        (json['trackId'] ?? json['id'] ?? '') as Object;
+    final trackId = rawTrackId.toString();
+
+    // `status` may come as 'status' or already normalised from
+    // 'transcodingStatus' by UploadApi._normalizeTrackJson.
+    final rawStatus =
+        (json['status'] ?? json['transcodingStatus'] ?? 'processing') as Object;
+    final status = rawStatus.toString();
+
+    // genre can be a String (PATCH response) or a nested map (GET :id)
+    String? genre;
+    final rawGenre = json['genre'];
+    if (rawGenre is String) {
+      genre = rawGenre;
+    } else if (rawGenre is Map<String, dynamic>) {
+      genre = rawGenre['category'] as String? ?? rawGenre['label'] as String?;
+    }
+
+    // artists from backend is List<TrackArtist> objects, not plain strings
+    List<String>? artists;
+    final rawArtists = json['artists'];
+    if (rawArtists is List) {
+      artists = rawArtists.map((e) {
+        if (e is String) return e;
+        if (e is Map<String, dynamic>) {
+          return (e['userId'] ?? e['name'] ?? e['username'] ?? '').toString();
+        }
+        return e.toString();
+      }).toList();
+    }
+
     return TrackResponseDto(
-      trackId: json['trackId'] as String,
-      status: json['status'] as String,
+      trackId: trackId,
+      status: status,
       title: json['title'] as String?,
       description: json['description'] as String?,
-      genre: json['genre'] as String?,
-      tags: (json['tags'] as List?)?.map((entry) => entry.toString()).toList(),
-      artists: (json['artists'] as List?)
-          ?.map((entry) => entry.toString())
-          .toList(),
+      genre: genre,
+      tags: (json['tags'] as List?)?.map((e) => e.toString()).toList(),
+      artists: artists,
       durationSeconds: json['durationSeconds'] as int?,
       privacy: json['privacy'] as String?,
       scheduledReleaseDate: json['scheduledReleaseDate'] as String?,
@@ -93,7 +125,7 @@ class TrackResponseDto {
       contentWarning: json['contentWarning'] as bool?,
       audioUrl: json['audioUrl'] as String?,
       waveformUrl: json['waveformUrl'] as String?,
-      artworkUrl: json['artworkUrl'] as String?,
+      artworkUrl: (json['artworkUrl'] ?? json['thumbnailUrl']) as String?,
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
       audioMetadata: audioMetadataJson is Map<String, dynamic>

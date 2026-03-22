@@ -68,46 +68,90 @@ class UploadItemDto {
   final bool appPlaybackEnabled;
 
   factory UploadItemDto.fromJson(Map<String, dynamic> json) {
+    final availability = _asMap(json['availability']);
+    final licensingData = _asMap(json['licensing']);
+    final permissions = _asMap(json['permissions']);
+    final parsedGenre = _parseGenre(
+      (json['genre'] as String?) ?? (json['genreCategory'] as String?),
+    );
+
+    // getMyTracks returns `duration` (not durationSeconds),
+    // `thumbnailUrl` (not artworkUrl), and `visibility` (not privacy).
+    final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
+    final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
+    final privacyRaw =
+        (json['privacy'] as String?) ??
+        (json['visibility'] as String?) ??
+        'private';
+    final statusRaw =
+        (json['status'] as String?) ??
+        (json['transcodingStatus'] as String?) ??
+        'finished';
+
     return UploadItemDto(
       id: (json['id'] ?? json['trackId'] ?? '').toString(),
       title: (json['title'] as String?) ?? '',
       artists: ((json['artists'] as List?) ?? const [])
           .map((entry) => entry.toString())
           .toList(),
-      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
+      durationSeconds: (durationRaw as num?)?.toInt() ?? 0,
       audioUrl: json['audioUrl'] as String?,
       waveformUrl: json['waveformUrl'] as String?,
       waveformBars: (json['waveformBars'] as List?)
           ?.map((entry) => (entry as num?)?.toDouble())
           .whereType<double>()
           .toList(),
-      artworkUrl: json['artworkUrl'] as String?,
+      artworkUrl: artworkRaw as String?,
       localArtworkPath: json['localArtworkPath'] as String?,
       localFilePath: json['localFilePath'] as String?,
       description: json['description'] as String?,
       tags: ((json['tags'] as List?) ?? const [])
           .map((entry) => entry.toString())
           .toList(),
-      genreCategory: (json['genreCategory'] as String?) ?? '',
-      genreSubGenre: (json['genreSubGenre'] as String?) ?? '',
-      privacy: (json['privacy'] as String?) ?? 'private',
-      status: (json['status'] as String?) ?? 'finished',
+      genreCategory: (json['genreCategory'] as String?) ?? parsedGenre.$1,
+      genreSubGenre: (json['genreSubGenre'] as String?) ?? parsedGenre.$2,
+      privacy: privacyRaw,
+      status: statusRaw,
       contentWarning: (json['contentWarning'] as bool?) ?? false,
       recordLabel: (json['recordLabel'] as String?) ?? '',
       publisher: (json['publisher'] as String?) ?? '',
       isrc: (json['isrc'] as String?) ?? '',
       pLine: (json['pLine'] as String?) ?? '',
       scheduledReleaseDate: json['scheduledReleaseDate'] as String?,
-      allowDownloads: (json['allowDownloads'] as bool?) ?? false,
-      offlineListening: (json['offlineListening'] as bool?) ?? true,
-      includeInRss: (json['includeInRss'] as bool?) ?? true,
-      displayEmbedCode: (json['displayEmbedCode'] as bool?) ?? true,
-      appPlaybackEnabled: (json['appPlaybackEnabled'] as bool?) ?? true,
-      availabilityType: (json['availabilityType'] as String?) ?? 'worldwide',
-      availabilityRegions: ((json['availabilityRegions'] as List?) ?? const [])
-          .map((entry) => entry.toString())
-          .toList(),
-      licensing: (json['licensing'] as String?) ?? 'all_rights_reserved',
+      allowDownloads:
+          (json['allowDownloads'] as bool?) ??
+          (permissions?['enableDirectDownloads'] as bool?) ??
+          false,
+      offlineListening:
+          (json['offlineListening'] as bool?) ??
+          (permissions?['enableOfflineListening'] as bool?) ??
+          true,
+      includeInRss:
+          (json['includeInRss'] as bool?) ??
+          (permissions?['includeInRSS'] as bool?) ??
+          true,
+      displayEmbedCode:
+          (json['displayEmbedCode'] as bool?) ??
+          (permissions?['displayEmbedCode'] as bool?) ??
+          true,
+      appPlaybackEnabled:
+          (json['appPlaybackEnabled'] as bool?) ??
+          (permissions?['enableAppPlayback'] as bool?) ??
+          true,
+      availabilityType:
+          (json['availabilityType'] as String?) ??
+          (availability?['type'] as String?) ??
+          'worldwide',
+      availabilityRegions:
+          ((json['availabilityRegions'] as List?) ??
+                  (availability?['regions'] as List?) ??
+                  const [])
+              .map((entry) => entry.toString())
+              .toList(),
+      licensing:
+          (json['licensing'] as String?) ??
+          (licensingData?['type'] as String?) ??
+          'all_rights_reserved',
       createdAt:
           (json['createdAt'] as String?) ?? DateTime.now().toIso8601String(),
     );
@@ -147,4 +191,24 @@ class UploadItemDto {
     'licensing': licensing,
     'createdAt': createdAt,
   };
+}
+
+Map<String, dynamic>? _asMap(dynamic value) {
+  return value is Map<String, dynamic> ? value : null;
+}
+
+(String, String) _parseGenre(String? rawGenre) {
+  final normalized = rawGenre?.trim() ?? '';
+  if (normalized.isEmpty) {
+    return ('', '');
+  }
+
+  final parts = normalized.split('_');
+  if (parts.length < 2) {
+    return (normalized, '');
+  }
+
+  final category = parts.first;
+  final subGenre = parts.skip(1).join('_');
+  return (category, subGenre);
 }

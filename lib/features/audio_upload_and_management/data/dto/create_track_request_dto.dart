@@ -1,6 +1,5 @@
 class CreateTrackRequestDto {
-  // Kept for compatibility with your current call sites.
-  // Backend derives the user from bearer auth, so this is not sent.
+  // Backend derives the user from bearer auth, so userId is not sent.
   final String userId;
 
   final String title;
@@ -8,16 +7,14 @@ class CreateTrackRequestDto {
   final List<String> tags;
   final String description;
   final String privacy;
-  final List<String> artists;
+
+  // NOTE: backend treats artists as userIds and tries to look them up in the
+  // DB. Sending a plain display name like "Artist Name" causes a 500 because
+  // it fails the UUID lookup. We omit artists at creation time — they can be
+  // set later via updateTrack (PATCH) once the user picks real collaborators.
 
   final String availabilityType;
   final List<String> availabilityRegions;
-
-  final String licensingType;
-  final bool allowAttribution;
-  final bool nonCommercial;
-  final bool noDerivatives;
-  final bool shareAlike;
 
   final bool contentWarning;
   final String? scheduledReleaseDate;
@@ -29,39 +26,36 @@ class CreateTrackRequestDto {
     this.tags = const [],
     this.description = '',
     this.privacy = 'private',
-    this.artists = const ['Artist Name'],
     this.availabilityType = 'worldwide',
     this.availabilityRegions = const [],
-    this.licensingType = 'creative_commons',
-    this.allowAttribution = true,
-    this.nonCommercial = true,
-    this.noDerivatives = false,
-    this.shareAlike = true,
     this.contentWarning = false,
     this.scheduledReleaseDate,
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'title': title,
+    final normalizedTitle = title.trim();
+
+    final Map<String, dynamic> body = {
+      'title': normalizedTitle.isEmpty ? 'Untitled track' : normalizedTitle,
       'genre': genre,
       'tags': tags,
       'description': description,
       'privacy': privacy,
-      'artists': artists,
+      // artists intentionally omitted — backend does a DB UUID lookup on each
+      // entry and will 500 if a non-UUID string is passed.
       'availability': {
         'type': availabilityType,
         'regions': availabilityRegions,
       },
-      'licensing': {
-        'type': licensingType,
-        'allowAttribution': allowAttribution,
-        'nonCommercial': nonCommercial,
-        'noDerivatives': noDerivatives,
-        'shareAlike': shareAlike,
-      },
-      'scheduledReleaseDate': scheduledReleaseDate,
       'contentWarning': contentWarning,
     };
+
+    // Only send scheduledReleaseDate when non-null — explicit null crashes
+    // the NestJS transformer on some validator configs.
+    if (scheduledReleaseDate != null) {
+      body['scheduledReleaseDate'] = scheduledReleaseDate;
+    }
+
+    return body;
   }
 }

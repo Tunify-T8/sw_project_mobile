@@ -2,8 +2,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum UploadBackendMode { mock, cloudinary, real }
 
+const String _uploadBackendModeValue = String.fromEnvironment(
+  'UPLOAD_BACKEND',
+  defaultValue: 'real',
+);
+
 final uploadBackendModeProvider = Provider<UploadBackendMode>((ref) {
-  // Keep Cloudinary as a separate mode so the UI/use-cases stay unchanged.
-  // Later, when backend is ready, you only switch this provider to `real`.
-  return UploadBackendMode.cloudinary;
+  switch (_uploadBackendModeValue.toLowerCase()) {
+    case 'mock':
+      return UploadBackendMode.mock;
+    case 'cloudinary':
+      return UploadBackendMode.cloudinary;
+    case 'real':
+    default:
+      return UploadBackendMode.real;
+  }
 });

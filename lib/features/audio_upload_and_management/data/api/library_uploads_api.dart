@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../shared/upload_error_helpers.dart';
 import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
@@ -10,36 +11,58 @@ import '../dto/upload_item_dto.dart';
 /// It should NOT use GlobalTrackStore or any mock-only logic.
 class LibraryUploadsApi {
   final Dio dio;
+  final TokenStorage _tokenStorage;
 
-  const LibraryUploadsApi(this.dio);
+  const LibraryUploadsApi(
+    this.dio, {
+    TokenStorage tokenStorage = const TokenStorage(),
+  }) : _tokenStorage = tokenStorage;
 
-  /// GET /me/uploads
+  /// GET /tracks/me
+  /// NOTE: The backend controller declares @Get(':id') before @Get('me'),
+  /// so NestJS routes /tracks/me to the :id handler and returns 404.
+  /// We catch that and return an empty list so the upload flow keeps working.
   Future<List<UploadItemDto>> getMyUploads() async {
-    final response = await dio.get(ApiEndpoints.myUploads);
-    final raw = response.data;
+    try {
+      final response = await dio.get(ApiEndpoints.myUploads);
+      final raw = response.data;
 
-    final List<dynamic> data;
-    if (raw is List) {
-      data = raw;
-    } else if (raw is Map<String, dynamic>) {
-      data =
-          (raw['items'] as List?) ??
-          (raw['uploads'] as List?) ??
-          (raw['data'] as List?) ??
-          const <dynamic>[];
-    } else {
-      data = const <dynamic>[];
+      final List<dynamic> data;
+      if (raw is List) {
+        data = raw;
+      } else if (raw is Map<String, dynamic>) {
+        data =
+            (raw['items'] as List?) ??
+            (raw['tracks'] as List?) ??
+            (raw['uploads'] as List?) ??
+            (raw['data'] as List?) ??
+            const <dynamic>[];
+      } else {
+        data = const <dynamic>[];
+      }
+
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(UploadItemDto.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      // 404 means the backend route order bug is active — return empty list
+      // rather than crashing. The upload itself succeeded.
+      if (e.response?.statusCode == 404) return const [];
+      rethrow;
     }
-
-    return data
-        .whereType<Map<String, dynamic>>()
-        .map(UploadItemDto.fromJson)
-        .toList();
   }
 
   /// GET /users/me/artist-tools/upload-minutes
   Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
-    final response = await dio.get(ApiEndpoints.artistToolsQuota());
+    final user = await _tokenStorage.getUser();
+    if (user == null) {
+      throw const UploadFlowException(
+        'Please sign in again to load your upload tools.',
+      );
+    }
+
+    final response = await dio.get(ApiEndpoints.artistToolsQuota(user.id));
     final raw = response.data;
 
     if (raw is Map<String, dynamic>) {

@@ -15,7 +15,7 @@ import 'library_uploads_dependencies_provider.dart';
 
 final libraryUploadsApiProvider = Provider<LibraryUploadsApi>((ref) {
   final dio = ref.watch(libraryUploadsDioProvider);
-  return LibraryUploadsApi(dio);
+  return LibraryUploadsApi(dio, tokenStorage: ref.read(tokenStorageProvider));
 });
 
 final mockLibraryUploadsApiProvider = Provider<MockLibraryUploadsApi>((ref) {

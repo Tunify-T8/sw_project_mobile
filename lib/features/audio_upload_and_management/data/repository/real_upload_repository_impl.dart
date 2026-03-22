@@ -67,7 +67,10 @@ class RealUploadRepository implements UploadRepository {
 
   @override
   Future<UploadedTrack> waitUntilProcessed(String trackId) async {
-    const maxAttempts = 30;
+    // Allow up to ~5 minutes total (60 attempts x 5s).
+    // Real transcoding + waveform generation can take 1-3 minutes for
+    // large files.
+    const maxAttempts = 60;
 
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       final dto = await api.getTrackStatus(trackId);
@@ -78,12 +81,13 @@ class RealUploadRepository implements UploadRepository {
         return track;
       }
 
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 5));
     }
 
-    throw const UploadFlowException(
-      'Your track is still processing. Please check back in a moment.',
-    );
+    // Timed out — return whatever state the track is in so the UI can
+    // show it. The track exists in the DB and will finish eventually.
+    final dto = await api.getTrackStatus(trackId);
+    return dto.toEntity();
   }
 
   @override

@@ -38,15 +38,17 @@ final cloudinaryMediaServiceProvider = Provider<CloudinaryMediaService>((ref) {
 });
 
 final uploadRepositoryProvider = Provider<UploadRepository>((ref) {
-  final mode = ref.read(uploadBackendModeProvider);
+  final mode = ref.watch(uploadBackendModeProvider);
 
   if (mode == UploadBackendMode.real) {
-    return RealUploadRepository(ref.read(uploadApiProvider));
+    return RealUploadRepository(ref.watch(uploadApiProvider));
   }
 
   if (mode == UploadBackendMode.cloudinary) {
-    return CloudinaryUploadRepository(ref.read(cloudinaryMediaServiceProvider));
+    return CloudinaryUploadRepository(
+      ref.watch(cloudinaryMediaServiceProvider),
+    );
   }
 
-  return MockUploadRepository(service: ref.read(mockUploadServiceProvider));
+  return MockUploadRepository(service: ref.watch(mockUploadServiceProvider));
 });

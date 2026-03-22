@@ -34,8 +34,8 @@ class ApiEndpoints {
   static String deleteTrack(String trackId) => '/tracks/$trackId';
 
   // Library / uploads management
-  static const String myUploads = '/me/uploads';
-  static String artistToolsQuota([String userId = 'me']) =>
+  static const String myUploads = '/tracks/me';
+  static String artistToolsQuota(String userId) =>
       '/users/$userId/artist-tools/upload-minutes';
   static String uploadDetails(String trackId) => '/tracks/$trackId';
   static String deleteUpload(String trackId) => '/tracks/$trackId';

@@ -73,7 +73,8 @@ class FinalizeTrackMetadataRequestDto {
         .replaceAll(' ', '_');
 
     final genreValue =
-        '${normalizedCategory.isEmpty ? 'music' : normalizedCategory}_${normalizedSubGenre.isEmpty ? 'hiphop' : normalizedSubGenre}';
+        '${normalizedCategory.isEmpty ? 'music' : normalizedCategory}_'
+        '${normalizedSubGenre.isEmpty ? 'hiphop' : normalizedSubGenre}';
 
     return FinalizeTrackMetadataRequestDto(
       trackId: trackId,
@@ -82,14 +83,16 @@ class FinalizeTrackMetadataRequestDto {
       tags: metadata.tags,
       description: metadata.description,
       privacy: metadata.privacy,
-      artists: metadata.artists,
+      // Only send artists that look like UUIDs — plain display names cause a
+      // DB lookup failure (500) on the backend. Empty list is safe.
+      artists: metadata.artists
+          .where(_looksLikeUuid)
+          .toList(),
       artworkPath: metadata.artworkPath,
       recordLabel: metadata.recordLabel,
       publisher: metadata.publisher,
       isrc: metadata.isrc,
-      pLine: metadata.pLine.isNotEmpty
-          ? metadata.pLine
-          : '2026 SoundCloud Clone',
+      pLine: metadata.pLine.isNotEmpty ? metadata.pLine : '2026 SoundCloud Clone',
       contentWarning: metadata.contentWarning,
       scheduledReleaseDate: metadata.scheduledReleaseDate,
       enableDirectDownloads: metadata.allowDownloads,
@@ -107,38 +110,127 @@ class FinalizeTrackMetadataRequestDto {
     );
   }
 
-  Future<FormData> toFormData() async {
-    return FormData.fromMap({
-      'trackId': trackId,
+  // ---------------------------------------------------------------------------
+  // Serialisation
+  // ---------------------------------------------------------------------------
+
+  /// Returns a JSON map (for requests without a file attachment) or a
+  /// [FormData] (when artwork is being uploaded).
+  ///
+  /// Why two paths?
+  /// multipart/form-data serialises every value as a string.  NestJS
+  /// class-validator's @IsBoolean() then rejects "true" / "false" because
+  /// they are strings, not booleans.  When there is no artwork we can send
+  /// plain JSON where Dart booleans survive as JSON booleans.  When artwork
+  /// is present we must use multipart, so we rely on @Transform in the DTO
+  /// and send the string representations NestJS expects.
+
+  bool get _hasLocalArtwork =>
+      artworkPath != null &&
+      artworkPath!.isNotEmpty &&
+      !artworkPath!.startsWith('http');
+
+  /// Call this from the API layer.  Returns either a [Map] (JSON body) or
+  /// a [FormData] (multipart with artwork).
+  Future<dynamic> toRequestBody() async {
+    if (_hasLocalArtwork) {
+      return _toFormData();
+    }
+    return _toJson();
+  }
+
+  Map<String, dynamic> _toJson() {
+    final body = <String, dynamic>{
       'title': title,
       'genre': genre,
       'tags': tags,
       'description': description,
       'privacy': privacy,
-      'artists': artists,
+      if (artists.isNotEmpty) 'artists': artists,
       'recordLabel': recordLabel,
       'publisher': publisher,
       'isrc': isrc,
       'pLine': pLine,
       'contentWarning': contentWarning,
-      if (scheduledReleaseDate != null)
-        'scheduledReleaseDate': scheduledReleaseDate!.toIso8601String(),
+      'availability': {
+        'type': availabilityType,
+        'regions': availabilityRegions,
+      },
+      'licensing': {
+        'type': licensingType,
+        'allowAttribution': allowAttribution,
+        'nonCommercial': nonCommercial,
+        'noDerivatives': noDerivatives,
+        'shareAlike': shareAlike,
+      },
+      'permissions': {
+        'enableDirectDownloads': enableDirectDownloads,
+        'enableOfflineListening': enableOfflineListening,
+        'includeInRSS': includeInRss,
+        'displayEmbedCode': displayEmbedCode,
+        'enableAppPlayback': enableAppPlayback,
+        'allowComments': true,
+        'showCommentsPublic': true,
+        'showInsightsPublic': false,
+      },
+    };
+
+    if (scheduledReleaseDate != null) {
+      body['scheduledReleaseDate'] = scheduledReleaseDate!.toIso8601String();
+    }
+
+    return body;
+  }
+
+  Future<FormData> _toFormData() async {
+    // In multipart, booleans must be sent as 'true'/'false' strings and
+    // NestJS needs @Transform(() => ...) decorators to parse them.
+    // Arrays must be repeated fields (Dio handles List values correctly).
+    final map = <String, dynamic>{
+      'title': title,
+      'genre': genre,
+      'description': description,
+      'privacy': privacy,
+      'recordLabel': recordLabel,
+      'publisher': publisher,
+      'isrc': isrc,
+      'pLine': pLine,
+      // Booleans as strings for multipart
+      'contentWarning': contentWarning.toString(),
       'availability[type]': availabilityType,
-      'availability[regions]': availabilityRegions,
       'licensing[type]': licensingType,
-      'licensing[allowAttribution]': allowAttribution,
-      'licensing[nonCommercial]': nonCommercial,
-      'licensing[noDerivatives]': noDerivatives,
-      'licensing[shareAlike]': shareAlike,
-      'permissions[enableDirectDownloads]': enableDirectDownloads,
-      'permissions[enableOfflineListening]': enableOfflineListening,
-      'permissions[includeInRSS]': includeInRss,
-      'permissions[displayEmbedCode]': displayEmbedCode,
-      'permissions[enableAppPlayback]': enableAppPlayback,
-      if (artworkPath != null &&
-          artworkPath!.isNotEmpty &&
-          !artworkPath!.startsWith('http'))
-        'artwork': await MultipartFile.fromFile(artworkPath!),
-    });
+      'licensing[allowAttribution]': allowAttribution.toString(),
+      'licensing[nonCommercial]': nonCommercial.toString(),
+      'licensing[noDerivatives]': noDerivatives.toString(),
+      'licensing[shareAlike]': shareAlike.toString(),
+      'permissions[enableDirectDownloads]': enableDirectDownloads.toString(),
+      'permissions[enableOfflineListening]': enableOfflineListening.toString(),
+      'permissions[includeInRSS]': includeInRss.toString(),
+      'permissions[displayEmbedCode]': displayEmbedCode.toString(),
+      'permissions[enableAppPlayback]': enableAppPlayback.toString(),
+      'permissions[allowComments]': 'true',
+      'permissions[showCommentsPublic]': 'true',
+      'permissions[showInsightsPublic]': 'false',
+      // Arrays — Dio repeats the key for each element
+      if (tags.isNotEmpty) 'tags': tags,
+      if (artists.isNotEmpty) 'artists': artists,
+      if (availabilityRegions.isNotEmpty) 'availability[regions]': availabilityRegions,
+      'artwork': await MultipartFile.fromFile(artworkPath!),
+    };
+
+    if (scheduledReleaseDate != null) {
+      map['scheduledReleaseDate'] = scheduledReleaseDate!.toIso8601String();
+    }
+
+    return FormData.fromMap(map);
+  }
+
+  static bool _looksLikeUuid(String s) {
+    // Simple UUID v4 shape check — 8-4-4-4-12 hex chars
+    final uuidPattern = RegExp(
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      caseSensitive: false,
+    );
+    return uuidPattern.hasMatch(s);
   }
 }
