@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Uploads library widget used by YourUploadsScreen.
+// Used by: your_uploads_options_sheet
+// Concerns: Multi-format support; Track visibility.
 import 'package:flutter/material.dart';
 
 class YourUploadsShareButton extends StatelessWidget {

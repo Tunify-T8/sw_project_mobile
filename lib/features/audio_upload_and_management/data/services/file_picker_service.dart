@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Device file-picker wrapper for selecting audio and artwork files before upload or replacement.
+// Used by: upload_dependencies_provider
+// Concerns: Multi-format support.
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';

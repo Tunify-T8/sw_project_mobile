@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Resolves waveform URLs and extracted bars used by the track detail screen.
+// Used by: track_detail_screen, track_detail_soundcloud_waveform, track_detail_waveform_panel
+// Concerns: Track visibility; Waveform generation.
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

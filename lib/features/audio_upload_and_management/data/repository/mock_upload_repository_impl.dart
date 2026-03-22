@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Mock implementation of UploadRepository that simulates the upload lifecycle locally.
+// Used by: upload_repository_provider
+// Concerns: Multi-format support.
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_cancellation_token.dart';

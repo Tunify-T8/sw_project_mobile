@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Small UI helpers for TrackMetadataScreen text, labels, and save-button decisions.
+// Used by: track_metadata_screen
+// Concerns: Metadata engine.
 import '../providers/track_metadata_state.dart';
 
 String buildTrackMetadataSaveButtonText(

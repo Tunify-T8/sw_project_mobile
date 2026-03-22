@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Maps Cloudinary draft/workflow data into UploadedTrack and UploadItem shapes used by the rest of the feature.
+// Used by: cloudinary_upload_artwork_resolver, cloudinary_upload_workflow
+// Concerns: Multi-format support.
 import '../../domain/entities/upload_item.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';

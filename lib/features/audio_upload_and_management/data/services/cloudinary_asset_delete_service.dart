@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Helper for deleting Cloudinary audio or artwork assets by URL using the destroy endpoint.
+// Used by: cloudinary_media_service
+// Concerns: Multi-format support; Track visibility.
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';

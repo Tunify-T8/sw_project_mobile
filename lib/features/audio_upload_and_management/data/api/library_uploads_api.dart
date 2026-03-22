@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Dio client for the real My Uploads and artist-tools endpoints used after tracks exist.
+// Used by: library_uploads_repository_impl, library_uploads_repository_provider
+// Concerns: Multi-format support; Track visibility.
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_endpoints.dart';

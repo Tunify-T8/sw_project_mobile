@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Uploads library widget used by YourUploadsScreen.
+// Used by: your_uploads_screen
+// Concerns: Multi-format support; Track visibility.
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/upload_item.dart';

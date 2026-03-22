@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Immutable state object that represents everything shown and edited on the track metadata screen.
+// Used by: track_metadata_form_controllers, track_metadata_mapper, track_metadata_provider, and 7 more upload files.
+// Concerns: Metadata engine.
 import '../../domain/entities/upload_genre.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';

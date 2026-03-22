@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Home screen variant that exposes upload entry points and discovery sections.
+// Used by: Opened from routing or parent navigation flows.
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

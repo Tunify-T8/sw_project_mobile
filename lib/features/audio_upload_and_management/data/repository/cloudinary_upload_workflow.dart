@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Orchestrates the Cloudinary upload pipeline from draft creation through audio/artwork upload, waveform attachment, and local store sync.
+// Used by: cloudinary_upload_repository_impl
+// Concerns: Multi-format support.
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_cancellation_token.dart';
@@ -20,20 +24,22 @@ class CloudinaryUploadWorkflow {
   final UploadWaveformService _waveformService;
   final Map<String, PendingCloudinaryTrack> _drafts = {};
 
- Future<UploadQuota> getUploadQuota(String userId) async {
-  final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(userId);
-  final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
+  Future<UploadQuota> getUploadQuota(String userId) async {
+    final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(
+      userId,
+    );
+    final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
 
-  return UploadQuota(
-    tier: 'free',
-    uploadMinutesLimit: 180,
-    uploadMinutesUsed: usedMinutes,
-    uploadMinutesRemaining: remainingMinutes,
-    canReplaceFiles: false,
-    canScheduleRelease: false,
-    canAccessAdvancedTab: false,
-  );
-}
+    return UploadQuota(
+      tier: 'free',
+      uploadMinutesLimit: 180,
+      uploadMinutesUsed: usedMinutes,
+      uploadMinutesRemaining: remainingMinutes,
+      canReplaceFiles: false,
+      canScheduleRelease: false,
+      canAccessAdvancedTab: false,
+    );
+  }
 
   Future<UploadedTrack> createTrack(String userId) async {
     final trackId = 'track_${DateTime.now().millisecondsSinceEpoch}';

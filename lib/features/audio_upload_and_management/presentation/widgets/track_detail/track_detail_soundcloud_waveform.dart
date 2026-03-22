@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Track detail widget used to build TrackDetailScreen.
+// Used by: track_detail_waveform_panel
+// Concerns: Track visibility; Waveform generation.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';

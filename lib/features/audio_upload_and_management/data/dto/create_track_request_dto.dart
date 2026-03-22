@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: upload_api, real_upload_repository_impl
+// Concerns: Multi-format support.
 class CreateTrackRequestDto {
   // Backend derives the user from bearer auth, so userId is not sent.
   final String userId;

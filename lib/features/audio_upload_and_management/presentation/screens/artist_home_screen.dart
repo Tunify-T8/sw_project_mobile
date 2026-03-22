@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Artist-focused dashboard screen for quotas, recent uploads, and upload entry points.
+// Used by: home_screen
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

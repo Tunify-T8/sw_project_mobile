@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Track detail surface for playback, waveform display, and per-track actions.
+// Used by: home_screen, your_uploads_screen
+// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

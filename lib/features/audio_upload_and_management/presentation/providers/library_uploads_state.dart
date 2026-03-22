@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Immutable state object for the Your Uploads / library management surface.
+// Used by: library_uploads_filter, library_uploads_provider, your_uploads_filter_sheet
+// Concerns: Multi-format support; Track visibility.
 import '../../domain/entities/artist_tools_quota.dart';
 import '../../domain/entities/upload_item.dart';
 

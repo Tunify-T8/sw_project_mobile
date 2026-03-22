@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Exposes shared upload dependencies such as the authenticated user id, artist name, file picker, and real UploadApi.
+// Used by: upload_flow_controller, track_metadata_provider, upload_provider, and 2 more upload files.
+// Concerns: Multi-format support.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';

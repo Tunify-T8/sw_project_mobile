@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Repository contract that the upload feature depends on from the domain layer.
+// Used by: cloudinary_upload_repository_impl, mock_upload_repository_impl, real_upload_repository_impl, and 3 more upload files.
+// Concerns: Multi-format support.
 import '../entities/picked_upload_file.dart';
 import '../entities/track_metadata.dart';
 import '../entities/upload_cancellation_token.dart';

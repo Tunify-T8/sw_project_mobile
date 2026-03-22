@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Track detail widget used to build TrackDetailScreen.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 
 class TrackDetailPlayControls extends StatelessWidget {

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Library surface widget used by LibraryScreen.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 
 class LibraryMenuList extends StatelessWidget {

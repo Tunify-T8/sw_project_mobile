@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Mapper/helper file that converts upload data between API, domain, and UI shapes.
+// Used by: Consumed across nearby upload data and domain files.
+// Concerns: Multi-format support; Transcoding logic.
 import '../../domain/entities/upload_status.dart';
 
 class UploadStatusMapper {

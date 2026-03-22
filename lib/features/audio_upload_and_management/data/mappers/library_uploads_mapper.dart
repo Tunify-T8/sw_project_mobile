@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Mapper/helper file that converts upload data between API, domain, and UI shapes.
+// Used by: library_uploads_repository_impl
+// Concerns: Multi-format support; Track visibility.
 import '../../domain/entities/artist_tools_quota.dart';
 import '../../domain/entities/upload_item.dart';
 import '../dto/artist_tools_quota_dto.dart';

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Dio client for the real backend upload endpoints: quota, track creation, audio upload, metadata save, status polling, and delete.
+// Used by: real_upload_repository_impl, upload_dependencies_provider
+// Concerns: Multi-format support.
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../shared/upload_error_helpers.dart';
@@ -14,9 +18,11 @@ class UploadApi {
 
   Future<UploadQuotaDto> getUploadQuota(String userId) async {
     final response = await dio.get(ApiEndpoints.uploadQuota());
-    final _raw = response.data as Map<String, dynamic>;
-    final _map = _raw['data'] is Map<String, dynamic> ? _raw['data'] as Map<String, dynamic> : _raw;
-    return UploadQuotaDto.fromJson(_map);
+    final raw = response.data as Map<String, dynamic>;
+    final map = raw['data'] is Map<String, dynamic>
+        ? raw['data'] as Map<String, dynamic>
+        : raw;
+    return UploadQuotaDto.fromJson(map);
   }
 
   Future<TrackResponseDto> createTrack(CreateTrackRequestDto request) async {
@@ -48,7 +54,7 @@ class UploadApi {
       'file': await MultipartFile.fromFile(filePath, filename: fileName),
     });
 
-    final response = await dio.post(
+    await dio.post(
       ApiEndpoints.uploadAudio(trackId),
       data: formData,
       cancelToken: cancelToken,
@@ -58,10 +64,7 @@ class UploadApi {
 
     // uploadAudio returns { message: '...' } — not a full track object.
     // Synthesize a minimal DTO so the rest of the flow keeps working.
-    return TrackResponseDto(
-      trackId: trackId,
-      status: 'uploading',
-    );
+    return TrackResponseDto(trackId: trackId, status: 'uploading');
   }
 
   Future<TrackResponseDto> replaceAudio({
@@ -173,13 +176,13 @@ class UploadApi {
     // Normalise `id` → `trackId`
     if (!map.containsKey('trackId') && map.containsKey('id')) {
       map = Map<String, dynamic>.from(map);
-      (map as Map<String, dynamic>)['trackId'] = map['id'];
+      map['trackId'] = map['id'];
     }
 
     // Normalise `transcodingStatus` → `status`
     if (!map.containsKey('status') && map.containsKey('transcodingStatus')) {
       map = Map<String, dynamic>.from(map);
-      (map as Map<String, dynamic>)['status'] = map['transcodingStatus'];
+      map['status'] = map['transcodingStatus'];
     }
 
     return map;

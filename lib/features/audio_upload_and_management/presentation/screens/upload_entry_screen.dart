@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Entry screen that authenticates the user, loads quota, opens the picker, creates a draft, and routes into metadata.
+// Used by: Opened from routing or parent navigation flows.
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

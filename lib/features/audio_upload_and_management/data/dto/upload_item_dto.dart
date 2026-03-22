@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: library_uploads_api, mock_library_uploads_api, library_uploads_mapper
+// Concerns: Multi-format support; Track visibility.
 part 'upload_item_dto_copy_with.dart';
 
 class UploadItemDto {

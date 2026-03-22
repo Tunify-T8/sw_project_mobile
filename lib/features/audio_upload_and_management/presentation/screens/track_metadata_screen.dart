@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Main metadata editor screen used for both new uploads and editing existing tracks.
+// Used by: upload_flow_controller, edit_track_screen, upload_entry_screen
+// Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

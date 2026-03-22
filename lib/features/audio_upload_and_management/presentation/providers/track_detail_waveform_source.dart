@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Chooses the best local or remote audio source when the detail screen wants to derive waveform bars.
+// Used by: track_detail_waveform_provider
+// Concerns: Track visibility; Waveform generation.
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';

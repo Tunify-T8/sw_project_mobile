@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Translates mock upload service data into repository/domain-friendly models.
+// Used by: mock_upload_repository_impl
+// Concerns: Multi-format support.
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';

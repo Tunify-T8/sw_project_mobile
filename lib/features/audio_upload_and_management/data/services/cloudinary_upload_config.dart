@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Stores the Cloudinary configuration values used when the upload backend mode is set to Cloudinary.
+// Used by: upload_repository_provider
+// Concerns: Multi-format support.
 class CloudinaryUploadConfig {
   CloudinaryUploadConfig._();
 

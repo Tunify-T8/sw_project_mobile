@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: upload_api, upload_mappers
+// Concerns: Multi-format support.
 class UploadQuotaDto {
   final String tier;
   final int uploadMinutesLimit;

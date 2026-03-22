@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Presentational widget for upload progress, upload artwork, or other upload-specific UI states.
+// Used by: upload_progress_screen
+// Concerns: Multi-format support; Transcoding logic.
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/upload_status.dart';

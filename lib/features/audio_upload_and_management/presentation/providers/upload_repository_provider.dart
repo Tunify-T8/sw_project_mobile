@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Builds the upload repository graph and switches between mock, Cloudinary, and real backend modes.
+// Used by: track_metadata_provider, upload_provider, track_metadata_screen
+// Concerns: Multi-format support.
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,10 +15,12 @@ import '../../domain/repositories/upload_repository.dart';
 import 'upload_backend_mode_provider.dart';
 import 'upload_dependencies_provider.dart';
 
+//explain :
 final mockUploadServiceProvider = Provider<MockUploadService>((ref) {
   return MockUploadService();
 });
-
+//why does cloudinary need two providers? one for dio and one for the media service?
+//
 final cloudinaryDioProvider = Provider<Dio>((ref) {
   return Dio(
     BaseOptions(

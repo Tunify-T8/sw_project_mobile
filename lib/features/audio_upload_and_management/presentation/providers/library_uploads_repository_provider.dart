@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Wires the uploads-library repository, its mock/real APIs, and the related use cases.
+// Used by: library_uploads_provider
+// Concerns: Multi-format support; Track visibility.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api/library_uploads_api.dart';

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Riverpod notifier for the track metadata form, validation, save actions, and processing-status polling.
+// Used by: upload_flow_controller, track_metadata_screen, upload_progress_screen, and 1 more upload files.
+// Concerns: Metadata engine; Transcoding logic.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/upload_genre.dart';
@@ -41,10 +45,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
     try {
       final repository = ref.read(uploadRepositoryProvider);
       final metadata = TrackMetadataMapper.toEntity(state);
-      await repository.finalizeMetadata(
-        trackId: trackId,
-        metadata: metadata,
-      );
+      await repository.finalizeMetadata(trackId: trackId, metadata: metadata);
 
       // Metadata saved — now poll status until finished/failed.
       // This drives the UploadProgressScreen directly via processingStatus.
@@ -83,7 +84,8 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
         state = state.copyWith(
           processingStatus: track.status,
           finalTrack: track,
-          isPolling: track.status == UploadStatus.processing ||
+          isPolling:
+              track.status == UploadStatus.processing ||
               track.status == UploadStatus.uploading,
           error: null,
         );

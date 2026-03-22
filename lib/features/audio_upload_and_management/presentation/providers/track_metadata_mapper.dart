@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Maps TrackMetadataState into the TrackMetadata domain entity expected by repositories.
+// Used by: track_metadata_provider
+// Concerns: Metadata engine.
 import '../../domain/entities/track_metadata.dart';
 import 'track_metadata_state.dart';
 

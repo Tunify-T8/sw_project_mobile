@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Presentational helper widget for the uploads library search or empty-state surface.
+// Used by: your_uploads_screen
+// Concerns: Multi-format support.
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Repository implementation for the uploads library list and track-management actions, with mock/real switching.
+// Used by: library_uploads_repository_provider
+// Concerns: Multi-format support; Track visibility.
 import '../../domain/entities/artist_tools_quota.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../domain/repositories/library_uploads_repository.dart';

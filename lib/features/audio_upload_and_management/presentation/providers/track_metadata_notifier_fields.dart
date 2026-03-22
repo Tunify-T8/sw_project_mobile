@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Mixin of field mutation helpers used by TrackMetadataNotifier to keep metadata form updates readable.
+// Used by: Watched or read by upload screens, controllers, and widgets.
+// Concerns: Metadata engine.
 part of 'track_metadata_provider.dart';
 
 mixin TrackMetadataNotifierFields on Notifier<TrackMetadataState> {

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Artist dashboard widget used by ArtistHomeScreen.
+// Used by: artist_home_screen
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 
 class ArtistHomeDashboardSection extends StatelessWidget {

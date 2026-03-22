@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Artist tools/paywall widget used around upload quotas and upgrade prompts.
+// Used by: artist_tool_paywall_sheet
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 
 class ArtistToolPaywallFooter extends StatelessWidget {

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: upload_api, real_upload_repository_impl
+// Concerns: Metadata engine.
 import 'package:dio/dio.dart';
 import '../../domain/entities/track_metadata.dart';
 
@@ -85,14 +89,14 @@ class FinalizeTrackMetadataRequestDto {
       privacy: metadata.privacy,
       // Only send artists that look like UUIDs — plain display names cause a
       // DB lookup failure (500) on the backend. Empty list is safe.
-      artists: metadata.artists
-          .where(_looksLikeUuid)
-          .toList(),
+      artists: metadata.artists.where(_looksLikeUuid).toList(),
       artworkPath: metadata.artworkPath,
       recordLabel: metadata.recordLabel,
       publisher: metadata.publisher,
       isrc: metadata.isrc,
-      pLine: metadata.pLine.isNotEmpty ? metadata.pLine : '2026 SoundCloud Clone',
+      pLine: metadata.pLine.isNotEmpty
+          ? metadata.pLine
+          : '2026 SoundCloud Clone',
       contentWarning: metadata.contentWarning,
       scheduledReleaseDate: metadata.scheduledReleaseDate,
       enableDirectDownloads: metadata.allowDownloads,
@@ -214,7 +218,8 @@ class FinalizeTrackMetadataRequestDto {
       // Arrays — Dio repeats the key for each element
       if (tags.isNotEmpty) 'tags': tags,
       if (artists.isNotEmpty) 'artists': artists,
-      if (availabilityRegions.isNotEmpty) 'availability[regions]': availabilityRegions,
+      if (availabilityRegions.isNotEmpty)
+        'availability[regions]': availabilityRegions,
       'artwork': await MultipartFile.fromFile(artworkPath!),
     };
 

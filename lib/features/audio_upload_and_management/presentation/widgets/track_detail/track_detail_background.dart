@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Track detail widget used to build TrackDetailScreen.
+// Used by: track_detail_screen
+// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/upload_item.dart';

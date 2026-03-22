@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Home surface widget that exposes upload entry points or upload-related discovery sections.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 import 'home_upload_button.dart';
 

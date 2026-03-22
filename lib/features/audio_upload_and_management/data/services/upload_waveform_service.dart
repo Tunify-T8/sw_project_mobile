@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Generates and normalizes waveform bar data from local audio files for preview and detail views.
+// Used by: cloudinary_upload_repository_impl, cloudinary_upload_workflow, mock_upload_service, and 1 more upload files.
+// Concerns: Multi-format support; Waveform generation.
 import 'dart:io';
 import 'dart:math' as math;
 

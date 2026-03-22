@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: upload_api, upload_mappers
+// Concerns: Transcoding logic.
 part 'track_response_nested_dto.dart';
 
 class TrackResponseDto {
@@ -66,8 +70,7 @@ class TrackResponseDto {
 
     // `trackId` may come as 'trackId' (finalize/getTrack) or already
     // normalised from 'id' by UploadApi._normalizeTrackJson.
-    final rawTrackId =
-        (json['trackId'] ?? json['id'] ?? '') as Object;
+    final rawTrackId = (json['trackId'] ?? json['id'] ?? '') as Object;
     final trackId = rawTrackId.toString();
 
     // `status` may come as 'status' or already normalised from

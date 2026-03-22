@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
+// Used by: upload_genres
+// Concerns: Multi-format support; Metadata engine.
 import 'upload_genre_model.dart';
 
 const List<UploadGenre> uploadMusicGenres = [

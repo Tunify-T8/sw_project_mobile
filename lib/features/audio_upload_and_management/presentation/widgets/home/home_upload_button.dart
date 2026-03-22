@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Home surface widget that exposes upload entry points or upload-related discovery sections.
+// Used by: artist_home_header
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 
 class HomeUploadButton extends StatelessWidget {

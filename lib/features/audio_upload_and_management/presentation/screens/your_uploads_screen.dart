@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Library screen for viewing, filtering, editing, replacing, and deleting the user's uploaded tracks.
+// Used by: artist_home_screen, library_screen
+// Concerns: Multi-format support; Track visibility.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

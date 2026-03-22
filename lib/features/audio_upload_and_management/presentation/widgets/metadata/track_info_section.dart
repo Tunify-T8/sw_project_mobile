@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Metadata form widget used inside TrackMetadataScreen and TrackMetadataBody.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 
 class TrackInfoFormSection extends StatelessWidget {
