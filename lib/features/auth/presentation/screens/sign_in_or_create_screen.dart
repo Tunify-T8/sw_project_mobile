@@ -5,6 +5,7 @@ import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/design_system/spacing.dart';
 import 'package:software_project/core/design_system/typography.dart';
+import 'package:software_project/core/errors/failure.dart';
 import 'package:software_project/core/utils/url_launcher_util.dart';
 import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 
@@ -19,7 +20,7 @@ class SignInOrCreateScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Listen for successful Google sign-in and navigate to home.
+    // Listen for successful Google sign-in (Scenario 1/2) and navigate to home.
     ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (user) {
@@ -70,9 +71,8 @@ class SignInOrCreateScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Google — fully wired end-to-end.
-              // Requires: serverClientId in google_sign_in_service.dart
-              // + backend /auth/google endpoint live.
+              // Google — fully wired. Requires _kServerClientId set in
+              // google_sign_in_service.dart and backend /auth/google live.
               _OAuthButton(
                 label: 'Continue with Google',
                 backgroundColor: AppColors.googleGrey,
@@ -136,23 +136,43 @@ class SignInOrCreateScreen extends ConsumerWidget {
   }
 
   Future<void> _onGoogleSignIn(BuildContext context, WidgetRef ref) async {
-    final success = await ref
+    final outcome = await ref
         .read(authControllerProvider.notifier)
         .loginWithGoogle();
 
     if (!context.mounted) return;
 
-    // If success=true, ref.listen above handles the navigation to home.
-    // If success=false, the user cancelled — nothing to do.
-    // If success=false due to an error (e.g. serverClientId not set),
-    // the controller state is AsyncError and we show a snackbar.
-    if (!success) {
-      final state = ref.read(authControllerProvider);
-      if (state is AsyncError) {
+    switch (outcome) {
+      case GoogleSignInOutcome.success:
+        // ref.listen above handles navigation to home.
+        break;
+
+      case GoogleSignInOutcome.cancelled:
+        // User dismissed — do nothing.
+        break;
+
+      case GoogleSignInOutcome.requiresLinking:
+        // Scenario 3 — extract linkingToken from controller error state.
+        final state = ref.read(authControllerProvider);
+        final failure = state is AsyncError ? state.error : null;
+
+        if (failure is GoogleAccountLinkingRequiredFailure) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.googleAccountLinking,
+            arguments: {
+              'linkingToken': failure.linkingToken,
+              'email': failure.email,
+            },
+          );
+        }
+        break;
+
+      case GoogleSignInOutcome.error:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Google sign-in is not available yet.')),
         );
-      }
+        break;
     }
   }
 

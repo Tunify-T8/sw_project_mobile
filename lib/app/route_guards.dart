@@ -37,6 +37,7 @@ class RouteGuard {
     AppRoutes.forgotPassword,
     AppRoutes.passwordResetSuccess,
     AppRoutes.resetPassword,
+    AppRoutes.googleAccountLinking,
   ];
 
   Future<String> evaluate(String? routeName) async {

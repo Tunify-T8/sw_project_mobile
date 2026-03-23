@@ -36,16 +36,32 @@ abstract class AuthRepository {
   /// Throws [UnauthorizedFailure] for wrong credentials.
   Future<AuthUserEntity> login(String email, String password);
 
-  /// Authenticates via a third-party OAuth provider.
+  /// Signs in with Google using the authorization code flow.
   ///
-  /// [idToken] — the JWT from the provider (Google, etc.)
-  /// [provider] — provider identifier e.g. 'google'
+  /// [authorizationCode] — the serverAuthCode from GoogleSignIn SDK.
+  /// Expires in ~60 seconds. Send immediately after receiving it.
   ///
-  /// Backend endpoint: POST /auth/google (or /auth/oauth)
-  /// Confirm exact path with your backend team.
-  Future<AuthUserEntity> oauthLogin({
-    required String idToken,
-    required String provider,
+  /// Three possible outcomes:
+  ///   1. New Google user → returns [AuthUserEntity], session saved.
+  ///   2. Returning Google user → returns [AuthUserEntity], session saved.
+  ///   3. Email already registered locally → throws
+  ///      [GoogleAccountLinkingRequiredFailure] containing the linkingToken.
+  ///      UI must show the linking screen.
+  Future<AuthUserEntity> oauthGoogleSignIn({required String authorizationCode});
+
+  /// Links a Google account to an existing local Tunify account.
+  ///
+  /// Called only after [oauthGoogleSignIn] throws
+  /// [GoogleAccountLinkingRequiredFailure].
+  ///
+  /// [linkingToken] — from the failure object. Expires in 10 minutes.
+  /// [password] — the user's existing Tunify password.
+  ///
+  /// On success returns [AuthUserEntity] and saves the session.
+  /// Google is permanently linked — user can log in with either method.
+  Future<AuthUserEntity> linkGoogleAccount({
+    required String linkingToken,
+    required String password,
   });
 
   /// Signs out the current device by revoking the stored refresh token.

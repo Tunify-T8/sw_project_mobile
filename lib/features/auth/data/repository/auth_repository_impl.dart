@@ -5,6 +5,7 @@ import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/data/api/auth_api.dart';
 import 'package:software_project/features/auth/data/dto/auth_response_dto.dart';
 import 'package:software_project/features/auth/data/dto/check_email_request_dto.dart';
+import 'package:software_project/features/auth/data/dto/google_oauth_response_dto.dart';
 import 'package:software_project/features/auth/data/dto/login_request_dto.dart';
 import 'package:software_project/features/auth/data/dto/login_response_dto.dart';
 import 'package:software_project/features/auth/data/dto/register_request_dto.dart';
@@ -144,19 +145,73 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthUserEntity> oauthLogin({
-    required String idToken,
-    required String provider,
+  Future<AuthUserEntity> oauthGoogleSignIn({
+    required String authorizationCode,
   }) async {
     try {
-      final response = await _api.oauthLogin(
-        idToken: idToken,
-        provider: provider,
-      );
-      final dto = AuthResponseDto.fromJson(
+      final response = await _api.oauthGoogle(code: authorizationCode);
+      final dto = GoogleOAuthResponseDto.fromJson(
         response.data as Map<String, dynamic>,
       );
-      final user = AuthUserMapper.toEntity(dto);
+
+      // Scenario 3 — email already registered locally.
+      // Throw a typed failure so the controller can show the linking screen.
+      if (dto.requiresLinking) {
+        throw GoogleAccountLinkingRequiredFailure(
+          linkingToken: dto.linkingToken!,
+          email: '', // email not available in this response
+        );
+      }
+
+      // Scenario 1 & 2 — new or returning Google user.
+      final user = AuthUserEntity(
+        id: dto.user!.id,
+        email: dto.user!.email,
+        username: dto.user!.username,
+        role: dto.user!.role,
+        isVerified: dto.user!.isVerified,
+        avatarUrl: dto.user!.avatarUrl,
+      );
+
+      await _tokenStorage.saveSession(
+        accessToken: dto.accessToken!,
+        refreshToken: dto.refreshToken!,
+        user: user,
+      );
+
+      return user;
+    } on DioException catch (e) {
+      throw NetworkExceptions.fromDioException(e);
+    } on Failure {
+      rethrow;
+    } catch (_) {
+      throw const UnknownFailure();
+    }
+  }
+
+  @override
+  Future<AuthUserEntity> linkGoogleAccount({
+    required String linkingToken,
+    required String password,
+  }) async {
+    try {
+      final response = await _api.oauthGoogleLink(
+        linkingToken: linkingToken,
+        password: password,
+      );
+      final dto = GoogleLinkResponseDto.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      final user = AuthUserEntity(
+        id: dto.user.id,
+        email: dto.user.email,
+        username: dto.user.username,
+        role: dto.user.role,
+        isVerified: dto.user.isVerified,
+        avatarUrl: dto.user.avatarUrl,
+      );
+
       await _tokenStorage.saveSession(
         accessToken: dto.accessToken,
         refreshToken: dto.refreshToken,
@@ -224,7 +279,9 @@ class AuthRepositoryImpl implements AuthRepository {
         confirmPassword: confirmPassword,
         signoutAll: signoutAll,
       );
-      if (signoutAll) await _tokenStorage.clearSession();
+      if (signoutAll) {
+        await _tokenStorage.clearSession();
+      }
     } on DioException catch (e) {
       throw NetworkExceptions.fromDioException(e);
     } catch (_) {

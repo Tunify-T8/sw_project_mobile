@@ -17,9 +17,16 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password';
   static const String deleteAccount = '/auth/delete-account';
 
-  /// OAuth endpoint — confirm exact path with backend team.
-  /// Common options: '/auth/google', '/auth/oauth', '/auth/social'
-  static const String oauthLogin = '/auth/google';
+  // Google OAuth ──────────────────────────────────────────────────────────
+  /// POST /auth/google
+  /// Body: { "code": "authorization_code" }
+  /// Handles new users, returning users, and triggers linking flow.
+  static const String oauthGoogle = '/auth/google';
+
+  /// POST /auth/google/link
+  /// Body: { "linkingToken": "...", "password": "..." }
+  /// Called only when POST /auth/google returns requiresLinking: true.
+  static const String oauthGoogleLink = '/auth/google/link';
 
   // Upload flow
   static String uploadQuota() => '/users/me/upload';
@@ -62,18 +69,3 @@ class ApiEndpoints {
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';
 }
-
-//profile
-//when time comes to connect real backend
-//Reminder for darine:
-
-// Change this: (profile_api.dart)
-//static const String _baseUrl = 'https://69b5b11a583f543fbd9c3072.mockapi.io';
-// To this:
-//static const String _baseUrl = 'http://10.0.2.2:3000/api';
-
-// Change this:
-//final userRes = await _dio.get('$_baseUrl/users/1');
-// To this:
-//final userRes = await _dio.get('$_baseUrl/users/$userId');
-// In api_endpoints.dart add:

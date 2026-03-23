@@ -21,6 +21,7 @@ import '../features/auth/presentation/screens/sign_in_or_create_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
+import '../features/auth/presentation/screens/google_account_linking_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
@@ -45,6 +46,7 @@ class AppRoutes {
   static const String account = '/account';
   static const String profile = '/profile';
   static const String deleteAccount = '/delete-account';
+  static const String googleAccountLinking = '/google-account-linking';
   static const String home = '/home';
 }
 
@@ -160,6 +162,15 @@ class AppRouter {
       case AppRoutes.deleteAccount:
         return _fade(
           const AuthProtectedScreen(child: DeleteAccountScreen()),
+          settings,
+        );
+
+      case AppRoutes.googleAccountLinking:
+        return _fade(
+          GoogleAccountLinkingScreen(
+            linkingToken: args['linkingToken'] as String? ?? '',
+            email: args['email'] as String? ?? '',
+          ),
           settings,
         );
 
