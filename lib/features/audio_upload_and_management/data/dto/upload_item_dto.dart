@@ -79,8 +79,6 @@ class UploadItemDto {
       (json['genre'] as String?) ?? (json['genreCategory'] as String?),
     );
 
-    // getMyTracks returns `duration` (not durationSeconds),
-    // `thumbnailUrl` (not artworkUrl), and `visibility` (not privacy).
     final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
     final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
     final privacyRaw =
@@ -95,9 +93,6 @@ class UploadItemDto {
     return UploadItemDto(
       id: (json['id'] ?? json['trackId'] ?? '').toString(),
       title: (json['title'] as String?) ?? '',
-      // getMyTracks returns 'artist' (singular string = username).
-      // Detail/PATCH endpoints return 'artists' (List of TrackArtist objects).
-      // We handle both shapes here.
       artists: _parseArtists(json),
       durationSeconds: (durationRaw as num?)?.toInt() ?? 0,
       audioUrl: json['audioUrl'] as String?,
@@ -199,22 +194,36 @@ class UploadItemDto {
 }
 
 List<String> _parseArtists(Map<String, dynamic> json) {
-  // Shape 1: getMyTracks — 'artist' is a plain username string
+  final list = json['artists'];
+  if (list is List && list.isNotEmpty) {
+    return list
+        .map((e) {
+          if (e is String) return e.trim();
+          if (e is Map<String, dynamic>) {
+            return (e['name'] ?? e['username'] ?? e['userId'] ?? '')
+                .toString()
+                .trim();
+          }
+          return e.toString().trim();
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
   final singular = json['artist'];
   if (singular is String && singular.trim().isNotEmpty) {
     return [singular.trim()];
   }
-  // Shape 2: detail/PATCH — 'artists' is a List (strings or TrackArtist maps)
-  final list = json['artists'];
-  if (list is List && list.isNotEmpty) {
-    return list.map((e) {
-      if (e is String) return e;
-      if (e is Map<String, dynamic>) {
-        return (e['userId'] ?? e['name'] ?? e['username'] ?? '').toString();
-      }
-      return e.toString();
-    }).where((s) => s.isNotEmpty).toList();
+
+  if (singular is Map<String, dynamic>) {
+    final value = (singular['name'] ?? singular['username'] ?? singular['id'])
+        ?.toString()
+        .trim();
+    if (value != null && value.isNotEmpty) {
+      return [value];
+    }
   }
+
   return const [];
 }
 

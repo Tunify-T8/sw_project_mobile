@@ -22,6 +22,7 @@ UploadedTrack mapPendingTrackToUploadedTrack(
     privacy: draft.privacy,
     artworkUrl: draft.artworkUrl,
     durationSeconds: draft.durationSeconds,
+    artists: draft.artists,
   );
 }
 

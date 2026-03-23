@@ -83,10 +83,9 @@ class FinalizeTrackMetadataRequestDto {
       tags: metadata.tags,
       description: metadata.description,
       privacy: metadata.privacy,
-      // Only send artists that look like UUIDs — plain display names cause a
-      // DB lookup failure (500) on the backend. Empty list is safe.
       artists: metadata.artists
-          .where(_looksLikeUuid)
+          .map((artist) => artist.trim())
+          .where((artist) => artist.isNotEmpty)
           .toList(),
       artworkPath: metadata.artworkPath,
       recordLabel: metadata.recordLabel,
@@ -110,36 +109,17 @@ class FinalizeTrackMetadataRequestDto {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Serialisation
-  // ---------------------------------------------------------------------------
-
-  /// Returns a JSON map (for requests without a file attachment) or a
-  /// [FormData] (when artwork is being uploaded).
-  ///
-  /// Why two paths?
-  /// multipart/form-data serialises every value as a string.  NestJS
-  /// class-validator's @IsBoolean() then rejects "true" / "false" because
-  /// they are strings, not booleans.  When there is no artwork we can send
-  /// plain JSON where Dart booleans survive as JSON booleans.  When artwork
-  /// is present we must use multipart, so we rely on @Transform in the DTO
-  /// and send the string representations NestJS expects.
-
-  /// True when the user picked a local artwork file (not an existing remote URL).
   bool get hasLocalArtwork =>
       artworkPath != null &&
       artworkPath!.isNotEmpty &&
       !artworkPath!.startsWith('http');
 
-  // Keep private alias for internal use
   bool get _hasLocalArtwork => hasLocalArtwork;
 
-  /// Returns metadata as a plain JSON map — no artwork included.
-  /// Called by UploadApi as step 1 of the two-step PATCH.
   Map<String, dynamic> toJsonBody() => _toJson();
 
-  /// Legacy async wrapper — kept for any callers outside UploadApi.
-  Future<dynamic> toRequestBody() async => _toJson();
+  Future<dynamic> toRequestBody() async =>
+      _hasLocalArtwork ? _toFormData() : _toJson();
 
   Map<String, dynamic> _toJson() {
     final body = <String, dynamic>{
@@ -148,9 +128,7 @@ class FinalizeTrackMetadataRequestDto {
       'tags': tags,
       'description': description,
       'privacy': privacy,
-      // artists omitted — backend does a DB UUID lookup on each entry.
-      // Display names like the user's own username cause a FK violation (P2003).
-      // Artists can only be set once a proper collaborator-picker UI exists.
+      if (artists.isNotEmpty) 'artists': artists,
       'recordLabel': recordLabel,
       'publisher': publisher,
       'isrc': isrc,
@@ -187,19 +165,16 @@ class FinalizeTrackMetadataRequestDto {
   }
 
   Future<FormData> _toFormData() async {
-    // In multipart, booleans must be sent as 'true'/'false' strings and
-    // NestJS needs @Transform(() => ...) decorators to parse them.
-    // Arrays must be repeated fields (Dio handles List values correctly).
     final map = <String, dynamic>{
       'title': title,
       'genre': genre,
       'description': description,
       'privacy': privacy,
+      if (artists.isNotEmpty) 'artists': artists,
       'recordLabel': recordLabel,
       'publisher': publisher,
       'isrc': isrc,
       'pLine': pLine,
-      // Booleans as strings for multipart
       'contentWarning': contentWarning.toString(),
       'availability[type]': availabilityType,
       'licensing[type]': licensingType,
@@ -215,10 +190,9 @@ class FinalizeTrackMetadataRequestDto {
       'permissions[allowComments]': 'true',
       'permissions[showCommentsPublic]': 'true',
       'permissions[showInsightsPublic]': 'false',
-      // Arrays — Dio repeats the key for each element
       if (tags.isNotEmpty) 'tags': tags,
-      // artists omitted — same FK violation reason as JSON path above.
-      if (availabilityRegions.isNotEmpty) 'availability[regions]': availabilityRegions,
+      if (availabilityRegions.isNotEmpty)
+        'availability[regions]': availabilityRegions,
       'artwork': await MultipartFile.fromFile(artworkPath!),
     };
 
@@ -227,14 +201,5 @@ class FinalizeTrackMetadataRequestDto {
     }
 
     return FormData.fromMap(map);
-  }
-
-  static bool _looksLikeUuid(String s) {
-    // Simple UUID v4 shape check — 8-4-4-4-12 hex chars
-    final uuidPattern = RegExp(
-      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-      caseSensitive: false,
-    );
-    return uuidPattern.hasMatch(s);
   }
 }

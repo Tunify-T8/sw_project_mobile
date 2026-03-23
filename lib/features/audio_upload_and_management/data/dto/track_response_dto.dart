@@ -68,18 +68,13 @@ class TrackResponseDto {
     final permissionsJson = json['permissions'];
     final audioMetadataJson = json['audioMetadata'];
 
-    // `trackId` may come as 'trackId' (finalize/getTrack) or already
-    // normalised from 'id' by UploadApi._normalizeTrackJson.
     final rawTrackId = (json['trackId'] ?? json['id'] ?? '') as Object;
     final trackId = rawTrackId.toString();
 
-    // `status` may come as 'status' or already normalised from
-    // 'transcodingStatus' by UploadApi._normalizeTrackJson.
     final rawStatus =
         (json['status'] ?? json['transcodingStatus'] ?? 'processing') as Object;
     final status = rawStatus.toString();
 
-    // genre can be a String (PATCH response) or a nested map (GET :id)
     String? genre;
     final rawGenre = json['genre'];
     if (rawGenre is String) {
@@ -88,21 +83,32 @@ class TrackResponseDto {
       genre = rawGenre['category'] as String? ?? rawGenre['label'] as String?;
     }
 
-    // 'artist' (singular string) from getMyTracks,
-    // 'artists' (List<TrackArtist>) from detail/PATCH endpoints.
     List<String>? artists;
-    final rawArtist = json['artist'];
     final rawArtists = json['artists'];
-    if (rawArtist is String && rawArtist.trim().isNotEmpty) {
+    final rawArtist = json['artist'];
+    if (rawArtists is List) {
+      artists = rawArtists
+          .map((e) {
+            if (e is String) return e.trim();
+            if (e is Map<String, dynamic>) {
+              return (e['name'] ?? e['username'] ?? e['userId'] ?? '')
+                  .toString()
+                  .trim();
+            }
+            return e.toString().trim();
+          })
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else if (rawArtist is String && rawArtist.trim().isNotEmpty) {
       artists = [rawArtist.trim()];
-    } else if (rawArtists is List) {
-      artists = rawArtists.map((e) {
-        if (e is String) return e;
-        if (e is Map<String, dynamic>) {
-          return (e['userId'] ?? e['name'] ?? e['username'] ?? '').toString();
-        }
-        return e.toString();
-      }).where((s) => s.isNotEmpty).toList();
+    } else if (rawArtist is Map<String, dynamic>) {
+      final artistValue =
+          (rawArtist['name'] ?? rawArtist['username'] ?? rawArtist['id'])
+              ?.toString()
+              .trim();
+      if (artistValue != null && artistValue.isNotEmpty) {
+        artists = [artistValue];
+      }
     }
 
     return TrackResponseDto(
@@ -138,9 +144,7 @@ class TrackResponseDto {
       audioMetadata: audioMetadataJson is Map<String, dynamic>
           ? AudioMetadataDto.fromJson(audioMetadataJson)
           : null,
-      errorCode: error is Map<String, dynamic>
-          ? error['code'] as String?
-          : null,
+      errorCode: error is Map<String, dynamic> ? error['code'] as String? : null,
       errorMessage: error is Map<String, dynamic>
           ? error['message'] as String?
           : null,

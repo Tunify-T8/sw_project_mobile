@@ -3,11 +3,13 @@
 // Used by: your_uploads_screen
 // Concerns: Multi-format support; Track visibility.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
+import '../../providers/track_detail_item_provider.dart';
 import '../upload_artwork_view.dart';
 
-class YourUploadsTrackTile extends StatelessWidget {
+class YourUploadsTrackTile extends ConsumerWidget {
   const YourUploadsTrackTile({
     super.key,
     required this.item,
@@ -22,15 +24,18 @@ class YourUploadsTrackTile extends StatelessWidget {
   final VoidCallback onMoreTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolvedItemAsync = ref.watch(trackDetailItemProvider(item));
+    final resolvedItem = resolvedItemAsync.asData?.value ?? item;
+
     return GestureDetector(
       onTap: isBusy ? null : onTap,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           UploadArtworkView(
-            localPath: item.localArtworkPath,
-            remoteUrl: item.artworkUrl,
+            localPath: resolvedItem.localArtworkPath,
+            remoteUrl: resolvedItem.artworkUrl,
             width: 64,
             height: 64,
             backgroundColor: const Color(0xFF96B7FF),
@@ -50,7 +55,7 @@ class YourUploadsTrackTile extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        item.title,
+                        resolvedItem.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -60,7 +65,7 @@ class YourUploadsTrackTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (item.status == UploadProcessingStatus.processing)
+                    if (resolvedItem.status == UploadProcessingStatus.processing)
                       Container(
                         margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.symmetric(
@@ -84,14 +89,14 @@ class YourUploadsTrackTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.artistDisplay,
+                  resolvedItem.artistDisplay,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white54, fontSize: 14),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  item.durationLabel,
+                  resolvedItem.durationLabel,
                   style: const TextStyle(color: Colors.white38, fontSize: 13),
                 ),
               ],

@@ -10,7 +10,6 @@ import '../../shared/upload_error_helpers.dart';
 import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
 
-/// Real Dio API for the Library / Your Uploads screen.
 class LibraryUploadsApi {
   final Dio dio;
   final TokenStorage _tokenStorage;
@@ -20,7 +19,6 @@ class LibraryUploadsApi {
     TokenStorage tokenStorage = const TokenStorage(),
   }) : _tokenStorage = tokenStorage;
 
-  /// GET /tracks/me
   Future<List<UploadItemDto>> getMyUploads() async {
     try {
       final response = await dio.get(ApiEndpoints.myUploads);
@@ -40,24 +38,18 @@ class LibraryUploadsApi {
         data = const <dynamic>[];
       }
 
-      return data
+      final baseItems = data
           .whereType<Map<String, dynamic>>()
           .map(UploadItemDto.fromJson)
           .toList();
+
+      return Future.wait(baseItems.map(_enrichCollaboratorsIfNeeded));
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return const [];
       rethrow;
     }
   }
 
-  /// GET /users/:userId/artist-tools/upload-minutes
-  ///
-  /// ⚠️  Backend bug: subscription.uploadedMinutes is never incremented after
-  /// a track is processed, so the backend always returns uploadMinutesUsed: 0.
-  ///
-  /// Workaround: we fetch the user's tracks and compute uploadMinutesUsed
-  /// ourselves as the sum of durationSeconds / 60 for all finished tracks.
-  /// This gives the real consumed minutes until the backend is fixed.
   Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
     final user = await _tokenStorage.getUser();
     if (user == null) {
@@ -66,7 +58,6 @@ class LibraryUploadsApi {
       );
     }
 
-    // Fetch quota and tracks in parallel
     final results = await Future.wait([
       dio.get(ApiEndpoints.artistToolsQuota(user.id)),
       getMyUploads(),
@@ -86,8 +77,6 @@ class LibraryUploadsApi {
         ? raw['data'] as Map<String, dynamic>
         : raw;
 
-    // Compute real uploadMinutesUsed from finished tracks.
-    // Backend never increments subscription.uploadedMinutes so we do it here.
     final computedUsedSeconds = tracks
         .where((t) => t.status == 'finished')
         .fold<int>(0, (sum, t) => sum + t.durationSeconds);
@@ -95,7 +84,6 @@ class LibraryUploadsApi {
 
     final limit = (map['uploadMinutesLimit'] as num?)?.toInt() ?? 99;
 
-    // Build a corrected map with real uploadMinutesUsed
     final correctedMap = Map<String, dynamic>.from(map)
       ..['uploadMinutesUsed'] = computedUsedMinutes
       ..['uploadMinutesRemaining'] =
@@ -104,13 +92,10 @@ class LibraryUploadsApi {
     return ArtistToolsQuotaDto.fromJson(correctedMap);
   }
 
-  /// DELETE /tracks/:id
   Future<void> deleteUpload(String trackId) async {
     await dio.delete(ApiEndpoints.deleteUpload(trackId));
   }
 
-  /// POST /tracks/:id/audio/replace  (premium only)
-  /// Backend uses FileInterceptor('file') — field name must be 'file'.
   Future<void> replaceUploadFile({
     required String trackId,
     required String filePath,
@@ -125,7 +110,6 @@ class LibraryUploadsApi {
     await dio.post(ApiEndpoints.replaceUploadFile(trackId), data: formData);
   }
 
-  /// PATCH /tracks/:id  — quick edit from the Your Uploads screen
   Future<UploadItemDto> updateUpload({
     required String trackId,
     required String title,
@@ -168,5 +152,66 @@ class LibraryUploadsApi {
     throw const UploadFlowException(
       'We could not save those track changes right now. Please try again.',
     );
+  }
+
+  Future<UploadItemDto> _enrichCollaboratorsIfNeeded(UploadItemDto item) async {
+    if (item.id.isEmpty || item.artists.length > 1) {
+      return item;
+    }
+
+    try {
+      final response = await dio.get(ApiEndpoints.uploadDetails(item.id));
+      final raw = _normalizeTrackJson(response.data);
+      final details = UploadItemDto.fromJson(raw);
+
+      if (details.artists.isEmpty) {
+        return item;
+      }
+
+      return item.copyWith(
+        artists: details.artists,
+        description: _preferText(details.description, item.description),
+        artworkUrl: _preferText(details.artworkUrl, item.artworkUrl),
+        waveformUrl: _preferText(details.waveformUrl, item.waveformUrl),
+        audioUrl: _preferText(details.audioUrl, item.audioUrl),
+      );
+    } catch (_) {
+      return item;
+    }
+  }
+
+  Map<String, dynamic> _normalizeTrackJson(dynamic raw) {
+    if (raw is! Map<String, dynamic>) {
+      return const <String, dynamic>{};
+    }
+
+    Map<String, dynamic> map = raw;
+
+    if (map.containsKey('track') && map['track'] is Map<String, dynamic>) {
+      map = map['track'] as Map<String, dynamic>;
+    }
+
+    if (map.containsKey('data') && map['data'] is Map<String, dynamic>) {
+      map = map['data'] as Map<String, dynamic>;
+    }
+
+    if (!map.containsKey('trackId') && map.containsKey('id')) {
+      map = Map<String, dynamic>.from(map)..['trackId'] = map['id'];
+    }
+
+    if (!map.containsKey('status') && map.containsKey('transcodingStatus')) {
+      map = Map<String, dynamic>.from(map)
+        ..['status'] = map['transcodingStatus'];
+    }
+
+    return map;
+  }
+
+  String? _preferText(String? preferred, String? fallback) {
+    final trimmed = preferred?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return fallback;
+    }
+    return trimmed;
   }
 }

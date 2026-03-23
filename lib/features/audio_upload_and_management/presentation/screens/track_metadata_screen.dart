@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/upload_item.dart';
 import '../controllers/track_metadata_form_controllers.dart';
 import '../providers/library_uploads_provider.dart';
+import '../providers/track_detail_item_provider.dart';
+import '../providers/track_detail_waveform_provider.dart';
 import '../providers/track_metadata_provider.dart';
 import '../providers/track_metadata_tab_provider.dart';
 import '../providers/upload_provider.dart';
@@ -158,6 +160,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
   Future<void> _handleSave() async {
     final notifier = ref.read(trackMetadataProvider.notifier);
+    final existingItem = widget.existingItem;
+
     final success = widget.isEditMode
         ? await notifier.saveForEdit(widget.trackId)
         : await notifier.saveForNewUpload(widget.trackId);
@@ -165,8 +169,15 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     if (!success || !mounted) return;
 
     if (widget.isEditMode) {
+      if (existingItem != null) {
+        ref.invalidate(trackDetailItemProvider(existingItem));
+        ref.invalidate(trackDetailWaveformProvider(existingItem));
+      }
+
       await ref.read(libraryUploadsProvider.notifier).refresh();
     }
+
+    ref.invalidate(trackMetadataProvider);
 
     if (mounted) {
       Navigator.of(context).pop(true);
@@ -178,13 +189,17 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
     if (!widget.isEditMode || item == null) return;
 
     if (await confirmTrackMetadataDeletion(context, item.title)) {
+      ref.invalidate(trackDetailItemProvider(item));
+      ref.invalidate(trackDetailWaveformProvider(item));
       await ref.read(libraryUploadsProvider.notifier).deleteTrack(item.id);
+      ref.invalidate(trackMetadataProvider);
       if (mounted) Navigator.of(context).pop(true);
     }
   }
 
   Future<void> _handleCancel() async {
     if (widget.isEditMode) {
+      ref.invalidate(trackMetadataProvider);
       Navigator.of(context).pop();
       return;
     }
