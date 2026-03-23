@@ -14,6 +14,10 @@ class ProfileShareSheet {
   final String? profileImagePath;
   final String? instagram;
   final String? twitter;
+  final String? youtube;
+  final String? spotify;
+  final String? tiktok;
+  final String? soundcloud;
   final TextStyle bioStyle;
 
   ProfileShareSheet({
@@ -26,6 +30,10 @@ class ProfileShareSheet {
     required this.profileImagePath,
     required this.instagram,
     required this.twitter,
+    this.youtube,
+    this.spotify,
+    this.tiktok,
+    this.soundcloud,
     required this.bioStyle,
   });
 
@@ -40,13 +48,17 @@ class ProfileShareSheet {
   Widget _buildSocialLinks() {
     final links = [
       if (instagram != null && instagram!.isNotEmpty)
-        {
-          'icon': FontAwesomeIcons.instagram,
-          'url': instagram!,
-          'label': instagram!,
-        },
+        {'icon': FontAwesomeIcons.instagram, 'url': instagram!, 'label': instagram!},
       if (twitter != null && twitter!.isNotEmpty)
         {'icon': FontAwesomeIcons.xTwitter, 'url': twitter!, 'label': twitter!},
+      if (youtube != null && youtube!.isNotEmpty)
+        {'icon': FontAwesomeIcons.youtube, 'url': youtube!, 'label': youtube!},
+      if (spotify != null && spotify!.isNotEmpty)
+        {'icon': FontAwesomeIcons.spotify, 'url': spotify!, 'label': spotify!},
+      if (tiktok != null && tiktok!.isNotEmpty)
+        {'icon': FontAwesomeIcons.tiktok, 'url': tiktok!, 'label': tiktok!},
+      if (soundcloud != null && soundcloud!.isNotEmpty)
+        {'icon': FontAwesomeIcons.soundcloud, 'url': soundcloud!, 'label': soundcloud!},
     ];
 
     if (links.isEmpty) return const SizedBox.shrink();
@@ -72,7 +84,14 @@ class ProfileShareSheet {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Text(link['label'] as String, style: bioStyle),
+                      Expanded(
+                        child: Text(
+                          link['label'] as String,
+                          style: bioStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -95,7 +114,6 @@ class ProfileShareSheet {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // profile info el heya elmafrodd bas el name,followers, tracks
             Row(
               children: [
                 CircleAvatar(
@@ -104,12 +122,11 @@ class ProfileShareSheet {
                   backgroundImage: profileImage != null
                       ? FileImage(profileImage!)
                       : _hasLocalProfileImage
-                      ? FileImage(File(profileImagePath!))
-                      : _hasRemoteProfileImage
-                      ? NetworkImage(profileImagePath!)
-                      : null,
-                  child:
-                      profileImage == null &&
+                          ? FileImage(File(profileImagePath!))
+                          : _hasRemoteProfileImage
+                              ? NetworkImage(profileImagePath!)
+                              : null,
+                  child: profileImage == null &&
                           !_hasLocalProfileImage &&
                           !_hasRemoteProfileImage
                       ? const Icon(Icons.person, color: Colors.white)
@@ -128,7 +145,7 @@ class ProfileShareSheet {
                       ),
                     ),
                     Text(
-                      '$followersCount Followers · $tracksCount  Tracks',
+                      '$followersCount Followers · $tracksCount Tracks',
                       style: TextStyle(
                         color: Colors.grey.shade400,
                         fontSize: 13,
@@ -139,12 +156,9 @@ class ProfileShareSheet {
               ],
             ),
             const SizedBox(height: 20),
-            // share actions row el gowa el three dots
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-              ), //bdl ma kont ba3od a3mlo be eidi
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: [
                   buildShareAction(Icons.send, 'Message'),
@@ -153,9 +167,10 @@ class ProfileShareSheet {
                     'Copy Link',
                     onTap: () {
                       Clipboard.setData(
-                        ClipboardData(text: 'https://soundcloud.com/$userName'),
+                        ClipboardData(
+                            text: 'https://soundcloud.com/$userName'),
                       );
-                      Navigator.pop(context); // close bottom sheet
+                      Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Link copied to clipboard!'),
@@ -166,19 +181,14 @@ class ProfileShareSheet {
                   ),
                   buildShareAction(FontAwesomeIcons.whatsapp, 'WhatsApp'),
                   buildShareAction(Icons.message, 'SMS'),
-                  buildShareAction(
-                    FontAwesomeIcons.facebookMessenger,
-                    'Messenger',
-                  ),
+                  buildShareAction(FontAwesomeIcons.facebookMessenger, 'Messenger'),
                   buildShareAction(FontAwesomeIcons.instagram, 'Instagram'),
                   buildShareAction(FontAwesomeIcons.facebook, 'Facebook'),
                   buildShareAction(Icons.more_horiz, 'More'),
-                  //add more when needed
                 ],
               ),
             ),
             const SizedBox(height: 12),
-            //start station
             ListTile(
               leading: const Icon(Icons.radio, color: Colors.white),
               title: const Text(
@@ -187,7 +197,6 @@ class ProfileShareSheet {
               ),
               onTap: () {},
             ),
-            // view info
             ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.white),
               title: const Text(
@@ -209,7 +218,7 @@ class ProfileShareSheet {
       SizedBox(
         width: 80,
         child: GestureDetector(
-          onTap: onTap, // ← uses the passed onTap
+          onTap: onTap,
           child: Column(
             children: [
               Container(
@@ -218,7 +227,6 @@ class ProfileShareSheet {
                   color: Colors.grey.shade800,
                   shape: BoxShape.circle,
                 ),
-                //child: Icon(icon, color: Colors.white, size: 24),
                 child: FaIcon(icon, color: Colors.white, size: 24),
               ),
               const SizedBox(height: 6),
@@ -247,7 +255,6 @@ class ProfileShareSheet {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // header
             Row(
               children: [
                 IconButton(
@@ -265,7 +272,6 @@ class ProfileShareSheet {
               ],
             ),
             const SizedBox(height: 16),
-            // bio
             const Text(
               'Bio',
               style: TextStyle(
@@ -280,7 +286,6 @@ class ProfileShareSheet {
               style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
             ),
             const SizedBox(height: 20),
-            // links
             const Text(
               'Links',
               style: TextStyle(
@@ -290,7 +295,6 @@ class ProfileShareSheet {
               ),
             ),
             const SizedBox(height: 8),
-            // links from social links
             _buildSocialLinks(),
             const SizedBox(height: 35),
           ],

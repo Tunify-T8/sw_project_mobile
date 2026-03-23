@@ -327,7 +327,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget buildBody() {
-    //a scrollable bode: images(top),fields (bottom)
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,18 +339,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             onCoverPick: (source) => pickImage(
               isCover: true,
               source: source,
-            ), //8yrataha 3lshan ta5od camera aw gallery
+            ), 
             onProfilePick: (source) =>
                 pickImage(isCover: false, source: source),
             onCoverDelete: () => setState(() {
-              // to delete
               coverImage = null;
               coverImageUrl = null;
               _coverImageDeleted = true;
               _hasChanges = true;
             }),
             onProfileDelete: () => setState(() {
-              // to delete
               profileImage = null;
               profileImageUrl = null;
               _profileImageDeleted = true;

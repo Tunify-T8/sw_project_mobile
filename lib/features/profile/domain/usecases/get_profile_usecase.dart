@@ -34,7 +34,7 @@ class GetProfileUsecase {
       visibility: dto.visibility,
       userType: dto.userType,
       isActive: dto.isActive,
-      isVerified: dto.isVerified,
+      isCertified: dto.isCertified,
     );
   }
 }

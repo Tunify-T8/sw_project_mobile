@@ -73,6 +73,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final uploadsState = ref.watch(libraryUploadsProvider);
     final uploadedTracks = uploadsState.items;
 
+    print('CONSOLE: profile.isCertified = ${profile?.isCertified ?? false}');
+//to check bs mzboot or not
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -82,16 +84,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () => ProfileShareSheet(
-              context: context,
-              userName: profile?.userName ?? '',
-              bio: profile?.bio ?? '',
-              followersCount: profile?.followersCount ?? 0,
-              tracksCount: profile?.tracksCount ?? 0,
-              profileImage: profileImage,
-              profileImagePath: profile?.profileImagePath,
-              instagram: profile?.instagram,
-              twitter: profile?.twitter,
-              bioStyle: bioStyle,
+                context: context,
+                userName: profile?.userName ?? '',
+                bio: profile?.bio ?? '',
+                followersCount: profile?.followersCount ?? 0,
+                tracksCount: profile?.tracksCount ?? 0,
+                profileImage: profileImage,
+                profileImagePath: profile?.profileImagePath,
+                instagram: profile?.instagram,
+                twitter: profile?.twitter,
+                youtube: profile?.youtube,
+                spotify: profile?.spotify,
+                tiktok: profile?.tiktok,
+                soundcloud: profile?.soundcloud,
+                bioStyle: bioStyle,
             ).show(),
           ),
         ],
@@ -114,6 +120,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     profileHeight: profileHeight,
                     coverUrl: profile?.coverImagePath,
                     profileUrl: profile?.profileImagePath,
+                    //isCertified: profile?.isCertified ?? false,
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
@@ -123,6 +130,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     bio: profile?.bio ?? '',
                     followersCount: profile?.followersCount ?? 0,
                     followingCount: profile?.followingCount ?? 0,
+                    isCertified: profile?.isCertified ?? false,
                     nameStyle: nameStyle,
                     bioStyle: bioStyle,
                     followerStyle: followerStyle,
@@ -136,6 +144,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       profileImagePath: profile?.profileImagePath,
                       instagram: profile?.instagram,
                       twitter: profile?.twitter,
+                      youtube: profile?.youtube,
+                      spotify: profile?.spotify,
+                      tiktok: profile?.tiktok,
+                      soundcloud: profile?.soundcloud,
                       bioStyle: bioStyle,
                     ).showInfoSheet(),
                     actionButtons: ProfileActionButtons(

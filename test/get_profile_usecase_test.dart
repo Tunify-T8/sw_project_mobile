@@ -74,7 +74,7 @@ void main() {
         visibility: 'PUBLIC',
         userType: 'ARTIST',
         tracksCount: 5,
-        isVerified: true,
+        isCertified: true,
         email: 'darine@email.com',
         role: 'USER',
       );
@@ -83,7 +83,7 @@ void main() {
       final result = await usecase.execute();
 
       expect(result.tracksCount, 5);
-      expect(result.isVerified, true);
+      expect(result.isCertified, true);
       expect(result.email, 'darine@email.com');
       expect(result.role, 'USER');
     });

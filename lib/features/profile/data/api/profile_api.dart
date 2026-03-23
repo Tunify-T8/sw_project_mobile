@@ -28,6 +28,9 @@ class ProfileApi {
     return profile;
   }
 
+    Future<void> deleteSocialLink(String platform) async {
+      await _dio.delete('/users/me/social-links/${platform.toLowerCase()}');
+    }
   Future<ProfileDto> updateProfile(
       String userId, ProfileDto profile) async {
     await _dio.patch(ApiEndpoints.updateProfile, data: {
@@ -38,28 +41,44 @@ class ProfileApi {
       'avatarUrl': profile.profileImagePath,
       'coverUrl': profile.coverImagePath,
       'visibility': profile.visibility,
-      // 'userType' is read-only — managed by the server, cannot be updated
+      'role': profile.userType, 
     });
 
-    final links = [
-      if (profile.instagram != null && profile.instagram!.isNotEmpty)
-        {'platform': 'INSTAGRAM', 'url': profile.instagram},
-      if (profile.twitter != null && profile.twitter!.isNotEmpty)
-        {'platform': 'TWITTER', 'url': profile.twitter},
-      if (profile.youtube != null && profile.youtube!.isNotEmpty)
-        {'platform': 'YOUTUBE', 'url': profile.youtube},
-      if (profile.spotify != null && profile.spotify!.isNotEmpty)
-        {'platform': 'SPOTIFY', 'url': profile.spotify},
-      if (profile.tiktok != null && profile.tiktok!.isNotEmpty)
-        {'platform': 'TIKTOK', 'url': profile.tiktok},
-      if (profile.soundcloud != null && profile.soundcloud!.isNotEmpty)
-        {'platform': 'SOUNDCLOUD', 'url': profile.soundcloud},
-    ];
+   final links = [
+    if (profile.instagram != null && profile.instagram!.isNotEmpty)
+      {'platform': 'INSTAGRAM', 'url': profile.instagram},
+    if (profile.twitter != null && profile.twitter!.isNotEmpty)
+      {'platform': 'TWITTER', 'url': profile.twitter},
+    if (profile.youtube != null && profile.youtube!.isNotEmpty)
+      {'platform': 'YOUTUBE', 'url': profile.youtube},
+    if (profile.spotify != null && profile.spotify!.isNotEmpty)
+      {'platform': 'SPOTIFY', 'url': profile.spotify},
+    if (profile.tiktok != null && profile.tiktok!.isNotEmpty)
+      {'platform': 'TIKTOK', 'url': profile.tiktok},
+    if (profile.soundcloud != null && profile.soundcloud!.isNotEmpty)
+      {'platform': 'SOUNDCLOUD', 'url': profile.soundcloud},
+  ];
 
-    if (links.isNotEmpty) {
-      await _dio.patch(ApiEndpoints.updateSocialLinks, data: {'links': links});
-    }
-
-    return getProfile(userId);
+  if (links.isNotEmpty) {
+    await _dio.patch(ApiEndpoints.updateSocialLinks, data: {'links': links});
   }
+ 
+  final toDelete = <String>[];  // Links to delete->if left to be null or''
+  if (profile.instagram == null || profile.instagram!.isEmpty) toDelete.add('instagram');
+  if (profile.twitter == null || profile.twitter!.isEmpty) toDelete.add('twitter');
+  if (profile.youtube == null || profile.youtube!.isEmpty) toDelete.add('youtube');
+  if (profile.spotify == null || profile.spotify!.isEmpty) toDelete.add('spotify');
+  if (profile.tiktok == null || profile.tiktok!.isEmpty) toDelete.add('tiktok');
+  if (profile.soundcloud == null || profile.soundcloud!.isEmpty) toDelete.add('soundcloud');
+
+  for (final platform in toDelete) {
+    try {
+      await deleteSocialLink(platform);
+    } catch (_) {
+      // ignore this if link doesn't exist->check with BE
+    }
+  }
+
+  return getProfile(userId);
+}
 }

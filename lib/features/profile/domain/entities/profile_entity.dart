@@ -22,7 +22,7 @@ class ProfileEntity {
   final String visibility;
   final String userType;
   final bool isActive;
-  final bool isVerified;
+  final bool isCertified;
 
   const ProfileEntity({
     required this.id,
@@ -48,6 +48,6 @@ class ProfileEntity {
     this.visibility = 'PUBLIC',
     this.userType = 'ARTIST',
     this.isActive = true,
-    this.isVerified = false,
+    this.isCertified = false,
   });
 }

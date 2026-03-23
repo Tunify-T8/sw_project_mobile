@@ -42,22 +42,22 @@ Widget build(BuildContext context, WidgetRef ref) {
                 tiktok: profile?.tiktok,
                 soundcloud: profile?.soundcloud,
                 userType: profile?.userType ?? 'ARTIST',
-                profileImageUrl: profile?.profileImagePath,  // ← HERE
-                coverImageUrl: profile?.coverImagePath,      // ← HERE
+                profileImageUrl: profile?.profileImagePath, 
+                coverImageUrl: profile?.coverImagePath,      
                 )),
               );
               if (result != null) {
                 final updated = ProfileDto(
                 // server-controlled
-                id: profile!.id,               // ← HERE
-                email: profile.email,          // ← HERE
-                role: profile.role,            // ← HERE
-                tracksCount: profile.tracksCount,     // ← HERE
-                likesReceived: profile.likesReceived, // ← HERE
-                isActive: profile.isActive,           // ← HERE
-                isVerified: profile.isVerified,       // ← HERE
-                followersCount: profile.followersCount, // ← HERE
-                followingCount: profile.followingCount, // ← HERE
+                id: profile!.id,               
+                email: profile.email,          
+                role: profile.role,            
+                tracksCount: profile.tracksCount,    
+                likesReceived: profile.likesReceived, 
+                isActive: profile.isActive,           
+                isCertified: profile.isCertified,     
+                followersCount: profile.followersCount, 
+                followingCount: profile.followingCount, 
                 // user-editable
                 userName: result.userName,
                 bio: result.bio,
@@ -74,7 +74,7 @@ Widget build(BuildContext context, WidgetRef ref) {
                 profileImagePath: result.profileImagePath == ''  // ← HERE
                     ? null
                     : (result.profileImagePath ?? profile.profileImagePath),
-                coverImagePath: result.coverImagePath == ''      // ← HERE
+                coverImagePath: result.coverImagePath == ''      
                     ? null
                     : (result.coverImagePath ?? profile.coverImagePath),
                 );
