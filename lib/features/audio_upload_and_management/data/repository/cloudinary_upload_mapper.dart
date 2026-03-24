@@ -23,6 +23,23 @@ UploadedTrack mapPendingTrackToUploadedTrack(
     artworkUrl: draft.artworkUrl,
     durationSeconds: draft.durationSeconds,
     artists: draft.artists,
+    tags: draft.tags,
+    genreCategory: draft.genreCategory,
+    genreSubGenre: draft.genreSubGenre,
+    recordLabel: draft.recordLabel,
+    publisher: draft.publisher,
+    isrc: draft.isrc,
+    pLine: draft.pLine,
+    contentWarning: draft.contentWarning,
+    scheduledReleaseDate: draft.scheduledReleaseDate,
+    allowDownloads: draft.allowDownloads,
+    offlineListening: draft.offlineListening,
+    includeInRss: draft.includeInRss,
+    displayEmbedCode: draft.displayEmbedCode,
+    appPlaybackEnabled: draft.appPlaybackEnabled,
+    availabilityType: draft.availabilityType,
+    availabilityRegions: draft.availabilityRegions,
+    licensing: draft.licensing,
   );
 }
 

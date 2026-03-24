@@ -7,7 +7,7 @@ class TrackEngagementDto {
     required this.isReposted,
     required this.isSaved,
   });
-
+// integrate with the track engagement endpoint to get real-time like/comment/repost counts and user engagement status for the currently playing track. This can be used to update the UI (e.g. like button state) and show engagement metrics in the player.
   final int likeCount;
   final int commentCount;
   final int repostCount;

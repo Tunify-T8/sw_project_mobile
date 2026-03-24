@@ -35,6 +35,27 @@ extension TrackResponseDtoMapper on TrackResponseDto {
       artworkUrl: artworkUrl,
       durationSeconds: durationSeconds,
       artists: artists ?? const [],
+      tags: tags == null ? null : List<String>.from(tags!),
+      genreCategory: genreCategory,
+      genreSubGenre: genreSubGenre,
+      recordLabel: recordLabel,
+      publisher: publisher,
+      isrc: isrc,
+      pLine: pLine,
+      contentWarning: contentWarning,
+      scheduledReleaseDate: scheduledReleaseDate == null
+          ? null
+          : DateTime.tryParse(scheduledReleaseDate!),
+      allowDownloads: permissions?.enableDirectDownloads,
+      offlineListening: permissions?.enableOfflineListening,
+      includeInRss: permissions?.includeInRSS,
+      displayEmbedCode: permissions?.displayEmbedCode,
+      appPlaybackEnabled: permissions?.enableAppPlayback,
+      availabilityType: availability?.type,
+      availabilityRegions: availability == null
+          ? null
+          : List<String>.from(availability!.regions),
+      licensing: licensing?.type,
       errorCode: errorCode,
       errorMessage: errorMessage,
     );

@@ -72,9 +72,10 @@ class FinalizeTrackMetadataRequestDto {
         .toLowerCase()
         .replaceAll(' ', '_');
 
-    final genreValue =
-        '${normalizedCategory.isEmpty ? 'music' : normalizedCategory}_'
-        '${normalizedSubGenre.isEmpty ? 'hiphop' : normalizedSubGenre}';
+    final genreValue = _buildGenreValue(
+      category: normalizedCategory,
+      subGenre: normalizedSubGenre,
+    );
 
     return FinalizeTrackMetadataRequestDto(
       trackId: trackId,
@@ -91,7 +92,9 @@ class FinalizeTrackMetadataRequestDto {
       recordLabel: metadata.recordLabel,
       publisher: metadata.publisher,
       isrc: metadata.isrc,
-      pLine: metadata.pLine.isNotEmpty ? metadata.pLine : '2026 SoundCloud Clone',
+      pLine: metadata.pLine.isNotEmpty
+          ? metadata.pLine
+          : '2026 SoundCloud Clone',
       contentWarning: metadata.contentWarning,
       scheduledReleaseDate: metadata.scheduledReleaseDate,
       enableDirectDownloads: metadata.allowDownloads,
@@ -117,6 +120,7 @@ class FinalizeTrackMetadataRequestDto {
   bool get _hasLocalArtwork => hasLocalArtwork;
 
   Map<String, dynamic> toJsonBody() => _toJson();
+  Future<FormData> toFormData() => _toFormData();
 
   Future<dynamic> toRequestBody() async =>
       _hasLocalArtwork ? _toFormData() : _toJson();
@@ -124,7 +128,7 @@ class FinalizeTrackMetadataRequestDto {
   Map<String, dynamic> _toJson() {
     final body = <String, dynamic>{
       'title': title,
-      'genre': genre,
+      if (genre.isNotEmpty) 'genre': genre,
       'tags': tags,
       'description': description,
       'privacy': privacy,
@@ -167,7 +171,7 @@ class FinalizeTrackMetadataRequestDto {
   Future<FormData> _toFormData() async {
     final map = <String, dynamic>{
       'title': title,
-      'genre': genre,
+      if (genre.isNotEmpty) 'genre': genre,
       'description': description,
       'privacy': privacy,
       if (artists.isNotEmpty) 'artists': artists,
@@ -202,4 +206,20 @@ class FinalizeTrackMetadataRequestDto {
 
     return FormData.fromMap(map);
   }
+}
+
+String _buildGenreValue({required String category, required String subGenre}) {
+  if (category.isEmpty && subGenre.isEmpty) {
+    return '';
+  }
+
+  if (subGenre.isEmpty) {
+    return category;
+  }
+
+  if (category.isEmpty) {
+    return subGenre;
+  }
+
+  return '${category}_$subGenre';
 }

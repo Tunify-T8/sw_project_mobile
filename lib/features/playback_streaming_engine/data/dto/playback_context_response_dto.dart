@@ -1,3 +1,6 @@
+// for building the queue for next and previous track based on context (e.g. playlist, feed, profile, history) 
+//ask if this 
+
 class PlaybackContextResponseDto {
   const PlaybackContextResponseDto({
     required this.trackIds,

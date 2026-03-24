@@ -19,10 +19,7 @@ abstract class PlayerRepository {
   /// POST /tracks/{trackId}/stream
   /// Issues a signed, time-limited streaming URL.
   /// [quality]: 'auto' | '128' | '320'
-  Future<StreamUrl> requestStreamUrl(
-    String trackId, {
-    String quality = 'auto',
-  });
+  Future<StreamUrl> requestStreamUrl(String trackId, {String quality = 'auto'});
 
   /// PATCH /me/playback/events
   /// Reports a play / progress / pause event to the backend.

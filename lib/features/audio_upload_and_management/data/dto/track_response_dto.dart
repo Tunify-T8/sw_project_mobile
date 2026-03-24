@@ -2,6 +2,8 @@
 // Purpose: DTO model that represents upload-related request or response data at the API boundary.
 // Used by: upload_api, upload_mappers
 // Concerns: Transcoding logic.
+import 'genre_parsing.dart';
+
 part 'track_response_nested_dto.dart';
 
 class TrackResponseDto {
@@ -10,6 +12,8 @@ class TrackResponseDto {
   final String? title;
   final String? description;
   final String? genre;
+  final String? genreCategory;
+  final String? genreSubGenre;
   final List<String>? tags;
   final List<String>? artists;
   final int? durationSeconds;
@@ -38,6 +42,8 @@ class TrackResponseDto {
     this.title,
     this.description,
     this.genre,
+    this.genreCategory,
+    this.genreSubGenre,
     this.tags,
     this.artists,
     this.durationSeconds,
@@ -75,13 +81,11 @@ class TrackResponseDto {
         (json['status'] ?? json['transcodingStatus'] ?? 'processing') as Object;
     final status = rawStatus.toString();
 
-    String? genre;
-    final rawGenre = json['genre'];
-    if (rawGenre is String) {
-      genre = rawGenre;
-    } else if (rawGenre is Map<String, dynamic>) {
-      genre = rawGenre['category'] as String? ?? rawGenre['label'] as String?;
-    }
+    final parsedGenre = parseUploadGenre(
+      json['genre'],
+      fallbackCategory: json['genreCategory']?.toString(),
+      fallbackSubGenre: json['genreSubGenre']?.toString(),
+    );
 
     List<String>? artists;
     final rawArtists = json['artists'];
@@ -116,10 +120,12 @@ class TrackResponseDto {
       status: status,
       title: json['title'] as String?,
       description: json['description'] as String?,
-      genre: genre,
+      genre: parsedGenre.normalized,
+      genreCategory: parsedGenre.category,
+      genreSubGenre: parsedGenre.subGenre,
       tags: (json['tags'] as List?)?.map((e) => e.toString()).toList(),
       artists: artists,
-      durationSeconds: json['durationSeconds'] as int?,
+      durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
       privacy: json['privacy'] as String?,
       scheduledReleaseDate: json['scheduledReleaseDate'] as String?,
       availability: availabilityJson is Map<String, dynamic>
@@ -144,7 +150,9 @@ class TrackResponseDto {
       audioMetadata: audioMetadataJson is Map<String, dynamic>
           ? AudioMetadataDto.fromJson(audioMetadataJson)
           : null,
-      errorCode: error is Map<String, dynamic> ? error['code'] as String? : null,
+      errorCode: error is Map<String, dynamic>
+          ? error['code'] as String?
+          : null,
       errorMessage: error is Map<String, dynamic>
           ? error['message'] as String?
           : null,

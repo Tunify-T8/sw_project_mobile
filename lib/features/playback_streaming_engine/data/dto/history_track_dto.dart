@@ -1,6 +1,13 @@
 import 'track_artist_summary_dto.dart';
 
 class HistoryTrackDto {
+  final String trackId;
+  final String title;
+  final TrackArtistSummaryDto artist;
+  final String playedAt; // ISO 8601 timestamp of when the track was played
+  final int durationSeconds;
+  final String status; // e.g. "playable", "blocked", "unavailable"
+
   const HistoryTrackDto({
     required this.trackId,
     required this.title,
@@ -10,12 +17,7 @@ class HistoryTrackDto {
     required this.status,
   });
 
-  final String trackId;
-  final String title;
-  final TrackArtistSummaryDto artist;
-  final String playedAt;
-  final int durationSeconds;
-  final String status;
+
 
   factory HistoryTrackDto.fromJson(Map<String, dynamic> json) {
     final artistJson = json['artist'];

@@ -1,4 +1,9 @@
 class StreamResponseDto {
+  final String trackId;
+  final String url;
+  final int expiresInSeconds;
+  final String format;
+
   const StreamResponseDto({
     required this.trackId,
     required this.url,
@@ -6,10 +11,6 @@ class StreamResponseDto {
     required this.format,
   });
 
-  final String trackId;
-  final String url;
-  final int expiresInSeconds;
-  final String format;
 
   factory StreamResponseDto.fromJson(Map<String, dynamic> json, String trackId) {
     // Response shape: { trackId, stream: { url, expiresInSeconds, format } }

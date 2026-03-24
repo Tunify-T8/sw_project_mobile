@@ -2,6 +2,8 @@
 // Purpose: DTO model that represents upload-related request or response data at the API boundary.
 // Used by: library_uploads_api, mock_library_uploads_api, library_uploads_mapper
 // Concerns: Multi-format support; Track visibility.
+import 'genre_parsing.dart';
+
 part 'upload_item_dto_copy_with.dart';
 
 class UploadItemDto {
@@ -75,19 +77,21 @@ class UploadItemDto {
     final availability = _asMap(json['availability']);
     final licensingData = _asMap(json['licensing']);
     final permissions = _asMap(json['permissions']);
-    final parsedGenre = _parseGenre(
-      (json['genre'] as String?) ?? (json['genreCategory'] as String?),
+    final parsedGenre = parseUploadGenre(
+      json['genre'],
+      fallbackCategory: json['genreCategory']?.toString(),
+      fallbackSubGenre: json['genreSubGenre']?.toString(),
     );
 
     final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
     final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
     final privacyRaw =
-        (json['privacy'] as String?) ??
-        (json['visibility'] as String?) ??
+        _asString(json['privacy']) ??
+        _asString(json['visibility']) ??
         'private';
     final statusRaw =
-        (json['status'] as String?) ??
-        (json['transcodingStatus'] as String?) ??
+        _asString(json['status']) ??
+        _asString(json['transcodingStatus']) ??
         'finished';
 
     return UploadItemDto(
@@ -108,8 +112,8 @@ class UploadItemDto {
       tags: ((json['tags'] as List?) ?? const [])
           .map((entry) => entry.toString())
           .toList(),
-      genreCategory: (json['genreCategory'] as String?) ?? parsedGenre.$1,
-      genreSubGenre: (json['genreSubGenre'] as String?) ?? parsedGenre.$2,
+      genreCategory: parsedGenre.category ?? '',
+      genreSubGenre: parsedGenre.subGenre ?? '',
       privacy: privacyRaw,
       status: statusRaw,
       contentWarning: (json['contentWarning'] as bool?) ?? false,
@@ -149,8 +153,8 @@ class UploadItemDto {
               .map((entry) => entry.toString())
               .toList(),
       licensing:
-          (json['licensing'] as String?) ??
-          (licensingData?['type'] as String?) ??
+          _asString(json['licensing']) ??
+          _asString(licensingData?['type']) ??
           'all_rights_reserved',
       createdAt:
           (json['createdAt'] as String?) ?? DateTime.now().toIso8601String(),
@@ -231,18 +235,8 @@ Map<String, dynamic>? _asMap(dynamic value) {
   return value is Map<String, dynamic> ? value : null;
 }
 
-(String, String) _parseGenre(String? rawGenre) {
-  final normalized = rawGenre?.trim() ?? '';
-  if (normalized.isEmpty) {
-    return ('', '');
-  }
-
-  final parts = normalized.split('_');
-  if (parts.length < 2) {
-    return (normalized, '');
-  }
-
-  final category = parts.first;
-  final subGenre = parts.skip(1).join('_');
-  return (category, subGenre);
+String? _asString(dynamic value) {
+  if (value == null) return null;
+  final trimmed = value.toString().trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

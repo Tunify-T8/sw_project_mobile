@@ -4,16 +4,16 @@ import '../../domain/entities/upload_item.dart';
 import '../../domain/entities/uploaded_track.dart';
 import 'upload_repository_provider.dart';
 
-final trackDetailItemProvider =
-    FutureProvider.autoDispose.family<UploadItem, UploadItem>((ref, item) async {
-  try {
-    final repository = ref.read(uploadRepositoryProvider);
-    final details = await repository.getTrackDetails(item.id);
-    return mergeTrackDetailItem(base: item, details: details);
-  } catch (_) {
-    return item;
-  }
-});
+final trackDetailItemProvider = FutureProvider.autoDispose
+    .family<UploadItem, UploadItem>((ref, item) async {
+      try {
+        final repository = ref.read(uploadRepositoryProvider);
+        final details = await repository.getTrackDetails(item.id);
+        return mergeTrackDetailItem(base: item, details: details);
+      } catch (_) {
+        return item;
+      }
+    });
 
 UploadItem mergeTrackDetailItem({
   required UploadItem base,
@@ -46,7 +46,44 @@ UploadItem mergeTrackDetailItem({
       details.description,
       fallback: base.description,
     ),
+    tags: details.tags ?? base.tags,
+    genreCategory: _resolveEditableText(
+      details.genreCategory,
+      fallback: base.genreCategory,
+    ),
+    genreSubGenre: _resolveEditableText(
+      details.genreSubGenre,
+      fallback: base.genreSubGenre,
+    ),
     visibility: _resolveVisibility(details.privacy, fallback: base.visibility),
+    isExplicit: details.contentWarning ?? base.isExplicit,
+    recordLabel: _resolveEditableText(
+      details.recordLabel,
+      fallback: base.recordLabel,
+    ),
+    publisher: _resolveEditableText(
+      details.publisher,
+      fallback: base.publisher,
+    ),
+    isrc: _resolveEditableText(details.isrc, fallback: base.isrc),
+    pLine: _resolveEditableText(details.pLine, fallback: base.pLine),
+    scheduledReleaseDate:
+        details.scheduledReleaseDate ?? base.scheduledReleaseDate,
+    allowDownloads: details.allowDownloads ?? base.allowDownloads,
+    offlineListening: details.offlineListening ?? base.offlineListening,
+    includeInRss: details.includeInRss ?? base.includeInRss,
+    displayEmbedCode: details.displayEmbedCode ?? base.displayEmbedCode,
+    appPlaybackEnabled: details.appPlaybackEnabled ?? base.appPlaybackEnabled,
+    availabilityType: _resolveEditableText(
+      details.availabilityType,
+      fallback: base.availabilityType,
+    ),
+    availabilityRegions:
+        details.availabilityRegions ?? base.availabilityRegions,
+    licensing: _resolveEditableText(
+      details.licensing,
+      fallback: base.licensing,
+    ),
   );
 }
 
@@ -64,6 +101,14 @@ String? _resolveOptionalText(String? value, {String? fallback}) {
     return fallback;
   }
   return trimmed;
+}
+
+String _resolveEditableText(String? value, {required String fallback}) {
+  if (value == null) {
+    return fallback;
+  }
+
+  return value.trim();
 }
 
 UploadVisibility _resolveVisibility(

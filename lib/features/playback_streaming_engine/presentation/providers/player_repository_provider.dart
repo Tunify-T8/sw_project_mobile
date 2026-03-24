@@ -12,7 +12,7 @@ import 'player_dependencies_provider.dart';
 /// concrete implementation directly.
 final playerRepositoryProvider = Provider<PlayerRepository>((ref) {
   final mode = ref.watch(playerBackendModeProvider);
-
+  
   if (mode == PlayerBackendMode.real) {
     return RealPlayerRepository(ref.watch(streamingApiProvider));
   }

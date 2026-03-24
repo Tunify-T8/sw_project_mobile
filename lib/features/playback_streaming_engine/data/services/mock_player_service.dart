@@ -20,6 +20,7 @@ class MockPlayerService {
   // 5.1  getPlaybackBundle   as per backend docs
   // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> getPlaybackBundle(
+    // trackId is required, privateToken is optional for private tracks
     String trackId, {
     String? privateToken,
   }) async {
@@ -28,18 +29,18 @@ class MockPlayerService {
     // Simulate a blocked track when id contains 'blocked'
     final isBlocked = trackId.contains('blocked');
     final isPreview = trackId.contains('preview');
-
+// Generate fake metadata and playability info based on trackId patterns 
     return {
       'trackId': trackId,
       'title': _fakeTitles[_rng.nextInt(_fakeTitles.length)],
       'artist': {
         'id': 'artist_mock_001',
         'name': 'Mock Artist',
-        'tier': 'pro',
+        'tier': 'pro', // wrong prob byfedny b eh its actually role in backend
       },
       'durationSeconds': 180 + _rng.nextInt(180),
       'waveformUrl': 'https://cdn.mock.app/waveforms/$trackId.json',
-      'coverUrl': 'https://cdn.mock.app/artwork/$trackId.png',
+      'coverUrl': 'https://cdn.mock.app/artwork/$trackId.png', //artwork? ask backend
       'contentWarning': false,
       'engagement': {
         'likeCount': 100 + _rng.nextInt(900),
@@ -74,7 +75,7 @@ class MockPlayerService {
   // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> requestStreamUrl(
     String trackId, {
-    String quality = 'auto',
+    String quality = 'auto', //change it
   }) async {
     await _delay(200);
     return {
@@ -83,7 +84,7 @@ class MockPlayerService {
         'url':
             'https://cdn.mock.app/stream/$trackId.m3u8?sig=mock_${DateTime.now().millisecondsSinceEpoch}',
         'expiresInSeconds': 600,
-        'format': 'hls',
+        'format': 'hls', // is this ,mp3 wav and such ? ask backend
       },
     };
   }
@@ -101,7 +102,7 @@ class MockPlayerService {
     if (action == 'play') {
       // Add to fake history if not already there for this session
       final alreadyInHistory =
-          _history.any((e) => e['trackId'] == trackId);
+          _history.any((e) => e['trackId'] == trackId); // put in top of the list if already in history ? ask backend
       if (!alreadyInHistory) {
         _history.insert(0, {
           'trackId': trackId,
@@ -122,6 +123,7 @@ class MockPlayerService {
   // ---------------------------------------------------------------------------
   // 5.4  buildPlaybackQueue
   // ---------------------------------------------------------------------------
+  //ask backend if they nned or want context or just want the list egenrated by us based on the context type and id
   Future<Map<String, dynamic>> buildPlaybackQueue({
     required String contextType,
     required String contextId,

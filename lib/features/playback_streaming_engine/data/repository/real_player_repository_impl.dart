@@ -10,9 +10,8 @@ import '../api/streaming_api.dart';
 import '../mapper/playback_mapper.dart';
 
 class RealPlayerRepository implements PlayerRepository {
-  RealPlayerRepository(this._api);
-
   final StreamingApi _api;
+  RealPlayerRepository(this._api);
 
   @override
   Future<TrackPlaybackBundle> getPlaybackBundle(

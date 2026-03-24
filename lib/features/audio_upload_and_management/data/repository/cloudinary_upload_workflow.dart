@@ -149,6 +149,23 @@ class CloudinaryUploadWorkflow {
           .map((value) => value.trim())
           .where((value) => value.isNotEmpty)
           .toList(),
+      tags: item.tags,
+      genreCategory: item.genreCategory,
+      genreSubGenre: item.genreSubGenre,
+      recordLabel: item.recordLabel,
+      publisher: item.publisher,
+      isrc: item.isrc,
+      pLine: item.pLine,
+      contentWarning: item.isExplicit,
+      scheduledReleaseDate: item.scheduledReleaseDate,
+      allowDownloads: item.allowDownloads,
+      offlineListening: item.offlineListening,
+      includeInRss: item.includeInRss,
+      displayEmbedCode: item.displayEmbedCode,
+      appPlaybackEnabled: item.appPlaybackEnabled,
+      availabilityType: item.availabilityType,
+      availabilityRegions: item.availabilityRegions,
+      licensing: item.licensing,
     );
   }
 

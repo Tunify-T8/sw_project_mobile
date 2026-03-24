@@ -1,3 +1,4 @@
+// lowkey not gonna happen -> blocked regions and such are premium so we might let this go
 class PreviewInfoDto {
   const PreviewInfoDto({
     required this.enabled,
