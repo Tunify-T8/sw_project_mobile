@@ -34,6 +34,7 @@ extension TrackResponseDtoMapper on TrackResponseDto {
       privacy: privacy,
       artworkUrl: artworkUrl,
       durationSeconds: durationSeconds,
+      artists: artists ?? const [],
       errorCode: errorCode,
       errorMessage: errorMessage,
     );

@@ -39,11 +39,10 @@ void main() {
       expect(dto.tracksCount, 0);
       expect(dto.likesReceived, 0);
       expect(dto.isActive, true);
-      expect(dto.isVerified, false);
+      expect(dto.isCertified, false);
       expect(dto.displayName, null);
       expect(dto.instagram, null);
       expect(dto.twitter, null);
-      expect(dto.website, null);
       expect(dto.profileImagePath, null);
       expect(dto.coverImagePath, null);
     });
@@ -62,12 +61,15 @@ void main() {
         displayName: 'Darine M',
         instagram: 'https://instagram.com/darine',
         twitter: 'https://twitter.com/darine',
-        website: 'https://darine.com',
+        youtube: 'https://youtube.com/darine',
+        spotify: 'https://spotify.com/darine',
+        tiktok: 'https://tiktok.com/darine',
+        soundcloud: 'https://soundcloud.com/darine',
         followersCount: 300,
         followingCount: 1,
         tracksCount: 5,
         likesReceived: 10,
-        isVerified: true,
+        isCertified: true,
         isActive: false,
         profileImagePath: 'https://image.url/photo.jpg',
         coverImagePath: 'https://image.url/cover.jpg',
@@ -79,12 +81,15 @@ void main() {
       expect(dto.displayName, 'Darine M');
       expect(dto.instagram, 'https://instagram.com/darine');
       expect(dto.twitter, 'https://twitter.com/darine');
-      expect(dto.website, 'https://darine.com');
+      expect(dto.youtube, 'https://youtube.com/darine');
+      expect(dto.spotify, 'https://spotify.com/darine');
+      expect(dto.tiktok, 'https://tiktok.com/darine');
+      expect(dto.soundcloud, 'https://soundcloud.com/darine');
       expect(dto.followersCount, 300);
       expect(dto.followingCount, 1);
       expect(dto.tracksCount, 5);
       expect(dto.likesReceived, 10);
-      expect(dto.isVerified, true);
+      expect(dto.isCertified, true);
       expect(dto.isActive, false);
       expect(dto.userType, 'LISTENER');
       expect(dto.profileImagePath, 'https://image.url/photo.jpg');

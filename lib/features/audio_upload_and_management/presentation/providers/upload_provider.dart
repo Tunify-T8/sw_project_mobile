@@ -418,10 +418,16 @@ class UploadNotifier extends Notifier<UploadState> {
         error: null,
       );
 
-      // Best-effort refresh — swallow errors so a broken /tracks/me route
-      // doesn't block the user from seeing their just-uploaded track.
+      // Best-effort library refresh.
       try {
         await ref.read(libraryUploadsProvider.notifier).refresh();
+      } catch (_) {}
+
+      // Refresh quota from backend so the used/remaining minutes update
+      // after the upload completes.
+      try {
+        final userId = ref.read(currentUploadUserIdProvider);
+        await loadQuota(userId);
       } catch (_) {}
 
       if (!_isActiveCompletionRequest(requestId)) {

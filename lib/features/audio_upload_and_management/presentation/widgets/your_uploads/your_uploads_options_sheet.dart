@@ -3,8 +3,10 @@
 // Used by: your_uploads_screen
 // Concerns: Multi-format support; Track visibility.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
+import '../../providers/track_detail_item_provider.dart';
 import '../upload_artwork_view.dart';
 import 'your_uploads_options_actions.dart';
 
@@ -26,7 +28,7 @@ Future<void> showYourUploadsOptionsSheet(
   );
 }
 
-class _TrackOptionsSheet extends StatelessWidget {
+class _TrackOptionsSheet extends ConsumerWidget {
   const _TrackOptionsSheet({
     required this.item,
     required this.onEditTap,
@@ -38,7 +40,10 @@ class _TrackOptionsSheet extends StatelessWidget {
   final VoidCallback onDeleteTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolvedItemAsync = ref.watch(trackDetailItemProvider(item));
+    final resolvedItem = resolvedItemAsync.asData?.value ?? item;
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF111111),
@@ -64,8 +69,8 @@ class _TrackOptionsSheet extends StatelessWidget {
               child: Row(
                 children: [
                   UploadArtworkView(
-                    localPath: item.localArtworkPath,
-                    remoteUrl: item.artworkUrl,
+                    localPath: resolvedItem.localArtworkPath,
+                    remoteUrl: resolvedItem.artworkUrl,
                     width: 56,
                     height: 56,
                     backgroundColor: const Color(0xFF3A4A6A),
@@ -82,7 +87,7 @@ class _TrackOptionsSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.title,
+                          resolvedItem.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -92,7 +97,7 @@ class _TrackOptionsSheet extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          item.artistDisplay,
+                          resolvedItem.artistDisplay,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

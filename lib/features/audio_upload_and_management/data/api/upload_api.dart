@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Dio client for the real backend upload endpoints: quota, track creation, audio upload, metadata save, status polling, and delete.
-// Used by: real_upload_repository_impl, upload_dependencies_provider
-// Concerns: Multi-format support.
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../shared/upload_error_helpers.dart';
@@ -16,13 +12,54 @@ class UploadApi {
 
   UploadApi(this.dio);
 
+  // ---------------------------------------------------------------------------
+  // 4.1  GET /users/:userId/artist-tools/upload-minutes — upload quota
+  // ---------------------------------------------------------------------------
+  // ⚠️  Backend bug: subscription.uploadedMinutes is never incremented after
+  // a track processes, so the API always returns uploadMinutesUsed: 0.
+  // We fetch the user's tracks in parallel and compute used minutes ourselves
+  // as sum(durationSeconds / 60) for all finished tracks.
   Future<UploadQuotaDto> getUploadQuota(String userId) async {
-    final response = await dio.get(ApiEndpoints.uploadQuota());
-    final raw = response.data as Map<String, dynamic>;
-    final map = raw['data'] is Map<String, dynamic>
-        ? raw['data'] as Map<String, dynamic>
-        : raw;
-    return UploadQuotaDto.fromJson(map);
+    // Fetch quota and tracks in parallel
+    final results = await Future.wait([
+      dio.get(ApiEndpoints.artistToolsQuota(userId)),
+      dio.get(ApiEndpoints.myUploads).catchError((_) => Response(
+            requestOptions: RequestOptions(path: ApiEndpoints.myUploads),
+            data: <dynamic>[],
+            statusCode: 200,
+          )),
+    ]);
+
+    final quotaResponse = results[0] as Response;
+    final tracksResponse = results[1] as Response;
+
+    final raw = quotaResponse.data;
+    final map = raw is Map<String, dynamic>
+        ? (raw['data'] is Map<String, dynamic>
+            ? raw['data'] as Map<String, dynamic>
+            : raw)
+        : <String, dynamic>{};
+
+    // Compute real used minutes from finished tracks
+    final trackList = tracksResponse.data;
+    final tracks = trackList is List ? trackList : <dynamic>[];
+    final computedUsedSeconds = tracks
+        .whereType<Map<String, dynamic>>()
+        .where((t) => t['status'] == 'finished')
+        .fold<int>(
+          0,
+          (sum, t) =>
+              sum + ((t['duration'] ?? t['durationSeconds'] ?? 0) as num).toInt(),
+        );
+    final computedUsedMinutes = (computedUsedSeconds / 60).ceil();
+    final limit = (map['uploadMinutesLimit'] as num?)?.toInt() ?? 99;
+
+    final correctedMap = Map<String, dynamic>.from(map)
+      ..['uploadMinutesUsed'] = computedUsedMinutes
+      ..['uploadMinutesRemaining'] =
+          (limit - computedUsedMinutes).clamp(0, limit);
+
+    return UploadQuotaDto.fromJson(correctedMap);
   }
 
   Future<TrackResponseDto> createTrack(CreateTrackRequestDto request) async {
@@ -54,7 +91,7 @@ class UploadApi {
       'file': await MultipartFile.fromFile(filePath, filename: fileName),
     });
 
-    await dio.post(
+    final response = await dio.post(
       ApiEndpoints.uploadAudio(trackId),
       data: formData,
       cancelToken: cancelToken,
@@ -64,7 +101,10 @@ class UploadApi {
 
     // uploadAudio returns { message: '...' } — not a full track object.
     // Synthesize a minimal DTO so the rest of the flow keeps working.
-    return TrackResponseDto(trackId: trackId, status: 'uploading');
+    return TrackResponseDto(
+      trackId: trackId,
+      status: 'uploading',
+    );
   }
 
   Future<TrackResponseDto> replaceAudio({
@@ -88,21 +128,36 @@ class UploadApi {
     return TrackResponseDto.fromJson(_normalizeTrackJson(response.data));
   }
 
-  // finalizeMetadata uses PATCH (not PUT) — backend only has @Patch(':id').
+  // finalizeMetadata — two-step:
+  //   1. PATCH JSON (metadata with real booleans — no @Transform issues)
+  //   2. PATCH multipart (artwork only) if a local file was picked
   Future<TrackResponseDto> finalizeMetadata(
     FinalizeTrackMetadataRequestDto request,
   ) async {
-    final body = await request.toRequestBody();
-    final isMultipart = body is FormData;
+    // Step 1 — metadata as JSON
     final response = await dio.patch(
       ApiEndpoints.finalizeMetadata(request.trackId),
-      data: body,
-      options: Options(
-        contentType: isMultipart ? 'multipart/form-data' : 'application/json',
-      ),
+      data: request.toJsonBody(),
+      options: Options(contentType: 'application/json'),
     );
+    final result = TrackResponseDto.fromJson(_normalizeTrackJson(response.data));
 
-    return TrackResponseDto.fromJson(_normalizeTrackJson(response.data));
+    // Step 2 — artwork as separate multipart PATCH (best-effort)
+    if (request.hasLocalArtwork) {
+      try {
+        await dio.patch(
+          ApiEndpoints.finalizeMetadata(request.trackId),
+          data: FormData.fromMap({
+            'artwork': await MultipartFile.fromFile(request.artworkPath!),
+          }),
+          options: Options(contentType: 'multipart/form-data'),
+        );
+      } catch (_) {
+        // Artwork upload failed — metadata was already saved, keep going.
+      }
+    }
+
+    return result;
   }
 
   Future<TrackResponseDto> getTrackStatus(String trackId) async {
@@ -118,21 +173,30 @@ class UploadApi {
     return TrackResponseDto.fromJson(_normalizeTrackJson(response.data));
   }
 
-  // updateTrackMetadata also uses PATCH.
+  // updateTrackMetadata — same two-step approach.
   Future<TrackResponseDto> updateTrackMetadata(
     FinalizeTrackMetadataRequestDto request,
   ) async {
-    final body = await request.toRequestBody();
-    final isMultipart = body is FormData;
     final response = await dio.patch(
       ApiEndpoints.updateTrack(request.trackId),
-      data: body,
-      options: Options(
-        contentType: isMultipart ? 'multipart/form-data' : 'application/json',
-      ),
+      data: request.toJsonBody(),
+      options: Options(contentType: 'application/json'),
     );
+    final result = TrackResponseDto.fromJson(_normalizeTrackJson(response.data));
 
-    return TrackResponseDto.fromJson(_normalizeTrackJson(response.data));
+    if (request.hasLocalArtwork) {
+      try {
+        await dio.patch(
+          ApiEndpoints.updateTrack(request.trackId),
+          data: FormData.fromMap({
+            'artwork': await MultipartFile.fromFile(request.artworkPath!),
+          }),
+          options: Options(contentType: 'multipart/form-data'),
+        );
+      } catch (_) {}
+    }
+
+    return result;
   }
 
   Future<void> deleteTrack(String trackId) async {
@@ -176,13 +240,13 @@ class UploadApi {
     // Normalise `id` → `trackId`
     if (!map.containsKey('trackId') && map.containsKey('id')) {
       map = Map<String, dynamic>.from(map);
-      map['trackId'] = map['id'];
+      (map as Map<String, dynamic>)['trackId'] = map['id'];
     }
 
     // Normalise `transcodingStatus` → `status`
     if (!map.containsKey('status') && map.containsKey('transcodingStatus')) {
       map = Map<String, dynamic>.from(map);
-      map['status'] = map['transcodingStatus'];
+      (map as Map<String, dynamic>)['status'] = map['transcodingStatus'];
     }
 
     return map;

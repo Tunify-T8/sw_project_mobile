@@ -44,7 +44,32 @@ UploadedTrack mapMockTrackResponse(Map<String, dynamic> data) {
     privacy: data['privacy'] as String?,
     artworkUrl: data['artworkUrl'] as String?,
     durationSeconds: data['durationSeconds'] as int?,
+    artists: _parseArtists(data),
   );
+}
+
+List<String> _parseArtists(Map<String, dynamic> data) {
+  final rawArtists = data['artists'];
+
+  if (rawArtists is List) {
+    return rawArtists
+        .map((entry) {
+          if (entry is String) return entry.trim();
+          if (entry is Map<String, dynamic>) {
+            return (entry['name'] ?? entry['username'] ?? '').toString().trim();
+          }
+          return entry.toString().trim();
+        })
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  final rawArtist = data['artist'];
+  if (rawArtist is String && rawArtist.trim().isNotEmpty) {
+    return [rawArtist.trim()];
+  }
+
+  return const [];
 }
 
 UploadStatus mapMockUploadStatus(String value) {

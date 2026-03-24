@@ -17,9 +17,16 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password';
   static const String deleteAccount = '/auth/delete-account';
 
-  /// OAuth endpoint — confirm exact path with backend team.
-  /// Common options: '/auth/google', '/auth/oauth', '/auth/social'
-  static const String oauthLogin = '/auth/google';
+  // Google OAuth ──────────────────────────────────────────────────────────
+  /// POST /auth/google
+  /// Body: { "code": "authorization_code" }
+  /// Handles new users, returning users, and triggers linking flow.
+  static const String oauthGoogle = '/auth/google';
+
+  /// POST /auth/google/link
+  /// Body: { "linkingToken": "...", "password": "..." }
+  /// Called only when POST /auth/google returns requiresLinking: true.
+  static const String oauthGoogleLink = '/auth/google/link';
 
   // Upload flow
   static String uploadQuota() => '/users/me/upload';

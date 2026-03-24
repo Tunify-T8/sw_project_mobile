@@ -144,6 +144,11 @@ class CloudinaryUploadWorkflow {
           : 'private',
       artworkUrl: item.artworkUrl,
       durationSeconds: item.durationSeconds,
+      artists: item.artistDisplay
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList(),
     );
   }
 

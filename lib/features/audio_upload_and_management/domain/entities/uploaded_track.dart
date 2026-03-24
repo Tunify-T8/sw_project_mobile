@@ -4,7 +4,6 @@
 // Concerns: Multi-format support; Transcoding logic.
 import 'upload_status.dart';
 
-// pickedfile-> uploadedtrack how its know from backend(serverside)
 class UploadedTrack {
   final String trackId;
   final UploadStatus status;
@@ -15,6 +14,7 @@ class UploadedTrack {
   final String? privacy;
   final String? artworkUrl;
   final int? durationSeconds;
+  final List<String> artists;
   final String? errorCode;
   final String? errorMessage;
 
@@ -28,6 +28,7 @@ class UploadedTrack {
     this.privacy,
     this.artworkUrl,
     this.durationSeconds,
+    this.artists = const [],
     this.errorCode,
     this.errorMessage,
   });
@@ -42,6 +43,7 @@ class UploadedTrack {
     String? privacy,
     String? artworkUrl,
     int? durationSeconds,
+    List<String>? artists,
     String? errorCode,
     String? errorMessage,
   }) {
@@ -55,6 +57,7 @@ class UploadedTrack {
       privacy: privacy ?? this.privacy,
       artworkUrl: artworkUrl ?? this.artworkUrl,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      artists: artists ?? this.artists,
       errorCode: errorCode ?? this.errorCode,
       errorMessage: errorMessage ?? this.errorMessage,
     );

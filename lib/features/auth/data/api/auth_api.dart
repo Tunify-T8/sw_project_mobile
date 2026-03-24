@@ -34,20 +34,28 @@ class AuthApi {
   Future<Response<dynamic>> login(LoginRequestDto dto) =>
       _dio.post(ApiEndpoints.login, data: dto.toJson());
 
-  /// POST /auth/google (or whatever path backend uses)
+  /// POST /auth/google
   ///
-  /// Sends the Google ID token to the backend for verification.
-  /// Backend verifies it with Google, creates/fetches the user,
-  /// and returns your own JWT pair in the standard AuthResponseDto shape.
+  /// Sends the authorization code from Google Sign-In to the backend.
+  /// Backend exchanges the code with Google and returns:
+  ///   - Scenario 1/2: { accessToken, refreshToken, user }
+  ///   - Scenario 3:   { requiresLinking: true, linkingToken }
   ///
-  /// Confirm the exact path with your backend team — update
-  /// [ApiEndpoints.oauthLogin] if they use a different route.
-  Future<Response<dynamic>> oauthLogin({
-    required String idToken,
-    required String provider,
+  /// The authorization code expires in ~60 seconds — call immediately.
+  Future<Response<dynamic>> oauthGoogle({required String code}) =>
+      _dio.post(ApiEndpoints.oauthGoogle, data: {'code': code});
+
+  /// POST /auth/google/link
+  ///
+  /// Called ONLY when POST /auth/google returns requiresLinking: true.
+  /// Links the Google account to an existing local Tunify account.
+  /// The linkingToken expires in 10 minutes.
+  Future<Response<dynamic>> oauthGoogleLink({
+    required String linkingToken,
+    required String password,
   }) => _dio.post(
-    ApiEndpoints.oauthLogin,
-    data: {'idToken': idToken, 'provider': provider},
+    ApiEndpoints.oauthGoogleLink,
+    data: {'linkingToken': linkingToken, 'password': password},
   );
 
   /// POST /auth/signout

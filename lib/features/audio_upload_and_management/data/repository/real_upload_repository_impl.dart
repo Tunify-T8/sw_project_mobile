@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Real backend implementation of UploadRepository that maps app calls into UploadApi requests.
-// Used by: upload_repository_provider
-// Concerns: Multi-format support.
 import 'dart:async';
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
@@ -10,6 +6,7 @@ import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import '../../domain/repositories/upload_repository.dart';
+import '../../shared/upload_error_helpers.dart';
 import '../api/upload_api.dart';
 import '../dto/create_track_request_dto.dart';
 import '../dto/finalize_track_metadata_request_dto.dart';
@@ -89,6 +86,12 @@ class RealUploadRepository implements UploadRepository {
 
     // Timed out — return whatever state the track is in so the UI can
     // show it. The track exists in the DB and will finish eventually.
+    final dto = await api.getTrackStatus(trackId);
+    return dto.toEntity();
+  }
+
+  @override
+  Future<UploadedTrack> getTrackStatus(String trackId) async {
     final dto = await api.getTrackStatus(trackId);
     return dto.toEntity();
   }

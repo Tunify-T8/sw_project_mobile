@@ -79,8 +79,6 @@ class UploadItemDto {
       (json['genre'] as String?) ?? (json['genreCategory'] as String?),
     );
 
-    // getMyTracks returns `duration` (not durationSeconds),
-    // `thumbnailUrl` (not artworkUrl), and `visibility` (not privacy).
     final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
     final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
     final privacyRaw =
@@ -95,9 +93,7 @@ class UploadItemDto {
     return UploadItemDto(
       id: (json['id'] ?? json['trackId'] ?? '').toString(),
       title: (json['title'] as String?) ?? '',
-      artists: ((json['artists'] as List?) ?? const [])
-          .map((entry) => entry.toString())
-          .toList(),
+      artists: _parseArtists(json),
       durationSeconds: (durationRaw as num?)?.toInt() ?? 0,
       audioUrl: json['audioUrl'] as String?,
       waveformUrl: json['waveformUrl'] as String?,
@@ -195,6 +191,40 @@ class UploadItemDto {
     'licensing': licensing,
     'createdAt': createdAt,
   };
+}
+
+List<String> _parseArtists(Map<String, dynamic> json) {
+  final list = json['artists'];
+  if (list is List && list.isNotEmpty) {
+    return list
+        .map((e) {
+          if (e is String) return e.trim();
+          if (e is Map<String, dynamic>) {
+            return (e['name'] ?? e['username'] ?? e['userId'] ?? '')
+                .toString()
+                .trim();
+          }
+          return e.toString().trim();
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  final singular = json['artist'];
+  if (singular is String && singular.trim().isNotEmpty) {
+    return [singular.trim()];
+  }
+
+  if (singular is Map<String, dynamic>) {
+    final value = (singular['name'] ?? singular['username'] ?? singular['id'])
+        ?.toString()
+        .trim();
+    if (value != null && value.isNotEmpty) {
+      return [value];
+    }
+  }
+
+  return const [];
 }
 
 Map<String, dynamic>? _asMap(dynamic value) {

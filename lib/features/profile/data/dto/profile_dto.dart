@@ -6,8 +6,6 @@ class ProfileDto {
   final int tracksCount;
   final int likesReceived;
   final bool isActive;
-  final bool isVerified;
-  ////Read only (comes form backend too; changes happen but not through user editing a form)
   final int followersCount;
   final int followingCount;
   // User-editable
@@ -20,9 +18,13 @@ class ProfileDto {
   final String? coverImagePath;
   final String? instagram;
   final String? twitter;
-  final String? website;
+  final String? youtube;
+  final String? spotify;
+  final String? tiktok;
+  final String? soundcloud;
   final String visibility;
   final String userType;
+  final bool isCertified;
 
   ProfileDto({
     // Server-controlled->edit_screen doesn't need them
@@ -33,7 +35,7 @@ class ProfileDto {
     this.tracksCount = 0,
     this.likesReceived = 0,
     this.isActive = true,
-    this.isVerified = false,
+    this.isCertified = false,
     // Read-only — defaults so edit_screen doesn't need them
     this.followersCount = 0,
     this.followingCount = 0,
@@ -47,7 +49,10 @@ class ProfileDto {
     this.coverImagePath,
     this.instagram,
     this.twitter,
-    this.website,
+    this.youtube,
+    this.spotify,
+    this.tiktok,
+    this.soundcloud,
     this.visibility = 'PUBLIC',
     required this.userType,
   });

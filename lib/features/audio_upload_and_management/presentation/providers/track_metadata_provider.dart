@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Riverpod notifier for the track metadata form, validation, save actions, and processing-status polling.
-// Used by: upload_flow_controller, track_metadata_screen, upload_progress_screen, and 1 more upload files.
-// Concerns: Metadata engine; Transcoding logic.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/upload_genre.dart';
@@ -45,7 +41,10 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
     try {
       final repository = ref.read(uploadRepositoryProvider);
       final metadata = TrackMetadataMapper.toEntity(state);
-      await repository.finalizeMetadata(trackId: trackId, metadata: metadata);
+      await repository.finalizeMetadata(
+        trackId: trackId,
+        metadata: metadata,
+      );
 
       // Metadata saved — now poll status until finished/failed.
       // This drives the UploadProgressScreen directly via processingStatus.
@@ -80,19 +79,21 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
 
       // Guard: notifier may have been disposed
       try {
-        final track = await repository.getTrackDetails(trackId);
+        // GET /tracks/:id/status — lightweight, purpose-built for polling.
+        // Returns { id, transcodingStatus, durationSeconds, audioUrl, waveformUrl }.
+        // Do NOT use getTrackDetails here — it returns audioUrl: "" while
+        // processing and the status never transitions to finished from that.
+        final track = await repository.getTrackStatus(trackId);
         state = state.copyWith(
           processingStatus: track.status,
           finalTrack: track,
-          isPolling:
-              track.status == UploadStatus.processing ||
+          isPolling: track.status == UploadStatus.processing ||
               track.status == UploadStatus.uploading,
           error: null,
         );
 
         if (track.status == UploadStatus.finished ||
             track.status == UploadStatus.failed) {
-          // Let uploadProvider know so it cleans up its own state.
           ref
               .read(uploadProvider.notifier)
               .completeSavedUploadInBackground(trackId);
@@ -105,7 +106,7 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
 
     // Timed out — show the track as-is rather than an error.
     try {
-      final track = await repository.getTrackDetails(trackId);
+      final track = await repository.getTrackStatus(trackId);
       state = state.copyWith(
         isPolling: false,
         processingStatus: track.status,

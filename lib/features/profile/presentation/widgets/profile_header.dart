@@ -7,6 +7,7 @@ class ProfileHeader extends StatelessWidget {
   final double profileHeight;
   final String? coverUrl;
   final String? profileUrl;
+  //final bool isCertified;
 
   const ProfileHeader({
     super.key,
@@ -14,6 +15,7 @@ class ProfileHeader extends StatelessWidget {
     required this.profileHeight,
     this.coverUrl,
     this.profileUrl,
+    //this.isCertified = false,
   });
 
   bool _isRemotePath(String? value) =>
@@ -52,26 +54,27 @@ class ProfileHeader extends StatelessWidget {
   }
 
   Widget buildProfileImage() {
+    Widget avatar;
     if (_isLocalPath(profileUrl)) {
-      return CircleAvatar(
+      avatar = CircleAvatar(
         radius: profileHeight / 2,
         backgroundColor: Colors.grey,
         backgroundImage: FileImage(File(profileUrl!)),
       );
-    }
-
-    if (_isRemotePath(profileUrl)) {
-      return CircleAvatar(
+    } else if (_isRemotePath(profileUrl)) {
+      avatar = CircleAvatar(
         radius: profileHeight / 2,
         backgroundColor: Colors.grey,
         backgroundImage: NetworkImage(profileUrl!),
       );
+    } else {
+      avatar = CircleAvatar(
+        radius: profileHeight / 2,
+        backgroundColor: Colors.grey,
+        child: const Icon(Icons.person, size: 50, color: Color(0xFF3A5F8A)),
+      );
     }
-    return CircleAvatar(
-      radius: profileHeight / 2,
-      backgroundColor: Colors.grey,
-      child: const Icon(Icons.person, size: 50, color: Color(0xFF3A5F8A)),
-    );
+    return avatar;
   }
 
   @override

@@ -11,7 +11,10 @@ class ProfileEntity {
   final String? coverImagePath;
   final String? instagram;
   final String? twitter;
-  final String? website;
+  final String? youtube;
+  final String? spotify;
+  final String? tiktok;
+  final String? soundcloud;
   final int followersCount;
   final int followingCount;
   final int tracksCount;
@@ -19,7 +22,7 @@ class ProfileEntity {
   final String visibility;
   final String userType;
   final bool isActive;
-  final bool isVerified;
+  final bool isCertified;
 
   const ProfileEntity({
     required this.id,
@@ -34,7 +37,10 @@ class ProfileEntity {
     this.coverImagePath,
     this.instagram,
     this.twitter,
-    this.website,
+    this.youtube,
+    this.spotify,
+    this.tiktok,
+    this.soundcloud,
     this.followersCount = 0,
     this.followingCount = 0,
     this.tracksCount = 0,
@@ -42,6 +48,6 @@ class ProfileEntity {
     this.visibility = 'PUBLIC',
     this.userType = 'ARTIST',
     this.isActive = true,
-    this.isVerified = false,
+    this.isCertified = false,
   });
 }
