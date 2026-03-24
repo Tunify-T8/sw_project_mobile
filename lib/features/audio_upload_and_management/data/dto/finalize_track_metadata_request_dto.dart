@@ -221,5 +221,17 @@ String _buildGenreValue({required String category, required String subGenre}) {
     return subGenre;
   }
 
-  return '${category}_$subGenre';
+  final normalizedCategory = category.trim().toLowerCase();
+  final normalizedSubGenre = subGenre.trim().toLowerCase();
+  final categoryPrefix = '${normalizedCategory}_';
+
+  if (normalizedSubGenre == normalizedCategory) {
+    return normalizedCategory;
+  }
+
+  if (normalizedSubGenre.startsWith(categoryPrefix)) {
+    return normalizedSubGenre;
+  }
+
+  return '${normalizedCategory}_$normalizedSubGenre';
 }

@@ -81,6 +81,15 @@ ParsedUploadGenre _normalizeGenreParts({
   }
 
   if (subGenre != null) {
+    final inferredCategoryFromSubGenre = _extractKnownGenreGroup(subGenre);
+    if (inferredCategoryFromSubGenre != null) {
+      category = inferredCategoryFromSubGenre;
+      subGenre = _removeKnownGenrePrefix(
+        subGenre,
+        preferredCategory: inferredCategoryFromSubGenre,
+      );
+    }
+
     subGenre = _canonicalizeSubGenre(subGenre);
     category = _isKnownGenreGroup(category)
         ? category
@@ -107,6 +116,41 @@ String? _cleanString(dynamic value) {
 bool _isKnownGenreGroup(String? value) {
   return value == UploadGenreGroup.music.name ||
       value == UploadGenreGroup.audio.name;
+}
+
+String? _extractKnownGenreGroup(String value) {
+  final parts = _splitNormalizedGenreParts(value);
+  if (parts.length < 2) {
+    return null;
+  }
+
+  final candidate = parts.first;
+  return _isKnownGenreGroup(candidate) ? candidate : null;
+}
+
+String _removeKnownGenrePrefix(String value, {String? preferredCategory}) {
+  final parts = _splitNormalizedGenreParts(value);
+  if (parts.length < 2) {
+    return value;
+  }
+
+  final candidate = parts.first;
+  if (!_isKnownGenreGroup(candidate)) {
+    return value;
+  }
+
+  if (preferredCategory != null && candidate != preferredCategory) {
+    return value;
+  }
+
+  return parts.skip(1).join('_');
+}
+
+List<String> _splitNormalizedGenreParts(String value) {
+  return _normalizeLookup(value)
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .toList();
 }
 
 String _inferCategory(String subGenre, {String? fallback}) {
