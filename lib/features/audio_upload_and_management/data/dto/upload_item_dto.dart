@@ -1,3 +1,9 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: library_uploads_api, mock_library_uploads_api, library_uploads_mapper
+// Concerns: Multi-format support; Track visibility.
+import 'genre_parsing.dart';
+
 part 'upload_item_dto_copy_with.dart';
 
 class UploadItemDto {
@@ -68,46 +74,88 @@ class UploadItemDto {
   final bool appPlaybackEnabled;
 
   factory UploadItemDto.fromJson(Map<String, dynamic> json) {
+    final availability = _asMap(json['availability']);
+    final licensingData = _asMap(json['licensing']);
+    final permissions = _asMap(json['permissions']);
+    final parsedGenre = parseUploadGenre(
+      json['genre'],
+      fallbackCategory: json['genreCategory']?.toString(),
+      fallbackSubGenre: json['genreSubGenre']?.toString(),
+    );
+
+    final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
+    final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
+    final privacyRaw =
+        _asString(json['privacy']) ??
+        _asString(json['visibility']) ??
+        'private';
+    final statusRaw =
+        _asString(json['status']) ??
+        _asString(json['transcodingStatus']) ??
+        'finished';
+
     return UploadItemDto(
       id: (json['id'] ?? json['trackId'] ?? '').toString(),
       title: (json['title'] as String?) ?? '',
-      artists: ((json['artists'] as List?) ?? const [])
-          .map((entry) => entry.toString())
-          .toList(),
-      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
+      artists: _parseArtists(json),
+      durationSeconds: (durationRaw as num?)?.toInt() ?? 0,
       audioUrl: json['audioUrl'] as String?,
       waveformUrl: json['waveformUrl'] as String?,
       waveformBars: (json['waveformBars'] as List?)
           ?.map((entry) => (entry as num?)?.toDouble())
           .whereType<double>()
           .toList(),
-      artworkUrl: json['artworkUrl'] as String?,
+      artworkUrl: artworkRaw as String?,
       localArtworkPath: json['localArtworkPath'] as String?,
       localFilePath: json['localFilePath'] as String?,
       description: json['description'] as String?,
       tags: ((json['tags'] as List?) ?? const [])
           .map((entry) => entry.toString())
           .toList(),
-      genreCategory: (json['genreCategory'] as String?) ?? '',
-      genreSubGenre: (json['genreSubGenre'] as String?) ?? '',
-      privacy: (json['privacy'] as String?) ?? 'private',
-      status: (json['status'] as String?) ?? 'finished',
+      genreCategory: parsedGenre.category ?? '',
+      genreSubGenre: parsedGenre.subGenre ?? '',
+      privacy: privacyRaw,
+      status: statusRaw,
       contentWarning: (json['contentWarning'] as bool?) ?? false,
       recordLabel: (json['recordLabel'] as String?) ?? '',
       publisher: (json['publisher'] as String?) ?? '',
       isrc: (json['isrc'] as String?) ?? '',
       pLine: (json['pLine'] as String?) ?? '',
       scheduledReleaseDate: json['scheduledReleaseDate'] as String?,
-      allowDownloads: (json['allowDownloads'] as bool?) ?? false,
-      offlineListening: (json['offlineListening'] as bool?) ?? true,
-      includeInRss: (json['includeInRss'] as bool?) ?? true,
-      displayEmbedCode: (json['displayEmbedCode'] as bool?) ?? true,
-      appPlaybackEnabled: (json['appPlaybackEnabled'] as bool?) ?? true,
-      availabilityType: (json['availabilityType'] as String?) ?? 'worldwide',
-      availabilityRegions: ((json['availabilityRegions'] as List?) ?? const [])
-          .map((entry) => entry.toString())
-          .toList(),
-      licensing: (json['licensing'] as String?) ?? 'all_rights_reserved',
+      allowDownloads:
+          (json['allowDownloads'] as bool?) ??
+          (permissions?['enableDirectDownloads'] as bool?) ??
+          false,
+      offlineListening:
+          (json['offlineListening'] as bool?) ??
+          (permissions?['enableOfflineListening'] as bool?) ??
+          true,
+      includeInRss:
+          (json['includeInRss'] as bool?) ??
+          (permissions?['includeInRSS'] as bool?) ??
+          true,
+      displayEmbedCode:
+          (json['displayEmbedCode'] as bool?) ??
+          (permissions?['displayEmbedCode'] as bool?) ??
+          true,
+      appPlaybackEnabled:
+          (json['appPlaybackEnabled'] as bool?) ??
+          (permissions?['enableAppPlayback'] as bool?) ??
+          true,
+      availabilityType:
+          (json['availabilityType'] as String?) ??
+          (availability?['type'] as String?) ??
+          'worldwide',
+      availabilityRegions:
+          ((json['availabilityRegions'] as List?) ??
+                  (availability?['regions'] as List?) ??
+                  const [])
+              .map((entry) => entry.toString())
+              .toList(),
+      licensing:
+          _asString(json['licensing']) ??
+          _asString(licensingData?['type']) ??
+          'all_rights_reserved',
       createdAt:
           (json['createdAt'] as String?) ?? DateTime.now().toIso8601String(),
     );
@@ -147,4 +195,48 @@ class UploadItemDto {
     'licensing': licensing,
     'createdAt': createdAt,
   };
+}
+
+List<String> _parseArtists(Map<String, dynamic> json) {
+  final list = json['artists'];
+  if (list is List && list.isNotEmpty) {
+    return list
+        .map((e) {
+          if (e is String) return e.trim();
+          if (e is Map<String, dynamic>) {
+            return (e['name'] ?? e['username'] ?? e['userId'] ?? '')
+                .toString()
+                .trim();
+          }
+          return e.toString().trim();
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  final singular = json['artist'];
+  if (singular is String && singular.trim().isNotEmpty) {
+    return [singular.trim()];
+  }
+
+  if (singular is Map<String, dynamic>) {
+    final value = (singular['name'] ?? singular['username'] ?? singular['id'])
+        ?.toString()
+        .trim();
+    if (value != null && value.isNotEmpty) {
+      return [value];
+    }
+  }
+
+  return const [];
+}
+
+Map<String, dynamic>? _asMap(dynamic value) {
+  return value is Map<String, dynamic> ? value : null;
+}
+
+String? _asString(dynamic value) {
+  if (value == null) return null;
+  final trimmed = value.toString().trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 class EditProfileLinks extends StatelessWidget {
   final TextEditingController instagramController;
   final TextEditingController twitterController;
-  final TextEditingController websiteController;
+  final TextEditingController youtubeController;
+  final TextEditingController spotifyController;
+  final TextEditingController tiktokController;
+  final TextEditingController soundcloudController;
   final VoidCallback onChanged;
 
   const EditProfileLinks({
     super.key,
     required this.instagramController,
     required this.twitterController,
-    required this.websiteController,
+    required this.youtubeController,
+    required this.spotifyController,
+    required this.tiktokController,
+    required this.soundcloudController,
     required this.onChanged,
   });
 
@@ -49,7 +55,10 @@ class EditProfileLinks extends StatelessWidget {
           const SizedBox(height: 8),
           buildLinkField(Icons.camera_alt_outlined, 'Instagram URL', instagramController),
           buildLinkField(Icons.alternate_email, 'Twitter URL', twitterController),
-          buildLinkField(Icons.language, 'Website URL', websiteController),
+          buildLinkField(Icons.play_circle_filled, 'YouTube URL', youtubeController),
+          buildLinkField(Icons.music_note, 'Spotify URL', spotifyController),
+          buildLinkField(Icons.smart_display, 'TikTok URL', tiktokController),
+          buildLinkField(Icons.audiotrack, 'SoundCloud URL', soundcloudController),
         ],
       ),
     );

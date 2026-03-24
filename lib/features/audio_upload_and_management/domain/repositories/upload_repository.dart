@@ -28,6 +28,8 @@ abstract class UploadRepository {
 
   Future<UploadedTrack> waitUntilProcessed(String trackId);
 
+  Future<UploadedTrack> getTrackStatus(String trackId);
+
   Future<UploadedTrack> getTrackDetails(String trackId);
 
   Future<UploadedTrack> updateTrackMetadata({

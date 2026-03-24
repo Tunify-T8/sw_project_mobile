@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: library_uploads_api, mock_library_uploads_api, library_uploads_mapper
+// Concerns: Supporting UI and infrastructure for upload and track management.
 class ArtistToolsQuotaDto {
   final String tier;
   final int uploadMinutesLimit;

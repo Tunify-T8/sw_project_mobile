@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Reusable bottom sheet or picker widget used by upload flows and metadata editing.
+// Used by: track_metadata_screen
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 import '../../providers/track_metadata_state.dart';
 import '../upload_checklist_progress_ring.dart';

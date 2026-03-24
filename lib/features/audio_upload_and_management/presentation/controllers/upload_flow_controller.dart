@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Reusable flow helpers that load upload data, start the upload flow, and show quota/paywall prompts.
+// Used by: artist_home_screen, home_screen, upload_entry_screen, and 1 more upload files.
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

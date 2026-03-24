@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Wraps the actual Cloudinary media upload and asset delete calls used by the Cloudinary upload mode.
+// Used by: cloudinary_upload_artwork_resolver, cloudinary_upload_repository_impl, cloudinary_upload_workflow, and 1 more upload files.
+// Concerns: Multi-format support.
 import 'package:dio/dio.dart';
 
 import '../../domain/entities/upload_cancellation_token.dart';

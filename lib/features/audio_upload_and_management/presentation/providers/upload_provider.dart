@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Riverpod state machine for quota loading, audio selection, upload progress, cancellation, restore points, and upload completion cleanup.
+// Used by: upload_flow_controller, track_metadata_provider, artist_home_screen, and 5 more upload files.
+// Concerns: Multi-format support; Transcoding logic.
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -36,10 +40,7 @@ class UploadNotifier extends Notifier<UploadState> {
       final repository = ref.read(uploadRepositoryProvider);
       final quota = await repository.getUploadQuota(userId);
 
-      state = state.copyWith(
-        isLoadingQuota: false,
-        quota: quota,
-      );
+      state = state.copyWith(isLoadingQuota: false, quota: quota);
     } catch (error, stackTrace) {
       logUploadError('load upload quota', error, stackTrace);
       state = state.copyWith(
@@ -53,10 +54,7 @@ class UploadNotifier extends Notifier<UploadState> {
   }
 
   void clearQuotaLimitPrompt() {
-    state = state.copyWith(
-      clearBlockedUploadMinutes: true,
-      error: null,
-    );
+    state = state.copyWith(clearBlockedUploadMinutes: true, error: null);
   }
 
   void primeTrackForEditing({required String trackId}) {
@@ -72,7 +70,9 @@ class UploadNotifier extends Notifier<UploadState> {
     );
   }
 
-  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(String userId) async {
+  Future<UploadedTrack?> pickAudioCreateDraftAndStartUpload(
+    String userId,
+  ) async {
     try {
       final picker = ref.read(filePickerServiceProvider);
       final file = await picker.pickAudioFile();
@@ -255,9 +255,7 @@ class UploadNotifier extends Notifier<UploadState> {
         cancellationToken: cancellationToken,
         onProgress: (progress) {
           if (!_isActiveRequest(requestId)) return;
-          state = state.copyWith(
-            uploadProgress: progress.clamp(0.0, 1.0),
-          );
+          state = state.copyWith(uploadProgress: progress.clamp(0.0, 1.0));
         },
       );
 
@@ -420,7 +418,17 @@ class UploadNotifier extends Notifier<UploadState> {
         error: null,
       );
 
-      await ref.read(libraryUploadsProvider.notifier).refresh();
+      // Best-effort library refresh.
+      try {
+        await ref.read(libraryUploadsProvider.notifier).refresh();
+      } catch (_) {}
+
+      // Refresh quota from backend so the used/remaining minutes update
+      // after the upload completes.
+      try {
+        final userId = ref.read(currentUploadUserIdProvider);
+        await loadQuota(userId);
+      } catch (_) {}
 
       if (!_isActiveCompletionRequest(requestId)) {
         return;

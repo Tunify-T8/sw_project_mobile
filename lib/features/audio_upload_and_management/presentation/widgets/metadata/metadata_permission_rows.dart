@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Metadata form widget used inside TrackMetadataScreen and TrackMetadataBody.
+// Used by: permissions_metadata_section
+// Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 
 const _activeSelectionGreen = Color(0xFF1DB954);

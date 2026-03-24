@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Maps Cloudinary draft/workflow data into UploadedTrack and UploadItem shapes used by the rest of the feature.
+// Used by: cloudinary_upload_artwork_resolver, cloudinary_upload_workflow
+// Concerns: Multi-format support.
 import '../../domain/entities/upload_item.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
@@ -18,6 +22,24 @@ UploadedTrack mapPendingTrackToUploadedTrack(
     privacy: draft.privacy,
     artworkUrl: draft.artworkUrl,
     durationSeconds: draft.durationSeconds,
+    artists: draft.artists,
+    tags: draft.tags,
+    genreCategory: draft.genreCategory,
+    genreSubGenre: draft.genreSubGenre,
+    recordLabel: draft.recordLabel,
+    publisher: draft.publisher,
+    isrc: draft.isrc,
+    pLine: draft.pLine,
+    contentWarning: draft.contentWarning,
+    scheduledReleaseDate: draft.scheduledReleaseDate,
+    allowDownloads: draft.allowDownloads,
+    offlineListening: draft.offlineListening,
+    includeInRss: draft.includeInRss,
+    displayEmbedCode: draft.displayEmbedCode,
+    appPlaybackEnabled: draft.appPlaybackEnabled,
+    availabilityType: draft.availabilityType,
+    availabilityRegions: draft.availabilityRegions,
+    licensing: draft.licensing,
   );
 }
 

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Validation rules that decide whether metadata can be saved or which message the UI should show.
+// Used by: track_metadata_provider
+// Concerns: Metadata engine.
 import 'track_metadata_state.dart';
 
 class TrackMetadataValidator {

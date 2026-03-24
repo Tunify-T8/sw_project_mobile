@@ -1,7 +1,8 @@
 class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  //static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'https://tunify.duckdns.org/api';
 
   // Auth
   static const String checkEmail = '/auth/check-email';
@@ -16,11 +17,23 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password';
   static const String deleteAccount = '/auth/delete-account';
 
+  // Google OAuth ──────────────────────────────────────────────────────────
+  /// POST /auth/google
+  /// Body: { "code": "authorization_code" }
+  /// Handles new users, returning users, and triggers linking flow.
+  static const String oauthGoogle = '/auth/google';
+
+  /// POST /auth/google/link
+  /// Body: { "linkingToken": "...", "password": "..." }
+  /// Called only when POST /auth/google returns requiresLinking: true.
+  static const String oauthGoogleLink = '/auth/google/link';
+
   // Upload flow
   static String uploadQuota() => '/users/me/upload';
   static String createTrack() => '/tracks';
   static String uploadAudio(String trackId) => '/tracks/$trackId/audio';
-  static String replaceAudio(String trackId) => '/tracks/$trackId/audio/replace';
+  static String replaceAudio(String trackId) =>
+      '/tracks/$trackId/audio/replace';
   static String finalizeMetadata(String trackId) => '/tracks/$trackId';
   static String trackStatus(String trackId) => '/tracks/$trackId/status';
   static String trackDetails(String trackId) => '/tracks/$trackId';
@@ -28,15 +41,15 @@ class ApiEndpoints {
   static String deleteTrack(String trackId) => '/tracks/$trackId';
 
   // Library / uploads management
-  static const String myUploads = '/me/uploads';
-  static String artistToolsQuota([String userId = 'me']) =>
+  static const String myUploads = '/tracks/me';
+  static String artistToolsQuota(String userId) =>
       '/users/$userId/artist-tools/upload-minutes';
   static String uploadDetails(String trackId) => '/tracks/$trackId';
   static String deleteUpload(String trackId) => '/tracks/$trackId';
-  static String replaceUploadFile(String trackId) => '/tracks/$trackId/audio/replace';
+  static String replaceUploadFile(String trackId) =>
+      '/tracks/$trackId/audio/replace';
 
-
-//Followers
+  //Followers
   static String getFollowers(String userId) => '/users/$userId/followers';
   static String getFollowing(String userId) => '/users/$userId/following';
   static String followUser(String userId) => '/users/$userId/follow';
@@ -49,6 +62,20 @@ class ApiEndpoints {
       '/users/$userId/follow-status';
   static String getMutualFriends(String userId) =>
       '/users/$userId/mutual-friends';
+
+  // Profile
+  static const String getProfile = '/users/me';
+  static const String updateProfile = '/users/me/profile';
+  static const String getSocialLinks = '/users/me/social-links';
+  static const String updateSocialLinks = '/users/me/social-links';
+
+  
+  // Playback
+static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
+static String trackStream(String trackId) => '/tracks/$trackId/stream';
+static const String playbackEvents = '/me/playback/events';
+static const String playbackContext = '/playback/context';
+static const String listeningHistory = '/me/listening-history';
 }
 
 //profile
@@ -65,6 +92,4 @@ class ApiEndpoints {
 // To this:
 //final userRes = await _dio.get('$_baseUrl/users/$userId');
 // In api_endpoints.dart add:
-// static String getProfile(String userId) => '/users/$userId';
-// static String updateProfile(String userId) => '/users/$userId';
-// static String getSocialLinks(String userId) => '/social_links/$userId';
+///////////////////////////////////////////////

@@ -1,44 +1,39 @@
 import 'package:dio/dio.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../dto/profile_dto.dart';
 import '../mappers/profile_mapper.dart';
 
 class ProfileApi {
-  ProfileApi({Dio? dio}) : _dio = dio ?? Dio();
+  ProfileApi({required Dio dio}) : _dio = dio;
 
   final Dio _dio;
 
-  static const String _baseUrl =
-      'https://69b5b11a583f543fbd9c3072.mockapi.io';
-
   Future<ProfileDto> getProfile(String userId) async {
-    // Call 1: GET /users/1
-    final userRes = await _dio.get('$_baseUrl/users/1');
+    final userRes = await _dio.get(ApiEndpoints.getProfile);
 
-    // MockAPI returns an array, get first item
     final data = userRes.data is List
         ? userRes.data[0]
         : userRes.data;
 
     ProfileDto profile = ProfileMapper.fromJson(data);
 
-    // Call 2: GET /social_links/1
     try {
-      final socialRes = await _dio.get('$_baseUrl/social_links/1');
-      final socialData = socialRes.data is List
-          ? socialRes.data[0]
-          : socialRes.data;
+      final socialRes = await _dio.get(ApiEndpoints.getSocialLinks);
+      final socialData = {'links': socialRes.data is List ? socialRes.data : [socialRes.data]};
       profile = ProfileMapper.mergeSocialLinks(profile, socialData);
-    } catch (_) {
-      // social_links may not exist yet, that's ok
+    } catch (e) {
+      print('*** SOCIAL ERROR: $e ***');
     }
 
     return profile;
   }
 
+    Future<void> deleteSocialLink(String platform) async {
+      await _dio.delete('/users/me/social-links/${platform.toLowerCase()}');
+    }
   Future<ProfileDto> updateProfile(
       String userId, ProfileDto profile) async {
-    // Update /users/1
-    await _dio.put('$_baseUrl/users/1', data: {
+    await _dio.patch(ApiEndpoints.updateProfile, data: {
       'username': profile.userName,
       'displayName': profile.displayName,
       'bio': profile.bio,
@@ -46,16 +41,44 @@ class ProfileApi {
       'avatarUrl': profile.profileImagePath,
       'coverUrl': profile.coverImagePath,
       'visibility': profile.visibility,
-      'userType': profile.userType,
+      'role': profile.userType, 
     });
 
-    // Update /social_links/1
-    await _dio.put('$_baseUrl/social_links/1', data: {
-      'instagram': profile.instagram,
-      'twitter': profile.twitter,
-      'website': profile.website,
-    });
+   final links = [
+    if (profile.instagram != null && profile.instagram!.isNotEmpty)
+      {'platform': 'INSTAGRAM', 'url': profile.instagram},
+    if (profile.twitter != null && profile.twitter!.isNotEmpty)
+      {'platform': 'TWITTER', 'url': profile.twitter},
+    if (profile.youtube != null && profile.youtube!.isNotEmpty)
+      {'platform': 'YOUTUBE', 'url': profile.youtube},
+    if (profile.spotify != null && profile.spotify!.isNotEmpty)
+      {'platform': 'SPOTIFY', 'url': profile.spotify},
+    if (profile.tiktok != null && profile.tiktok!.isNotEmpty)
+      {'platform': 'TIKTOK', 'url': profile.tiktok},
+    if (profile.soundcloud != null && profile.soundcloud!.isNotEmpty)
+      {'platform': 'SOUNDCLOUD', 'url': profile.soundcloud},
+  ];
 
-    return getProfile(userId);
+  if (links.isNotEmpty) {
+    await _dio.patch(ApiEndpoints.updateSocialLinks, data: {'links': links});
   }
+ 
+  final toDelete = <String>[];  // Links to delete->if left to be null or''
+  if (profile.instagram == null || profile.instagram!.isEmpty) toDelete.add('instagram');
+  if (profile.twitter == null || profile.twitter!.isEmpty) toDelete.add('twitter');
+  if (profile.youtube == null || profile.youtube!.isEmpty) toDelete.add('youtube');
+  if (profile.spotify == null || profile.spotify!.isEmpty) toDelete.add('spotify');
+  if (profile.tiktok == null || profile.tiktok!.isEmpty) toDelete.add('tiktok');
+  if (profile.soundcloud == null || profile.soundcloud!.isEmpty) toDelete.add('soundcloud');
+
+  for (final platform in toDelete) {
+    try {
+      await deleteSocialLink(platform);
+    } catch (_) {
+      // ignore this if link doesn't exist->check with BE
+    }
+  }
+
+  return getProfile(userId);
+}
 }

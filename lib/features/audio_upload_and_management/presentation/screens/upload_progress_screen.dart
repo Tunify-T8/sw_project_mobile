@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Processing/progress screen shown after saving metadata while the track finishes transcoding.
+// Used by: Opened from routing or parent navigation flows.
+// Concerns: Multi-format support; Transcoding logic.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

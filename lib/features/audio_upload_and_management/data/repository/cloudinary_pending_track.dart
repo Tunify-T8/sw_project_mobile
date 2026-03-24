@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Intermediate working model for a Cloudinary-backed track before it is fully stored as an UploadItem.
+// Used by: cloudinary_upload_artwork_resolver, cloudinary_upload_mapper, cloudinary_upload_workflow
+// Concerns: Multi-format support.
 import '../../domain/entities/upload_item.dart';
 
 class PendingCloudinaryTrack {

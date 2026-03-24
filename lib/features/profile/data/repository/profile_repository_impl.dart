@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../dto/profile_dto.dart';
 import '../../domain/repositories/profile_repository.dart';
@@ -8,10 +10,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
   ProfileRepositoryImpl({
     TokenStorage tokenStorage = const TokenStorage(),
     GlobalTrackStore? trackStore,
-    ProfileApi? profileApi,
+    Dio? dio,
   })  : _tokenStorage = tokenStorage,
         _trackStore = trackStore ?? GlobalTrackStore.instance,
-        _profileApi = profileApi ?? ProfileApi();
+        _profileApi = ProfileApi(
+          dio: dio ?? DioClient.create(const TokenStorage()),
+        );
 
   final TokenStorage _tokenStorage;
   final GlobalTrackStore _trackStore;

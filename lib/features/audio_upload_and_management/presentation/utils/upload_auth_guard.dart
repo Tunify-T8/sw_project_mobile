@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: UI utility/helper used by upload screens or widgets.
+// Used by: upload_flow_controller, upload_entry_screen
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/app/router.dart';

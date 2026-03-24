@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Filtering and sorting helpers used by the uploads-library state to produce the visible list.
+// Used by: library_uploads_provider
+// Concerns: Multi-format support; Track visibility.
 import '../../domain/entities/upload_item.dart';
 import 'library_uploads_state.dart';
 

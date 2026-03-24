@@ -54,6 +54,12 @@ class CloudinaryUploadRepository implements UploadRepository {
   }
 
   @override
+  Future<UploadedTrack> getTrackStatus(String trackId) {
+    // Cloudinary mode: no separate status endpoint — delegate to getTrackDetails
+    return _workflow.getTrackDetails(trackId);
+  }
+
+  @override
   Future<UploadedTrack> getTrackDetails(String trackId) {
     return _workflow.getTrackDetails(trackId);
   }

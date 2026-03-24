@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Riverpod notifier for loading, filtering, refreshing, deleting, replacing, and updating the user's uploaded tracks.
+// Used by: upload_flow_controller, upload_provider, artist_home_screen, and 6 more upload files.
+// Concerns: Multi-format support; Track visibility.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/upload_item.dart';

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Owns the text editing controllers that mirror TrackMetadataState into the metadata form widgets.
+// Used by: track_metadata_screen, track_metadata_body
+// Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 
 import '../providers/track_metadata_state.dart';

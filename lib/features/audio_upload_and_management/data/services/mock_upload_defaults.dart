@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Seed and default values used by the mock upload flow.
+// Used by: mock_upload_service
+// Concerns: Multi-format support.
 Map<String, dynamic> createMockTrackRecord(
   String trackId, {
   required String ownerUserId,

@@ -3,20 +3,24 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 import 'package:software_project/core/network/api_endpoints.dart';
 import 'package:software_project/features/audio_upload_and_management/data/api/library_uploads_api.dart';
 import 'package:software_project/features/audio_upload_and_management/shared/upload_error_helpers.dart';
 
 import '../../../../helpers/upload_mocks.mocks.dart';
+import '../../../../helpers/mocks.mocks.dart';
 import '../../helpers/upload_test_data.dart';
 
 void main() {
   late MockDio mockDio;
+  late MockTokenStorage mockTokenStorage;
   late LibraryUploadsApi api;
 
   setUp(() {
     mockDio = MockDio();
-    api = LibraryUploadsApi(mockDio);
+    mockTokenStorage = MockTokenStorage();
+    api = LibraryUploadsApi(mockDio, tokenStorage: mockTokenStorage);
   });
 
   Response<dynamic> okResponse(dynamic data) => Response(
@@ -38,9 +42,11 @@ void main() {
     });
 
     test('parses uploads nested under data', () async {
-      when(
-        mockDio.get(ApiEndpoints.myUploads),
-      ).thenAnswer((_) async => okResponse({'data': [sampleUploadItemJson()]}));
+      when(mockDio.get(ApiEndpoints.myUploads)).thenAnswer(
+        (_) async => okResponse({
+          'data': [sampleUploadItemJson()],
+        }),
+      );
 
       final result = await api.getMyUploads();
 
@@ -59,9 +65,21 @@ void main() {
   });
 
   group('getArtistToolsQuota', () {
+    setUp(() {
+      when(mockTokenStorage.getUser()).thenAnswer(
+        (_) async => const AuthUserEntity(
+          id: 'artist-1',
+          email: 'artist@test.com',
+          username: 'Artist',
+          role: 'ARTIST',
+          isVerified: true,
+        ),
+      );
+    });
+
     test('parses a flat payload', () async {
       when(
-        mockDio.get(ApiEndpoints.artistToolsQuota()),
+        mockDio.get(ApiEndpoints.artistToolsQuota('artist-1')),
       ).thenAnswer((_) async => okResponse(sampleArtistToolsQuotaJson()));
 
       final result = await api.getArtistToolsQuota();
@@ -71,9 +89,9 @@ void main() {
     });
 
     test('parses a nested data payload', () async {
-      when(
-        mockDio.get(ApiEndpoints.artistToolsQuota()),
-      ).thenAnswer((_) async => okResponse({'data': sampleArtistToolsQuotaJson()}));
+      when(mockDio.get(ApiEndpoints.artistToolsQuota('artist-1'))).thenAnswer(
+        (_) async => okResponse({'data': sampleArtistToolsQuotaJson()}),
+      );
 
       final result = await api.getArtistToolsQuota();
 
@@ -82,7 +100,7 @@ void main() {
 
     test('throws UploadFlowException when payload is invalid', () {
       when(
-        mockDio.get(ApiEndpoints.artistToolsQuota()),
+        mockDio.get(ApiEndpoints.artistToolsQuota('artist-1')),
       ).thenAnswer((_) async => okResponse('bad'));
 
       expect(api.getArtistToolsQuota(), throwsA(isA<UploadFlowException>()));
@@ -103,7 +121,9 @@ void main() {
 
   group('replaceUploadFile', () {
     test('posts a replacement audio file', () async {
-      final directory = await Directory.systemTemp.createTemp('library_replace_api');
+      final directory = await Directory.systemTemp.createTemp(
+        'library_replace_api',
+      );
       addTearDown(() => directory.delete(recursive: true));
       final audioFile = File('${directory.path}/replacement.mp3');
       await audioFile.writeAsString('audio');
@@ -137,7 +157,9 @@ void main() {
             'privacy': 'private',
           },
         ),
-      ).thenAnswer((_) async => okResponse(sampleUploadItemJson(privacy: 'private')));
+      ).thenAnswer(
+        (_) async => okResponse(sampleUploadItemJson(privacy: 'private')),
+      );
 
       final result = await api.updateUpload(
         trackId: 'track-1',
@@ -150,7 +172,9 @@ void main() {
     });
 
     test('patches metadata with artwork file', () async {
-      final directory = await Directory.systemTemp.createTemp('library_update_api');
+      final directory = await Directory.systemTemp.createTemp(
+        'library_update_api',
+      );
       addTearDown(() => directory.delete(recursive: true));
       final artwork = File('${directory.path}/cover.png');
       await artwork.writeAsString('image');

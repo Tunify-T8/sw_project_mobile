@@ -9,6 +9,7 @@ class ProfileInfo extends StatelessWidget {
   final String bio;
   final int followersCount;
   final int followingCount;
+   final bool isCertified; 
   final TextStyle nameStyle;
   final TextStyle bioStyle;
   final TextStyle followerStyle;
@@ -23,6 +24,7 @@ class ProfileInfo extends StatelessWidget {
     required this.bio,
     required this.followersCount,
     required this.followingCount,
+    required this.isCertified, 
     required this.nameStyle,
     required this.bioStyle,
     required this.followerStyle,
@@ -30,18 +32,39 @@ class ProfileInfo extends StatelessWidget {
     required this.actionButtons,
   });
 
-  Widget buildName() => Padding(
-    padding: const EdgeInsets.only(left: 25),
-    child: Text(userName, style: nameStyle),
-  );
+Widget buildName() => Padding(
+  padding: const EdgeInsets.only(left: 25),
+  child: Row(
+    children: [
+      Text(userName, style: nameStyle),
+      if (isCertified) ...[
+        const SizedBox(width: 6),
+        const Icon(
+          Icons.verified,
+          color: Colors.blue,
+          size: 22,
+        ),
+      ],
+    ],
+  ),
+);
   Widget buildBio() => Padding(
     padding: const EdgeInsets.only(left: 25),
     child: Text(bio, style: bioStyle),
   );
-  Widget buildLocation() => Padding(
-    padding: const EdgeInsets.only(left: 25),
-    child: Text('📍$city, $country', style: bioStyle),
-  );
+Widget buildLocation() => Padding(
+  padding: const EdgeInsets.only(left: 25),
+  child: Text(
+    city.isNotEmpty && country.isNotEmpty
+        ? '📍$city, $country'
+        : city.isNotEmpty
+            ? '📍$city'
+            : country.isNotEmpty
+                ? '📍$country'
+                : '',
+    style: bioStyle,
+  ),
+);
   Widget buildFollowerCount(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 25),

@@ -4,12 +4,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 // ── Google OAuth setup ────────────────────────────────────────────────────────
 //
 // WHAT YOU NEED FROM THE BACKEND TEAM:
-//   - The Web Client ID from Google Cloud Console
-//     (format: XXXXXXXXXXXX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com)
+//   1. The Web Client ID (serverClientId) from Google Cloud Console.
+//      Format: XXXXXXXXXXXX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+//      This is REQUIRED — without it serverAuthCode will be null.
+//
+//   2. Your test email added to Google Cloud Console as a Test User.
+//      During development only test emails can authenticate.
 //
 // WHAT YOU NEED TO DO YOURSELF:
-//   - Generate your debug SHA-1 fingerprint and add it to the Google Cloud
-//     Console under your Android OAuth client:
+//   Generate your debug SHA-1 fingerprint and give it to the backend team
+//   so they can register the Android OAuth client:
 //
 //     Windows:
 //       keytool -list -v -keystore "%USERPROFILE%\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
@@ -23,30 +27,36 @@ import 'package:google_sign_in/google_sign_in.dart';
 //
 // HOW TO COMPLETE THE SETUP:
 //   1. Get the Web Client ID from backend.
-//   2. Uncomment the serverClientId line below and fill it in.
-//   3. Set _kServerClientId to the actual value.
-//   4. Run: flutter clean && flutter pub get
+//   2. Replace 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com' below.
+//   3. Run: flutter clean && flutter pub get
 //
-// Until then, sign-in will succeed but idToken will be null, and
-// GoogleSignInException will be thrown (caught gracefully by the controller).
+// ─────────────────────────────────────────────────────────────────────────────
+// The Tunify backend uses the AUTHORIZATION CODE FLOW.
+// This means we extract account.serverAuthCode
+// The serverAuthCode is sent to the backend which exchanges it with Google.
+//
+// serverAuthCode is ONLY available when serverClientId is set correctly.
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Uncomment and fill in once backend provides the client ID:
-// const String _kServerClientId =
-//     'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
+// Actual Web Client ID from backend:
+const String _kServerClientId =
+    '1017429885522-kl4im9el69ojobga604qnjbjm1lo1c20.apps.googleusercontent.com';
 
 /// Result returned by a successful Google Sign-In flow.
 class GoogleSignInResult {
-  /// The Google ID token (JWT) to POST to the backend OAuth endpoint.
-  final String idToken;
+  /// The authorization code to POST to the Tunify backend.
+  /// Backend exchanges this with Google to get tokens.
+  /// Expires in ~60 seconds — send to backend immediately.
+  final String authorizationCode;
 
-  /// The user's Google email address (for display only, not trusted).
+  /// The user's Google email (for display only).
   final String email;
 
   /// The user's Google display name (for display only).
   final String? displayName;
 
   const GoogleSignInResult({
-    required this.idToken,
+    required this.authorizationCode,
     required this.email,
     this.displayName,
   });
@@ -54,47 +64,40 @@ class GoogleSignInResult {
 
 /// Wraps [GoogleSignIn] for use in the auth flow.
 ///
-/// Responsibilities:
-///   1. Open the native Google account selector.
-///   2. Extract the ID token (JWT) from the result.
-///   3. Return [GoogleSignInResult] to the caller (AuthController).
-///
-/// The caller (AuthController.loginWithGoogle) passes the idToken to
-/// OAuthLoginUseCase which POSTs it to your backend's /auth/google endpoint.
-/// The backend verifies it with Google and issues your own JWT pair.
+/// Uses the authorization code flow as required by the Tunify backend.
+/// The serverAuthCode from Google is sent to POST /auth/google.
+/// Backend exchanges it, creates/finds the user, returns JWT pair.
 class GoogleSignInService {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-    // TODO: Uncomment once backend provides Web Client ID:
-    // serverClientId: _kServerClientId,
+    scopes: ['email', 'profile', 'openid'],
+    serverClientId: _kServerClientId, // Required for serverAuthCode
   );
 
   /// Triggers the Google Sign-In UI.
   ///
-  /// Returns [GoogleSignInResult] on success.
+  /// Returns [GoogleSignInResult] containing the authorization code on success.
   /// Returns null if the user dismissed the dialog without signing in.
-  /// Throws [GoogleSignInException] if authentication succeeds but the
-  /// ID token is missing (happens when serverClientId is not configured).
+  /// Throws [GoogleSignInException] if sign-in succeeds but serverAuthCode
+  /// is null (happens when serverClientId is not configured correctly).
   Future<GoogleSignInResult?> signIn() async {
     try {
       final account = await _googleSignIn.signIn();
       if (account == null) return null; // User cancelled.
 
-      final auth = await account.authentication;
-      final idToken = auth.idToken;
+      // serverAuthCode is the authorization code the backend needs.
+      // It is ONLY populated when serverClientId is set correctly.
+      final serverAuthCode = account.serverAuthCode;
 
-      if (idToken == null) {
-        // This happens when serverClientId is not set. The token is required
-        // for backend verification — sign-in cannot proceed without it.
+      if (serverAuthCode == null) {
         throw const GoogleSignInException(
-          'Google authentication returned no ID token.\n'
-          'Action required: set serverClientId in google_sign_in_service.dart\n'
-          'with the Web Client ID provided by your backend team.',
+          'Google Sign-In returned no serverAuthCode.\n'
+          'Ensure _kServerClientId is set to the correct Web Client ID\n'
+          'from Google Cloud Console (not the Android/iOS client ID).',
         );
       }
 
       return GoogleSignInResult(
-        idToken: idToken,
+        authorizationCode: serverAuthCode,
         email: account.email,
         displayName: account.displayName,
       );

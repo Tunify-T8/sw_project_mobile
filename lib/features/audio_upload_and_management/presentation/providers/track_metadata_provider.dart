@@ -41,20 +41,21 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
     try {
       final repository = ref.read(uploadRepositoryProvider);
       final metadata = TrackMetadataMapper.toEntity(state);
-      final processing = await repository.finalizeMetadata(
+      await repository.finalizeMetadata(
         trackId: trackId,
         metadata: metadata,
       );
+
+      // Metadata saved — now poll status until finished/failed.
+      // This drives the UploadProgressScreen directly via processingStatus.
       state = state.copyWith(
         isSaving: false,
-        isPolling: false,
-        processingStatus: processing.status,
-        finalTrack: processing,
+        isPolling: true,
+        processingStatus: UploadStatus.processing,
         error: null,
       );
-      ref
-          .read(uploadProvider.notifier)
-          .completeSavedUploadInBackground(trackId);
+
+      _pollUntilDone(trackId);
       return true;
     } catch (error, stackTrace) {
       _failSave(
@@ -64,6 +65,55 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
             'We could not publish this track right now. Please try again.',
       );
       return false;
+    }
+  }
+
+  /// Polls GET /tracks/:id/status every 5 seconds and updates
+  /// processingStatus so UploadProgressScreen reacts in real time.
+  Future<void> _pollUntilDone(String trackId) async {
+    const maxAttempts = 60; // 5 min max (60 x 5s)
+    final repository = ref.read(uploadRepositoryProvider);
+
+    for (int i = 0; i < maxAttempts; i++) {
+      await Future.delayed(const Duration(seconds: 5));
+
+      // Guard: notifier may have been disposed
+      try {
+        // GET /tracks/:id/status — lightweight, purpose-built for polling.
+        // Returns { id, transcodingStatus, durationSeconds, audioUrl, waveformUrl }.
+        // Do NOT use getTrackDetails here — it returns audioUrl: "" while
+        // processing and the status never transitions to finished from that.
+        final track = await repository.getTrackStatus(trackId);
+        state = state.copyWith(
+          processingStatus: track.status,
+          finalTrack: track,
+          isPolling: track.status == UploadStatus.processing ||
+              track.status == UploadStatus.uploading,
+          error: null,
+        );
+
+        if (track.status == UploadStatus.finished ||
+            track.status == UploadStatus.failed) {
+          ref
+              .read(uploadProvider.notifier)
+              .completeSavedUploadInBackground(trackId);
+          return;
+        }
+      } catch (_) {
+        // Network hiccup — keep polling silently.
+      }
+    }
+
+    // Timed out — show the track as-is rather than an error.
+    try {
+      final track = await repository.getTrackStatus(trackId);
+      state = state.copyWith(
+        isPolling: false,
+        processingStatus: track.status,
+        finalTrack: track,
+      );
+    } catch (_) {
+      state = state.copyWith(isPolling: false);
     }
   }
 

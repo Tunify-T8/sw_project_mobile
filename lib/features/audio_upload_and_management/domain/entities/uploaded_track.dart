@@ -1,6 +1,9 @@
+// Upload Feature Guide:
+// Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
+// Used by: upload_mappers, cloudinary_upload_mapper, cloudinary_upload_repository_impl, and 10 more upload files.
+// Concerns: Multi-format support; Transcoding logic.
 import 'upload_status.dart';
 
-// pickedfile-> uploadedtrack how its know from backend(serverside)
 class UploadedTrack {
   final String trackId;
   final UploadStatus status;
@@ -11,6 +14,24 @@ class UploadedTrack {
   final String? privacy;
   final String? artworkUrl;
   final int? durationSeconds;
+  final List<String> artists;
+  final List<String>? tags;
+  final String? genreCategory;
+  final String? genreSubGenre;
+  final String? recordLabel;
+  final String? publisher;
+  final String? isrc;
+  final String? pLine;
+  final bool? contentWarning;
+  final DateTime? scheduledReleaseDate;
+  final bool? allowDownloads;
+  final bool? offlineListening;
+  final bool? includeInRss;
+  final bool? displayEmbedCode;
+  final bool? appPlaybackEnabled;
+  final String? availabilityType;
+  final List<String>? availabilityRegions;
+  final String? licensing;
   final String? errorCode;
   final String? errorMessage;
 
@@ -24,6 +45,24 @@ class UploadedTrack {
     this.privacy,
     this.artworkUrl,
     this.durationSeconds,
+    this.artists = const [],
+    this.tags,
+    this.genreCategory,
+    this.genreSubGenre,
+    this.recordLabel,
+    this.publisher,
+    this.isrc,
+    this.pLine,
+    this.contentWarning,
+    this.scheduledReleaseDate,
+    this.allowDownloads,
+    this.offlineListening,
+    this.includeInRss,
+    this.displayEmbedCode,
+    this.appPlaybackEnabled,
+    this.availabilityType,
+    this.availabilityRegions,
+    this.licensing,
     this.errorCode,
     this.errorMessage,
   });
@@ -38,6 +77,24 @@ class UploadedTrack {
     String? privacy,
     String? artworkUrl,
     int? durationSeconds,
+    List<String>? artists,
+    List<String>? tags,
+    String? genreCategory,
+    String? genreSubGenre,
+    String? recordLabel,
+    String? publisher,
+    String? isrc,
+    String? pLine,
+    bool? contentWarning,
+    DateTime? scheduledReleaseDate,
+    bool? allowDownloads,
+    bool? offlineListening,
+    bool? includeInRss,
+    bool? displayEmbedCode,
+    bool? appPlaybackEnabled,
+    String? availabilityType,
+    List<String>? availabilityRegions,
+    String? licensing,
     String? errorCode,
     String? errorMessage,
   }) {
@@ -51,6 +108,24 @@ class UploadedTrack {
       privacy: privacy ?? this.privacy,
       artworkUrl: artworkUrl ?? this.artworkUrl,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      artists: artists ?? this.artists,
+      tags: tags ?? this.tags,
+      genreCategory: genreCategory ?? this.genreCategory,
+      genreSubGenre: genreSubGenre ?? this.genreSubGenre,
+      recordLabel: recordLabel ?? this.recordLabel,
+      publisher: publisher ?? this.publisher,
+      isrc: isrc ?? this.isrc,
+      pLine: pLine ?? this.pLine,
+      contentWarning: contentWarning ?? this.contentWarning,
+      scheduledReleaseDate: scheduledReleaseDate ?? this.scheduledReleaseDate,
+      allowDownloads: allowDownloads ?? this.allowDownloads,
+      offlineListening: offlineListening ?? this.offlineListening,
+      includeInRss: includeInRss ?? this.includeInRss,
+      displayEmbedCode: displayEmbedCode ?? this.displayEmbedCode,
+      appPlaybackEnabled: appPlaybackEnabled ?? this.appPlaybackEnabled,
+      availabilityType: availabilityType ?? this.availabilityType,
+      availabilityRegions: availabilityRegions ?? this.availabilityRegions,
+      licensing: licensing ?? this.licensing,
       errorCode: errorCode ?? this.errorCode,
       errorMessage: errorMessage ?? this.errorMessage,
     );

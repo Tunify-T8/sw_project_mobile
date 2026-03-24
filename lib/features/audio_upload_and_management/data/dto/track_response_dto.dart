@@ -1,3 +1,9 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: upload_api, upload_mappers
+// Concerns: Transcoding logic.
+import 'genre_parsing.dart';
+
 part 'track_response_nested_dto.dart';
 
 class TrackResponseDto {
@@ -6,6 +12,8 @@ class TrackResponseDto {
   final String? title;
   final String? description;
   final String? genre;
+  final String? genreCategory;
+  final String? genreSubGenre;
   final List<String>? tags;
   final List<String>? artists;
   final int? durationSeconds;
@@ -34,6 +42,8 @@ class TrackResponseDto {
     this.title,
     this.description,
     this.genre,
+    this.genreCategory,
+    this.genreSubGenre,
     this.tags,
     this.artists,
     this.durationSeconds,
@@ -64,17 +74,58 @@ class TrackResponseDto {
     final permissionsJson = json['permissions'];
     final audioMetadataJson = json['audioMetadata'];
 
+    final rawTrackId = (json['trackId'] ?? json['id'] ?? '') as Object;
+    final trackId = rawTrackId.toString();
+
+    final rawStatus =
+        (json['status'] ?? json['transcodingStatus'] ?? 'processing') as Object;
+    final status = rawStatus.toString();
+
+    final parsedGenre = parseUploadGenre(
+      json['genre'],
+      fallbackCategory: json['genreCategory']?.toString(),
+      fallbackSubGenre: json['genreSubGenre']?.toString(),
+    );
+
+    List<String>? artists;
+    final rawArtists = json['artists'];
+    final rawArtist = json['artist'];
+    if (rawArtists is List) {
+      artists = rawArtists
+          .map((e) {
+            if (e is String) return e.trim();
+            if (e is Map<String, dynamic>) {
+              return (e['name'] ?? e['username'] ?? e['userId'] ?? '')
+                  .toString()
+                  .trim();
+            }
+            return e.toString().trim();
+          })
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else if (rawArtist is String && rawArtist.trim().isNotEmpty) {
+      artists = [rawArtist.trim()];
+    } else if (rawArtist is Map<String, dynamic>) {
+      final artistValue =
+          (rawArtist['name'] ?? rawArtist['username'] ?? rawArtist['id'])
+              ?.toString()
+              .trim();
+      if (artistValue != null && artistValue.isNotEmpty) {
+        artists = [artistValue];
+      }
+    }
+
     return TrackResponseDto(
-      trackId: json['trackId'] as String,
-      status: json['status'] as String,
+      trackId: trackId,
+      status: status,
       title: json['title'] as String?,
       description: json['description'] as String?,
-      genre: json['genre'] as String?,
-      tags: (json['tags'] as List?)?.map((entry) => entry.toString()).toList(),
-      artists: (json['artists'] as List?)
-          ?.map((entry) => entry.toString())
-          .toList(),
-      durationSeconds: json['durationSeconds'] as int?,
+      genre: parsedGenre.normalized,
+      genreCategory: parsedGenre.category,
+      genreSubGenre: parsedGenre.subGenre,
+      tags: (json['tags'] as List?)?.map((e) => e.toString()).toList(),
+      artists: artists,
+      durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
       privacy: json['privacy'] as String?,
       scheduledReleaseDate: json['scheduledReleaseDate'] as String?,
       availability: availabilityJson is Map<String, dynamic>
@@ -93,7 +144,7 @@ class TrackResponseDto {
       contentWarning: json['contentWarning'] as bool?,
       audioUrl: json['audioUrl'] as String?,
       waveformUrl: json['waveformUrl'] as String?,
-      artworkUrl: json['artworkUrl'] as String?,
+      artworkUrl: (json['artworkUrl'] ?? json['thumbnailUrl']) as String?,
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
       audioMetadata: audioMetadataJson is Map<String, dynamic>

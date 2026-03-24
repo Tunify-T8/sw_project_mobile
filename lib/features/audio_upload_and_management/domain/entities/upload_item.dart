@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
+// Used by: mock_library_uploads_api, library_uploads_mapper, cloudinary_pending_track, and 29 more upload files.
+// Concerns: Multi-format support; Track visibility.
 enum UploadVisibility { public, private }
 
 enum UploadProcessingStatus { finished, processing, failed, deleted }

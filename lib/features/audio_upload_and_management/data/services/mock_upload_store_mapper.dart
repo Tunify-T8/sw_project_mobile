@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Maps the internal mock upload store records into entities and DTOs used elsewhere in the feature.
+// Used by: mock_upload_service
+// Concerns: Multi-format support.
 import '../../domain/entities/upload_item.dart';
 import 'global_track_store.dart';
 
