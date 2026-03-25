@@ -1,0 +1,1 @@
+enum FeedItemType {track, repost}

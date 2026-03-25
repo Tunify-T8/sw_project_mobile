@@ -69,13 +69,23 @@ class ApiEndpoints {
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';
 
-  
   // Playback
-static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
-static String trackStream(String trackId) => '/tracks/$trackId/stream';
-static const String playbackEvents = '/me/playback/events';
-static const String playbackContext = '/playback/context';
-static const String listeningHistory = '/me/listening-history';
+  static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
+  static String trackStream(String trackId) => '/tracks/$trackId/stream';
+  static const String playbackEvents = '/me/playback/events';
+  static const String playbackContext = '/playback/context';
+  static const String listeningHistory = '/me/listening-history';
+
+  //Feed - Search - Discovery
+  static const String getFeed = '/feed';
+  static const String resolveResource = '/resolve';
+  static const String getDiscover = '/discover';
+  static const String getTrending = '/trending';
+  static const String getSuggestedArtists = '/artists/suggested';
+  static const String search = '/search';
+  static const String searchTracks = '/search/tracks';
+  static const String searchCollections = '/search/collections';
+  static const String searchPeople = '/search/people';
 }
 
 //profile

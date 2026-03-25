@@ -1,0 +1,1 @@
+enum CollectionType {album, playlist}
