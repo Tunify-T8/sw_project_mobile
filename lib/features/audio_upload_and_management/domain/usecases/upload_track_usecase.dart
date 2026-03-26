@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Use-case wrapper that exposes a single upload-related action to providers or controllers.
+// Used by: Consumed across nearby upload data and domain files.
+// Concerns: Multi-format support.
 import '../entities/picked_upload_file.dart';
 import '../entities/uploaded_track.dart';
 import '../repositories/upload_repository.dart';

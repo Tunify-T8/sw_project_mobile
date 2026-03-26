@@ -56,3 +56,26 @@ class NetworkFailure extends Failure {
 class UnknownFailure extends Failure {
   const UnknownFailure() : super('An unexpected error occurred.');
 }
+
+/// Google Sign-In — the email is already registered with a local password.
+///
+/// This is Scenario 3 from the backend OAuth doc.
+/// The user must enter their existing Tunify password to link accounts.
+///
+/// [linkingToken] must be passed to POST /auth/google/link within 10 minutes.
+/// [email] is the Google email address shown in the linking UI.
+class GoogleAccountLinkingRequiredFailure extends Failure {
+  /// Short-lived JWT (10 min) required for POST /auth/google/link.
+  final String linkingToken;
+
+  /// The Google email address — shown to the user in the linking screen.
+  final String email;
+
+  const GoogleAccountLinkingRequiredFailure({
+    required this.linkingToken,
+    required this.email,
+  }) : super(
+         'This email is already registered. '
+         'Enter your password to link your Google account.',
+       );
+}

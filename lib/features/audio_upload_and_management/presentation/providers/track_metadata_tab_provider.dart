@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Keeps the selected metadata tab state separate per track while editing.
+// Used by: track_metadata_screen
+// Concerns: Metadata engine.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/metadata/upload_metadata_tab.dart';

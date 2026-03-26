@@ -1,9 +1,24 @@
+// Upload Feature Guide:
+// Purpose: Central backend-mode switch for the upload feature, controlled by the UPLOAD_BACKEND environment value.
+// Used by: library_uploads_dependencies_provider, upload_repository_provider
+// Concerns: Multi-format support.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum UploadBackendMode { mock, cloudinary, real }
 
+const String _uploadBackendModeValue = String.fromEnvironment(
+  'UPLOAD_BACKEND',
+  defaultValue: 'real',
+);
+
 final uploadBackendModeProvider = Provider<UploadBackendMode>((ref) {
-  // Keep Cloudinary as a separate mode so the UI/use-cases stay unchanged.
-  // Later, when backend is ready, you only switch this provider to `real`.
-  return UploadBackendMode.cloudinary;
+  switch (_uploadBackendModeValue.toLowerCase()) {
+    case 'mock':
+      return UploadBackendMode.mock;
+    case 'cloudinary':
+      return UploadBackendMode.cloudinary;
+    case 'real':
+    default:
+      return UploadBackendMode.real;
+  }
 });

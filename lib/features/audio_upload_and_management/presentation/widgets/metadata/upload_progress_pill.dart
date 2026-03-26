@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Metadata form widget used inside TrackMetadataScreen and TrackMetadataBody.
+// Used by: track_file_summary_section
+// Concerns: Multi-format support; Metadata engine; Transcoding logic.
 import 'package:flutter/material.dart';
 
 class UploadProgressPill extends StatelessWidget {

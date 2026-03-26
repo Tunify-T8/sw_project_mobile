@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Immutable snapshot of the active upload flow, including quota, selected audio, progress, errors, and draft status.
+// Used by: upload_provider
+// Concerns: Multi-format support.
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/upload_quota.dart';
 import '../../domain/entities/uploaded_track.dart';

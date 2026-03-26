@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Local in-memory upload engine used to simulate draft creation, upload progress, processing, metadata save, and delete.
+// Used by: mock_upload_repository_impl, upload_repository_provider
+// Concerns: Multi-format support.
 import 'dart:async';
 
 import 'global_track_store.dart';
@@ -10,22 +14,24 @@ class MockUploadService {
   final Map<String, String> _localFilePaths = {};
   final UploadWaveformService _waveformService = UploadWaveformService();
 
-Future<Map<String, dynamic>> getUploadQuota({required String userId}) async {
-  await Future.delayed(const Duration(milliseconds: 400));
+  Future<Map<String, dynamic>> getUploadQuota({required String userId}) async {
+    await Future.delayed(const Duration(milliseconds: 400));
 
-  final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(userId);
-  final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
+    final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(
+      userId,
+    );
+    final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
 
-  return {
-    'tier': 'free',
-    'uploadMinutesLimit': 180,
-    'uploadMinutesUsed': usedMinutes,
-    'uploadMinutesRemaining': remainingMinutes,
-    'canReplaceFiles': false,
-    'canScheduleRelease': false,
-    'canAccessAdvancedTab': false,
-  };
-}
+    return {
+      'tier': 'free',
+      'uploadMinutesLimit': 180,
+      'uploadMinutesUsed': usedMinutes,
+      'uploadMinutesRemaining': remainingMinutes,
+      'canReplaceFiles': false,
+      'canScheduleRelease': false,
+      'canAccessAdvancedTab': false,
+    };
+  }
 
   Future<Map<String, dynamic>> createTrack({required String userId}) async {
     await Future.delayed(const Duration(milliseconds: 400));

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Artist tools/paywall widget used around upload quotas and upgrade prompts.
+// Used by: your_uploads_screen
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/artist_tools_quota.dart';

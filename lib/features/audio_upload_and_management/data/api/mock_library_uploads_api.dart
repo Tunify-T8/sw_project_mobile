@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Mock API for the My Uploads surface backed by the in-memory GlobalTrackStore.
+// Used by: library_uploads_repository_impl, library_uploads_repository_provider
+// Concerns: Multi-format support; Track visibility.
 import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
 import '../../../../core/storage/token_storage.dart';
@@ -24,22 +28,22 @@ class MockLibraryUploadsApi {
     return uploads.where((item) => !item.isDeleted).map(_toDto).toList();
   }
 
-Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
-  await Future.delayed(const Duration(milliseconds: 150));
+  Future<ArtistToolsQuotaDto> getArtistToolsQuota() async {
+    await Future.delayed(const Duration(milliseconds: 150));
 
-  final user = await _tokenStorage.getUser();
-  final usedMinutes = user == null
-      ? GlobalTrackStore.instance.usedUploadMinutesForAllTracks()
-      : GlobalTrackStore.instance.usedUploadMinutesForUser(user.id);
+    final user = await _tokenStorage.getUser();
+    final usedMinutes = user == null
+        ? GlobalTrackStore.instance.usedUploadMinutesForAllTracks()
+        : GlobalTrackStore.instance.usedUploadMinutesForUser(user.id);
 
-  return ArtistToolsQuotaDto(
-    tier: 'free',
-    uploadMinutesLimit: 180,
-    uploadMinutesUsed: usedMinutes,
-    canReplaceFiles: false,
-    canUpgrade: true,
-  );
-}
+    return ArtistToolsQuotaDto(
+      tier: 'free',
+      uploadMinutesLimit: 180,
+      uploadMinutesUsed: usedMinutes,
+      canReplaceFiles: false,
+      canUpgrade: true,
+    );
+  }
 
   Future<void> deleteUpload(String trackId) async {
     await Future.delayed(const Duration(milliseconds: 200));

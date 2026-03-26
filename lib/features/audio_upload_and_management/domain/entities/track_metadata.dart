@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
+// Used by: finalize_track_metadata_request_dto, cloudinary_upload_artwork_resolver, cloudinary_upload_repository_impl, and 7 more upload files.
+// Concerns: Metadata engine.
 class TrackMetadata {
   final String title;
   final String genreCategory;

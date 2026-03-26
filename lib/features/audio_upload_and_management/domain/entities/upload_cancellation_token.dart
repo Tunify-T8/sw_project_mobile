@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
+// Used by: upload_api, cloudinary_upload_repository_impl, cloudinary_upload_workflow, and 5 more upload files.
+// Concerns: Multi-format support.
 typedef UploadCancellationListener = void Function();
 
 class UploadCancellationToken {

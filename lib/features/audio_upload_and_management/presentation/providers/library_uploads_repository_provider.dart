@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Wires the uploads-library repository, its mock/real APIs, and the related use cases.
+// Used by: library_uploads_provider
+// Concerns: Multi-format support; Track visibility.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api/library_uploads_api.dart';
@@ -15,7 +19,7 @@ import 'library_uploads_dependencies_provider.dart';
 
 final libraryUploadsApiProvider = Provider<LibraryUploadsApi>((ref) {
   final dio = ref.watch(libraryUploadsDioProvider);
-  return LibraryUploadsApi(dio);
+  return LibraryUploadsApi(dio, tokenStorage: ref.read(tokenStorageProvider));
 });
 
 final mockLibraryUploadsApiProvider = Provider<MockLibraryUploadsApi>((ref) {

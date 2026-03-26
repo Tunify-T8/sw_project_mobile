@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Reusable bottom sheet or picker widget used by upload flows and metadata editing.
+// Used by: track_metadata_body
+// Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 import '../../../domain/entities/upload_genre.dart';
 

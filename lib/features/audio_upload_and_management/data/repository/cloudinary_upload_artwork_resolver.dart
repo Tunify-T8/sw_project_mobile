@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Decides whether artwork should be kept, replaced, or uploaded during Cloudinary metadata saves.
+// Used by: cloudinary_upload_workflow
+// Concerns: Multi-format support; Metadata engine.
 import '../../domain/entities/track_metadata.dart';
 import '../services/cloudinary_media_service.dart';
 import 'cloudinary_pending_track.dart';

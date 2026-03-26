@@ -12,6 +12,7 @@ import 'package:software_project/features/audio_upload_and_management/data/servi
 import 'package:software_project/features/audio_upload_and_management/data/services/cloudinary_upload_config.dart';
 import 'package:software_project/features/audio_upload_and_management/data/services/file_picker_service.dart';
 import 'package:software_project/features/audio_upload_and_management/data/services/mock_upload_service.dart';
+import 'package:software_project/features/audio_upload_and_management/presentation/providers/library_uploads_dependencies_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_backend_mode_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_dependencies_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
@@ -41,35 +42,44 @@ void main() {
     expect(CloudinaryUploadConfig.apiSecret, isEmpty);
   });
 
-  test('backend mode defaults to cloudinary', () {
+  test('backend mode defaults to real', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    expect(container.read(uploadBackendModeProvider), UploadBackendMode.cloudinary);
+    expect(container.read(uploadBackendModeProvider), UploadBackendMode.real);
+    expect(container.read(libraryUploadsUseMockProvider), isFalse);
   });
 
-  test('upload dependency providers read the authenticated user and support overrides', () {
-    const user = AuthUserEntity(
-      id: 'user-1',
-      email: 'kevin@example.com',
-      username: 'Kevin',
-      role: 'artist',
-      isVerified: true,
-    );
-    final mockDio = MockDio();
-    final container = ProviderContainer(
-      overrides: [
-        authControllerProvider.overrideWith(() => _TestAuthController(const AsyncData(user))),
-        dioProvider.overrideWithValue(mockDio),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'upload dependency providers read the authenticated user and support overrides',
+    () {
+      const user = AuthUserEntity(
+        id: 'user-1',
+        email: 'kevin@example.com',
+        username: 'Kevin',
+        role: 'artist',
+        isVerified: true,
+      );
+      final mockDio = MockDio();
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _TestAuthController(const AsyncData(user)),
+          ),
+          dioProvider.overrideWithValue(mockDio),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    expect(container.read(currentUploadUserIdProvider), 'user-1');
-    expect(container.read(currentArtistNameProvider), 'Kevin');
-    expect(container.read(filePickerServiceProvider), isA<FilePickerService>());
-    expect(container.read(uploadApiProvider), isA<UploadApi>());
-  });
+      expect(container.read(currentUploadUserIdProvider), 'user-1');
+      expect(container.read(currentArtistNameProvider), 'Kevin');
+      expect(
+        container.read(filePickerServiceProvider),
+        isA<FilePickerService>(),
+      );
+      expect(container.read(uploadApiProvider), isA<UploadApi>());
+    },
+  );
 
   test('cloudinary providers build configured clients', () {
     final container = ProviderContainer();
@@ -85,39 +95,50 @@ void main() {
     expect(mediaService.isConfigured, isTrue);
   });
 
-  test('uploadRepositoryProvider selects the repository for each backend mode', () {
-    final mockUploadService = MockMockUploadService();
-    final mockUploadApi = MockUploadApi();
-    final mockMediaService = MockCloudinaryMediaService();
+  test(
+    'uploadRepositoryProvider selects the repository for each backend mode',
+    () {
+      final mockUploadService = MockMockUploadService();
+      final mockUploadApi = MockUploadApi();
+      final mockMediaService = MockCloudinaryMediaService();
 
-    final mockContainer = ProviderContainer(
-      overrides: [
-        uploadBackendModeProvider.overrideWith((_) => UploadBackendMode.mock),
-        mockUploadServiceProvider.overrideWithValue(mockUploadService),
-      ],
-    );
-    addTearDown(mockContainer.dispose);
-    expect(mockContainer.read(uploadRepositoryProvider), isA<MockUploadRepository>());
+      final mockContainer = ProviderContainer(
+        overrides: [
+          uploadBackendModeProvider.overrideWith((_) => UploadBackendMode.mock),
+          mockUploadServiceProvider.overrideWithValue(mockUploadService),
+        ],
+      );
+      addTearDown(mockContainer.dispose);
+      expect(
+        mockContainer.read(uploadRepositoryProvider),
+        isA<MockUploadRepository>(),
+      );
 
-    final realContainer = ProviderContainer(
-      overrides: [
-        uploadBackendModeProvider.overrideWith((_) => UploadBackendMode.real),
-        uploadApiProvider.overrideWithValue(mockUploadApi),
-      ],
-    );
-    addTearDown(realContainer.dispose);
-    expect(realContainer.read(uploadRepositoryProvider), isA<RealUploadRepository>());
+      final realContainer = ProviderContainer(
+        overrides: [
+          uploadBackendModeProvider.overrideWith((_) => UploadBackendMode.real),
+          uploadApiProvider.overrideWithValue(mockUploadApi),
+        ],
+      );
+      addTearDown(realContainer.dispose);
+      expect(
+        realContainer.read(uploadRepositoryProvider),
+        isA<RealUploadRepository>(),
+      );
 
-    final cloudinaryContainer = ProviderContainer(
-      overrides: [
-        uploadBackendModeProvider.overrideWith((_) => UploadBackendMode.cloudinary),
-        cloudinaryMediaServiceProvider.overrideWithValue(mockMediaService),
-      ],
-    );
-    addTearDown(cloudinaryContainer.dispose);
-    expect(
-      cloudinaryContainer.read(uploadRepositoryProvider),
-      isA<CloudinaryUploadRepository>(),
-    );
-  });
+      final cloudinaryContainer = ProviderContainer(
+        overrides: [
+          uploadBackendModeProvider.overrideWith(
+            (_) => UploadBackendMode.cloudinary,
+          ),
+          cloudinaryMediaServiceProvider.overrideWithValue(mockMediaService),
+        ],
+      );
+      addTearDown(cloudinaryContainer.dispose);
+      expect(
+        cloudinaryContainer.read(uploadRepositoryProvider),
+        isA<CloudinaryUploadRepository>(),
+      );
+    },
+  );
 }

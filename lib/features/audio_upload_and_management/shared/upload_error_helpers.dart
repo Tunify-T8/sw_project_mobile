@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Shared helper used across multiple upload subflows.
+// Used by: library_uploads_api, mock_library_uploads_api, upload_api, and 11 more upload files.
+// Concerns: Multi-format support.
 import 'dart:async';
 import 'dart:io';
 

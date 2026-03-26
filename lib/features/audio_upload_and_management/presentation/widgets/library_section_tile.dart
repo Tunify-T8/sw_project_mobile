@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Reusable library tile widget used to build upload-related menu sections.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 
 class LibrarySectionTile extends StatelessWidget {

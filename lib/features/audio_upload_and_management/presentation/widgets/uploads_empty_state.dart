@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Presentational helper widget for the uploads library search or empty-state surface.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 
 class UploadsEmptyState extends StatelessWidget {

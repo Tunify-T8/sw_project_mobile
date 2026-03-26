@@ -1,3 +1,9 @@
+// Upload Feature Guide:
+// Purpose: Translates mock upload service data into repository/domain-friendly models.
+// Used by: mock_upload_repository_impl
+// Concerns: Multi-format support.
+import '../dto/track_response_dto.dart';
+import '../mappers/upload_mappers.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
@@ -30,17 +36,7 @@ Map<String, dynamic> buildMockTrackMetadataPayload(TrackMetadata metadata) {
 }
 
 UploadedTrack mapMockTrackResponse(Map<String, dynamic> data) {
-  return UploadedTrack(
-    trackId: data['trackId'] as String,
-    status: mapMockUploadStatus(data['status'] as String),
-    audioUrl: data['audioUrl'] as String?,
-    waveformUrl: data['waveformUrl'] as String?,
-    title: data['title'] as String?,
-    description: data['description'] as String?,
-    privacy: data['privacy'] as String?,
-    artworkUrl: data['artworkUrl'] as String?,
-    durationSeconds: data['durationSeconds'] as int?,
-  );
+  return TrackResponseDto.fromJson(data).toEntity();
 }
 
 UploadStatus mapMockUploadStatus(String value) {

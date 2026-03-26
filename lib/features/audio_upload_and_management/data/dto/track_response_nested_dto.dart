@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: DTO model that represents upload-related request or response data at the API boundary.
+// Used by: Consumed across nearby upload data and domain files.
+// Concerns: Transcoding logic.
 part of 'track_response_dto.dart';
 
 class AvailabilityDto {

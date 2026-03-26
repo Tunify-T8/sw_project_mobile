@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Shortcut action button that starts the upload flow from a home/dashboard surface.
+// Used by: Referenced by nearby upload feature files.
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 
 class HomeUploadActionButton extends StatelessWidget {

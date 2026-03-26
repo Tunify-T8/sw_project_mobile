@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Orchestrates the Cloudinary upload pipeline from draft creation through audio/artwork upload, waveform attachment, and local store sync.
+// Used by: cloudinary_upload_repository_impl
+// Concerns: Multi-format support.
 import '../../domain/entities/picked_upload_file.dart';
 import '../../domain/entities/track_metadata.dart';
 import '../../domain/entities/upload_cancellation_token.dart';
@@ -20,20 +24,22 @@ class CloudinaryUploadWorkflow {
   final UploadWaveformService _waveformService;
   final Map<String, PendingCloudinaryTrack> _drafts = {};
 
- Future<UploadQuota> getUploadQuota(String userId) async {
-  final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(userId);
-  final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
+  Future<UploadQuota> getUploadQuota(String userId) async {
+    final usedMinutes = GlobalTrackStore.instance.usedUploadMinutesForUser(
+      userId,
+    );
+    final remainingMinutes = usedMinutes >= 180 ? 0 : 180 - usedMinutes;
 
-  return UploadQuota(
-    tier: 'free',
-    uploadMinutesLimit: 180,
-    uploadMinutesUsed: usedMinutes,
-    uploadMinutesRemaining: remainingMinutes,
-    canReplaceFiles: false,
-    canScheduleRelease: false,
-    canAccessAdvancedTab: false,
-  );
-}
+    return UploadQuota(
+      tier: 'free',
+      uploadMinutesLimit: 180,
+      uploadMinutesUsed: usedMinutes,
+      uploadMinutesRemaining: remainingMinutes,
+      canReplaceFiles: false,
+      canScheduleRelease: false,
+      canAccessAdvancedTab: false,
+    );
+  }
 
   Future<UploadedTrack> createTrack(String userId) async {
     final trackId = 'track_${DateTime.now().millisecondsSinceEpoch}';
@@ -138,6 +144,28 @@ class CloudinaryUploadWorkflow {
           : 'private',
       artworkUrl: item.artworkUrl,
       durationSeconds: item.durationSeconds,
+      artists: item.artistDisplay
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList(),
+      tags: item.tags,
+      genreCategory: item.genreCategory,
+      genreSubGenre: item.genreSubGenre,
+      recordLabel: item.recordLabel,
+      publisher: item.publisher,
+      isrc: item.isrc,
+      pLine: item.pLine,
+      contentWarning: item.isExplicit,
+      scheduledReleaseDate: item.scheduledReleaseDate,
+      allowDownloads: item.allowDownloads,
+      offlineListening: item.offlineListening,
+      includeInRss: item.includeInRss,
+      displayEmbedCode: item.displayEmbedCode,
+      appPlaybackEnabled: item.appPlaybackEnabled,
+      availabilityType: item.availabilityType,
+      availabilityRegions: item.availabilityRegions,
+      licensing: item.licensing,
     );
   }
 

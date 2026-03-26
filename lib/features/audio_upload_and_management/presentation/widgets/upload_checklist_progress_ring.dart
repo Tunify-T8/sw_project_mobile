@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Presentational widget for upload progress, upload artwork, or other upload-specific UI states.
+// Used by: track_metadata_header, track_checklist_sheet
+// Concerns: Multi-format support; Transcoding logic.
 import 'package:flutter/material.dart';
 
 class UploadChecklistProgressRing extends StatelessWidget {

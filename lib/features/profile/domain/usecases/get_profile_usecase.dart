@@ -23,7 +23,10 @@ class GetProfileUsecase {
       coverImagePath: dto.coverImagePath,
       instagram: dto.instagram,
       twitter: dto.twitter,
-      website: dto.website,
+      youtube: dto.youtube,
+      spotify: dto.spotify,
+      tiktok: dto.tiktok,
+      soundcloud: dto.soundcloud,
       followersCount: dto.followersCount,
       followingCount: dto.followingCount,
       tracksCount: dto.tracksCount,
@@ -31,7 +34,7 @@ class GetProfileUsecase {
       visibility: dto.visibility,
       userType: dto.userType,
       isActive: dto.isActive,
-      isVerified: dto.isVerified,
+      isCertified: dto.isCertified,
     );
   }
 }

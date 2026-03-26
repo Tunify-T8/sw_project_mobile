@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Small helper that adds copy-with behavior to an upload DTO.
+// Used by: Consumed across nearby upload data and domain files.
+// Concerns: Multi-format support; Track visibility.
 part of 'upload_item_dto.dart';
 
 extension UploadItemDtoCopyWith on UploadItemDto {

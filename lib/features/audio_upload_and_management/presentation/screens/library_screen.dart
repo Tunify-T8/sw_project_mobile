@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Feature library shell screen that hosts upload-related navigation entry points.
+// Used by: Opened from routing or parent navigation flows.
+// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/network_list_type.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/screens/network_lists_screen.dart';

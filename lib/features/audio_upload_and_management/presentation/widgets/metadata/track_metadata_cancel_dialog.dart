@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Metadata form widget used inside TrackMetadataScreen and TrackMetadataBody.
+// Used by: track_metadata_screen
+// Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 
 Future<bool> confirmTrackMetadataCancel(BuildContext context) async {

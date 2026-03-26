@@ -11,11 +11,13 @@ import 'package:software_project/shared/ui/widgets/app_button.dart';
 import 'package:software_project/shared/ui/widgets/app_text_field.dart';
 import 'package:software_project/features/auth/presentation/widgets/visibility_toggle.dart';
 
-/// Reset password screen — entered via deep link from the reset email.
+/// Reset password screen — shown immediately after ForgotPasswordScreen.
 ///
-/// Accepts the user's email, the 6-char reset token, and a new password.
-/// The "Also sign me out everywhere" checkbox maps to [signoutAll] in
-/// the Tunify API — defaults to true per API spec.
+/// Displays an instruction banner
+/// telling the user to check their inbox, then lets them enter the
+/// 6-char reset code and set a new password.
+///
+/// On success → [BackToLoginScreen].
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String? email;
   final String? resetToken;
@@ -78,10 +80,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       next.whenOrNull(
         data: (_) {
           if (previous?.isLoading == true) {
+            // Success — go to BackToLoginScreen (repurposed CheckYourEmail).
             Navigator.pushNamedAndRemoveUntil(
               context,
-              AppRoutes.landing,
-              (route) => false,
+              AppRoutes.passwordResetSuccess,
+              (route) => route.settings.name == AppRoutes.landing,
+              arguments: {'email': _emailController.text.trim()},
             );
           }
         },
@@ -96,7 +100,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.onBackground,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
@@ -109,8 +124,46 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               children: [
                 const SizedBox(height: AppSpacing.base),
                 Text('Change your password', style: AppTextStyles.screenTitle),
+                const SizedBox(height: AppSpacing.md),
+
+                // ── Instruction banner ──
+                // User sees this while they wait for the email to arrive
+                // and while they fill in the form below.
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.base),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.mail_outline,
+                        color: AppColors.onBackgroundMuted,
+                        size: 20,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          _emailController.text.isNotEmpty
+                              ? 'If this email is in our database, we\'ve sent '
+                                    'a reset code to ${_emailController.text}. '
+                                    'Check your spam folder if you don\'t see it.'
+                              : 'If this email is in our database, we\'ve sent '
+                                    'you a reset code. Check your spam folder if '
+                                    'you don\'t see it.',
+                          style: AppTextStyles.bodyMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xxl),
 
+                // ── Email ────────────────────────────────────────────────
                 Text('Email address', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -121,6 +174,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
+                // ── Reset code ───────────────────────────────────────────
                 Text(
                   'Reset code (from email)',
                   style: AppTextStyles.fieldLabel,
@@ -133,6 +187,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
+                // ── New password ─────────────────────────────────────────
                 Text('New password', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -148,6 +203,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
+                // ── Confirm password ─────────────────────────────────────
                 Text('Confirm new password', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -164,6 +220,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
+                // ── Sign out all devices ─────────────────────────────────
                 GestureDetector(
                   onTap: () => setState(() => _signOutAll = !_signOutAll),
                   child: Row(
@@ -190,7 +247,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 const SizedBox(height: AppSpacing.xl),
 
                 AppButton(
-                  label: 'Save',
+                  label: 'Save new password',
                   onPressed: _onSave,
                   style: AppButtonStyle.primary,
                   isLoading: isLoading,
@@ -204,17 +261,4 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       ),
     );
   }
-
-  AppBar _buildAppBar() => AppBar(
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    leading: IconButton(
-      icon: const Icon(
-        Icons.arrow_back_ios_new,
-        color: AppColors.onBackground,
-        size: 20,
-      ),
-      onPressed: () => Navigator.pop(context),
-    ),
-  );
 }

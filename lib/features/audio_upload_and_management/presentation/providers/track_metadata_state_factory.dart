@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Factory helpers for building initial metadata state for new uploads and edit mode.
+// Used by: track_metadata_provider
+// Concerns: Metadata engine.
 import '../../domain/entities/upload_item.dart';
 import 'track_metadata_state.dart';
 

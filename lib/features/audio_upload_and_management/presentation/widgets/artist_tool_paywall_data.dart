@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Artist tools/paywall widget used around upload quotas and upgrade prompts.
+// Used by: upload_flow_controller, artist_home_credits_section, artist_tool_paywall_sheet, and 1 more upload files.
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 
 enum ArtistToolKind { amplify, uploadTime, replaceFile }

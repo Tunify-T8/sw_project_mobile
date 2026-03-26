@@ -35,45 +35,79 @@ class ProfileMapper {
       likesReceived: user['likesReceived'] ?? 0,  
       userType: user['userType'] ?? 'ARTIST',
       visibility: user['visibility'] ?? 'PUBLIC',
-      isActive: user['isActive'] ?? true,         
-      isVerified: user['isVerified'] ?? false,    
+      isActive: user['isActive'] ?? true,
+      isCertified: user['isCertified'] ?? user['isVerified'] ?? false,
       instagram: null,
       twitter: null,
-      website: null,
     );
 }
 
-  static ProfileDto mergeSocialLinks(
-    ProfileDto profile,
-    Map<String, dynamic> socialJson,
-  ) {
-    // MockAPI returns directly, real backend returns { "socialLinks": { ... } }
-    final links = socialJson['socialLinks'] ?? socialJson;
+static ProfileDto mergeSocialLinks(
+  ProfileDto profile,
+  Map<String, dynamic> socialJson,
+) {
+  // Backend returns { "links": [ { "platform": "INSTAGRAM", "url": "..." } ] }
+  final linksList = socialJson['links'] as List<dynamic>? ?? [];
 
-    return ProfileDto(
-      id: profile.id,                        // added after BE changed
-      userName: profile.userName,
-      displayName: profile.displayName,      // added after BE changed
-      email: profile.email,                  // added after BE changed
-      role: profile.role,                   //added after BE changed
-      bio: profile.bio,
-      city: profile.city,
-      country: profile.country,
-      profileImagePath: profile.profileImagePath,
-      coverImagePath: profile.coverImagePath,
-      followersCount: profile.followersCount,
-      followingCount: profile.followingCount,
-      tracksCount: profile.tracksCount,      // added after BE changed
-      likesReceived: profile.likesReceived,  // added after BE changed
-      visibility: profile.visibility,
-      userType: profile.userType,
-      isActive: profile.isActive,            // added after BE changed
-      isVerified: profile.isVerified,        // added after BE changed
-      instagram: links['instagram'],
-      twitter: links['twitter'],
-      website: links['website'],
-    );
+  String? instagram;
+  String? twitter;
+  String? youtube;
+  String? spotify;
+  String? tiktok;
+  String? soundcloud;
+
+  for (final link in linksList) {
+    final platform = (link['platform'] as String?)?.toUpperCase();
+    final url = link['url'] as String?;
+    switch (platform) {
+      case 'INSTAGRAM':
+        instagram = url;
+        break;
+      case 'TWITTER':
+        twitter = url;
+        break;
+      case 'YOUTUBE':
+        youtube = url;
+        break;
+      case 'SPOTIFY':
+        spotify = url;
+        break;
+      case 'TIKTOK':
+        tiktok = url;
+        break;
+      case 'SOUNDCLOUD':
+        soundcloud = url;
+        break;
+    }
   }
+
+  return ProfileDto(
+    id: profile.id,
+    userName: profile.userName,
+    displayName: profile.displayName,
+    email: profile.email,
+    role: profile.role,
+    bio: profile.bio,
+    city: profile.city,
+    country: profile.country,
+    profileImagePath: profile.profileImagePath,
+    coverImagePath: profile.coverImagePath,
+    followersCount: profile.followersCount,
+    followingCount: profile.followingCount,
+    tracksCount: profile.tracksCount,
+    likesReceived: profile.likesReceived,
+    visibility: profile.visibility,
+    userType: profile.userType,
+    isActive: profile.isActive,
+    isCertified: profile.isCertified,
+    instagram: instagram,
+    twitter: twitter,
+    youtube: youtube,
+    spotify: spotify,
+    tiktok: tiktok,
+    soundcloud: soundcloud,
+  );
+}
 }
 ///logic for me to remember the flow:
 // Call 1 → GET /users/1

@@ -1,3 +1,7 @@
+// Upload Feature Guide:
+// Purpose: Artist dashboard widget used by ArtistHomeScreen.
+// Used by: artist_home_screen
+// Concerns: Multi-format support.
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/upload_item.dart';

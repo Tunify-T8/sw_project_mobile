@@ -1,6 +1,12 @@
+// Upload Feature Guide:
+// Purpose: Home surface widget that exposes upload entry points or upload-related discovery sections.
+// Used by: home_screen
+// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
+import '../../providers/track_detail_item_provider.dart';
 import '../upload_artwork_view.dart';
 
 class HomeRecentSection extends StatelessWidget {
@@ -45,14 +51,17 @@ class HomeRecentSection extends StatelessWidget {
   }
 }
 
-class _RecentCard extends StatelessWidget {
+class _RecentCard extends ConsumerWidget {
   const _RecentCard({required this.item, required this.onTap});
 
   final UploadItem item;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolvedItemAsync = ref.watch(trackDetailItemProvider(item));
+    final resolvedItem = resolvedItemAsync.asData?.value ?? item;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -63,8 +72,8 @@ class _RecentCard extends StatelessWidget {
         child: Row(
           children: [
             UploadArtworkView(
-              localPath: item.localArtworkPath,
-              remoteUrl: item.artworkUrl,
+              localPath: resolvedItem.localArtworkPath,
+              remoteUrl: resolvedItem.artworkUrl,
               width: 48,
               height: double.infinity,
               borderRadius: const BorderRadius.horizontal(
@@ -84,7 +93,7 @@ class _RecentCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.title,
+                    resolvedItem.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -94,7 +103,7 @@ class _RecentCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    item.artistDisplay,
+                    resolvedItem.artistDisplay,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white54, fontSize: 11),
