@@ -9,7 +9,7 @@ import '../../../../core/network/dio_client.dart';
 import 'upload_backend_mode_provider.dart';
 
 final libraryUploadsUseMockProvider = Provider<bool>((ref) {
-  return ref.watch(uploadBackendModeProvider) != UploadBackendMode.real;
+  return ref.watch(uploadBackendModeProvider) == UploadBackendMode.mock;
 });
 
 final libraryUploadsDioProvider = Provider<Dio>((ref) {

@@ -1,6 +1,6 @@
 // Upload Feature Guide:
 // Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
-// Used by: upload_mappers, cloudinary_upload_repository_impl, cloudinary_upload_workflow, and 5 more upload files.
+// Used by: upload_mappers, upload_api, and 6 more upload files.
 // Concerns: Multi-format support.
 class UploadQuota {
   final String tier;

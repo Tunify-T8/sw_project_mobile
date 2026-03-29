@@ -3,7 +3,6 @@ import 'package:mockito/annotations.dart';
 import 'package:software_project/features/audio_upload_and_management/data/api/library_uploads_api.dart';
 import 'package:software_project/features/audio_upload_and_management/data/api/mock_library_uploads_api.dart';
 import 'package:software_project/features/audio_upload_and_management/data/api/upload_api.dart';
-import 'package:software_project/features/audio_upload_and_management/data/services/cloudinary_media_service.dart';
 import 'package:software_project/features/audio_upload_and_management/data/services/file_picker_service.dart';
 import 'package:software_project/features/audio_upload_and_management/data/services/mock_upload_service.dart';
 import 'package:software_project/features/audio_upload_and_management/data/services/upload_waveform_service.dart';
@@ -23,7 +22,6 @@ import 'package:software_project/features/audio_upload_and_management/domain/use
   UploadRepository,
   LibraryUploadsRepository,
   FilePickerService,
-  CloudinaryMediaService,
   MockUploadService,
   UploadWaveformService,
   GetMyUploadsUsecase,

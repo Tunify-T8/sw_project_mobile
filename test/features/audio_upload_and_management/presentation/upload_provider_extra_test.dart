@@ -7,7 +7,7 @@ import 'package:software_project/features/audio_upload_and_management/presentati
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
 import 'package:software_project/features/audio_upload_and_management/shared/upload_error_helpers.dart';
 
-import '../../../helpers/upload_mocks.mocks.dart';
+import '../helpers/local_upload_test_mocks.dart';
 import '../helpers/upload_test_data.dart';
 
 void main() {

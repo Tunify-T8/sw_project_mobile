@@ -66,8 +66,8 @@ final UploadWaveformService _waveformService = UploadWaveformService();
 
 // ── URL resolution ────────────────────────────────────────────────────────────
 
-/// Returns the waveformUrl directly — backend stores peaks as a JSON file
-/// on Supabase. No Cloudinary derivation needed.
+/// Returns the waveformUrl directly because the backend stores peaks as a JSON
+/// file in storage.
 String? _resolveWaveformUrl(UploadItem item) {
   final url = item.waveformUrl?.trim();
   if (url != null && url.isNotEmpty) return url;
