@@ -5,6 +5,7 @@ class TrackPreviewDto {
   final String title;
   final String artistId;
   final String artistName; //tell backend
+  final String? artistAvatar; //tell backend
   final String? coverUrl; //tell backend
   final int duration;
   final int likesCount;
@@ -18,6 +19,7 @@ class TrackPreviewDto {
     required this.title,
     required this.artistId,
     required this.artistName,
+    this.artistAvatar,
     this.coverUrl,
     required this.duration,
     required this.likesCount,
@@ -33,6 +35,7 @@ class TrackPreviewDto {
       title: json['title']?.toString() ?? '',
       artistId: json['artistId']?.toString() ?? '',
       artistName: json['artistName']?.toString() ?? '',
+      artistAvatar: json['artistAvatar']?.toString(),
       coverUrl: json['coverUrl']?.toString(),
       duration: json['duration'] as int,
       likesCount: json['likesCount'] as int,

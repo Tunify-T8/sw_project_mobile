@@ -1,0 +1,72 @@
+import '../../domain/entities/feed_item_entity.dart';
+import '../../domain/entities/feed_item_source.dart';
+import '../../domain/entities/track_preview_entity.dart';
+import '../../domain/entities/user_preview_entity.dart';
+import '../../domain/entities/track_interaction_entity.dart';
+
+class MockFeedService {
+  Future<List<FeedItemEntity>> getFollowingFeed() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    return [
+      FeedItemEntity(
+        source: FeedItemSource.original,
+        timeAgo: '2h',
+        actor: UserPreviewEntity(
+          id: 'u1',
+          username: 'Drake',
+          avatarUrl: 'https://i.pravatar.cc/150?img=1',
+          followersCount: 1200000,
+          verified: true,
+          location: 'Canada',
+          isFollowing: true,
+        ),
+        track: TrackPreviewEntity(
+          trackId: 't1',
+          title: 'Midnight Drive',
+          artistId: 'a1',
+          artistName: 'Drake',
+          artistAvatar: 'https://i.pravatar.cc/150?img=1',
+          coverUrl: 'https://picsum.photos/400/400?random=1',
+          duration: 215,
+          likesCount: 320,
+          commentsCount: 45,
+          createdAt: '5:20',
+          interaction: TrackInteractionEntity(
+            isLiked: true,
+            isReposted: false,
+          ),
+        ),
+      ),
+      FeedItemEntity(
+        source: FeedItemSource.repost,
+        timeAgo: '4h',
+        actor: UserPreviewEntity(
+          id: 'u2',
+          username: 'Billie',
+          avatarUrl: 'https://i.pravatar.cc/150?img=2',
+          followersCount: 980000,
+          verified: true,
+          location: 'USA',
+          isFollowing: true,
+        ),
+        track: TrackPreviewEntity(
+          trackId: 't2',
+          title: 'Ocean Lights',
+          artistId: 'a2',
+          artistName: 'The Weeknd',
+          artistAvatar: 'https://i.pravatar.cc/150?img=3',
+          coverUrl: 'https://picsum.photos/400/400?random=2',
+          duration: 198,
+          likesCount: 510,
+          commentsCount: 80,
+          createdAt: '4:10',
+          interaction: TrackInteractionEntity(
+            isLiked: false,
+            isReposted: true,
+          ),
+        ),
+      ),
+    ];
+  }
+}

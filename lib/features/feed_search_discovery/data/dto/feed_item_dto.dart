@@ -1,26 +1,29 @@
 import '../../domain/entities/feed_item_source.dart';
-import '../../domain/entities/feed_item_type.dart';
 import 'track_preview_dto.dart';
+import 'user_preview_dto.dart';
 
 class FeedItemDto {
-  final FeedItemType type;
   final FeedItemSource source;
   final String postedAt;
+  final String timeAgo;
   final TrackPreviewDto track;
+  final UserPreviewDto actor;
 
   FeedItemDto({
-    required this.type,
     required this.source,
     required this.postedAt,
+    required this.timeAgo,
     required this.track,
+    required this.actor,
   });
 
   factory FeedItemDto.fromJson(Map<String, dynamic> json) {
     return FeedItemDto(
-      type: FeedItemType.values.byName(json['type']),
       source: FeedItemSource.values.byName(json['source']),
       postedAt: json['postedAt']?.toString() ?? '',
+      timeAgo: json['timeAgo']?.toString() ?? '',
       track: TrackPreviewDto.fromJson(json['track']),
+      actor: UserPreviewDto.fromJson(json['actor']),
     );
   }
 }

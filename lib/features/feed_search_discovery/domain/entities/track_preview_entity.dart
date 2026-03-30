@@ -5,11 +5,12 @@ class TrackPreviewEntity {
   final String title;
   final String artistId;
   final String artistName;
+  final String? artistAvatar;
   final String? coverUrl;
   final int duration;
   final int likesCount;
   final int commentsCount;
-  final DateTime createdAt;
+  final String createdAt;
   final TrackInteractionEntity interaction;
 
   TrackPreviewEntity({
@@ -17,6 +18,7 @@ class TrackPreviewEntity {
     required this.title,
     required this.artistId,
     required this.artistName,
+    this.artistAvatar,
     this.coverUrl,
     required this.duration,
     required this.likesCount,
@@ -26,28 +28,30 @@ class TrackPreviewEntity {
   });
 
   TrackPreviewEntity copyWith({
-  String? trackId,
-  String? title,
-  String? artistId,
-  String? artistName,
-  String? coverUrl,
-  int? duration,
-  int? likesCount,
-  int? commentsCount,
-  DateTime? createdAt,
-  TrackInteractionEntity? interaction,
-}) {
-  return TrackPreviewEntity(
-    trackId: trackId ?? this.trackId,
-    title: title ?? this.title,
-    artistId: artistId ?? this.artistId,
-    artistName: artistName ?? this.artistName,
-    coverUrl: coverUrl ?? this.coverUrl,
-    duration: duration ?? this.duration,
-    likesCount: likesCount ?? this.likesCount,
-    commentsCount: commentsCount ?? this.commentsCount,
-    createdAt: createdAt ?? this.createdAt,
-    interaction: interaction ?? this.interaction,
-  );
-}
+    String? trackId,
+    String? title,
+    String? artistId,
+    String? artistName,
+    String? artistAvatar,
+    String? coverUrl,
+    int? duration,
+    int? likesCount,
+    int? commentsCount,
+    String? createdAt,
+    TrackInteractionEntity? interaction,
+  }) {
+    return TrackPreviewEntity(
+      trackId: trackId ?? this.trackId,
+      title: title ?? this.title,
+      artistId: artistId ?? this.artistId,
+      artistName: artistName ?? this.artistName,
+      artistAvatar: artistAvatar ?? this.artistAvatar,
+      coverUrl: coverUrl ?? this.coverUrl,
+      duration: duration ?? this.duration,
+      likesCount: likesCount ?? this.likesCount,
+      commentsCount: commentsCount ?? this.commentsCount,
+      createdAt: createdAt ?? this.createdAt,
+      interaction: interaction ?? this.interaction,
+    );
+  }
 }

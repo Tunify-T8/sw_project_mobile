@@ -1,2 +1,1 @@
-enum FeedItemSource {original}
-//ask backend about others
+enum FeedItemSource {original, repost}
