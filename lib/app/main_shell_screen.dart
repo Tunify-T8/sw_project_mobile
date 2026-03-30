@@ -4,6 +4,7 @@ import 'package:software_project/core/routing/routes.dart';
 
 import '../features/audio_upload_and_management/presentation/screens/home_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/library_screen.dart';
+import '../features/feed_search_discovery/presentation/screens/search_screen.dart';
 import 'router.dart';
 
 /// SoundCloud-style bottom nav: Home | Feed | Search | Library | Upgrade
@@ -26,7 +27,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         children: [
           const HomeScreen(),
           const _PlaceholderTab(label: 'Feed'),
-          const _PlaceholderTab(label: 'Search'),
+          const SearchScreen(),
           LibraryScreen(
             onOpenSettings: () =>
                 Navigator.of(context).pushNamed(AppRoutes.settings),

@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../dto/discovery_item_dto.dart';
@@ -23,18 +22,20 @@ class DiscoveryApi {
     bool includeReposts = true,
     String? sinceTimestamp,
   }) async {
+    final params = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+      'includeReposts': includeReposts,
+    };
+    if (sinceTimestamp != null) params['sinceTimestamp'] = sinceTimestamp;
+
     final response = await dio.get(
       ApiEndpoints.getFeed,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        'includeReposts': includeReposts,
-        if (sinceTimestamp != null) 'sinceTimestamp': sinceTimestamp,
-      },
+      queryParameters: params,
     );
-
     return PaginatedFeedResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<ResolvedResourceResponseDto> resolveResource(String url) async {
@@ -44,7 +45,8 @@ class DiscoveryApi {
     );
 
     return ResolvedResourceResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<PaginatedDiscoveryResponseDto> getDiscover({
@@ -57,7 +59,8 @@ class DiscoveryApi {
     );
 
     return PaginatedDiscoveryResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<PaginatedTrendingResponseDto> getTrending({
@@ -77,7 +80,8 @@ class DiscoveryApi {
     );
 
     return PaginatedTrendingResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<PaginatedSuggestedArtistsResponseDto> getSuggestedArtists({
@@ -90,7 +94,8 @@ class DiscoveryApi {
     );
 
     return PaginatedSuggestedArtistsResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<PaginatedSearchResponseDto> search({
@@ -104,7 +109,8 @@ class DiscoveryApi {
     );
 
     return PaginatedSearchResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<TrackSearchResponseDto> searchTracks({
@@ -116,21 +122,20 @@ class DiscoveryApi {
     String? duration,
     String? toListen,
   }) async {
+    final params = <String, dynamic>{'q': q, 'page': page, 'limit': limit};
+    if (tag != null) params['tag'] = tag;
+    if (timeAdded != null) params['timeAdded'] = timeAdded;
+    if (duration != null) params['duration'] = duration;
+    if (toListen != null) params['toListen'] = toListen;
+
     final response = await dio.get(
       ApiEndpoints.searchTracks,
-      queryParameters: {
-        'q': q,
-        'page': page,
-        'limit': limit,
-        if (tag != null) 'tag': tag,
-        if (timeAdded != null) 'timeAdded': timeAdded,
-        if (duration != null) 'duration': duration,
-        if (toListen != null) 'toListen': toListen,
-      },
+      queryParameters: params,
     );
 
     return TrackSearchResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<CollectionSearchResponseDto> searchCollections({
@@ -140,19 +145,18 @@ class DiscoveryApi {
     CollectionType? type,
     String? tag,
   }) async {
+    final params = <String, dynamic>{'q': q, 'page': page, 'limit': limit};
+    if (type != null) params['type'] = type.name;
+    if (tag != null) params['tag'] = tag;
+
     final response = await dio.get(
       ApiEndpoints.searchCollections,
-      queryParameters: {
-        'q': q,
-        'page': page,
-        'limit': limit,
-        if (type != null) 'type': type,
-        if (tag != null) 'tag': tag,
-      },
+      queryParameters: params,
     );
 
     return CollectionSearchResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<UserSearchResponseDto> searchPeople({
@@ -164,20 +168,22 @@ class DiscoveryApi {
     bool? verifiedOnly,
     String sort = 'relevance',
   }) async {
+    final params = <String, dynamic>{
+      'q': q,
+      'page': page,
+      'limit': limit,
+      'sort': sort,
+    };
+    if (location != null) params['location'] = location;
+    if (minFollowers != null) params['minFollowers'] = minFollowers;
+    if (verifiedOnly != null) params['verifiedOnly'] = verifiedOnly;
+
     final response = await dio.get(
       ApiEndpoints.searchPeople,
-      queryParameters: {
-        'q': q,
-        'page': page,
-        'limit': limit,
-        'sort': sort,
-        if (location != null) 'location': location,
-        if (minFollowers != null) 'minFollowers': minFollowers,
-        if (verifiedOnly != null) 'verifiedOnly': verifiedOnly,
-      },
+      queryParameters: params,
     );
-
     return UserSearchResponseDto.fromJson(
-        response.data as Map<String, dynamic>);
+      response.data as Map<String, dynamic>,
+    );
   }
 }

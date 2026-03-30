@@ -1,12 +1,11 @@
 import '../../domain/entities/search_all_result_entity.dart';
+import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
 import '../../domain/entities/search_genre_entity.dart';
-import '../../domain/entities/top_result_entity.dart';
-import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
-import '../../domain/entities/album_result_entity.dart';
-
+import '../../domain/entities/track_result_entity.dart';
+import '../../domain/entities/top_result_entity.dart';
 // Hardcoded mock data for all search scenarios:
 //   - genre grid (idle state)
 //   - all-tab aggregate result
@@ -15,6 +14,7 @@ import '../../domain/entities/album_result_entity.dart';
 //
 // artworkUrl fields are null throughout — placeholder widgets handle rendering.
 // Replace with real URLs when backend is connected.
+
 class MockSearchService {
   // ─── Genres ────────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ class MockSearchService {
         id: 'hip_hop_rap',
         label: 'Hip Hop & Rap',
         colorValue: 0xFF6B2D8B,
-        artworkUrl: null, // TODO: replace with real artwork
+        artworkUrl: null,
       ),
       SearchGenreEntity(
         id: 'electronic',
@@ -111,7 +111,7 @@ class MockSearchService {
         type: TopResultType.profile,
         title: 'Don Toliver',
         subtitle: '688K Followers',
-        artworkUrl: null, // TODO: replace with real avatar
+        artworkUrl: null,
       ),
       tracks: _mockTracks(),
       playlists: _mockPlaylists(),
@@ -176,14 +176,14 @@ class MockSearchService {
     return GenreDetailEntity(
       genreId: genreId,
       genreLabel: label,
-      artworkUrl: null, // TODO: replace with real banner
+      artworkUrl: null,
       trendingTracks: _mockTracks().take(5).toList(),
       introducingTracks: [
         const TrackResultEntity(
           id: 'intro_001',
           title: 'Buzzing Hip Hop & Rap',
           artistName: 'Various Artists',
-          artworkUrl: null, // TODO
+          artworkUrl: null,
           durationSeconds: 210,
           playCount: null,
         ),
@@ -209,7 +209,7 @@ class MockSearchService {
       id: 'track_001',
       title: 'Ocean (Long Way)',
       artistName: 'Don Toliver',
-      artworkUrl: null, // TODO
+      artworkUrl: null,
       durationSeconds: 218,
       playCount: '45K',
     ),
@@ -260,7 +260,7 @@ class MockSearchService {
     ProfileResultEntity(
       id: 'profile_001',
       username: 'Don Toliver',
-      avatarUrl: null, // TODO
+      avatarUrl: null,
       location: 'United States',
       followersCount: 688000,
       isVerified: true,
@@ -297,7 +297,7 @@ class MockSearchService {
       id: 'playlist_001',
       title: 'OCTANE DON TOLIVER ALBUM',
       creatorName: 'GBP',
-      artworkUrl: null, // TODO
+      artworkUrl: null,
       trackCount: 7,
     ),
     PlaylistResultEntity(
@@ -335,7 +335,7 @@ class MockSearchService {
       id: 'album_001',
       title: 'OCTANE',
       artistName: 'Don Toliver',
-      artworkUrl: null, // TODO
+      artworkUrl: null,
       trackCount: 18,
       releaseYear: 2026,
     ),

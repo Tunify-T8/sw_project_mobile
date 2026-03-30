@@ -5,40 +5,47 @@ import '../entities/search_genre_entity.dart';
 import '../entities/playlist_result_entity.dart';
 import '../entities/profile_result_entity.dart';
 import '../entities/track_result_entity.dart';
+import '../entities/search_filters_entity.dart';
 
 abstract class SearchRepository {
   /// Global search — powers the "All" tab aggregate view.
-  /// [query] is the raw text from the search bar.
   Future<SearchAllResultEntity> searchAll(String query);
 
-  /// Tab-specific searches — each returns a paginated flat list.
+  /// Track search with optional filters.
   Future<List<TrackResultEntity>> searchTracks(
     String query, {
     int page = 1,
     int limit = 20,
+    TrackSearchFilters filters = const TrackSearchFilters(),
   });
 
+  /// Profile/people search with optional filters.
   Future<List<ProfileResultEntity>> searchProfiles(
     String query, {
     int page = 1,
     int limit = 20,
+    PeopleSearchFilters filters = const PeopleSearchFilters(),
   });
 
+  /// Playlist search with optional filters.
   Future<List<PlaylistResultEntity>> searchPlaylists(
     String query, {
     int page = 1,
     int limit = 20,
+    CollectionSearchFilters filters = const CollectionSearchFilters(),
   });
 
+  /// Album search with optional filters.
   Future<List<AlbumResultEntity>> searchAlbums(
     String query, {
     int page = 1,
     int limit = 20,
+    CollectionSearchFilters filters = const CollectionSearchFilters(),
   });
 
-  /// Genre grid — returns the list of genres shown on the idle screen.
+  /// Genre grid for the idle screen.
   Future<List<SearchGenreEntity>> getGenres();
 
-  /// Genre detail — returns trending/playlists/profiles for a given genre.
+  /// Genre detail for the genre selected screen.
   Future<GenreDetailEntity> getGenreDetail(String genreId);
 }
