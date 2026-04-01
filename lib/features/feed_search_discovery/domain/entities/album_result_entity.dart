@@ -6,6 +6,7 @@ class AlbumResultEntity {
   final String? artworkUrl;
   final int trackCount;
   final int? releaseYear;
+  final int likesCount; // added for display
 
   const AlbumResultEntity({
     required this.id,
@@ -14,5 +15,6 @@ class AlbumResultEntity {
     this.artworkUrl,
     required this.trackCount,
     this.releaseYear,
+    this.likesCount = 0,
   });
 }

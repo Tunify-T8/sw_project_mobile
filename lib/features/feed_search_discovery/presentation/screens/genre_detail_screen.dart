@@ -1,16 +1,10 @@
-// lib/features/feed_search_discovery/presentation/screens/genre_detail_screen.dart
-//
-// Shown when user taps a genre from the idle grid.
-// Has its own tab bar: All | Trending | Playlists | Albums
-// "All" shows Trending section + Introducing section + Playlists row + Profiles row.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/genre_detail_entity.dart';
+import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
-import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../providers/search_provider.dart';
 import '../widgets/search/search_result_tile_track.dart';
@@ -25,24 +19,38 @@ class GenreDetailScreen extends ConsumerWidget {
     super.key,
     required this.genreId,
     required this.genreLabel,
+    required this.genreColor,
   });
 
   final String genreId;
   final String genreLabel;
+  // Color passed from the genre tile so we don't need to re-fetch it.
+  final Color genreColor;
+
+  static const double _expandedHeight = 160;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(genreDetailProvider(genreId));
+
+    // Derive a slightly darker version of the genre color for the collapsed bar
+    final darkerColor = Color.fromARGB(
+      255,
+      (genreColor.r * 0.65).round(),
+      (genreColor.g * 0.65).round(),
+      (genreColor.b * 0.65).round(),
+    );
 
     return DefaultTabController(
       length: 4,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: NestedScrollView(
-          headerSliverBuilder: (context, _) => [
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverAppBar(
-              backgroundColor: Colors.black,
-              expandedHeight: 180,
+              // Use the darker genre color as the collapsed/pinned background
+              backgroundColor: darkerColor,
+              expandedHeight: _expandedHeight,
               pinned: true,
               leading: IconButton(
                 icon: const Icon(
@@ -52,23 +60,65 @@ class GenreDetailScreen extends ConsumerWidget {
                 ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+              // Title shown in the app bar — shrinks as FlexibleSpaceBar title
+              // becomes visible. When collapsed only the app bar title shows.
+              titleSpacing: 0,
+              title: null, // Title lives in FlexibleSpaceBar only
               flexibleSpace: FlexibleSpaceBar(
+                // Title shrinks from large (expanded) to small (collapsed)
+                // and stays above the tab bar at all times.
                 title: Text(
                   genreLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: 18,
                   ),
                 ),
-                background: state.detail?.artworkUrl != null
-                    ? Image.network(
+                // titlePadding positions title above the tab bar bottom
+                titlePadding: const EdgeInsetsDirectional.fromSTEB(
+                  56,
+                  0,
+                  16,
+                  64,
+                ), // 56 = back button area, 64 = tabBar + gap
+                collapseMode: CollapseMode.parallax,
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Genre color background (full expanded area)
+                    Container(color: genreColor),
+
+                    // Artwork image overlay if available
+                    if (state.detail?.artworkUrl != null)
+                      Image.network(
                         state.detail!.artworkUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stack) =>
-                            _GenreHeaderPlaceholder(label: genreLabel),
-                      )
-                    : _GenreHeaderPlaceholder(label: genreLabel),
+                            const SizedBox.shrink(),
+                      ),
+
+                    // Dark gradient at bottom so title is readable
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 100,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.65),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               bottom: const TabBar(
                 isScrollable: false,
@@ -96,19 +146,15 @@ class GenreDetailScreen extends ConsumerWidget {
                 )
               : TabBarView(
                   children: [
-                    // All tab
                     _GenreAllTab(
                       detail: state.detail,
                       genreId: genreId,
                       genreLabel: genreLabel,
                     ),
-                    // Trending tab
                     _GenreTrackList(tracks: state.detail?.trendingTracks ?? []),
-                    // Playlists tab
                     _GenrePlaylistList(
                       playlists: state.detail?.playlists ?? [],
                     ),
-                    // Albums tab
                     _GenreAlbumList(albums: state.detail?.albums ?? []),
                   ],
                 ),
@@ -156,24 +202,25 @@ class _GenreAllTab extends StatelessWidget {
               .map((track) => SearchResultTileTrack(track: track)),
         ],
 
-        // Introducing section
+        // Introducing section — horizontal cards
         if (detail!.introducingTracks.isNotEmpty) ...[
           const SizedBox(height: 16),
           const SearchSectionHeader(title: 'Introducing'),
+          // Height 192 avoids 5px overflow (content is ~187px)
           SizedBox(
-            height: 180,
+            height: 192,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: detail!.introducingTracks.length,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (_, i) =>
+              itemBuilder: (context, i) =>
                   _IntroducingCard(track: detail!.introducingTracks[i]),
             ),
           ),
         ],
 
-        // Playlists section
+        // Playlists section — horizontal cards
         if (detail!.playlists.isNotEmpty) ...[
           const SizedBox(height: 16),
           SearchSectionHeader(
@@ -187,20 +234,21 @@ class _GenreAllTab extends StatelessWidget {
               ),
             ),
           ),
+          // Height 178 avoids 15px overflow (content is ~163px)
           SizedBox(
-            height: 160,
+            height: 178,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: detail!.playlists.length,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (_, i) =>
+              itemBuilder: (context, i) =>
                   _PlaylistCard(playlist: detail!.playlists[i]),
             ),
           ),
         ],
 
-        // Profiles section
+        // Profiles section — horizontal avatars
         if (detail!.profiles.isNotEmpty) ...[
           const SizedBox(height: 16),
           SearchSectionHeader(
@@ -214,14 +262,16 @@ class _GenreAllTab extends StatelessWidget {
               ),
             ),
           ),
+          // Height 128 avoids 5px overflow (content is ~123px)
           SizedBox(
-            height: 120,
+            height: 128,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: detail!.profiles.length,
               separatorBuilder: (context, index) => const SizedBox(width: 16),
-              itemBuilder: (_, i) => _ProfileCard(profile: detail!.profiles[i]),
+              itemBuilder: (context, i) =>
+                  _ProfileCard(profile: detail!.profiles[i]),
             ),
           ),
         ],
@@ -232,7 +282,7 @@ class _GenreAllTab extends StatelessWidget {
   }
 }
 
-// ─── Trending tab ─────────────────────────────────────────────────────────────
+// ─── Tab list views ───────────────────────────────────────────────────────────
 
 class _GenreTrackList extends StatelessWidget {
   const _GenreTrackList({required this.tracks});
@@ -246,12 +296,10 @@ class _GenreTrackList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: tracks.length,
-      itemBuilder: (_, i) => SearchResultTileTrack(track: tracks[i]),
+      itemBuilder: (context, i) => SearchResultTileTrack(track: tracks[i]),
     );
   }
 }
-
-// ─── Playlists tab ────────────────────────────────────────────────────────────
 
 class _GenrePlaylistList extends StatelessWidget {
   const _GenrePlaylistList({required this.playlists});
@@ -265,12 +313,11 @@ class _GenrePlaylistList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: playlists.length,
-      itemBuilder: (_, i) => SearchResultTilePlaylist(playlist: playlists[i]),
+      itemBuilder: (context, i) =>
+          SearchResultTilePlaylist(playlist: playlists[i]),
     );
   }
 }
-
-// ─── Albums tab ───────────────────────────────────────────────────────────────
 
 class _GenreAlbumList extends StatelessWidget {
   const _GenreAlbumList({required this.albums});
@@ -284,12 +331,12 @@ class _GenreAlbumList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: albums.length,
-      itemBuilder: (_, i) => SearchResultTileAlbum(album: albums[i]),
+      itemBuilder: (context, i) => SearchResultTileAlbum(album: albums[i]),
     );
   }
 }
 
-// ─── Small cards used in the All tab horizontal rows ─────────────────────────
+// ─── Horizontal card widgets ──────────────────────────────────────────────────
 
 class _IntroducingCard extends StatelessWidget {
   const _IntroducingCard({required this.track});
@@ -407,36 +454,13 @@ class _ProfileCard extends StatelessWidget {
               foregroundColor: Colors.white,
               side: const BorderSide(color: Colors.white54),
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: const Size(60, 28),
+              minimumSize: const Size(60, 26),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               textStyle: const TextStyle(fontSize: 11),
             ),
             child: Text(profile.isFollowing ? 'Following' : 'Follow'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Header placeholder ───────────────────────────────────────────────────────
-
-class _GenreHeaderPlaceholder extends StatelessWidget {
-  const _GenreHeaderPlaceholder({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF1C1C1E),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white38,
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-        ),
       ),
     );
   }

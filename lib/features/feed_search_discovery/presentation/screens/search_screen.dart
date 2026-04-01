@@ -1,12 +1,3 @@
-// lib/features/feed_search_discovery/presentation/screens/search_screen.dart
-//
-// Single screen that manages 3 modes via SearchScreenMode:
-//   idle    → search bar + genre grid
-//   typing  → search bar focused + recent searches + suggestion hint
-//   results → tabbed results (All / Tracks / Profiles / Playlists / Albums)
-//
-// No results state is a widget inside results mode, not a separate screen.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,7 +6,6 @@ import '../widgets/search/search_bar_widget.dart';
 import '../widgets/search/search_genre_grid.dart';
 import '../widgets/search/search_typing_suggestions.dart';
 import '../widgets/search/search_result_tabs.dart';
-import 'genre_detail_screen.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -57,7 +47,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Search bar — always visible ───────────────────────────
+            // Search bar — always visible
             SearchBarWidget(
               controller: _controller,
               focusNode: _focusNode,
@@ -83,7 +73,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               showBackButton: state.mode != SearchScreenMode.idle,
             ),
 
-            // ── Body — switches based on mode ─────────────────────────
+            // Body — switches based on mode
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -92,31 +82,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     key: const ValueKey('idle'),
                     genres: state.genres,
                     isLoading: state.isLoadingGenres,
-                    onGenreTap: (genre) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => GenreDetailScreen(
-                            genreId: genre.id,
-                            genreLabel: genre.label,
-                          ),
-                        ),
-                      );
-                    },
                   ),
                   SearchScreenMode.typing => SearchTypingSuggestions(
                     key: const ValueKey('typing'),
                     recentSearches: state.recentSearches,
+                    recentResults: state.recentResults,
                     query: state.query,
+                    suggestions: state.typingSuggestions,
+                    onSuggestionTap: (q) {
+                      _controller.text = q;
+                      _focusNode.unfocus();
+                      ref.read(searchProvider.notifier).onQuerySubmitted(q);
+                    },
                     onRecentTap: (q) {
                       _controller.text = q;
                       _focusNode.unfocus();
                       ref.read(searchProvider.notifier).onRecentSearchTapped(q);
                     },
-                    onRecentRemove: (q) {
-                      ref.read(searchProvider.notifier).removeRecentSearch(q);
+                    onRecentRemove: (result) {
+                      ref
+                          .read(searchProvider.notifier)
+                          .removeRecentResult(result);
                     },
                     onClearAll: () {
-                      ref.read(searchProvider.notifier).clearRecentSearches();
+                      ref.read(searchProvider.notifier).clearRecentResults();
                     },
                   ),
                   SearchScreenMode.results => SearchResultsTabs(
@@ -130,26 +119,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     },
                     onToggleLike: (_) {
                       // wire up engagement provider when Module 6 is ready
-                    },
-                    onApplyTrackFilters: (filters) {
-                      ref
-                          .read(searchProvider.notifier)
-                          .applyTrackFilters(filters);
-                    },
-                    onApplyCollectionFilters: (filters) {
-                      ref
-                          .read(searchProvider.notifier)
-                          .applyCollectionFilters(filters);
-                    },
-                    onApplyPeopleFilters: (filters) {
-                      ref
-                          .read(searchProvider.notifier)
-                          .applyPeopleFilters(filters);
-                    },
-                    onClearFilters: () {
-                      ref
-                          .read(searchProvider.notifier)
-                          .clearFiltersForActiveTab();
                     },
                   ),
                 },

@@ -1,9 +1,3 @@
-// lib/features/feed_search_discovery/domain/usecases/search_usecases.dart
-//
-// One use case per user-facing action. Each is a thin callable class that
-// delegates to SearchRepository. This keeps providers and UI free of
-// repository imports and makes unit testing trivial.
-
 import '../entities/search_all_result_entity.dart';
 import '../entities/album_result_entity.dart';
 import '../entities/genre_detail_entity.dart';

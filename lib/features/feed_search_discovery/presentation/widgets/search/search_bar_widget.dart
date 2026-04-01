@@ -1,5 +1,3 @@
-// lib/features/feed_search_discovery/presentation/widgets/search/search_bar_widget.dart
-
 import 'package:flutter/material.dart';
 
 class SearchBarWidget extends StatelessWidget {
@@ -25,10 +23,10 @@ class SearchBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Row(
         children: [
-          if (showBackButton) ...[
+          if (showBackButton)
             GestureDetector(
               onTap: onBack,
               child: const Padding(
@@ -40,20 +38,24 @@ class SearchBarWidget extends StatelessWidget {
                 ),
               ),
             ),
-          ],
           Expanded(
             child: Container(
-              height: 42,
+              height: 44,
               decoration: BoxDecoration(
                 color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(22),
               ),
               child: TextField(
                 controller: controller,
                 focusNode: focusNode,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.2,
+                ),
                 cursorColor: Colors.white,
                 textInputAction: TextInputAction.search,
+                textAlignVertical: TextAlignVertical.center,
                 onChanged: onChanged,
                 onSubmitted: onSubmitted,
                 decoration: InputDecoration(
@@ -65,7 +67,7 @@ class SearchBarWidget extends StatelessWidget {
                   prefixIcon: const Icon(
                     Icons.search,
                     color: Colors.white38,
-                    size: 20,
+                    size: 22,
                   ),
                   suffixIcon: controller.text.isNotEmpty
                       ? GestureDetector(
@@ -78,7 +80,12 @@ class SearchBarWidget extends StatelessWidget {
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                  // Explicit padding to vertically center the text
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 0,
+                    vertical: 12,
+                  ),
+                  isDense: true,
                 ),
               ),
             ),

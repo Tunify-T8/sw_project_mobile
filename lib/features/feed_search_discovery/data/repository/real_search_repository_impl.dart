@@ -1,5 +1,3 @@
-// lib/features/feed_search_discovery/data/repository/real_search_repository_impl.dart
-
 import '../../domain/entities/resource_type.dart';
 import '../../domain/entities/search_all_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';

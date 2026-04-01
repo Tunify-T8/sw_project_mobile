@@ -1,6 +1,3 @@
-// lib/features/feed_search_discovery/presentation/widgets/search/search_filter_sheet.dart
-// Fixed: activeColor → activeThumbColor (deprecated after Flutter 3.31)
-
 import 'package:flutter/material.dart';
 import '../../../domain/entities/search_filters_entity.dart';
 

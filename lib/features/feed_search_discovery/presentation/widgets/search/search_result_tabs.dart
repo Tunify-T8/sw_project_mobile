@@ -1,15 +1,12 @@
-// lib/features/feed_search_discovery/presentation/widgets/search/search_results_tabs.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/album_result_entity.dart';
-import '../../../domain/entities/search_genre_entity.dart';
 import '../../../domain/entities/playlist_result_entity.dart';
 import '../../../domain/entities/profile_result_entity.dart';
 import '../../../domain/entities/track_result_entity.dart';
 import '../../../domain/entities/top_result_entity.dart';
-import '../../../domain/entities/search_filters_entity.dart';
+import '../../../domain/entities/search_genre_entity.dart';
 import '../../providers/search_provider.dart';
 import 'search_artwork_placeholder.dart';
 import 'search_section_header.dart';
@@ -17,7 +14,6 @@ import 'search_result_tile_track.dart';
 import 'search_result_tile_profile.dart';
 import 'search_result_tile_playlist.dart';
 import 'search_result_tile_album.dart';
-import 'search_filter_sheet.dart';
 import '../../screens/search_see_all_screen.dart';
 
 class SearchResultsTabs extends ConsumerStatefulWidget {
@@ -27,20 +23,12 @@ class SearchResultsTabs extends ConsumerStatefulWidget {
     required this.onTabChanged,
     required this.onLoadMore,
     required this.onToggleLike,
-    required this.onApplyTrackFilters,
-    required this.onApplyCollectionFilters,
-    required this.onApplyPeopleFilters,
-    required this.onClearFilters,
   });
 
   final SearchState state;
   final ValueChanged<SearchTab> onTabChanged;
   final VoidCallback onLoadMore;
   final ValueChanged<String> onToggleLike;
-  final ValueChanged<TrackSearchFilters> onApplyTrackFilters;
-  final ValueChanged<CollectionSearchFilters> onApplyCollectionFilters;
-  final ValueChanged<PeopleSearchFilters> onApplyPeopleFilters;
-  final VoidCallback onClearFilters;
 
   @override
   ConsumerState<SearchResultsTabs> createState() => _SearchResultsTabsState();
@@ -86,35 +74,6 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
     }
   }
 
-  void _openFilterSheet(BuildContext context) async {
-    switch (widget.state.activeTab) {
-      case SearchTab.tracks:
-        final result = await TrackFilterSheet.show(
-          context,
-          widget.state.trackFilters,
-        );
-        if (result != null) widget.onApplyTrackFilters(result);
-        break;
-      case SearchTab.profiles:
-        final result = await PeopleFilterSheet.show(
-          context,
-          widget.state.peopleFilters,
-        );
-        if (result != null) widget.onApplyPeopleFilters(result);
-        break;
-      case SearchTab.playlists:
-      case SearchTab.albums:
-        final result = await CollectionFilterSheet.show(
-          context,
-          widget.state.collectionFilters,
-        );
-        if (result != null) widget.onApplyCollectionFilters(result);
-        break;
-      case SearchTab.all:
-        break;
-    }
-  }
-
   @override
   void dispose() {
     _tabController.dispose();
@@ -134,15 +93,6 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
           tabAlignment: TabAlignment.start,
           tabs: _tabLabels.map((l) => Tab(text: l)).toList(),
         ),
-
-        // Filter row — only shown on filterable tabs
-        if (widget.state.activeTab != SearchTab.all)
-          _FilterRow(
-            state: widget.state,
-            onOpenFilter: () => _openFilterSheet(context),
-            onClearFilters: widget.onClearFilters,
-          ),
-
         Expanded(
           child: widget.state.isLoading
               ? const Center(
@@ -153,7 +103,13 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
               : TabBarView(
                   controller: _tabController,
                   children: [
-                    _AllTab(state: widget.state, onLoadMore: widget.onLoadMore),
+                    _AllTab(
+                      state: widget.state,
+                      onLoadMore: widget.onLoadMore,
+                      onResultTapped: (item) => ref
+                          .read(searchProvider.notifier)
+                          .recordResultTapped(item),
+                    ),
                     _TrackTab(
                       tracks: widget.state.tracks,
                       isLoadingMore: widget.state.isLoadingMore,
@@ -174,9 +130,15 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
 // ── All tab ───────────────────────────────────────────────────────────────────
 
 class _AllTab extends StatelessWidget {
-  const _AllTab({required this.state, required this.onLoadMore});
+  const _AllTab({
+    required this.state,
+    required this.onLoadMore,
+    required this.onResultTapped,
+  });
+
   final SearchState state;
   final VoidCallback onLoadMore;
+  final ValueChanged<RecentResultItem> onResultTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -190,9 +152,25 @@ class _AllTab extends StatelessWidget {
       return _SearchEmptyState(query: state.query);
     }
 
+    // Build "More Results" — anything beyond the first few shown in each section
+    final moreItems = <_MixedResultItem>[];
+    for (final t in result.tracks.skip(4)) {
+      moreItems.add(_MixedResultItem.track(t));
+    }
+    for (final a in result.albums.skip(3)) {
+      moreItems.add(_MixedResultItem.album(a));
+    }
+    for (final p in result.profiles.skip(3)) {
+      moreItems.add(_MixedResultItem.profile(p));
+    }
+    for (final pl in result.playlists.skip(3)) {
+      moreItems.add(_MixedResultItem.playlist(pl));
+    }
+
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        // Top result card
         if (result.topResult != null) ...[
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -205,9 +183,61 @@ class _AllTab extends StatelessWidget {
               ),
             ),
           ),
-          _TopResultCard(topResult: result.topResult!),
+          _TopResultCard(
+            state: state,
+            topResult: result.topResult!,
+            onTap: () {
+              final top = result.topResult!;
+              onResultTapped(
+                RecentResultItem(
+                  kind: _kindFromTopResultType(top.type),
+                  id: top.id,
+                  title: top.title,
+                  subtitle: top.subtitle,
+                  artworkUrl: top.artworkUrl,
+                  isVerified: top.type == TopResultType.profile,
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 16),
         ],
+
+        // Recently Played — large square cards, 2 per row, tracks/albums/playlists only
+        Builder(
+          builder: (context) {
+            final playedItems = state.recentResults
+                .where((r) => r.kind != RecentResultKind.profile)
+                .take(2)
+                .toList();
+            if (playedItems.isEmpty) return const SizedBox.shrink();
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SearchSectionHeader(title: 'Recently Played'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: List.generate(playedItems.length, (i) {
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: i == 0 && playedItems.length > 1 ? 8 : 0,
+                          ),
+                          child: _RecentlyPlayedCard(item: playedItems[i]),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            );
+          },
+        ),
+
+        // Tracks section
         if (result.tracks.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Tracks',
@@ -221,6 +251,8 @@ class _AllTab extends StatelessWidget {
           ...result.tracks.take(4).map((t) => SearchResultTileTrack(track: t)),
           const SizedBox(height: 16),
         ],
+
+        // Playlists section
         if (result.playlists.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Playlists',
@@ -238,6 +270,8 @@ class _AllTab extends StatelessWidget {
               .map((p) => SearchResultTilePlaylist(playlist: p)),
           const SizedBox(height: 16),
         ],
+
+        // Profiles section
         if (result.profiles.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Profiles',
@@ -255,6 +289,8 @@ class _AllTab extends StatelessWidget {
               .map((p) => SearchResultTileProfile(profile: p)),
           const SizedBox(height: 16),
         ],
+
+        // Albums section
         if (result.albums.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Albums',
@@ -266,9 +302,190 @@ class _AllTab extends StatelessWidget {
             ),
           ),
           ...result.albums.take(3).map((a) => SearchResultTileAlbum(album: a)),
+          const SizedBox(height: 16),
+        ],
+
+        // More Results — mixed remaining items
+        if (moreItems.isNotEmpty) ...[
+          const SearchSectionHeader(title: 'More Results'),
+          ...moreItems.map((item) => _MixedResultTile(item: item)),
           const SizedBox(height: 32),
         ],
       ],
+    );
+  }
+
+  RecentResultKind _kindFromTopResultType(TopResultType type) {
+    switch (type) {
+      case TopResultType.profile:
+        return RecentResultKind.profile;
+      case TopResultType.track:
+        return RecentResultKind.track;
+      case TopResultType.album:
+        return RecentResultKind.album;
+      case TopResultType.playlist:
+        return RecentResultKind.playlist;
+    }
+  }
+}
+
+// ─── Mixed result item for More Results ──────────────────────────────────────
+
+class _MixedResultItem {
+  const _MixedResultItem._({
+    required this.kind,
+    required this.title,
+    required this.subtitle,
+    this.artworkUrl,
+    this.isUnavailable = false,
+  });
+
+  factory _MixedResultItem.track(TrackResultEntity t) => _MixedResultItem._(
+    kind: RecentResultKind.track,
+    title: t.title,
+    subtitle: t.artistName,
+    artworkUrl: t.artworkUrl,
+    isUnavailable: t.isUnavailable,
+  );
+
+  factory _MixedResultItem.album(AlbumResultEntity a) => _MixedResultItem._(
+    kind: RecentResultKind.album,
+    title: a.title,
+    subtitle: a.artistName,
+    artworkUrl: a.artworkUrl,
+  );
+
+  factory _MixedResultItem.profile(ProfileResultEntity p) => _MixedResultItem._(
+    kind: RecentResultKind.profile,
+    title: p.username,
+    subtitle: '${p.followersCount} Followers',
+    artworkUrl: p.avatarUrl,
+  );
+
+  factory _MixedResultItem.playlist(PlaylistResultEntity pl) =>
+      _MixedResultItem._(
+        kind: RecentResultKind.playlist,
+        title: pl.title,
+        subtitle: pl.creatorName,
+        artworkUrl: pl.artworkUrl,
+      );
+
+  final RecentResultKind kind;
+  final String title;
+  final String subtitle;
+  final String? artworkUrl;
+  final bool isUnavailable;
+}
+
+class _MixedResultTile extends StatelessWidget {
+  const _MixedResultTile({required this.item});
+  final _MixedResultItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final isProfile = item.kind == RecentResultKind.profile;
+    Widget leading;
+    if (item.artworkUrl != null) {
+      leading = ClipRRect(
+        borderRadius: BorderRadius.circular(isProfile ? 24 : 4),
+        child: Image.network(
+          item.artworkUrl!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+        ),
+      );
+    } else {
+      leading = isProfile
+          ? const CircleAvatar(
+              radius: 24,
+              backgroundColor: Color(0xFF2A2A2A),
+              child: Icon(Icons.person, color: Colors.white38),
+            )
+          : SearchArtworkPlaceholder(size: 48);
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: SizedBox(width: 48, height: 48, child: leading),
+      title: Text(
+        item.title,
+        style: TextStyle(
+          color: item.isUnavailable ? Colors.white38 : Colors.white,
+          fontSize: 15,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            item.subtitle,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
+          if (item.isUnavailable)
+            const Text(
+              'Not available in your country',
+              style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+        ],
+      ),
+      trailing: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
+    );
+  }
+}
+
+// ─── Recently Played card — fixed size, not full-width ─────────────────────
+
+class _RecentlyPlayedCard extends StatelessWidget {
+  const _RecentlyPlayedCard({required this.item});
+  final RecentResultItem item;
+
+  // Fixed card width — two cards sit side by side with a gap between them
+  // Constrained so they never fill the whole screen even with 1 item.
+  static const double _cardSize = 140.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _cardSize,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: item.artworkUrl != null
+                ? Image.network(
+                    item.artworkUrl!,
+                    width: _cardSize,
+                    height: _cardSize,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) =>
+                        SearchArtworkPlaceholder(size: _cardSize),
+                  )
+                : SearchArtworkPlaceholder(size: _cardSize),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            item.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            item.subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -282,6 +499,7 @@ class _TrackTab extends StatelessWidget {
     required this.hasMore,
     required this.onLoadMore,
   });
+
   final List<TrackResultEntity> tracks;
   final bool isLoadingMore;
   final bool hasMore;
@@ -300,7 +518,7 @@ class _TrackTab extends StatelessWidget {
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: tracks.length + (isLoadingMore ? 1 : 0),
-        itemBuilder: (_, i) {
+        itemBuilder: (context, i) {
           if (i == tracks.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
@@ -322,13 +540,15 @@ class _TrackTab extends StatelessWidget {
 class _ProfileTab extends StatelessWidget {
   const _ProfileTab({required this.profiles});
   final List<ProfileResultEntity> profiles;
+
   @override
   Widget build(BuildContext context) {
     if (profiles.isEmpty) return const _SearchEmptyTabState();
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: profiles.length,
-      itemBuilder: (_, i) => SearchResultTileProfile(profile: profiles[i]),
+      itemBuilder: (context, i) =>
+          SearchResultTileProfile(profile: profiles[i]),
     );
   }
 }
@@ -336,13 +556,15 @@ class _ProfileTab extends StatelessWidget {
 class _PlaylistTab extends StatelessWidget {
   const _PlaylistTab({required this.playlists});
   final List<PlaylistResultEntity> playlists;
+
   @override
   Widget build(BuildContext context) {
     if (playlists.isEmpty) return const _SearchEmptyTabState();
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: playlists.length,
-      itemBuilder: (_, i) => SearchResultTilePlaylist(playlist: playlists[i]),
+      itemBuilder: (context, i) =>
+          SearchResultTilePlaylist(playlist: playlists[i]),
     );
   }
 }
@@ -350,74 +572,134 @@ class _PlaylistTab extends StatelessWidget {
 class _AlbumTab extends StatelessWidget {
   const _AlbumTab({required this.albums});
   final List<AlbumResultEntity> albums;
+
   @override
   Widget build(BuildContext context) {
     if (albums.isEmpty) return const _SearchEmptyTabState();
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: albums.length,
-      itemBuilder: (_, i) => SearchResultTileAlbum(album: albums[i]),
+      itemBuilder: (context, i) => SearchResultTileAlbum(album: albums[i]),
     );
   }
 }
 
 // ── Top result card ────────────────────────────────────────────────────────────
+// Matches real app: avatar/artwork left, name + subtitle + Follow (profiles),
+// second item (first track or album) shown inline below.
 
 class _TopResultCard extends StatelessWidget {
-  const _TopResultCard({required this.topResult});
+  const _TopResultCard({
+    required this.state,
+    required this.topResult,
+    required this.onTap,
+  });
+
+  final SearchState state;
   final TopResultEntity topResult;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1E),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(
-                topResult.type == TopResultType.profile ? 40 : 8,
-              ),
-              child: topResult.artworkUrl != null
-                  ? Image.network(
-                      topResult.artworkUrl!,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    )
-                  : SearchArtworkPlaceholder(
-                      size: 80,
-                      isCircle: topResult.type == TopResultType.profile,
-                    ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    topResult.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                    ),
+    final isProfile = topResult.type == TopResultType.profile;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(isProfile ? 36 : 8),
+                  child: topResult.artworkUrl != null
+                      ? Image.network(
+                          topResult.artworkUrl!,
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                        )
+                      : SearchArtworkPlaceholder(size: 72, isCircle: isProfile),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              topResult.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isProfile) ...[
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.verified,
+                              color: Colors.blue,
+                              size: 15,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        topResult.subtitle,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    topResult.subtitle,
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+                const SizedBox(width: 8),
+                if (isProfile)
+                  OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white38),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      minimumSize: const Size(72, 34),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: const Text('Follow'),
                   ),
-                ],
-              ),
+              ],
             ),
+          ),
+          // Second item inline — first track or first album
+          if (state.allResult != null) ...[
+            if (state.allResult!.tracks.isNotEmpty)
+              SearchResultTileTrack(track: state.allResult!.tracks.first)
+            else if (state.allResult!.albums.isNotEmpty)
+              SearchResultTileAlbum(album: state.allResult!.albums.first),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -450,7 +732,7 @@ class _SearchEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Double-check your spelling or try other search keywords.",
+              'Double-check your spelling or try other search keywords.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white54, fontSize: 14),
             ),
@@ -463,6 +745,7 @@ class _SearchEmptyState extends StatelessWidget {
 
 class _SearchEmptyTabState extends StatelessWidget {
   const _SearchEmptyTabState();
+
   @override
   Widget build(BuildContext context) {
     return const Center(
@@ -477,6 +760,7 @@ class _SearchEmptyTabState extends StatelessWidget {
 class _SearchErrorState extends StatelessWidget {
   const _SearchErrorState({required this.error});
   final String error;
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -487,98 +771,6 @@ class _SearchErrorState extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white54, fontSize: 15),
         ),
-      ),
-    );
-  }
-}
-
-// ─── Filter row ───────────────────────────────────────────────────────────────
-
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({
-    required this.state,
-    required this.onOpenFilter,
-    required this.onClearFilters,
-  });
-
-  final SearchState state;
-  final VoidCallback onOpenFilter;
-  final VoidCallback onClearFilters;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasFilters = state.activeTabHasFilters;
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          // Filter icon button
-          GestureDetector(
-            onTap: onOpenFilter,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: hasFilters ? Colors.white : Colors.transparent,
-                border: Border.all(
-                  color: hasFilters ? Colors.white : Colors.white30,
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.tune,
-                    size: 16,
-                    color: hasFilters ? Colors.black : Colors.white,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Filter',
-                    style: TextStyle(
-                      color: hasFilters ? Colors.black : Colors.white,
-                      fontSize: 13,
-                      fontWeight: hasFilters
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Clear filters pill — shown only when filters are active
-          if (hasFilters) ...[
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: onClearFilters,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  border: Border.all(color: Colors.white30),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.close, size: 14, color: Colors.white54),
-                    SizedBox(width: 4),
-                    Text(
-                      'Clear',
-                      style: TextStyle(color: Colors.white54, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

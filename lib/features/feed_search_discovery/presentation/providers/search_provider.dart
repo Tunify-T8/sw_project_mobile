@@ -1,14 +1,11 @@
-// lib/features/feed_search_discovery/presentation/providers/search_provider.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repository/mock_search_repository_impl.dart';
 import '../../data/services/mock_search_service.dart';
 import '../../domain/entities/search_all_result_entity.dart';
+import '../../domain/entities/top_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
-// SearchTab lives in search_genre_entity.dart — import only from there.
-// Do NOT also import search_tab.dart or the name becomes ambiguous.
 import '../../domain/entities/search_genre_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
@@ -17,12 +14,46 @@ import '../../domain/entities/search_filters_entity.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../../domain/usecases/search_usecases.dart';
 
+//when backend is ready
+import '../../data/repository/real_search_repository_impl.dart';
+import '../../data/api/discovery_api.dart';
+import '../../../../core/network/dio_client.dart';
+
+// ─── Recent result item — what shows in the typing/recent list ────────────────
+// Mirrors what the real SoundCloud app shows: the actual result tapped,
+// not just the search string. Sorted by: profiles first, then tracks, then albums.
+
+enum RecentResultKind { track, profile, album, playlist }
+
+class RecentResultItem {
+  const RecentResultItem({
+    required this.kind,
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    this.artworkUrl,
+    this.isVerified = false,
+  });
+
+  final RecentResultKind kind;
+  final String id;
+  final String title; // track title / username / album title
+  final String subtitle; // artist / followers / track count
+  final String? artworkUrl;
+  final bool isVerified;
+}
+
 // ─── Repository provider ──────────────────────────────────────────────────────
 
+// ─── Mock/Real switch ────────────────────────────────────────────────────────
+// Set to false when backend is ready. One line change, nothing else needed.
+const bool useMock = true;
+
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
-  return MockSearchRepositoryImpl(MockSearchService());
-  // Swap when backend is ready:
-  // return RealSearchRepositoryImpl(DiscoveryApi(ref.read(dioProvider)));
+  if (useMock) {
+    return MockSearchRepositoryImpl(MockSearchService());
+  }
+  return RealSearchRepositoryImpl(DiscoveryApi(ref.read(dioProvider)));
 });
 
 // ─── Use case providers ───────────────────────────────────────────────────────
@@ -73,6 +104,8 @@ class SearchState {
     this.hasMore = true,
     this.page = 1,
     this.recentSearches = const [],
+    this.recentResults = const [],
+    this.typingSuggestions = const [],
     this.trackFilters = const TrackSearchFilters(),
     this.collectionFilters = const CollectionSearchFilters(),
     this.peopleFilters = const PeopleSearchFilters(),
@@ -94,6 +127,10 @@ class SearchState {
   final bool hasMore;
   final int page;
   final List<String> recentSearches;
+  // Actual result items shown in the recent list (replaces plain strings in UI)
+  final List<RecentResultItem> recentResults;
+  // Live suggestions while typing — filtered from current results
+  final List<String> typingSuggestions;
   final TrackSearchFilters trackFilters;
   final CollectionSearchFilters collectionFilters;
   final PeopleSearchFilters peopleFilters;
@@ -150,6 +187,8 @@ class SearchState {
     bool? hasMore,
     int? page,
     List<String>? recentSearches,
+    List<RecentResultItem>? recentResults,
+    List<String>? typingSuggestions,
     TrackSearchFilters? trackFilters,
     CollectionSearchFilters? collectionFilters,
     PeopleSearchFilters? peopleFilters,
@@ -171,6 +210,8 @@ class SearchState {
       hasMore: hasMore ?? this.hasMore,
       page: page ?? this.page,
       recentSearches: recentSearches ?? this.recentSearches,
+      recentResults: recentResults ?? this.recentResults,
+      typingSuggestions: typingSuggestions ?? this.typingSuggestions,
       trackFilters: trackFilters ?? this.trackFilters,
       collectionFilters: collectionFilters ?? this.collectionFilters,
       peopleFilters: peopleFilters ?? this.peopleFilters,
@@ -206,7 +247,83 @@ class SearchNotifier extends Notifier<SearchState> {
   }
 
   void onQueryChanged(String query) {
-    state = state.copyWith(query: query, mode: SearchScreenMode.typing);
+    final suggestions = _computeSuggestions(query);
+    state = state.copyWith(
+      query: query,
+      mode: SearchScreenMode.typing,
+      typingSuggestions: suggestions,
+    );
+  }
+
+  // Build live suggestions while typing.
+  // Pulls from the static genre/mock data so suggestions appear immediately
+  // without needing a network call. When backend lands, replace with API call.
+  List<String> _computeSuggestions(String query) {
+    if (query.trim().length < 2) return [];
+    final q = query.toLowerCase();
+    final seen = <String>{};
+    final exact = <String>[]; // starts with query
+    final partial = <String>[]; // just contains query
+
+    void add(String s) {
+      if (!seen.add(s.toLowerCase())) return;
+      if (s.toLowerCase().startsWith(q)) {
+        exact.add(s);
+      } else if (s.toLowerCase().contains(q)) {
+        partial.add(s);
+      }
+    }
+
+    // Pull from already-loaded results if any
+    for (final t in state.tracks) {
+      add(t.title);
+      add(t.artistName);
+    }
+    for (final p in state.profiles) {
+      add(p.username);
+    }
+    for (final a in state.albums) {
+      add(a.title);
+      add(a.artistName);
+    }
+    for (final pl in state.playlists) {
+      add(pl.title);
+    }
+
+    // Always supplement with hardcoded pool so suggestions appear from first char
+    const pool = [
+      'don toliver',
+      'don omar',
+      'doja cat',
+      'donia wael',
+      'dont call me today',
+      "don't let me down",
+      "don't stop the music",
+      "don't you need somebody",
+      'dont speak no doubt',
+      'dont stop believin',
+      'octane',
+      'ocean drive',
+      'one dance',
+      'old town road',
+      'hip hop',
+      'healing era',
+      'house music',
+      'indie pop',
+      'rock classics',
+      'r&b hits',
+      'pop hits',
+      'party mix',
+      'chill vibes',
+      'workout playlist',
+      'latin mix',
+      'feel good music',
+    ];
+    for (final s in pool) {
+      add(s);
+    }
+
+    return [...exact, ...partial].take(8).toList();
   }
 
   Future<void> onQuerySubmitted(String query) async {
@@ -234,10 +351,12 @@ class SearchNotifier extends Notifier<SearchState> {
     await _loadActiveTab(trimmed);
   }
 
+  // X button: clear text but stay in typing mode (show recent searches)
   void onSearchCleared() {
     state = state.copyWith(
       query: '',
-      mode: SearchScreenMode.idle,
+      mode: SearchScreenMode.typing, // stay in typing — show recent searches
+      typingSuggestions: [],
       clearError: true,
       allResult: null,
       tracks: [],
@@ -247,12 +366,24 @@ class SearchNotifier extends Notifier<SearchState> {
     );
   }
 
+  // Back arrow from results → typing (show recent searches)
+  // Back arrow from typing → idle (genre grid)
   void onSearchDismissed() {
-    state = state.copyWith(
-      mode: SearchScreenMode.idle,
-      query: '',
-      clearError: true,
-    );
+    if (state.mode == SearchScreenMode.results) {
+      state = state.copyWith(
+        mode: SearchScreenMode.typing,
+        typingSuggestions: [],
+        clearError: true,
+      );
+    } else {
+      // From typing → idle
+      state = state.copyWith(
+        mode: SearchScreenMode.idle,
+        query: '',
+        typingSuggestions: [],
+        clearError: true,
+      );
+    }
   }
 
   Future<void> setActiveTab(SearchTab tab) async {
@@ -411,17 +542,39 @@ class SearchNotifier extends Notifier<SearchState> {
 
   Future<void> onRecentSearchTapped(String query) => onQuerySubmitted(query);
 
+  // ── Recent results (actual items tapped, not just search strings) ─────────
+
+  void removeRecentResult(RecentResultItem item) {
+    state = state.copyWith(
+      recentResults: state.recentResults.where((r) => r.id != item.id).toList(),
+    );
+  }
+
+  void clearRecentResults() => state = state.copyWith(recentResults: []);
+
+  /// Called when user taps a result tile — adds it to recents.
+  void recordResultTapped(RecentResultItem item) {
+    final updated = [
+      item,
+      ...state.recentResults.where((r) => r.id != item.id),
+    ].take(8).toList();
+    state = state.copyWith(recentResults: updated);
+  }
+
   Future<void> _loadActiveTab(String query, {SearchTab? tab}) async {
     final activeTab = tab ?? state.activeTab;
     try {
       switch (activeTab) {
         case SearchTab.all:
-          final result = await ref.read(searchAllUseCaseProvider).call(query);
+          final raw = await ref.read(searchAllUseCaseProvider).call(query);
+          // Re-score top result based on query similarity
+          final result = _reScoreTopResult(raw, query);
           state = state.copyWith(
             isLoading: false,
             allResult: result,
             clearError: true,
           );
+          _autoRecordTopResult(result);
           break;
         case SearchTab.tracks:
           final results = await ref
@@ -493,6 +646,171 @@ class SearchNotifier extends Notifier<SearchState> {
         isLoading: false,
         error: 'Search failed. Please try again.',
       );
+    }
+  }
+
+  // Re-score the top result based on query similarity.
+  // Scoring: exact match = 100, starts with = 70, contains = 40.
+  // Checks against: track titles, album titles, profile usernames.
+  // If query matches an album/track title more closely than a profile,
+  // the album/track becomes the top result.
+  SearchAllResultEntity _reScoreTopResult(
+    SearchAllResultEntity result,
+    String query,
+  ) {
+    final q = query.toLowerCase().trim();
+
+    int score(String text) {
+      final t = text.toLowerCase();
+      if (t == q) return 100;
+      if (t.startsWith(q)) return 70;
+      if (t.contains(q)) return 40;
+      return 0;
+    }
+
+    // Score each candidate
+    int bestScore = 0;
+    TopResultEntity? bestTop;
+
+    // Albums first — "octane" should surface the album
+    for (final a in result.albums) {
+      final s = score(a.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: a.id,
+          type: TopResultType.album,
+          title: a.title,
+          subtitle: '${a.artistName} · Album · ${a.trackCount} Tracks',
+          artworkUrl: a.artworkUrl,
+        );
+      }
+    }
+
+    // Tracks
+    for (final t in result.tracks) {
+      final s = score(t.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: t.id,
+          type: TopResultType.track,
+          title: t.title,
+          subtitle: t.artistName,
+          artworkUrl: t.artworkUrl,
+        );
+      }
+    }
+
+    // Profiles — give profiles a boost if the whole query matches a name
+    for (final p in result.profiles) {
+      // Profiles get +10 bonus because users usually search for artists
+      final s = score(p.username) + 10;
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: p.id,
+          type: TopResultType.profile,
+          title: p.username,
+          subtitle: '${p.followersCount} Followers',
+          artworkUrl: p.avatarUrl,
+        );
+      }
+    }
+
+    // Playlists
+    for (final pl in result.playlists) {
+      final s = score(pl.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: pl.id,
+          type: TopResultType.playlist,
+          title: pl.title,
+          subtitle: pl.creatorName,
+          artworkUrl: pl.artworkUrl,
+        );
+      }
+    }
+
+    if (bestTop == null) return result;
+
+    return SearchAllResultEntity(
+      topResult: bestTop,
+      tracks: result.tracks,
+      playlists: result.playlists,
+      albums: result.albums,
+      profiles: result.profiles,
+    );
+  }
+
+  void _autoRecordTopResult(SearchAllResultEntity result) {
+    // Add the top result to the "Recent Searches" typed list (profiles included)
+    final top = result.topResult;
+    if (top == null) return;
+
+    final searchItem = RecentResultItem(
+      kind: _kindFromTopType(top.type),
+      id: top.id,
+      title: top.title,
+      subtitle: top.subtitle,
+      artworkUrl: top.artworkUrl,
+      isVerified: top.type == TopResultType.profile,
+    );
+    recordResultTapped(searchItem);
+
+    // Add the FIRST non-profile result to Recently Played (tracks/albums/playlists only)
+    RecentResultItem? playedItem;
+    if (result.tracks.isNotEmpty) {
+      final t = result.tracks.first;
+      playedItem = RecentResultItem(
+        kind: RecentResultKind.track,
+        id: t.id,
+        title: t.title,
+        subtitle: t.artistName,
+        artworkUrl: t.artworkUrl,
+      );
+    } else if (result.albums.isNotEmpty) {
+      final a = result.albums.first;
+      playedItem = RecentResultItem(
+        kind: RecentResultKind.album,
+        id: a.id,
+        title: a.title,
+        subtitle: a.artistName,
+        artworkUrl: a.artworkUrl,
+      );
+    } else if (result.playlists.isNotEmpty) {
+      final pl = result.playlists.first;
+      playedItem = RecentResultItem(
+        kind: RecentResultKind.playlist,
+        id: pl.id,
+        title: pl.title,
+        subtitle: pl.creatorName,
+        artworkUrl: pl.artworkUrl,
+      );
+    }
+
+    if (playedItem != null) {
+      // Store track/album/playlist as a recently played item at the front
+      // recentResults stores ALL recent items; Recently Played UI filters profiles out
+      final updated = [
+        playedItem,
+        ...state.recentResults.where((r) => r.id != playedItem!.id),
+      ].take(8).toList();
+      state = state.copyWith(recentResults: updated);
+    }
+  }
+
+  RecentResultKind _kindFromTopType(TopResultType type) {
+    switch (type) {
+      case TopResultType.profile:
+        return RecentResultKind.profile;
+      case TopResultType.track:
+        return RecentResultKind.track;
+      case TopResultType.album:
+        return RecentResultKind.album;
+      case TopResultType.playlist:
+        return RecentResultKind.playlist;
     }
   }
 }

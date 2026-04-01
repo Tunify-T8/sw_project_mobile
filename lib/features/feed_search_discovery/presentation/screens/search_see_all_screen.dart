@@ -1,16 +1,3 @@
-// lib/features/feed_search_discovery/presentation/screens/search_see_all_screen.dart
-//
-// Generic "See all" screen. Accepts whichever list type is relevant.
-// Navigated to from:
-//   - "Tracks" See all in search results All tab
-//   - "Playlists" See all in search results All tab
-//   - "Profiles" See all in search results All tab
-//   - "Trending" See all in genre detail
-//   - "Playlists" See all in genre detail
-//   - "Profiles" See all in genre detail
-//
-// Only one of tracks/playlists/profiles/albums will be non-empty per push.
-
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/track_result_entity.dart';

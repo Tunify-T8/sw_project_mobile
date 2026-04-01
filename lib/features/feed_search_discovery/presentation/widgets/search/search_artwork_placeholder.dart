@@ -1,5 +1,3 @@
-// lib/features/feed_search_discovery/presentation/widgets/search/search_artwork_placeholder.dart
-
 import 'package:flutter/material.dart';
 
 class SearchArtworkPlaceholder extends StatelessWidget {

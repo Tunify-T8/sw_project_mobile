@@ -5,6 +5,7 @@ class PlaylistResultEntity {
   final String creatorName;
   final String? artworkUrl;
   final int trackCount;
+  final int likesCount; // added for display
 
   const PlaylistResultEntity({
     required this.id,
@@ -12,5 +13,6 @@ class PlaylistResultEntity {
     required this.creatorName,
     this.artworkUrl,
     required this.trackCount,
+    this.likesCount = 0,
   });
 }

@@ -1,11 +1,3 @@
-import '../../domain/entities/search_all_result_entity.dart';
-import '../../domain/entities/album_result_entity.dart';
-import '../../domain/entities/genre_detail_entity.dart';
-import '../../domain/entities/search_genre_entity.dart';
-import '../../domain/entities/playlist_result_entity.dart';
-import '../../domain/entities/profile_result_entity.dart';
-import '../../domain/entities/track_result_entity.dart';
-import '../../domain/entities/top_result_entity.dart';
 // Hardcoded mock data for all search scenarios:
 //   - genre grid (idle state)
 //   - all-tab aggregate result
@@ -14,6 +6,14 @@ import '../../domain/entities/top_result_entity.dart';
 //
 // artworkUrl fields are null throughout — placeholder widgets handle rendering.
 // Replace with real URLs when backend is connected.
+import '../../domain/entities/search_all_result_entity.dart';
+import '../../domain/entities/top_result_entity.dart';
+import '../../domain/entities/track_result_entity.dart';
+import '../../domain/entities/playlist_result_entity.dart';
+import '../../domain/entities/profile_result_entity.dart';
+import '../../domain/entities/album_result_entity.dart';
+import '../../domain/entities/search_genre_entity.dart';
+import '../../domain/entities/genre_detail_entity.dart';
 
 class MockSearchService {
   // ─── Genres ────────────────────────────────────────────────────────────────
@@ -24,73 +24,73 @@ class MockSearchService {
       SearchGenreEntity(
         id: 'hip_hop_rap',
         label: 'Hip Hop & Rap',
-        colorValue: 0xFF6B2D8B,
-        artworkUrl: null,
-      ),
-      SearchGenreEntity(
-        id: 'electronic',
-        label: 'Electronic',
-        colorValue: 0xFF1A6B8A,
+        colorValue: 0xFFA259FF,
         artworkUrl: null,
       ),
       SearchGenreEntity(
         id: 'pop',
         label: 'Pop',
-        colorValue: 0xFF8B2D6B,
-        artworkUrl: null,
-      ),
-      SearchGenreEntity(
-        id: 'rnb',
-        label: 'R&B',
-        colorValue: 0xFF2D6B8B,
-        artworkUrl: null,
-      ),
-      SearchGenreEntity(
-        id: 'party',
-        label: 'Party',
-        colorValue: 0xFF8B6B2D,
+        colorValue: 0xFFFFD60A,
         artworkUrl: null,
       ),
       SearchGenreEntity(
         id: 'chill',
         label: 'Chill',
-        colorValue: 0xFF2D8B6B,
+        colorValue: 0xFF0FA3B1,
         artworkUrl: null,
       ),
       SearchGenreEntity(
         id: 'workout',
         label: 'Workout',
-        colorValue: 0xFF8B2D2D,
-        artworkUrl: null,
-      ),
-      SearchGenreEntity(
-        id: 'techno',
-        label: 'Techno',
-        colorValue: 0xFF3D3D8B,
-        artworkUrl: null,
-      ),
-      SearchGenreEntity(
-        id: 'indie',
-        label: 'Indie',
-        colorValue: 0xFF6B8B2D,
+        colorValue: 0xFF10A674,
         artworkUrl: null,
       ),
       SearchGenreEntity(
         id: 'house',
         label: 'House',
-        colorValue: 0xFF8B4A2D,
+        colorValue: 0xFFFF4FA3,
         artworkUrl: null,
       ),
       SearchGenreEntity(
-        id: 'soul',
-        label: 'Soul',
-        colorValue: 0xFF5A2D8B,
+        id: 'indie',
+        label: 'Indie',
+        colorValue: 0xFF2D6CDF,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'electronic',
+        label: 'Electronic',
+        colorValue: 0xFFFF4FA3,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'rnb',
+        label: 'R&B',
+        colorValue: 0xFF0FA3B1,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'party',
+        label: 'Party',
+        colorValue: 0xFFFF8C42,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'techno',
+        label: 'Techno',
+        colorValue: 0xFFFF4FA3,
         artworkUrl: null,
       ),
       SearchGenreEntity(
         id: 'folk',
         label: 'Folk',
-        colorValue: 0xFF4A6B2D,
+        colorValue: 0xFFFF8C42,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'soul',
+        label: 'Soul',
+        colorValue: 0xFF0FA3B1,
         artworkUrl: null,
       ),
     ];
@@ -105,19 +105,116 @@ class MockSearchService {
       return const SearchAllResultEntity();
     }
 
+    final tracks = _mockTracks();
+    final playlists = _mockPlaylists();
+    final profiles = _mockProfiles();
+    final albums = _mockAlbums();
+
     return SearchAllResultEntity(
-      topResult: const TopResultEntity(
-        id: 'artist_001',
-        type: TopResultType.profile,
-        title: 'Don Toliver',
-        subtitle: '688K Followers',
-        artworkUrl: null,
-      ),
-      tracks: _mockTracks(),
-      playlists: _mockPlaylists(),
-      profiles: _mockProfiles(),
-      albums: _mockAlbums(),
+      topResult: _selectTopResult(query, tracks, profiles, albums, playlists),
+      tracks: tracks,
+      playlists: playlists,
+      profiles: profiles,
+      albums: albums,
     );
+  }
+
+  TopResultEntity? _selectTopResult(
+    String query,
+    List<TrackResultEntity> tracks,
+    List<ProfileResultEntity> profiles,
+    List<AlbumResultEntity> albums,
+    List<PlaylistResultEntity> playlists,
+  ) {
+    final q = query.toLowerCase().trim();
+
+    int score(String name) {
+      final n = name.toLowerCase();
+      if (n == q) return 3;
+      if (n.startsWith(q)) return 2;
+      if (n.contains(q)) return 1;
+      return 0;
+    }
+
+    TopResultEntity? best;
+    int bestScore = 0;
+
+    // Profiles checked first — tied scores: profile beats other types
+    for (final p in profiles) {
+      final s = score(p.username);
+      if (s > bestScore) {
+        bestScore = s;
+        best = TopResultEntity(
+          id: p.id,
+          type: TopResultType.profile,
+          title: p.username,
+          subtitle: '${_fmtFollowers(p.followersCount)} Followers',
+          artworkUrl: p.avatarUrl,
+        );
+      }
+    }
+
+    // Albums only beat profile if strictly higher score
+    for (final a in albums) {
+      final s = score(a.title);
+      if (s > bestScore) {
+        bestScore = s;
+        best = TopResultEntity(
+          id: a.id,
+          type: TopResultType.album,
+          title: a.title,
+          subtitle: '${a.artistName} · ${a.trackCount} tracks',
+          artworkUrl: a.artworkUrl,
+        );
+      }
+    }
+
+    for (final pl in playlists) {
+      final s = score(pl.title);
+      if (s > bestScore) {
+        bestScore = s;
+        best = TopResultEntity(
+          id: pl.id,
+          type: TopResultType.playlist,
+          title: pl.title,
+          subtitle: '${pl.creatorName} · ${pl.trackCount} tracks',
+          artworkUrl: pl.artworkUrl,
+        );
+      }
+    }
+
+    for (final t in tracks) {
+      final s = score(t.title);
+      if (s > bestScore) {
+        bestScore = s;
+        best = TopResultEntity(
+          id: t.id,
+          type: TopResultType.track,
+          title: t.title,
+          subtitle: t.artistName,
+          artworkUrl: t.artworkUrl,
+        );
+      }
+    }
+
+    // Default fallback
+    if (best == null && profiles.isNotEmpty) {
+      final p = profiles.first;
+      best = TopResultEntity(
+        id: p.id,
+        type: TopResultType.profile,
+        title: p.username,
+        subtitle: '${_fmtFollowers(p.followersCount)} Followers',
+        artworkUrl: p.avatarUrl,
+      );
+    }
+    return best;
+  }
+
+  String _fmtFollowers(int count) {
+    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(0)}K';
+    return count.toString();
   }
 
   // ─── Tab-specific searches ─────────────────────────────────────────────────
