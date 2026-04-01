@@ -5,6 +5,8 @@ import '../../../../core/design_system/colors.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../providers/player_provider.dart';
 
+part 'mini_player_ring_button.dart';
+
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
 
@@ -44,16 +46,12 @@ class MiniPlayer extends ConsumerWidget {
             gradient: const LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: [
-                Color(0xFF242424),
-                Color(0xFF323232),
-                Color(0xFF232323),
-              ],
+              colors: [Color(0xFF242424), Color(0xFF323232), Color(0xFF232323)],
             ),
             border: Border.all(color: Colors.white10, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.26),
+                color: Colors.black.withValues(alpha: 0.26),
                 blurRadius: 22,
                 offset: const Offset(0, 10),
               ),
@@ -128,71 +126,6 @@ class MiniPlayer extends ConsumerWidget {
               const SizedBox(width: 10),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RingPlayButton extends StatelessWidget {
-  const _RingPlayButton({
-    required this.progress,
-    required this.isPlaying,
-    required this.onTap,
-  });
-
-  final double progress;
-  final bool isPlaying;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(
-        width: 62,
-        height: 62,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 62,
-              height: 62,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(end: progress),
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, _) {
-                  return CircularProgressIndicator(
-                    value: value,
-                    strokeWidth: 3.6,
-                    backgroundColor: Colors.white10,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  );
-                },
-              ),
-            ),
-            Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                color: Colors.black,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 140),
-                  child: Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    key: ValueKey(isPlaying),
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

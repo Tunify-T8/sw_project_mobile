@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../domain/entities/upload_item.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
@@ -20,9 +21,10 @@ import '../widgets/your_uploads/your_uploads_empty_state.dart';
 import '../widgets/your_uploads/your_uploads_filter_sheet.dart';
 import '../widgets/your_uploads/your_uploads_options_sheet.dart';
 import '../widgets/your_uploads/your_uploads_track_tile.dart';
-import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import 'edit_track_screen.dart';
 import 'track_detail_screen.dart';
+
+part 'your_uploads_screen_actions.dart';
 
 class YourUploadsScreen extends ConsumerStatefulWidget {
   const YourUploadsScreen({
@@ -153,59 +155,4 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
       ),
     );
   }
-
-  Future<void> _openFirst(List<UploadItem> items) async {
-    final first = items.firstWhere(
-      (item) => item.isPlayable,
-      orElse: () => items.first,
-    );
-
-    await openUploadItemPlayer(
-      context,
-      ref,
-      first,
-      queueItems: items,
-    );
-  }
-
-  void _handleUploadTap() {
-    final callback = widget.onStartUpload;
-    if (callback != null) {
-      callback();
-      return;
-    }
-    startUploadFlow(context, ref);
-  }
-
-  void _openDetail(UploadItem item) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)));
-
-  void _showOptions(UploadItem item) {
-    showYourUploadsOptionsSheet(
-      context,
-      item: item,
-      onEditTap: () {
-        Navigator.pop(context);
-        Navigator.of(context)
-            .push(
-              MaterialPageRoute(builder: (_) => EditTrackScreen(item: item)),
-            )
-            .then((result) {
-              if (result == true) {
-                ref.read(libraryUploadsProvider.notifier).refresh();
-              }
-            });
-      },
-      onDeleteTap: () {
-        Navigator.pop(context);
-        _deleteTrack(item);
-      },
-    );
-  }
-
-  Future<void> _deleteTrack(UploadItem item) async =>
-      await confirmYourUploadsDeletion(context, item)
-      ? ref.read(libraryUploadsProvider.notifier).deleteTrack(item.id)
-      : Future<void>.value();
 }

@@ -15,6 +15,19 @@ import '../utils/playback_surface_item_mapper.dart';
 import '../utils/upload_player_launcher.dart';
 import 'your_uploads_screen.dart';
 
+part 'library_screen_actions.dart';
+part 'library_screen_history_tile.dart';
+
+const _libraryMenuItems = [
+  'Your likes',
+  'Playlists',
+  'Albums',
+  'Following',
+  'Stations',
+  'Your insights',
+  'Your uploads',
+];
+
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({
     super.key,
@@ -30,16 +43,6 @@ class LibraryScreen extends ConsumerWidget {
   final VoidCallback? onStartUpload;
   final VoidCallback? onOpenSubscription;
   final VoidCallback? onOpenYourUploads;
-
-  static const _menuItems = [
-    'Your likes',
-    'Playlists',
-    'Albums',
-    'Following',
-    'Stations',
-    'Your insights',
-    'Your uploads',
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,9 +91,9 @@ class LibraryScreen extends ConsumerWidget {
               ),
             ),
             SliverList.builder(
-              itemCount: _menuItems.length,
+              itemCount: _libraryMenuItems.length,
               itemBuilder: (context, index) {
-                final label = _menuItems[index];
+                final label = _libraryMenuItems[index];
                 return InkWell(
                   onTap: () => _handleTap(context, label),
                   child: Padding(
@@ -184,7 +187,7 @@ class LibraryScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              error: (_, __) => const SliverToBoxAdapter(
+              error: (_, _) => const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(18, 0, 18, 120),
                   child: Text(
@@ -199,169 +202,5 @@ class LibraryScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _handleTap(BuildContext context, String label) {
-    if (label == 'Following') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const NetworkListsScreen(
-            userId: 'u2',
-            listType: NetworkListType.following,
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (label == 'Your uploads') {
-      if (onOpenYourUploads != null) {
-        onOpenYourUploads!();
-        return;
-      }
-
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => YourUploadsScreen(
-            onStartUpload: onStartUpload,
-            onOpenSubscription: onOpenSubscription,
-          ),
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF1C1C1E),
-        content: Text('$label coming soon'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-  }
-}
-
-class _LibraryHistoryTile extends ConsumerWidget {
-  const _LibraryHistoryTile({
-    required this.track,
-    required this.queueTracks,
-  });
-
-  final HistoryTrack track;
-  final List<HistoryTrack> queueTracks;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final store = ref.watch(globalTrackStoreProvider);
-    final stored = storedUploadItemForTrack(store, track.trackId);
-    final isBlocked = track.status == PlaybackStatus.blocked;
-
-    return InkWell(
-      onTap: isBlocked
-          ? null
-          : () async {
-              final trackIds =
-                  queueTracks.map((item) => item.trackId).toList(growable: false);
-              final currentIndex = trackIds.indexOf(track.trackId);
-
-              if (stored != null) {
-                final queueItems = queueTracks
-                    .map((item) => storedUploadItemForTrack(store, item.trackId))
-                    .whereType<UploadItem>()
-                    .toList(growable: false);
-                await openUploadItemPlayer(
-                  context,
-                  ref,
-                  stored,
-                  queueItems: queueItems.isEmpty ? null : queueItems,
-                  openScreen: true,
-                );
-                return;
-              }
-
-              await ref.read(playerProvider.notifier).loadTrackWithQueue(
-                    trackId: track.trackId,
-                    trackIds: trackIds,
-                    currentIndex: currentIndex < 0 ? 0 : currentIndex,
-                    autoPlay: true,
-                  );
-              if (!context.mounted) return;
-              await openCurrentPlaybackTrackSurface(context, ref);
-            },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 58,
-                height: 58,
-                color: const Color(0xFF202020),
-                child: (track.coverUrl?.isNotEmpty == true)
-                    ? Image.network(
-                        track.coverUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(isBlocked),
-                      )
-                    : _placeholder(isBlocked),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    track.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isBlocked ? Colors.white38 : Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    track.artist.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '▶ ${_formatPlayCount(track.playCount)} · ${_fmt(track.durationSeconds)}',
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.more_horiz, color: Colors.white54),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _placeholder(bool isBlocked) {
-    return Center(
-      child: Icon(
-        isBlocked ? Icons.lock : Icons.music_note,
-        color: isBlocked ? Colors.redAccent.withOpacity(0.6) : Colors.white24,
-      ),
-    );
-  }
-
-  String _fmt(int s) => '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
-
-  String _formatPlayCount(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M';
-    }
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K';
-    }
-    return '$count';
   }
 }
