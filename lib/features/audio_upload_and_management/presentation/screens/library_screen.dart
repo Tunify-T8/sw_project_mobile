@@ -7,6 +7,7 @@ import 'package:software_project/features/playback_streaming_engine/presentation
 import '../../../../core/design_system/colors.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
+import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/screens/listening_history_screen.dart';
 import '../../data/services/global_track_store.dart';

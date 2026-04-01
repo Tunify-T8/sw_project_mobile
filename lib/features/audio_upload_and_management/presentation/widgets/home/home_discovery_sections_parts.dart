@@ -69,7 +69,7 @@ class _FeaturedPickCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Hot For You ðŸ”¥',
+                      'Hot For You',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 26,

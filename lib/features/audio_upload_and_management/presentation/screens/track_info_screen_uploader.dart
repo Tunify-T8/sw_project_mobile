@@ -19,7 +19,7 @@ class _UploaderCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: const Center(
-              child: Text('ðŸŽµ', style: TextStyle(fontSize: 34)),
+              child: Icon(Icons.music_note, color: Color(0xFFB8860B), size: 36),
             ),
           ),
           const SizedBox(width: 16),

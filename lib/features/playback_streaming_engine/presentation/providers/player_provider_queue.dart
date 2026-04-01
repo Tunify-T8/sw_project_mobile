@@ -10,14 +10,11 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final nextIndex = queue.currentIndex + 1;
 
-    if (nextIndex >= queue.trackIds.length) {
-      if (queue.repeat == RepeatMode.all) {
-        await _jumpToIndex(0, queue, autoPlay: current.isPlaying);
-      }
-      return;
-    }
+    // Circular: wrap around to first when past the end
+    final resolvedIndex =
+        nextIndex >= queue.trackIds.length ? 0 : nextIndex;
 
-    await _jumpToIndex(nextIndex, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> previous() async {
@@ -29,18 +26,11 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final previousIndex = queue.currentIndex - 1;
 
-    if (previousIndex < 0) {
-      if (queue.repeat == RepeatMode.all) {
-        await _jumpToIndex(
-          queue.trackIds.length - 1,
-          queue,
-          autoPlay: current.isPlaying,
-        );
-      }
-      return;
-    }
+    // Circular: wrap around to last when before the start
+    final resolvedIndex =
+        previousIndex < 0 ? queue.trackIds.length - 1 : previousIndex;
 
-    await _jumpToIndex(previousIndex, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> jumpToQueueIndex(int index) async {

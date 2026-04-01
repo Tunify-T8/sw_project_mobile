@@ -57,9 +57,10 @@ class _PlaylistsSection extends StatelessWidget {
                               : Container(
                                   color: playlist.color,
                                   alignment: Alignment.center,
-                                  child: Text(
-                                    playlist.emoji,
-                                    style: const TextStyle(fontSize: 44),
+                                  child: Icon(
+                                    playlist.icon,
+                                    color: Colors.white.withOpacity(0.92),
+                                    size: 40,
                                   ),
                                 ),
                         ),

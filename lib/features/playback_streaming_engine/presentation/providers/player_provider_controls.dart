@@ -28,6 +28,9 @@ extension PlayerNotifierControls on PlayerNotifier {
       preparedState.copyWith(isPlaying: true, isBuffering: false),
     );
 
+    // Optimistically update listening history (works offline too).
+    _notifyHistoryPlayed();
+
     await _safeReportEvent(
       PlaybackEvent(
         trackId: preparedState.bundle!.trackId,

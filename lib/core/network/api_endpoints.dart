@@ -49,7 +49,7 @@ class ApiEndpoints {
   static String replaceUploadFile(String trackId) =>
       '/tracks/$trackId/audio/replace';
 
-  //Followers
+  // Followers
   static String getFollowers(String userId) => '/users/$userId/followers';
   static String getFollowing(String userId) => '/users/$userId/following';
   static String followUser(String userId) => '/users/$userId/follow';
@@ -73,10 +73,23 @@ class ApiEndpoints {
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';
   static String trackPlayed(String trackId) => '/tracks/$trackId/played';
+
+  /// Older contract endpoint kept only as a compatibility fallback.
+  static const String playbackEvents = '/me/playback/events';
+
+  /// Current backend contract (v1.1.0).
   static const String listeningHistory = '/tracks/me/listening-history';
+
+  /// Older contract endpoint kept only as a compatibility fallback.
+  static const String legacyListeningHistory = '/me/listening-history';
+
+  /// Current backend contract (v1.1.0).
   static const String playbackContext = '/tracks/playback-context';
 
-  //Feed - Search - Discovery
+  /// Older contract endpoint kept only as a compatibility fallback.
+  static const String legacyPlaybackContext = '/playback/context';
+
+  // Feed - Search - Discovery
   static const String getFeed = '/feed';
   static const String resolveResource = '/resolve';
   static const String getDiscover = '/discover';
@@ -98,8 +111,8 @@ class ApiEndpoints {
 //static const String _baseUrl = 'http://10.0.2.2:3000/api';
 
 // Change this:
-//final userRes = await _dio.get('$_baseUrl/users/1');
+//final userRes = await _dio.get(r'$_baseUrl/users/1');
 // To this:
-//final userRes = await _dio.get('$_baseUrl/users/$userId');
+//final userRes = await _dio.get(r'$_baseUrl/users/$userId');
 // In api_endpoints.dart add:
 ///////////////////////////////////////////////

@@ -53,16 +53,19 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final playerState = ref.watch(playerProvider).asData?.value;
     final store = ref.watch(globalTrackStoreProvider);
     final syncedItem = _resolveSyncedSurfaceItem(playerState, store);
+
     if (syncedItem != null && syncedItem.id != _surfaceItem.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() => _surfaceItem = syncedItem);
-        }
+        if (!mounted) return;
+        setState(() {
+          _surfaceItem = syncedItem;
+        });
       });
     }
 
-    final resolvedItemAsync = ref.watch(trackDetailItemProvider(_surfaceItem));
-    final resolvedItem = resolvedItemAsync.asData?.value ?? _surfaceItem;
+    final baseItem = syncedItem ?? _surfaceItem;
+    final resolvedItemAsync = ref.watch(trackDetailItemProvider(baseItem));
+    final resolvedItem = resolvedItemAsync.asData?.value ?? baseItem;
     final waveformState = ref.watch(trackDetailWaveformProvider(resolvedItem));
 
     final activePlayer = playerState;
@@ -127,11 +130,12 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     GlobalTrackStore store,
   ) {
     if (playerState?.bundle == null) return null;
-    final queueIds = playerState!.queue?.trackIds ?? const <String>[];
-    final relevant = playerState.bundle!.trackId == _surfaceItem.id ||
-        queueIds.contains(_surfaceItem.id);
-    if (!relevant) return null;
-    return uploadItemFromPlayerState(playerState, store);
+
+    // This screen represents the currently active player surface.
+    // Whenever the active player track changes, the whole surface should switch
+    // to that new track immediately so artwork, waveform, title, and playback
+    // state stay in sync instead of mixing old and new track data.
+    return uploadItemFromPlayerState(playerState!, store);
   }
 
   Future<void> _seekToFraction(UploadItem item, double fraction) async {

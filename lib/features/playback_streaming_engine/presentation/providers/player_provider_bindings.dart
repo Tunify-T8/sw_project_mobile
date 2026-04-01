@@ -159,4 +159,28 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       );
     });
   }
+
+  /// Optimistically prepends a HistoryTrack entry so the UI updates instantly,
+  /// regardless of network state. The history provider accumulates pending IDs
+  /// and merges them properly on the next refresh (when back online).
+  void _notifyHistoryPlayed() {
+    final bundle = _current?.bundle;
+    if (bundle == null) return;
+
+    try {
+      final historyTrack = HistoryTrack(
+        trackId: bundle.trackId,
+        title: bundle.title,
+        artist: bundle.artist,
+        playedAt: DateTime.now(),
+        durationSeconds: bundle.durationSeconds,
+        status: bundle.playability.status,
+        coverUrl: bundle.coverUrl,
+      );
+
+      ref.read(listeningHistoryProvider.notifier).trackPlayed(historyTrack);
+    } catch (_) {
+      // History update is best-effort; never break playback.
+    }
+  }
 }

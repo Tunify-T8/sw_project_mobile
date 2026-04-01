@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' as just_audio;
 
+import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_event.dart';
 import '../../domain/entities/playback_context_request.dart';
 import '../../domain/entities/playback_queue.dart';
@@ -14,6 +15,7 @@ import '../../domain/usecases/build_playback_queue_usecase.dart';
 import '../../domain/usecases/get_playback_bundle_usecase.dart';
 import '../../domain/usecases/report_playback_event_usecase.dart';
 import '../../domain/usecases/request_stream_url_usecase.dart';
+import 'listening_history_provider.dart';
 import 'player_backend_mode_provider.dart';
 import 'player_repository_provider.dart';
 

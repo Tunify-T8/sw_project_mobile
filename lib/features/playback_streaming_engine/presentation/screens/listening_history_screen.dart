@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
+import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../audio_upload_and_management/presentation/utils/playback_surface_item_mapper.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
+import '../../domain/entities/player_seed_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/mini_player.dart';
@@ -76,46 +80,35 @@ class ListeningHistoryScreen extends ConsumerWidget {
         data: (state) {
           if (state.tracks.isEmpty) return const _EmptyHistory();
 
-          return RefreshIndicator(
-            color: AppColors.primary,
-            backgroundColor: const Color(0xFF1A1A1A),
-            onRefresh: () =>
-                ref.read(listeningHistoryProvider.notifier).refresh(),
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                if (notification is ScrollEndNotification &&
-                    notification.metrics.extentAfter < 200) {
-                  ref.read(listeningHistoryProvider.notifier).loadMore();
-                }
-                return false;
-              },
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 22),
-                itemCount: state.tracks.length + (state.isLoadingMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == state.tracks.length) {
-                    return const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                    );
-                  }
-                  return _HistoryTrackTile(
-                    track: state.tracks[index],
-                    onTap: () => _openTrack(
-                      context,
-                      ref,
-                      state.tracks,
-                      state.tracks[index],
-                    ),
-                  );
-                },
+          return Stack(
+            children: [
+              RefreshIndicator(
+                color: AppColors.primary,
+                backgroundColor: const Color(0xFF1A1A1A),
+                onRefresh: () =>
+                    ref.read(listeningHistoryProvider.notifier).refresh(),
+                child: _AnimatedHistoryList(
+                  tracks: state.tracks,
+                  isLoadingMore: state.isLoadingMore,
+                  onLoadMore: () =>
+                      ref.read(listeningHistoryProvider.notifier).loadMore(),
+                  onTap: (track) => _openTrack(
+                    context,
+                    ref,
+                    state.tracks,
+                    track,
+                  ),
+                ),
               ),
-            ),
+              IgnorePointer(
+                ignoring: !state.isRefreshing,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 180),
+                  opacity: state.isRefreshing ? 1 : 0,
+                  child: const _TopRefreshOverlay(),
+                ),
+              ),
+            ],
           );
         },
       ),

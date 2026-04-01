@@ -51,7 +51,7 @@ class _MainTrackCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '\u25B6 ${stats.playCountText} Â· ${item.durationLabel} Â· ${stats.releaseDateText}',
+                        '▶ ${stats.playCountText} · ${item.durationLabel} · ${stats.releaseDateText}',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 13,

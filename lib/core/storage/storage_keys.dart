@@ -13,4 +13,7 @@ class StorageKeys {
 
   /// Key used to store serialized user information (optional).
   static const String user = 'auth_user';
+  
+  /// Key used to store playback events queued while offline.
+  static const String pendingPlaybackEvents = 'pending_playback_events';
 }

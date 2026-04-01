@@ -88,35 +88,36 @@ class _PlaylistCardData {
   const _PlaylistCardData({
     required this.title,
     required this.owner,
-    required this.emoji,
+    required this.icon,
     required this.color,
   });
 
   final String title;
   final String owner;
-  final String emoji;
+  final IconData icon;
   final Color color;
 }
 
 List<_PlaylistCardData> _mockPlaylists(UploadItem item) {
   final safeArtist = item.artistDisplay.split(',').first.trim();
+
   return const [
     _PlaylistCardData(
       title: 'Summer Nights',
       owner: 'Mosaab',
-      emoji: 'ðŸŒ´',
+      icon: Icons.nights_stay_outlined,
       color: Color(0xFF6A4B2B),
     ),
     _PlaylistCardData(
       title: 'el lol',
       owner: 'Wilo Ellol',
-      emoji: 'ðŸŽ¤',
+      icon: Icons.mic_none_rounded,
       color: Color(0xFF8B6B49),
     ),
     _PlaylistCardData(
       title: 'Arabic',
       owner: 'Mirzana',
-      emoji: 'ðŸ•¯ï¸',
+      icon: Icons.queue_music_rounded,
       color: Color(0xFF3E2C23),
     ),
   ].map((playlist) {
@@ -124,7 +125,7 @@ List<_PlaylistCardData> _mockPlaylists(UploadItem item) {
       return _PlaylistCardData(
         title: item.title,
         owner: safeArtist.isEmpty ? playlist.owner : safeArtist,
-        emoji: playlist.emoji,
+        icon: playlist.icon,
         color: playlist.color,
       );
     }

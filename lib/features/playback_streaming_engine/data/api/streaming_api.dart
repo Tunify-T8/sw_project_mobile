@@ -26,37 +26,62 @@ class StreamingApi {
     return TrackPlaybackBundleDto.fromJson(_unwrapMap(response.data));
   }
 
-  /// Latest backend contract:
+  /// Current backend contract (v1.1.0):
   /// GET /tracks/{trackId}/stream
   ///
-  /// This endpoint returns the signed streaming URL and also records
-  /// the play event in play_history on the backend.
+  /// Older drafts of the contract used POST. We try GET first and only fall
+  /// back to POST for compatibility with older deployments.
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
   }) async {
-    final response = await _dio.get(
+    try {
+      final response = await _dio.get(ApiEndpoints.trackStream(trackId));
+      return StreamResponseDto.fromJson(_unwrapMap(response.data), trackId);
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    final fallbackResponse = await _dio.post(
       ApiEndpoints.trackStream(trackId),
-      queryParameters: quality == 'auto' ? null : {'quality': quality},
+      data: {
+        'quality': quality,
+      },
     );
 
-    return StreamResponseDto.fromJson(_unwrapMap(response.data), trackId);
+    return StreamResponseDto.fromJson(
+      _unwrapMap(fallbackResponse.data),
+      trackId,
+    );
   }
 
-  /// The latest backend doc you sent does not include the old
-  /// "progress/pause/play analytics patch endpoint" in this version.
+  /// The newest contract no longer exposes /me/playback/events.
   ///
-  /// We keep this method as a no-op so the current repository/usecase/provider
-  /// layers continue compiling without forcing you to refactor everything now.
-  ///
-  /// Listening history still works because it is recorded through:
-  /// GET /tracks/{trackId}/stream
+  /// We keep this method for compatibility with the existing provider and
+  /// repository layers. If the backend still supports the old endpoint, we use
+  /// it. If the backend returns 404/405 because the endpoint was removed in the
+  /// new contract, we silently ignore it so playback and history screens keep
+  /// working.
   Future<void> reportPlaybackEvent({
     required String trackId,
     required PlaybackAction action,
     required int positionSeconds,
   }) async {
-    return;
+    try {
+      await _dio.patch(
+        ApiEndpoints.playbackEvents,
+        data: {
+          'trackId': trackId,
+          'action': _actionToString(action),
+          'positionSeconds': positionSeconds,
+        },
+      );
+    } on DioException catch (error) {
+      if (_isMethodOrRouteMismatch(error)) {
+        return;
+      }
+      rethrow;
+    }
   }
 
   Future<PlaybackContextResponseDto> buildPlaybackQueue({
@@ -66,33 +91,64 @@ class StreamingApi {
     bool shuffle = false,
     String repeat = 'none',
   }) async {
-    final response = await _dio.post(
-      ApiEndpoints.playbackContext,
-      data: {
-        'contextType': contextType,
-        'contextId': contextId,
-        if (startTrackId != null) 'startTrackId': startTrackId,
-        'shuffle': shuffle,
-        'repeat': repeat,
-      },
+    final payload = {
+      'contextType': contextType,
+      'contextId': contextId,
+      if (startTrackId != null) 'startTrackId': startTrackId,
+      'shuffle': shuffle,
+      'repeat': repeat,
+    };
+
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.playbackContext,
+        data: payload,
+      );
+
+      return PlaybackContextResponseDto.fromJson(_unwrapMap(response.data));
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    final fallbackResponse = await _dio.post(
+      ApiEndpoints.legacyPlaybackContext,
+      data: payload,
     );
 
-    return PlaybackContextResponseDto.fromJson(_unwrapMap(response.data));
+    return PlaybackContextResponseDto.fromJson(
+      _unwrapMap(fallbackResponse.data),
+    );
   }
 
   Future<List<HistoryTrackDto>> getListeningHistory({
     int page = 1,
     int limit = 20,
   }) async {
-    final response = await _dio.get(
-      ApiEndpoints.listeningHistory,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-      },
+    final queryParameters = {
+      'page': page,
+      'limit': limit,
+    };
+
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.listeningHistory,
+        queryParameters: queryParameters,
+      );
+
+      return _parseListeningHistory(response.data);
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    final fallbackResponse = await _dio.get(
+      ApiEndpoints.legacyListeningHistory,
+      queryParameters: queryParameters,
     );
 
-    final raw = response.data;
+    return _parseListeningHistory(fallbackResponse.data);
+  }
+
+  List<HistoryTrackDto> _parseListeningHistory(dynamic raw) {
     if (raw is! Map<String, dynamic>) {
       throw StateError('Unexpected listening history response: $raw');
     }
@@ -117,6 +173,11 @@ class StreamingApi {
     return raw;
   }
 
+  bool _isMethodOrRouteMismatch(DioException error) {
+    final statusCode = error.response?.statusCode;
+    return statusCode == 404 || statusCode == 405;
+  }
+
   static String _actionToString(PlaybackAction action) {
     switch (action) {
       case PlaybackAction.play:
@@ -132,10 +193,10 @@ class StreamingApi {
     switch (type) {
       case PlaybackContextType.track:
         return 'track';
-      case PlaybackContextType.playlist:
-        return 'playlist';
       case PlaybackContextType.feed:
         return 'feed';
+      case PlaybackContextType.playlist:
+        return 'playlist';
       case PlaybackContextType.profile:
         return 'profile';
       case PlaybackContextType.history:
