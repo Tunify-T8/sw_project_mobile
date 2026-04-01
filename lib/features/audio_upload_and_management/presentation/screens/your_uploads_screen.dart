@@ -10,6 +10,7 @@ import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
 import '../utils/upload_error_snackbar.dart';
+import '../utils/upload_player_launcher.dart';
 import '../widgets/artist_tools_banner.dart';
 import '../widgets/artist_tools_sheet.dart';
 import '../widgets/uploads_search_header.dart';
@@ -19,6 +20,7 @@ import '../widgets/your_uploads/your_uploads_empty_state.dart';
 import '../widgets/your_uploads/your_uploads_filter_sheet.dart';
 import '../widgets/your_uploads/your_uploads_options_sheet.dart';
 import '../widgets/your_uploads/your_uploads_track_tile.dart';
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import 'edit_track_screen.dart';
 import 'track_detail_screen.dart';
 
@@ -72,6 +74,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      bottomNavigationBar: const MiniPlayer(),
       body: RefreshIndicator(
         color: Colors.white,
         backgroundColor: const Color(0xFF1C1C1E),
@@ -151,12 +154,18 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
     );
   }
 
-  void _openFirst(List<UploadItem> items) {
+  Future<void> _openFirst(List<UploadItem> items) async {
     final first = items.firstWhere(
       (item) => item.isPlayable,
       orElse: () => items.first,
     );
-    _openDetail(first);
+
+    await openUploadItemPlayer(
+      context,
+      ref,
+      first,
+      queueItems: items,
+    );
   }
 
   void _handleUploadTap() {

@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Home screen variant that exposes upload entry points and discovery sections.
-// Used by: Opened from routing or parent navigation flows.
-// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,67 +11,85 @@ import '../widgets/home/home_top_bar.dart';
 import 'artist_home_screen.dart';
 import 'track_detail_screen.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() => loadArtistDashboardData(ref));
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(uploadProvider, (_, next) {
-      if (next.error != null && mounted) {
-        showUploadErrorSnackBar(context, next.error!);
-      }
-    });
-    ref.listen(libraryUploadsProvider, (_, next) {
-      if (next.error != null && mounted) {
+      if (next.error != null && context.mounted) {
         showUploadErrorSnackBar(context, next.error!);
       }
     });
 
-    final uploadState = ref.watch(uploadProvider);
     final libraryState = ref.watch(libraryUploadsProvider);
-    final latestTrack = libraryState.items.isEmpty
-        ? null
-        : libraryState.items.first;
-    final isBusy = uploadState.isBusy;
+    final uploadState = ref.watch(uploadProvider);
+    final latestTrack = libraryState.items.isNotEmpty ? libraryState.items.first : null;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        bottom: false,
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        color: Colors.white,
+        onRefresh: () => ref.read(libraryUploadsProvider.notifier).refresh(),
         child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           slivers: [
             SliverToBoxAdapter(
-              child: HomeTopBar(
-                isBusy: isBusy,
-                onOpenArtistHome: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ArtistHomeScreen()),
-                  );
-                },
-                onStartUpload: () => startUploadFlow(context, ref),
+              child: Container(
+                padding: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withOpacity(0.05),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      HomeTopBar(
+                        isBusy: uploadState.isBusy,
+                        onOpenArtistHome: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ArtistHomeScreen(),
+                            ),
+                          );
+                        },
+                        onStartUpload: () => startUploadFlow(context, ref),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(18, 8, 18, 4),
+                        child: Text(
+                          'Good evening',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: EdgeInsets.fromLTRB(18, 6, 18, 12),
                 child: Text(
-                  'Get back to it',
+                  'Picked for you',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -84,9 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               latestTrack: latestTrack,
               onOpenTrack: (item) {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => TrackDetailScreen(item: item),
-                  ),
+                  MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)),
                 );
               },
             ),

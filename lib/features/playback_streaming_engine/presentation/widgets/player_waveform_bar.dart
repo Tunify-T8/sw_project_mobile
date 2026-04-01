@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Seekable waveform / progress bar.
+import '../../../../core/design_system/colors.dart';
+
+/// Seekable playback bar.
 ///
-/// When [isPreviewOnly] is true, the bar is visually capped at [previewEndSeconds]
-/// and the user cannot seek beyond it.
+/// The backend may return preview-only playback. In that case the seekable
+/// window is limited to the preview segment.
 class PlayerWaveformBar extends StatelessWidget {
   const PlayerWaveformBar({
     super.key,
@@ -12,44 +14,58 @@ class PlayerWaveformBar extends StatelessWidget {
     required this.durationSeconds,
     required this.onSeek,
     this.isPreviewOnly = false,
-    this.previewEndSeconds = 30,
+    this.previewStartSeconds = 0,
+    this.previewDurationSeconds = 30,
   });
 
   final String waveformUrl;
   final int positionSeconds;
   final int durationSeconds;
   final bool isPreviewOnly;
-  final int previewEndSeconds;
+  final int previewStartSeconds;
+  final int previewDurationSeconds;
   final void Function(int positionSeconds) onSeek;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveDuration = isPreviewOnly ? previewEndSeconds : durationSeconds;
-    final progress = effectiveDuration > 0
-        ? (positionSeconds / effectiveDuration).clamp(0.0, 1.0)
+    final activeStart = isPreviewOnly ? previewStartSeconds : 0;
+    final activeEnd = isPreviewOnly
+        ? previewStartSeconds + previewDurationSeconds
+        : durationSeconds;
+    final activeWindow = (activeEnd - activeStart).clamp(1, durationSeconds == 0 ? 1 : durationSeconds);
+    final clampedPosition = positionSeconds.clamp(activeStart, activeEnd);
+    final progress = ((clampedPosition - activeStart) / activeWindow)
+        .clamp(0.0, 1.0)
+        .toDouble();
+    final previewCapFraction = durationSeconds > 0
+        ? ((previewStartSeconds + previewDurationSeconds) / durationSeconds)
+            .clamp(0.0, 1.0)
+            .toDouble()
         : 0.0;
+
+    int _mapLocalRatioToPosition(double ratio) {
+      final relativePosition = (ratio * activeWindow).round();
+      return activeStart + relativePosition;
+    }
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
         final box = context.findRenderObject() as RenderBox;
         final localPos = box.globalToLocal(details.globalPosition);
-        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0);
-        final newPos = (ratio * effectiveDuration).round();
-        onSeek(newPos);
+        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0).toDouble();
+        onSeek(_mapLocalRatioToPosition(ratio));
       },
       onTapDown: (details) {
         final box = context.findRenderObject() as RenderBox;
         final localPos = box.globalToLocal(details.globalPosition);
-        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0);
-        final newPos = (ratio * effectiveDuration).round();
-        onSeek(newPos);
+        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0).toDouble();
+        onSeek(_mapLocalRatioToPosition(ratio));
       },
       child: SizedBox(
-        height: 40,
+        height: 44,
         child: Stack(
           alignment: Alignment.centerLeft,
           children: [
-            // Track (background)
             Container(
               height: 3,
               width: double.infinity,
@@ -58,11 +74,9 @@ class PlayerWaveformBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
-            // Preview cap line (if preview-only)
             if (isPreviewOnly && durationSeconds > 0)
               FractionallySizedBox(
-                widthFactor: previewEndSeconds / durationSeconds,
+                widthFactor: previewCapFraction,
                 child: Container(
                   height: 3,
                   decoration: BoxDecoration(
@@ -71,30 +85,33 @@ class PlayerWaveformBar extends StatelessWidget {
                   ),
                 ),
               ),
-
-            // Played portion
             FractionallySizedBox(
               widthFactor: progress,
               child: Container(
                 height: 3,
                 decoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-
-            // Thumb
             FractionallySizedBox(
               widthFactor: progress,
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: Colors.orange,
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                 ),
               ),

@@ -8,6 +8,8 @@ enum BlockedReason {
   deleted,
   privateNoToken,
   copyright,
+  processing,
+  processingFailed,
 }
 
 enum RepeatMode { none, one, all }

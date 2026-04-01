@@ -72,9 +72,9 @@ class ApiEndpoints {
   // Playback
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';
-  static const String playbackEvents = '/me/playback/events';
-  static const String playbackContext = '/playback/context';
-  static const String listeningHistory = '/me/listening-history';
+  static String trackPlayed(String trackId) => '/tracks/$trackId/played';
+  static const String listeningHistory = '/tracks/me/listening-history';
+  static const String playbackContext = '/tracks/playback-context';
 
   //Feed - Search - Discovery
   static const String getFeed = '/feed';

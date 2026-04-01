@@ -1,7 +1,7 @@
 import 'playback_status.dart';
 import 'track_artist_summary.dart';
 
-/// One entry in the user's listening history (GET /me/listening-history).
+/// One entry in the user's listening history.
 class HistoryTrack {
   const HistoryTrack({
     required this.trackId,
@@ -10,6 +10,13 @@ class HistoryTrack {
     required this.playedAt,
     required this.durationSeconds,
     required this.status,
+    this.coverUrl,
+    this.genre,
+    this.releaseDate,
+    this.likeCount = 0,
+    this.commentCount = 0,
+    this.repostCount = 0,
+    this.playCount = 0,
   });
 
   final String trackId;
@@ -18,4 +25,11 @@ class HistoryTrack {
   final DateTime playedAt;
   final int durationSeconds;
   final PlaybackStatus status;
+  final String? coverUrl;
+  final String? genre;
+  final DateTime? releaseDate;
+  final int likeCount;
+  final int commentCount;
+  final int repostCount;
+  final int playCount;
 }

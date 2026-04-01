@@ -107,14 +107,19 @@ class MockPlayerService {
         _history.insert(0, {
           'trackId': trackId,
           'title': _fakeTitles[_rng.nextInt(_fakeTitles.length)],
-          'artist': {
-            'id': 'artist_mock_001',
-            'name': 'Mock Artist',
-            'tier': 'pro',
-          },
+          'artist': 'Mock Artist',
+          'coverUrl': 'https://cdn.mock.app/artwork/$trackId.png',
+          'genre': 'Electronic',
+          'releaseDate': DateTime.now().toIso8601String(),
           'playedAt': DateTime.now().toIso8601String(),
           'durationSeconds': 200,
           'status': 'playable',
+          'engagement': {
+            'likeCount': 25,
+            'commentCount': 4,
+            'repostCount': 2,
+            'playCount': 1200,
+          },
         });
       }
     }
@@ -171,16 +176,23 @@ class MockPlayerService {
         _history.add({
           'trackId': 'history_track_$i',
           'title': _fakeTitles[i % _fakeTitles.length],
-          'artist': {
-            'id': 'artist_mock_00$i',
-            'name': 'Mock Artist $i',
-            'tier': i % 3 == 0 ? 'pro' : 'free',
-          },
+          'artist': 'Mock Artist $i',
+          'coverUrl': 'https://cdn.mock.app/artwork/history_track_$i.png',
+          'genre': i.isEven ? 'Hip Hop' : 'Pop',
+          'releaseDate': DateTime.now()
+              .subtract(Duration(days: i * 3))
+              .toIso8601String(),
           'playedAt': DateTime.now()
               .subtract(Duration(hours: i * 2))
               .toIso8601String(),
           'durationSeconds': 180 + i * 10,
           'status': 'playable',
+          'engagement': {
+            'likeCount': 100 + i * 7,
+            'commentCount': 8 + i,
+            'repostCount': 3 + i,
+            'playCount': 1200 + (i * 430),
+          },
         });
       }
     }

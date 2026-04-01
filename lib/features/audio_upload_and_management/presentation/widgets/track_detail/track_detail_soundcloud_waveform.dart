@@ -1,27 +1,15 @@
-// Upload Feature Guide:
-// Purpose: Track detail widget used to build TrackDetailScreen.
-// Used by: track_detail_waveform_panel
-// Concerns: Track visibility; Waveform generation.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../providers/track_detail_waveform_provider.dart';
 
-/// Renders the SoundCloud-style waveform exactly as seen in the screenshot:
-///
-///
-/// Orange bars = played portion · White bars = unplayed portion
-/// The entire component is display-only — no playback, pure visualisation.
 class TrackDetailSoundcloudWaveform extends StatelessWidget {
   const TrackDetailSoundcloudWaveform({
     super.key,
     required this.state,
     required this.isLoading,
     this.bars,
-
-    /// Progress fraction 0.0–1.0 of how far through the track we are.
-    /// Default 0 = all bars white (unplayed), for display-only mode.
     this.progress = 0.0,
   });
 
@@ -32,7 +20,6 @@ class TrackDetailSoundcloudWaveform extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Total widget height. Upper bars occupy 54%, gap line ~2px, mirror 44%.
     const totalHeight = 220.0;
 
     return SizedBox(
@@ -41,8 +28,6 @@ class TrackDetailSoundcloudWaveform extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final waveformBars = bars;
-
-          // ── Dynamic waveform generated from the audio file ─────────────
           if (waveformBars != null && waveformBars.isNotEmpty) {
             return _DynamicWaveform(
               bars: waveformBars,
@@ -53,26 +38,18 @@ class TrackDetailSoundcloudWaveform extends StatelessWidget {
             );
           }
 
-          // ── Loading spinner while extraction is running ─────────────────
-          if (isLoading) {
-            return _LoadingPlaceholder(totalHeight: totalHeight);
-          }
-
-          // ── Fallback: network waveform image or skeleton bars ───────────
           return _FallbackWaveform(
-            waveformUrl: state.waveformUrl,
             duration: state.duration,
             progress: progress,
             totalHeight: totalHeight,
             containerWidth: constraints.maxWidth,
+            useMutedOpacity: isLoading,
           );
         },
       ),
     );
   }
 }
-
-// ── Dynamic waveform (real bars from audio_waveforms extraction) ──────────────
 
 class _DynamicWaveform extends StatelessWidget {
   const _DynamicWaveform({
@@ -91,37 +68,39 @@ class _DynamicWaveform extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Time badge sits at the progress point, 20px above the centre line.
-    const badgeWidth = 100.0;
-    final maxLeft = math.max(0.0, containerWidth - badgeWidth);
-    final badgeLeft = (maxLeft * progress).clamp(0.0, maxLeft);
-    // Centre line Y = 54% down from top
-    final centreY = totalHeight * 0.54;
-    final badgeTop = centreY - 42.0;
+    final metrics = _WaveformMetrics(
+      bars: bars,
+      progress: progress,
+      containerWidth: containerWidth,
+    );
+    final centreY = totalHeight * 0.56;
+    final badgeTop = centreY - 40;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // ── Centre hairline ─────────────────────────────────────────────
         Positioned(
           left: 0,
           right: 0,
           top: centreY,
-          child: Container(height: 1.2, color: Colors.white),
+          child: Container(height: 1.0, color: Colors.white.withOpacity(0.34)),
         ),
-        // ── Waveform bars (upper + mirrored lower) ──────────────────────
         Positioned.fill(
-          child: CustomPaint(
-            painter: _SCWaveformPainter(
-              bars: bars,
-              progress: progress,
-              centreRatio: 0.54,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: _SCWaveformPainter(
+                bars: bars,
+                progress: progress,
+                centreRatio: 0.56,
+                metrics: metrics,
+              ),
             ),
           ),
         ),
-        // ── Time badge ──────────────────────────────────────────────────
-        Positioned(
-          left: badgeLeft,
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          left: metrics.badgeLeft,
           top: badgeTop,
           child: _TimeBadge(progress: progress, duration: duration),
         ),
@@ -130,33 +109,31 @@ class _DynamicWaveform extends StatelessWidget {
   }
 }
 
-// ── Fallback when no bars extracted yet ───────────────────────────────────────
-
 class _FallbackWaveform extends StatelessWidget {
   const _FallbackWaveform({
-    required this.waveformUrl,
     required this.duration,
     required this.progress,
     required this.totalHeight,
     required this.containerWidth,
+    required this.useMutedOpacity,
   });
 
-  final String? waveformUrl;
   final Duration duration;
   final double progress;
   final double totalHeight;
   final double containerWidth;
+  final bool useMutedOpacity;
 
   @override
   Widget build(BuildContext context) {
-    final centreY = totalHeight * 0.54;
-    final badgeTop = centreY - 42.0;
-    final trimmedWaveformUrl = waveformUrl?.trim();
-    final hasWaveformImage =
-        trimmedWaveformUrl != null && trimmedWaveformUrl.isNotEmpty;
-    const badgeWidth = 100.0;
-    final maxLeft = math.max(0.0, containerWidth - badgeWidth);
-    final badgeLeft = (maxLeft * progress).clamp(0.0, maxLeft);
+    final bars = _SkeletonWaveformPainter.generateBars(180);
+    final metrics = _WaveformMetrics(
+      bars: bars,
+      progress: progress,
+      containerWidth: containerWidth,
+    );
+    final centreY = totalHeight * 0.56;
+    final badgeTop = centreY - 40;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -165,31 +142,21 @@ class _FallbackWaveform extends StatelessWidget {
           left: 0,
           right: 0,
           top: centreY,
-          child: Container(
-            height: 1.2,
-            color: Colors.white.withValues(alpha: 0.18),
-          ),
+          child: Container(height: 1.0, color: Colors.white.withOpacity(0.18)),
         ),
         Positioned.fill(
-          child: hasWaveformImage
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Image.network(
-                    trimmedWaveformUrl,
-                    fit: BoxFit.fill,
-                    filterQuality: FilterQuality.medium,
-                    errorBuilder: (_, _, _) => CustomPaint(
-                      painter: _SkeletonWaveformPainter(centreRatio: 0.54),
-                    ),
-                  ),
-                )
-              : CustomPaint(
-                  painter: _SkeletonWaveformPainter(centreRatio: 0.54),
-                ),
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: _SkeletonWaveformPainter(
+                centreRatio: 0.56,
+                metrics: metrics,
+                opacity: useMutedOpacity ? 0.28 : 0.42,
+              ),
+            ),
+          ),
         ),
-        // Time badge always visible even on fallback
         Positioned(
-          left: badgeLeft,
+          left: metrics.badgeLeft,
           top: badgeTop,
           child: _TimeBadge(progress: progress, duration: duration),
         ),
@@ -198,44 +165,41 @@ class _FallbackWaveform extends StatelessWidget {
   }
 }
 
-// ── Loading placeholder ────────────────────────────────────────────────────────
+class _WaveformMetrics {
+  _WaveformMetrics({
+    required List<double> bars,
+    required double progress,
+    required double containerWidth,
+  })  : barCount = bars.length,
+        safeProgress = progress.clamp(0.0, 1.0),
+        viewportWidth = containerWidth,
+        stride = _resolveStride(containerWidth),
+        playheadAnchorX = containerWidth * 0.62,
+        contentWidth = math.max(containerWidth, bars.length * _resolveStride(containerWidth)) {
+    final currentIndexDouble = safeProgress * math.max(0, barCount - 1);
+    currentBarX = currentIndexDouble * stride + (stride * 0.5);
+    final maxScroll = math.max(0.0, contentWidth - viewportWidth);
+    scrollX = (currentBarX - playheadAnchorX).clamp(0.0, maxScroll);
+    playheadX = (currentBarX - scrollX).clamp(0.0, viewportWidth);
+    badgeLeft = (playheadX - 52).clamp(0.0, math.max(0.0, viewportWidth - 104));
+  }
 
-class _LoadingPlaceholder extends StatelessWidget {
-  const _LoadingPlaceholder({required this.totalHeight});
-  final double totalHeight;
+  final int barCount;
+  final double safeProgress;
+  final double viewportWidth;
+  final double stride;
+  final double playheadAnchorX;
+  final double contentWidth;
+  late final double currentBarX;
+  late final double scrollX;
+  late final double playheadX;
+  late final double badgeLeft;
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: totalHeight,
-      child: Stack(
-        children: [
-          // Faint skeleton so the space doesn't look empty
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _SkeletonWaveformPainter(
-                centreRatio: 0.54,
-                opacity: 0.22,
-              ),
-            ),
-          ),
-          const Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.0,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  static double _resolveStride(double width) {
+    final density = width > 420 ? 3.45 : 3.15;
+    return density;
   }
 }
-
-// ── Time badge ────────────────────────────────────────────────────────────────
 
 class _TimeBadge extends StatelessWidget {
   const _TimeBadge({required this.progress, required this.duration});
@@ -251,7 +215,7 @@ class _TimeBadge extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.88),
+        color: Colors.black.withOpacity(0.88),
         borderRadius: BorderRadius.circular(3),
       ),
       child: Padding(
@@ -288,107 +252,90 @@ class _TimeBadge extends StatelessWidget {
   }
 }
 
-// ── Real waveform painter ─────────────────────────────────────────────────────
-//
-// Matches the SoundCloud screenshot:
-//  • Bars grow UP and DOWN from centreY
-//  • Upper half: full opacity  (played = orange, unplayed = white)
-//  • Lower half: mirrored reflection at 35% opacity
-//  • Bar width ≈2.5px, gap ≈1.5px, ~170 bars across full width
-//  • Minimum visible bar height = 8px so even silent parts are visible
-
 class _SCWaveformPainter extends CustomPainter {
   const _SCWaveformPainter({
     required this.bars,
     required this.progress,
     required this.centreRatio,
+    required this.metrics,
   });
 
   final List<double> bars;
   final double progress;
   final double centreRatio;
+  final _WaveformMetrics metrics;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (bars.isEmpty) return;
 
     final centreY = size.height * centreRatio;
-    final upperZone = centreY; // pixels available above centre
-
-    // Bar geometry — exactly like SoundCloud tight packing
-    const gap = 1.6;
-    final totalGap = gap * (bars.length - 1);
-    final barWidth = math.max(
-      1.5,
-      math.min(3.2, (size.width - totalGap) / bars.length),
-    );
-    final stride = barWidth + gap;
-
-    final playedCount = (bars.length * progress).round().clamp(0, bars.length);
+    final upperZone = centreY;
+    final barWidth = math.max(1.8, metrics.stride * 0.64);
+    final playedPaint = Paint()
+      ..color = const Color(0xFFFF5A14)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
+    final unplayedPaint = Paint()
+      ..color = Colors.white.withOpacity(0.94)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
+    final playedReflectionPaint = Paint()
+      ..color = const Color(0xFFFFB187).withOpacity(0.88)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
+    final unplayedReflectionPaint = Paint()
+      ..color = Colors.white.withOpacity(0.33)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
 
     for (int i = 0; i < bars.length; i++) {
-      final x = i * stride + barWidth / 2;
+      final x = (i * metrics.stride + metrics.stride * 0.5) - metrics.scrollX;
+      if (x < -barWidth || x > size.width + barWidth) continue;
+
       final normalised = bars[i].clamp(0.08, 1.0).toDouble();
-
-      // Upper bar: up to 88% of available upper zone
-      final upperH = math.max(8.0, normalised * upperZone * 0.88);
-      // Lower mirror: 55% of upper height
-      final lowerH = math.max(4.0, upperH * 0.55);
-
-      final isPlayed = i < playedCount;
-
-      // ── Upper bar (full opacity) ────────────────────────────────────
-      final upperPaint = Paint()
-        ..color = isPlayed
-            ? const Color(0xFFFF5500)
-            : Colors.white.withValues(alpha: 0.95)
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = barWidth;
+      final upperH = math.max(12.0, normalised * upperZone * 0.50);
+      final lowerH = math.max(9.0, upperH * 0.42);
+      final isPlayed = x <= metrics.playheadX;
 
       canvas.drawLine(
         Offset(x, centreY - upperH),
         Offset(x, centreY - 1),
-        upperPaint,
+        isPlayed ? playedPaint : unplayedPaint,
       );
-
-      // ── Lower mirror (reduced opacity) ─────────────────────────────
-      final lowerPaint = Paint()
-        ..color = isPlayed
-            ? const Color(0xFFFF5500).withValues(alpha: 0.32)
-            : Colors.white.withValues(alpha: 0.32)
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = barWidth;
-
       canvas.drawLine(
-        Offset(x, centreY + 1),
+        Offset(x, centreY + 2),
         Offset(x, centreY + lowerH),
-        lowerPaint,
+        isPlayed ? playedReflectionPaint : unplayedReflectionPaint,
       );
     }
+
+    final playheadPaint = Paint()..color = Colors.white.withOpacity(0.16);
+    canvas.drawRect(
+      Rect.fromLTWH(metrics.playheadX - 0.8, centreY - 92, 1.6, 144),
+      playheadPaint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant _SCWaveformPainter old) =>
-      old.bars != bars || old.progress != progress;
+      old.bars != bars ||
+      (old.progress - progress).abs() > 0.001 ||
+      old.metrics.scrollX != metrics.scrollX;
 }
-
-// ── Skeleton / placeholder painter ───────────────────────────────────────────
-//
-// Used while extraction is running and as fallback when no bars are available.
-// Generates a naturalistic-looking wave using a combination of sine waves,
-// so it doesn't look like a flat line or random noise.
 
 class _SkeletonWaveformPainter extends CustomPainter {
   const _SkeletonWaveformPainter({
     required this.centreRatio,
+    required this.metrics,
     this.opacity = 0.45,
   });
 
   final double centreRatio;
+  final _WaveformMetrics metrics;
   final double opacity;
 
-  // Deterministic skeleton bars — looks like a real song waveform
-  static List<double> _generateBars(int count) {
+  static List<double> generateBars(int count) {
     final result = <double>[];
     for (int i = 0; i < count; i++) {
       final t = i / count;
@@ -404,50 +351,34 @@ class _SkeletonWaveformPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const barCount = 150;
-    final bars = _generateBars(barCount);
-
+    final bars = generateBars(180);
     final centreY = size.height * centreRatio;
-    const gap = 1.6;
-    final totalGap = gap * (barCount - 1);
-    final barWidth = math.max(
-      1.5,
-      math.min(3.2, (size.width - totalGap) / barCount),
-    );
-    final stride = barWidth + gap;
     final upperZone = centreY;
+    final barWidth = math.max(1.8, metrics.stride * 0.64);
+    final upperPaint = Paint()
+      ..color = Colors.white.withOpacity(opacity)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
+    final lowerPaint = Paint()
+      ..color = Colors.white.withOpacity(opacity * 0.38)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
 
-    for (int i = 0; i < barCount; i++) {
-      final x = i * stride + barWidth / 2;
+    for (int i = 0; i < bars.length; i++) {
+      final x = (i * metrics.stride + metrics.stride * 0.5) - metrics.scrollX;
+      if (x < -barWidth || x > size.width + barWidth) continue;
       final normalised = bars[i];
-      final upperH = math.max(8.0, normalised * upperZone * 0.88);
-      final lowerH = math.max(4.0, upperH * 0.55);
+      final upperH = math.max(12.0, normalised * upperZone * 0.50);
+      final lowerH = math.max(9.0, upperH * 0.42);
 
-      final upperPaint = Paint()
-        ..color = Colors.white.withValues(alpha: opacity)
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = barWidth;
-
-      canvas.drawLine(
-        Offset(x, centreY - upperH),
-        Offset(x, centreY - 1),
-        upperPaint,
-      );
-
-      final lowerPaint = Paint()
-        ..color = Colors.white.withValues(alpha: opacity * 0.35)
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = barWidth;
-
-      canvas.drawLine(
-        Offset(x, centreY + 1),
-        Offset(x, centreY + lowerH),
-        lowerPaint,
-      );
+      canvas.drawLine(Offset(x, centreY - upperH), Offset(x, centreY - 1), upperPaint);
+      canvas.drawLine(Offset(x, centreY + 2), Offset(x, centreY + lowerH), lowerPaint);
     }
   }
 
   @override
   bool shouldRepaint(covariant _SkeletonWaveformPainter old) =>
-      old.centreRatio != centreRatio || old.opacity != opacity;
+      old.centreRatio != centreRatio ||
+      old.opacity != opacity ||
+      old.metrics.scrollX != metrics.scrollX;
 }

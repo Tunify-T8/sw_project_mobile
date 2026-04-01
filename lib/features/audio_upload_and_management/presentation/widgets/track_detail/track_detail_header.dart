@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Track detail widget used to build TrackDetailScreen.
-// Used by: track_detail_screen
-// Concerns: Track visibility.
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/upload_item.dart';
@@ -11,16 +7,20 @@ class TrackDetailHeader extends StatelessWidget {
     super.key,
     required this.item,
     required this.onDismiss,
+    required this.onArtistTap,
+    required this.onTrackInfoTap,
   });
 
   final UploadItem item;
   final VoidCallback onDismiss;
+  final VoidCallback onArtistTap;
+  final VoidCallback onTrackInfoTap;
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -28,39 +28,63 @@ class TrackDetailHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Label(
+                  _BlackTag(
                     text: item.title,
                     fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    onTap: onTrackInfoTap,
                   ),
-                  const SizedBox(height: 2),
-                  _Label(text: item.artistDisplay, fontSize: 13),
                   const SizedBox(height: 4),
-                  const _BehindTrackTag(),
+                  _BlackTag(
+                    text: item.artistDisplay,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    onTap: onArtistTap,
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTrackInfoTap,
+                    child: Container(
+                      color: Colors.black.withOpacity(0.82),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.graphic_eq, color: Colors.white70, size: 17),
+                          SizedBox(width: 8),
+                          Text(
+                            'Behind this track',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
             Column(
               children: [
-                GestureDetector(
+                _CircleAction(
+                  size: 58,
+                  backgroundColor: Colors.black,
+                  icon: Icons.keyboard_arrow_down_rounded,
+                  iconSize: 34,
                   onTap: onDismiss,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
                 ),
-                SizedBox(height: 16),
-                Icon(Icons.devices_other, color: Colors.white70, size: 24),
+                const SizedBox(height: 28),
+                const _SideIcon(icon: Icons.person_add_alt_1_outlined),
+                const SizedBox(height: 28),
+                const _SideIcon(icon: Icons.devices_outlined),
               ],
             ),
           ],
@@ -70,53 +94,82 @@ class TrackDetailHeader extends StatelessWidget {
   }
 }
 
-class _Label extends StatelessWidget {
-  const _Label({
+class _BlackTag extends StatelessWidget {
+  const _BlackTag({
     required this.text,
     required this.fontSize,
-    this.fontWeight = FontWeight.w400,
+    required this.fontWeight,
+    required this.onTap,
   });
 
   final String text;
   final double fontSize;
   final FontWeight fontWeight;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black54,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: fontSize,
-          fontWeight: fontWeight,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        color: Colors.black.withOpacity(0.82),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+          ),
         ),
       ),
     );
   }
 }
 
-class _BehindTrackTag extends StatelessWidget {
-  const _BehindTrackTag();
+class _CircleAction extends StatelessWidget {
+  const _CircleAction({
+    required this.size,
+    required this.backgroundColor,
+    required this.icon,
+    required this.iconSize,
+    required this.onTap,
+  });
+
+  final double size;
+  final Color backgroundColor;
+  final IconData icon;
+  final double iconSize;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black54,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.graphic_eq, color: Colors.white70, size: 14),
-          SizedBox(width: 4),
-          Text(
-            'Behind this track',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: iconSize),
       ),
     );
+  }
+}
+
+class _SideIcon extends StatelessWidget {
+  const _SideIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(icon, color: Colors.white70, size: 34);
   }
 }

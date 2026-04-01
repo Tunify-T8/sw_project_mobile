@@ -1,7 +1,5 @@
-// Upload Feature Guide:
-// Purpose: Track detail widget used to build TrackDetailScreen.
-// Used by: track_detail_screen
-// Concerns: Track visibility.
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/entities/upload_item.dart';
@@ -12,31 +10,96 @@ class TrackDetailBackground extends StatelessWidget {
     super.key,
     required this.item,
     required this.fallbackColor,
+    required this.progress,
+    required this.isPlaying,
   });
 
   final UploadItem item;
   final Color fallbackColor;
+  final double progress;
+  final bool isPlaying;
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: item.localArtworkPath != null || item.artworkUrl != null
-          ? ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                Colors.black.withValues(alpha: 0.15),
-                BlendMode.darken,
-              ),
-              child: UploadArtworkView(
-                localPath: item.localArtworkPath,
-                remoteUrl: item.artworkUrl,
-                width: double.infinity,
-                height: double.infinity,
-                backgroundColor: fallbackColor,
-                borderRadius: BorderRadius.zero,
-                placeholder: _GradientFallback(color: fallbackColor),
-              ),
-            )
-          : _GradientFallback(color: fallbackColor),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(34),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final safeProgress = progress.clamp(0.0, 1.0);
+            final extraPanWidth = constraints.maxWidth * 0.68;
+            final artworkWidth = constraints.maxWidth + extraPanWidth;
+            final translateX = -(extraPanWidth * safeProgress);
+
+            Widget art = item.localArtworkPath != null ||
+                    (item.artworkUrl?.trim().isNotEmpty == true)
+                ? UploadArtworkView(
+                    localPath: item.localArtworkPath,
+                    remoteUrl: item.artworkUrl,
+                    width: artworkWidth,
+                    height: constraints.maxHeight,
+                    fit: BoxFit.cover,
+                    backgroundColor: fallbackColor,
+                    borderRadius: BorderRadius.zero,
+                    placeholder: _GradientFallback(color: fallbackColor),
+                  )
+                : _GradientFallback(color: fallbackColor);
+
+            if (!isPlaying) {
+              art = ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: art,
+              );
+            }
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                OverflowBox(
+                  alignment: Alignment.centerLeft,
+                  minWidth: artworkWidth,
+                  maxWidth: artworkWidth,
+                  minHeight: constraints.maxHeight,
+                  maxHeight: constraints.maxHeight,
+                  child: Transform.translate(
+                    offset: Offset(translateX, 0),
+                    child: SizedBox(
+                      width: artworkWidth,
+                      height: constraints.maxHeight,
+                      child: ColorFiltered(
+                        colorFilter: ColorFilter.mode(
+                          Colors.black.withOpacity(isPlaying ? 0.14 : 0.34),
+                          BlendMode.darken,
+                        ),
+                        child: art,
+                      ),
+                    ),
+                  ),
+                ),
+                IgnorePointer(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 240),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(isPlaying ? 0.02 : 0.08),
+                          Colors.transparent,
+                          Colors.black.withOpacity(isPlaying ? 0.18 : 0.20),
+                          Colors.black.withOpacity(0.28),
+                        ],
+                        stops: const [0, 0.36, 0.68, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -53,7 +116,11 @@ class _GradientFallback extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color, color.withValues(alpha: 0.4)],
+          colors: [
+            color,
+            color.withOpacity(0.72),
+            Colors.black.withOpacity(0.9),
+          ],
         ),
       ),
     );

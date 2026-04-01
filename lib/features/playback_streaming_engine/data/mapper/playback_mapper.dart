@@ -154,6 +154,13 @@ extension HistoryTrackDtoMapper on HistoryTrackDto {
       playedAt: DateTime.tryParse(playedAt) ?? DateTime.now(),
       durationSeconds: durationSeconds,
       status: _mapStatus(status),
+      coverUrl: coverUrl,
+      genre: genre,
+      releaseDate: releaseDate != null ? DateTime.tryParse(releaseDate!) : null,
+      likeCount: likeCount,
+      commentCount: commentCount,
+      repostCount: repostCount,
+      playCount: playCount,
     );
   }
 
