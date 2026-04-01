@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../dto/discovery_item_dto.dart';
@@ -17,14 +16,14 @@ class DiscoveryApi {
 
   DiscoveryApi(this.dio);
 
-  Future<PaginatedFeedResponseDto> getFeed({
+  Future<PaginatedFeedResponseDto> getFollowingFeed({
     int page = 1,
     int limit = 20,
     bool includeReposts = true,
     String? sinceTimestamp,
   }) async {
     final response = await dio.get(
-      ApiEndpoints.getFeed,
+      ApiEndpoints.getFollowingFeed,
       queryParameters: {
         'page': page,
         'limit': limit,
