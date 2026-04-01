@@ -1,0 +1,1 @@
+enum FeedTabType {following, discover}

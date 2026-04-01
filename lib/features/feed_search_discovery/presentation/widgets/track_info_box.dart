@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/feed_item_entity.dart';
+import '../../domain/entities/track_preview_entity.dart';
 
 class TrackInfoBox extends StatelessWidget {
-  final FeedItemEntity item;
+  final TrackPreviewEntity track;
 
-  const TrackInfoBox({super.key, required this.item});
+  const TrackInfoBox({super.key, required this.track});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class TrackInfoBox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.track.title,
+                  track.title,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -34,8 +34,8 @@ class TrackInfoBox extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 20.0,
-                      backgroundImage: item.track.coverUrl != null
-                          ? NetworkImage(item.track.coverUrl!)
+                      backgroundImage: track.coverUrl != null
+                          ? NetworkImage(track.coverUrl!)
                           : null,
                     ),
                     const SizedBox(width: 10.0),
@@ -46,7 +46,7 @@ class TrackInfoBox extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              item.track.artistName,
+                              track.artistName,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -56,7 +56,7 @@ class TrackInfoBox extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 5.0),
-                          if (item.actor.verified)
+                          if (track.artistVerified)
                             const Icon(
                               Icons.verified,
                               color: Colors.blue,
@@ -70,7 +70,7 @@ class TrackInfoBox extends StatelessWidget {
                               foregroundColor: Colors.white,
                             ),
                             child: Text(
-                              item.actor.isFollowing ? 'Following' : 'Follow',
+                              track.isFollowingArtist ? 'Following' : 'Follow',
                               style: const TextStyle(fontSize: 15.0),
                             ),
                           ),

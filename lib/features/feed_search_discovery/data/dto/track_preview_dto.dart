@@ -4,13 +4,15 @@ class TrackPreviewDto {
   final String trackId;
   final String title;
   final String artistId;
-  final String artistName; //tell backend
-  final String? artistAvatar; //tell backend
-  final String? coverUrl; //tell backend
+  final String artistName; // tell backend
+  final String? artistAvatar; // tell backend
+  final bool artistVerified; // tell backend
+  final bool isFollowingArtist; // tell backend
+  final String? coverUrl; // tell backend
   final int duration;
   final int likesCount;
   final int repostsCount;
-  final int commentsCount; //tell backend
+  final int commentsCount; // tell backend
   final String createdAt;
   final TrackInteractionDto interaction;
 
@@ -20,6 +22,8 @@ class TrackPreviewDto {
     required this.artistId,
     required this.artistName,
     this.artistAvatar,
+    required this.artistVerified,
+    required this.isFollowingArtist,
     this.coverUrl,
     required this.duration,
     required this.likesCount,
@@ -36,6 +40,8 @@ class TrackPreviewDto {
       artistId: json['artistId']?.toString() ?? '',
       artistName: json['artistName']?.toString() ?? '',
       artistAvatar: json['artistAvatar']?.toString(),
+      artistVerified: json['artistVerified'] ?? false,
+      isFollowingArtist: json['isFollowingArtist'] ?? false,
       coverUrl: json['coverUrl']?.toString(),
       duration: json['duration'] as int,
       likesCount: json['likesCount'] as int,

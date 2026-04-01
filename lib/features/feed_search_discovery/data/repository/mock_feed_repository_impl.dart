@@ -11,4 +11,9 @@ class MockFeedRepositoryImpl implements FeedRepository {
   Future<List<FeedItemEntity>> getFollowingFeed({int page = 1, int limit = 20}) async {
     return await mockFeedService.getFollowingFeed();
   }
+
+  @override
+  Future<List<FeedItemEntity>> getDiscoverFeed({int page = 1, int limit = 20}) async {
+    return await mockFeedService.getDiscoverFeed();
+  }
 }

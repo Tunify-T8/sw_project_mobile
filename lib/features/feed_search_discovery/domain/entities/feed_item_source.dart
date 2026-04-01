@@ -1,1 +1,7 @@
-enum FeedItemSource {original, repost}
+enum FeedItemSource {
+  post,
+  repost,
+  newRelease,
+  becauseYouLiked,
+  becauseYouFollow,
+}

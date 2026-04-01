@@ -1,34 +1,49 @@
 import '../../domain/entities/feed_item_entity.dart';
-import '../../domain/entities/discovery_item_entity.dart';
 
 class FeedState {
-  final List<FeedItemEntity> feedItems;
-  final List<DiscoveryItemEntity> discoverItems;
-  final bool isLoading;
+  final List<FeedItemEntity> followingItems;
+  final List<FeedItemEntity> discoverItems;
+  final bool isDiscoverLoading;
+  final bool isFollowingLoading;
+  final bool hasLoadedDiscover;
+  final bool hasLoadedFollowing;
   final bool isPreviewing;
-  final String? error;
+  final String? discoverError;
+  final String? followingError;
 
   FeedState({
-    this.feedItems = const [],
+    this.followingItems = const [],
     this.discoverItems = const [],
-    this.isLoading = true,
+    this.isDiscoverLoading = true,
+    this.isFollowingLoading = false,
+    this.hasLoadedDiscover = false,
+    this.hasLoadedFollowing = false,
     this.isPreviewing = false,
-    this.error,
+    this.discoverError,
+    this.followingError,
   });
 
   FeedState copyWith({
-    List<FeedItemEntity>? feedItems,
-    List<DiscoveryItemEntity>? discoverItems,
-    bool? isLoading,
+    List<FeedItemEntity>? followingItems,
+    List<FeedItemEntity>? discoverItems,
+    bool? isDiscoverLoading,
+    bool? isFollowingLoading,
+    bool? hasLoadedDiscover,
+    bool? hasLoadedFollowing,
     bool? isPreviewing,
-    String? error,
+    String? discoverError,
+    String? followingError,
   }) {
     return FeedState(
-      feedItems: feedItems ?? this.feedItems,
+      followingItems: followingItems ?? this.followingItems,
       discoverItems: discoverItems ?? this.discoverItems,
-      isLoading: isLoading ?? this.isLoading,
+      isDiscoverLoading: isDiscoverLoading ?? this.isDiscoverLoading,
+      isFollowingLoading: isFollowingLoading ?? this.isFollowingLoading,
+      hasLoadedDiscover: hasLoadedDiscover ?? this.hasLoadedDiscover,
+      hasLoadedFollowing: hasLoadedFollowing ?? this.hasLoadedFollowing,
       isPreviewing: isPreviewing ?? this.isPreviewing,
-      error: error,
+      discoverError: discoverError,
+      followingError: followingError,
     );
   }
 }

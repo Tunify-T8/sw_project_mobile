@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
 class FeedTabBar extends StatelessWidget {
+  final TabController controller;
   const FeedTabBar({
     super.key,
+    required this.controller
   });
 
   @override
   Widget build(BuildContext context) {
     return TabBar(
+      controller: controller,
       tabs: const [
         Tab(text: 'Discover'),
         Tab(text: 'Following'),

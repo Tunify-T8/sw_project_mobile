@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'feed_provider.dart';
 import 'feed_state.dart';
+import '../../domain/entities/feed_tab_type.dart';
 
 final feedNotifierProvider = NotifierProvider<FeedNotifier, FeedState>(
   FeedNotifier.new,
@@ -9,56 +10,107 @@ final feedNotifierProvider = NotifierProvider<FeedNotifier, FeedState>(
 
 class FeedNotifier extends Notifier<FeedState> {
   @override
-  FeedState build() {
-    return FeedState();
-  }
+  FeedState build() => FeedState();
 
-  Future<void> loadFollowingFeed({int page = 1, int limit = 20}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> loadFeed({
+    required FeedTabType tab,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    if (tab == FeedTabType.discover) {
+      state = state.copyWith(
+        isDiscoverLoading: true,
+        discoverError: null,
+        followingError: state.followingError,
+      );
+    } else {
+      state = state.copyWith(
+        isFollowingLoading: true,
+        followingError: null,
+        discoverError: state.discoverError,
+      );
+    }
 
     try {
       final repository = ref.read(feedRepositoryProvider);
-      final followingFeedList = await repository.getFollowingFeed(
-        page: page,
-        limit: limit,
-      );
 
-      state = state.copyWith(
-        feedItems: followingFeedList,
-        isLoading: false,
-        error: null,
-      );
+      if (tab == FeedTabType.discover) {
+        final items = await repository.getDiscoverFeed(page: page, limit: limit);
+        state = state.copyWith(
+          discoverItems: items,
+          isDiscoverLoading: false,
+          hasLoadedDiscover: true,
+          discoverError: null,
+          followingError: state.followingError,
+        );
+      } else {
+        final items = await repository.getFollowingFeed(page: page, limit: limit);
+        state = state.copyWith(
+          followingItems: items,
+          isFollowingLoading: false,
+          hasLoadedFollowing: true,
+          followingError: null,
+          discoverError: state.discoverError,
+        );
+      }
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      if (tab == FeedTabType.discover) {
+        state = state.copyWith(
+          isDiscoverLoading: false,
+          hasLoadedDiscover: true,
+          discoverError: e.toString(),
+          followingError: state.followingError,
+        );
+      } else {
+        state = state.copyWith(
+          isFollowingLoading: false,
+          hasLoadedFollowing: true,
+          followingError: e.toString(),
+          discoverError: state.discoverError,
+        );
+      }
     }
   }
 
-  Future<void> refreshFeed({int page = 1, int limit = 20}) async {
+  Future<void> refreshFeed({
+    required FeedTabType tab,
+    int page = 1,
+    int limit = 20,
+  }) async {
     try {
       final repository = ref.read(feedRepositoryProvider);
-      final followingFeedList = await repository.getFollowingFeed(
-        page: page,
-        limit: limit,
-      );
 
-      state = state.copyWith(
-        feedItems: followingFeedList,
-        error: null,
-      );
+      if (tab == FeedTabType.discover) {
+        final items = await repository.getDiscoverFeed(page: page, limit: limit);
+        state = state.copyWith(
+          discoverItems: items,
+          discoverError: null,
+          followingError: state.followingError,
+        );
+      } else {
+        final items = await repository.getFollowingFeed(page: page, limit: limit);
+        state = state.copyWith(
+          followingItems: items,
+          followingError: null,
+          discoverError: state.discoverError,
+        );
+      }
     } catch (e) {
-      state = state.copyWith(
-        error: e.toString(),
-      );
+      if (tab == FeedTabType.discover) {
+        state = state.copyWith(
+          discoverError: e.toString(),
+          followingError: state.followingError,
+        );
+      } else {
+        state = state.copyWith(
+          followingError: e.toString(),
+          discoverError: state.discoverError,
+        );
+      }
     }
   }
-
 
   void togglePreview() {
-    state = state.copyWith(
-      isPreviewing: !state.isPreviewing,
-    );
+    state = state.copyWith(isPreviewing: !state.isPreviewing);
   }
 }
