@@ -12,8 +12,8 @@ class DiscoveryRepositoryImpl implements DiscoveryRepository{
   DiscoveryRepositoryImpl(this.api);
 
   @override
-  Future<List<FeedItemEntity>> getFeed({int page = 1, int limit = 20, bool includeReposts = true, String? sinceTimestamp}) async {
-    final dtos = await api.getFeed(page: page, limit: limit, includeReposts: includeReposts, sinceTimestamp: sinceTimestamp);
+  Future<List<FeedItemEntity>> getFollowingFeed({int page = 1, int limit = 20, bool includeReposts = true, String? sinceTimestamp}) async {
+    final dtos = await api.getFollowingFeed(page: page, limit: limit, includeReposts: includeReposts, sinceTimestamp: sinceTimestamp);
     return dtos.items.map((dto) => dto.toEntity()).toList();
   }
 

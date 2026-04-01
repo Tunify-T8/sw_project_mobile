@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/track_preview_entity.dart';
-import '../../domain/entities/feed_item_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
 
 class FeedMenuSheet extends StatelessWidget {

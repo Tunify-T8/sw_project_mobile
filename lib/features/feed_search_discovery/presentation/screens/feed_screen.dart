@@ -5,7 +5,6 @@ import '../providers/feed_notifier.dart';
 import '../widgets/feed_tab_bar.dart';
 import '../widgets/feed_track_card.dart';
 import '../../domain/entities/feed_tab_type.dart';
-import '../providers/feed_state.dart';
 import '../../domain/entities/feed_item_entity.dart';
 
 class FeedScreen extends ConsumerStatefulWidget {

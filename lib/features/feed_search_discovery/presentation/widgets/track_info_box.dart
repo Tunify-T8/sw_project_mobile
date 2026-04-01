@@ -70,7 +70,7 @@ class TrackInfoBox extends StatelessWidget {
                               foregroundColor: Colors.white,
                             ),
                             child: Text(
-                              track.isFollowingArtist ? 'Following' : 'Follow',
+                               (track.isFollowingArtist ?? false) ?'Following' : 'Follow',
                               style: const TextStyle(fontSize: 15.0),
                             ),
                           ),

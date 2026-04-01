@@ -1,8 +1,8 @@
+import '../../domain/entities/feed_actor_entity.dart';
 import '../../domain/entities/feed_item_entity.dart';
 import '../../domain/entities/feed_item_source.dart';
-import '../../domain/entities/track_preview_entity.dart';
-import '../../domain/entities/user_preview_entity.dart';
 import '../../domain/entities/track_interaction_entity.dart';
+import '../../domain/entities/track_preview_entity.dart';
 
 class MockFeedService {
   Future<List<FeedItemEntity>> getFollowingFeed() async {
@@ -12,14 +12,10 @@ class MockFeedService {
       FeedItemEntity(
         source: FeedItemSource.post,
         timeAgo: '2h',
-        actor: UserPreviewEntity(
+        actor: FeedActorEntity(
           id: 'u1',
           username: 'Drake',
           avatarUrl: 'https://i.pravatar.cc/150?img=1',
-          followersCount: 1200000,
-          verified: true,
-          location: 'Canada',
-          isFollowing: true,
         ),
         track: TrackPreviewEntity(
           trackId: 't1',
@@ -43,14 +39,10 @@ class MockFeedService {
       FeedItemEntity(
         source: FeedItemSource.repost,
         timeAgo: '4h',
-        actor: UserPreviewEntity(
+        actor: FeedActorEntity(
           id: 'u2',
           username: 'Billie',
           avatarUrl: 'https://i.pravatar.cc/150?img=2',
-          followersCount: 980000,
-          verified: true,
-          location: 'USA',
-          isFollowing: true,
         ),
         track: TrackPreviewEntity(
           trackId: 't2',
@@ -81,14 +73,10 @@ class MockFeedService {
       FeedItemEntity(
         source: FeedItemSource.becauseYouLiked,
         timeAgo: '2h',
-        actor: UserPreviewEntity(
+        actor: FeedActorEntity(
           id: 'u1',
           username: 'Drake',
           avatarUrl: 'https://i.pravatar.cc/150?img=1',
-          followersCount: 1200000,
-          verified: true,
-          location: 'Canada',
-          isFollowing: false,
         ),
         track: TrackPreviewEntity(
           trackId: 't1',
@@ -109,18 +97,13 @@ class MockFeedService {
           ),
         ),
       ),
-
       FeedItemEntity(
         source: FeedItemSource.becauseYouFollow,
         timeAgo: '4h',
-        actor: UserPreviewEntity(
+        actor: FeedActorEntity(
           id: 'u2',
           username: 'Billie',
           avatarUrl: 'https://i.pravatar.cc/150?img=2',
-          followersCount: 980000,
-          verified: true,
-          location: 'USA',
-          isFollowing: true,
         ),
         track: TrackPreviewEntity(
           trackId: 't2',
@@ -141,18 +124,13 @@ class MockFeedService {
           ),
         ),
       ),
-
       FeedItemEntity(
         source: FeedItemSource.newRelease,
         timeAgo: '1h',
-        actor: UserPreviewEntity(
+        actor: FeedActorEntity(
           id: 'u3',
           username: 'Travis Scott',
           avatarUrl: 'https://i.pravatar.cc/150?img=4',
-          followersCount: 2000000,
-          verified: true,
-          location: 'USA',
-          isFollowing: false,
         ),
         track: TrackPreviewEntity(
           trackId: 't3',

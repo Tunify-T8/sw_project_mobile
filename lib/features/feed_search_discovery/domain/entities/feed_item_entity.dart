@@ -1,12 +1,13 @@
 import 'feed_item_source.dart';
 import 'track_preview_entity.dart';
 import 'user_preview_entity.dart';
+import 'feed_actor_entity.dart';
 
 class FeedItemEntity {
   final FeedItemSource source;
   final String timeAgo;
   final TrackPreviewEntity track;
-  final UserPreviewEntity actor;
+  final FeedActorEntity actor;
 
   FeedItemEntity({
     required this.source,
@@ -20,7 +21,7 @@ class FeedItemEntity {
     String? postedAt,
     String? timeAgo,
     TrackPreviewEntity? track,
-    UserPreviewEntity? actor,
+    FeedActorEntity? actor,
   }) {
     return FeedItemEntity(
       source: source ?? this.source,
