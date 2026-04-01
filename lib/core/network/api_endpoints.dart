@@ -91,6 +91,8 @@ class ApiEndpoints {
 
   // Feed - Search - Discovery
   static const String getFeed = '/feed';
+  static const String getFollowingFeed = '/feed/me';
+
   static const String resolveResource = '/resolve';
   static const String getDiscover = '/discover';
   static const String getTrending = '/trending';
