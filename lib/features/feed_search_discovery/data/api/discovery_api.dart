@@ -16,7 +16,7 @@ class DiscoveryApi {
 
   DiscoveryApi(this.dio);
 
-  Future<PaginatedFeedResponseDto> getFeed({
+  Future<PaginatedFeedResponseDto> getFollowingFeed({
     int page = 1,
     int limit = 20,
     bool includeReposts = true,
@@ -30,7 +30,7 @@ class DiscoveryApi {
     if (sinceTimestamp != null) params['sinceTimestamp'] = sinceTimestamp;
 
     final response = await dio.get(
-      ApiEndpoints.getFeed,
+      ApiEndpoints.getFollowingFeed,
       queryParameters: params,
     );
     return PaginatedFeedResponseDto.fromJson(

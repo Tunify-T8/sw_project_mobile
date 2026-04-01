@@ -9,11 +9,14 @@ extension TrackPreviewMapper on TrackPreviewDto {
       title: title,
       artistId: artistId,
       artistName: artistName,
-      coverUrl: coverUrl, 
+      artistAvatar: artistAvatar,
+      artistVerified: artistVerified,
+      isFollowingArtist: isFollowingArtist,
+      coverUrl: coverUrl,
       duration: duration,
       likesCount: likesCount,
       commentsCount: commentsCount,
-      createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
+      createdAt: createdAt,
       interaction: interaction.toEntity(),
     );
   }

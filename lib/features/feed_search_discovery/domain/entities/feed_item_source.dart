@@ -1,2 +1,7 @@
-enum FeedItemSource {original}
-//ask backend about others
+enum FeedItemSource {
+  post,
+  repost,
+  newRelease,
+  becauseYouLiked,
+  becauseYouFollow,
+}
