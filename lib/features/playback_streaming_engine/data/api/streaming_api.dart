@@ -26,11 +26,10 @@ class StreamingApi {
     return TrackPlaybackBundleDto.fromJson(_unwrapMap(response.data));
   }
 
-  /// Current backend contract (v1.1.0):
+  /// Current backend contract:
   /// GET /tracks/{trackId}/stream
   ///
-  /// Older drafts of the contract used POST. We try GET first and only fall
-  /// back to POST for compatibility with older deployments.
+  /// Older drafts used POST, so we still keep the GET -> POST fallback.
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
@@ -55,33 +54,17 @@ class StreamingApi {
     );
   }
 
-  /// The newest contract no longer exposes /me/playback/events.
+  /// No-op on purpose.
   ///
-  /// We keep this method for compatibility with the existing provider and
-  /// repository layers. If the backend still supports the old endpoint, we use
-  /// it. If the backend returns 404/405 because the endpoint was removed in the
-  /// new contract, we silently ignore it so playback and history screens keep
-  /// working.
+  /// Your current backend no longer supports `/me/playback/events`, and keeping
+  /// the network call here only creates noisy 404 logs while adding no value to
+  /// playback.
   Future<void> reportPlaybackEvent({
     required String trackId,
     required PlaybackAction action,
     required int positionSeconds,
   }) async {
-    try {
-      await _dio.patch(
-        ApiEndpoints.playbackEvents,
-        data: {
-          'trackId': trackId,
-          'action': _actionToString(action),
-          'positionSeconds': positionSeconds,
-        },
-      );
-    } on DioException catch (error) {
-      if (_isMethodOrRouteMismatch(error)) {
-        return;
-      }
-      rethrow;
-    }
+    return;
   }
 
   Future<PlaybackContextResponseDto> buildPlaybackQueue({
@@ -148,6 +131,15 @@ class StreamingApi {
     return _parseListeningHistory(fallbackResponse.data);
   }
 
+  /// Also a no-op for now.
+  ///
+  /// The backend deployment you're using does not expose a clear-history route.
+  /// We therefore keep clear history local in the app until the backend adds a
+  /// supported endpoint.
+  Future<void> clearListeningHistory() async {
+    return;
+  }
+
   List<HistoryTrackDto> _parseListeningHistory(dynamic raw) {
     if (raw is! Map<String, dynamic>) {
       throw StateError('Unexpected listening history response: $raw');
@@ -176,17 +168,6 @@ class StreamingApi {
   bool _isMethodOrRouteMismatch(DioException error) {
     final statusCode = error.response?.statusCode;
     return statusCode == 404 || statusCode == 405;
-  }
-
-  static String _actionToString(PlaybackAction action) {
-    switch (action) {
-      case PlaybackAction.play:
-        return 'play';
-      case PlaybackAction.progress:
-        return 'progress';
-      case PlaybackAction.pause:
-        return 'pause';
-    }
   }
 
   static String contextTypeToString(PlaybackContextType type) {

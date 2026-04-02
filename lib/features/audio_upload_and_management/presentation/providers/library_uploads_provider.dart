@@ -9,7 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
 import '../../data/dto/upload_item_dto.dart';
-import '../../data/mappers/library_uploads_mapper.dart';
+import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../shared/upload_error_helpers.dart';
 import 'library_uploads_filter.dart';
@@ -35,6 +35,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       final quota = await ref.read(getArtistToolsQuotaUsecaseProvider).call();
 
       await _persistCachedUploads(uploads);
+      _syncGlobalTrackStore(uploads);
 
       state = state.copyWith(
         isLoading: false,
@@ -45,6 +46,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     } catch (error, stackTrace) {
       final cachedUploads = await _readCachedUploads();
       if (cachedUploads.isNotEmpty) {
+        _syncGlobalTrackStore(cachedUploads);
         state = state.copyWith(
           isLoading: false,
           items: cachedUploads,
@@ -73,6 +75,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       final quota = await ref.read(getArtistToolsQuotaUsecaseProvider).call();
 
       await _persistCachedUploads(uploads);
+      _syncGlobalTrackStore(uploads);
 
       state = state.copyWith(
         isRefreshing: false,
@@ -83,6 +86,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     } catch (error, stackTrace) {
       final cachedUploads = await _readCachedUploads();
       if (cachedUploads.isNotEmpty) {
+        _syncGlobalTrackStore(cachedUploads);
         state = state.copyWith(
           isRefreshing: false,
           items: cachedUploads,
@@ -131,6 +135,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       final updated = state.items.where((item) => item.id != trackId).toList();
 
       await _persistCachedUploads(updated);
+      _syncGlobalTrackStore(updated);
 
       state = state.copyWith(
         items: updated,
@@ -272,7 +277,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       return decoded
           .whereType<Map<String, dynamic>>()
           .map(UploadItemDto.fromJson)
-          .map((dto) => dto.toEntity())
+          .map(_uploadItemFromDto)
           .toList(growable: false);
     } catch (_) {
       await _storage.delete(key: StorageKeys.cachedLibraryUploads);
@@ -280,16 +285,10 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     }
   }
 
-  String _statusToString(UploadProcessingStatus value) {
-    switch (value) {
-      case UploadProcessingStatus.processing:
-        return 'processing';
-      case UploadProcessingStatus.failed:
-        return 'failed';
-      case UploadProcessingStatus.deleted:
-        return 'deleted';
-      case UploadProcessingStatus.finished:
-        return 'finished';
+  void _syncGlobalTrackStore(List<UploadItem> uploads) {
+    final store = ref.read(globalTrackStoreProvider);
+    for (final item in uploads) {
+      store.update(item);
     }
   }
 
@@ -318,5 +317,79 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   }) {
     logUploadError(context, error, stackTrace);
     updateState(userFriendlyUploadError(error, fallback: fallback));
+  }
+
+  UploadItem _uploadItemFromDto(UploadItemDto dto) {
+    return UploadItem(
+      id: dto.id,
+      title: dto.title,
+      artistDisplay: dto.artists.join(', '),
+      durationLabel: _formatDuration(dto.durationSeconds),
+      durationSeconds: dto.durationSeconds,
+      audioUrl: dto.audioUrl,
+      waveformUrl: dto.waveformUrl,
+      waveformBars: dto.waveformBars,
+      artworkUrl: dto.artworkUrl,
+      localArtworkPath: dto.localArtworkPath,
+      localFilePath: dto.localFilePath,
+      description: dto.description,
+      tags: dto.tags,
+      genreCategory: dto.genreCategory,
+      genreSubGenre: dto.genreSubGenre,
+      visibility: dto.privacy == 'public'
+          ? UploadVisibility.public
+          : UploadVisibility.private,
+      status: _dtoStatusToEntityStatus(dto.status),
+      isExplicit: dto.contentWarning,
+      recordLabel: dto.recordLabel,
+      publisher: dto.publisher,
+      isrc: dto.isrc,
+      pLine: dto.pLine,
+      scheduledReleaseDate: dto.scheduledReleaseDate == null
+          ? null
+          : DateTime.tryParse(dto.scheduledReleaseDate!),
+      allowDownloads: dto.allowDownloads,
+      offlineListening: dto.offlineListening,
+      includeInRss: dto.includeInRss,
+      displayEmbedCode: dto.displayEmbedCode,
+      appPlaybackEnabled: dto.appPlaybackEnabled,
+      availabilityType: dto.availabilityType,
+      availabilityRegions: dto.availabilityRegions,
+      licensing: dto.licensing,
+      createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
+    );
+  }
+
+  UploadProcessingStatus _dtoStatusToEntityStatus(String value) {
+    switch (value) {
+      case 'processing':
+      case 'uploading':
+        return UploadProcessingStatus.processing;
+      case 'failed':
+        return UploadProcessingStatus.failed;
+      case 'deleted':
+        return UploadProcessingStatus.deleted;
+      default:
+        return UploadProcessingStatus.finished;
+    }
+  }
+
+  String _statusToString(UploadProcessingStatus status) {
+    switch (status) {
+      case UploadProcessingStatus.finished:
+        return 'finished';
+      case UploadProcessingStatus.processing:
+        return 'processing';
+      case UploadProcessingStatus.failed:
+        return 'failed';
+      case UploadProcessingStatus.deleted:
+        return 'deleted';
+    }
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

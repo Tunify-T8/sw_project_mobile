@@ -43,6 +43,11 @@ extension MockPlayerServiceHistory on MockPlayerService {
     };
   }
 
+  Future<void> clearListeningHistory() async {
+    await _delay(120);
+    _history.clear();
+  }
+
   Future<void> _delay(int milliseconds) =>
       Future.delayed(Duration(milliseconds: milliseconds));
 }

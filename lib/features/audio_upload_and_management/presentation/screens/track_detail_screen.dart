@@ -37,14 +37,10 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
       _initializedPlayback = true;
 
       final playerState = ref.read(playerProvider).asData?.value;
-      final alreadyPlayingThisTrack =
-          playerState?.bundle?.trackId == _surfaceItem.id &&
-          playerState?.isPlaying == true;
+      final alreadyHandlingThisTrack =
+          playerState?.bundle?.trackId == _surfaceItem.id;
 
-      // When the user opened the screen from a list tap, the play action has
-      // usually already started before this page appears. Re-loading the same
-      // track here would cause stop -> reload -> play glitches.
-      if (!alreadyPlayingThisTrack) {
+      if (!alreadyHandlingThisTrack) {
         await ensureUploadItemPlayback(ref, _surfaceItem, autoPlay: true);
       }
     });
@@ -83,12 +79,10 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final isCurrentTrack = activePlayer?.bundle?.trackId == resolvedItem.id;
     final isPlaying = isCurrentTrack && activePlayer?.isPlaying == true;
     final activeDurationSeconds = isCurrentTrack
-        ? (activePlayer?.effectiveDurationSeconds ?? resolvedItem.durationSeconds)
+        ? (activePlayer?.visualDurationSeconds ?? resolvedItem.durationSeconds)
         : resolvedItem.durationSeconds;
-    final progress = isCurrentTrack && activeDurationSeconds > 0
-        ? ((activePlayer?.positionSeconds ?? 0) / activeDurationSeconds)
-              .clamp(0.0, 1.0)
-              .toDouble()
+    final progress = isCurrentTrack
+        ? (activePlayer?.normalizedProgress ?? 0.0)
         : 0.0;
 
     return Scaffold(
@@ -133,10 +127,8 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
             state: waveformState,
             onMoreTap: () =>
                 showTrackDetailMoreSheet(context, ref, resolvedItem),
-            onPlayPauseTap: () =>
-                toggleUploadItemPlayback(ref, resolvedItem),
-            onSeekFraction: (fraction) =>
-                _seekToFraction(resolvedItem, fraction),
+            onPlayPauseTap: () => toggleUploadItemPlayback(ref, resolvedItem),
+            onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
           ),
         ],
       ),
@@ -155,7 +147,7 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
   Future<void> _seekToFraction(UploadItem item, double fraction) async {
     final playerState = ref.read(playerProvider).asData?.value;
     final duration = playerState?.bundle?.trackId == item.id
-        ? playerState?.effectiveDurationSeconds ?? item.durationSeconds
+        ? playerState?.visualDurationSeconds ?? item.durationSeconds
         : item.durationSeconds;
     if (duration <= 0) return;
     final seconds = (duration * fraction.clamp(0.0, 1.0)).round();

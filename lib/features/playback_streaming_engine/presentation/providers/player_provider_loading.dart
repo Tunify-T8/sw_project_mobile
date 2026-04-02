@@ -64,6 +64,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
         isMuted: previous?.isMuted ?? false,
         volume: previous?.volume ?? 1.0,
         isBuffering: false,
+        mediaDurationSeconds: bundle.durationSeconds.toDouble(),
       );
 
       await _prepareAudioSource(nextState, force: true);
@@ -77,6 +78,13 @@ extension PlayerNotifierLoading on PlayerNotifier {
 
       return nextState;
     });
+
+    if (state.asData?.value != null) {
+      await _persistCurrentSession(
+        playerState: state.asData!.value,
+        force: true,
+      );
+    }
 
     if (autoPlay && state.asData?.value != null) {
       await play();

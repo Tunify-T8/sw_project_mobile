@@ -18,7 +18,7 @@ class ListeningHistoryState {
     this.hasMore = true,
     this.isLoadingMore = false,
     this.isRefreshing = false,
-    this.pendingSyncIds = const [],
+    this.wasClearedLocally = false,
   });
 
   final List<HistoryTrack> tracks;
@@ -26,11 +26,7 @@ class ListeningHistoryState {
   final bool hasMore;
   final bool isLoadingMore;
   final bool isRefreshing;
-
-  /// Track IDs that were played locally and may not be visible on the backend
-  /// yet. These are kept at the top until a refresh confirms the backend now
-  /// includes them.
-  final List<String> pendingSyncIds;
+  final bool wasClearedLocally;
 
   ListeningHistoryState copyWith({
     List<HistoryTrack>? tracks,
@@ -38,7 +34,7 @@ class ListeningHistoryState {
     bool? hasMore,
     bool? isLoadingMore,
     bool? isRefreshing,
-    List<String>? pendingSyncIds,
+    bool? wasClearedLocally,
   }) {
     return ListeningHistoryState(
       tracks: tracks ?? this.tracks,
@@ -46,7 +42,7 @@ class ListeningHistoryState {
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       isRefreshing: isRefreshing ?? this.isRefreshing,
-      pendingSyncIds: pendingSyncIds ?? this.pendingSyncIds,
+      wasClearedLocally: wasClearedLocally ?? this.wasClearedLocally,
     );
   }
 }
@@ -58,11 +54,8 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   late GetListeningHistoryUsecase _getHistory;
   late PlayerRepository _repository;
 
-  /// Optimistic items are stored outside `state` too, so history updates still
-  /// work even if the screen is not currently visible or the provider is
-  /// between loading states.
   final List<HistoryTrack> _optimisticTracks = <HistoryTrack>[];
-  final List<String> _pendingSyncIds = <String>[];
+  bool _clearedLocally = false;
 
   @override
   Future<ListeningHistoryState> build() async {
@@ -70,37 +63,43 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     _getHistory = GetListeningHistoryUsecase(_repository);
 
     final cachedTracks = await _readCachedTracks();
-    final pendingSyncIds = await _readPendingSyncIds();
+    _clearedLocally = await _readClearedLocally();
 
-    _restoreOptimisticTracksFromCache(
-      cachedTracks: cachedTracks,
-      pendingSyncIds: pendingSyncIds,
-    );
+    if (_clearedLocally) {
+      final localTracks = _applyOptimisticTo(const <HistoryTrack>[]);
+      await _persistLocalState(localTracks, wasClearedLocally: true);
+
+      return ListeningHistoryState(
+        tracks: localTracks,
+        currentPage: 1,
+        hasMore: false,
+        wasClearedLocally: true,
+      );
+    }
 
     try {
-      await _flushPendingHistoryPlays();
       final backendTracks = await _getHistory(page: 1, limit: _pageSize);
-      final merged = _mergeTopPage(backendTracks);
-
-      await _persistLocalState(
-        tracks: merged,
-        pendingSyncIds: List<String>.from(_pendingSyncIds),
+      final merged = _mergeLoadedTracks(
+        backendTracks: backendTracks,
+        cachedTracks: cachedTracks,
       );
+
+      await _persistLocalState(merged, wasClearedLocally: false);
 
       return ListeningHistoryState(
         tracks: merged,
         currentPage: 1,
         hasMore: backendTracks.length >= _pageSize,
-        pendingSyncIds: List<String>.from(_pendingSyncIds),
+        wasClearedLocally: false,
       );
     } catch (_) {
-      final merged = _applyOptimisticTo(cachedTracks);
+      final fallback = _applyOptimisticTo(cachedTracks);
 
       return ListeningHistoryState(
-        tracks: merged,
+        tracks: fallback,
         currentPage: 1,
         hasMore: cachedTracks.length >= _pageSize,
-        pendingSyncIds: List<String>.from(_pendingSyncIds),
+        wasClearedLocally: false,
       );
     }
   }
@@ -115,29 +114,48 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
 
     state = await AsyncValue.guard(() async {
-      await _flushPendingHistoryPlays();
-      final backendTracks = await _getHistory(page: 1, limit: _pageSize);
-      final merged = _mergeTopPage(backendTracks);
-      final pendingIds = List<String>.from(_pendingSyncIds);
+      final cachedTracks = await _readCachedTracks();
+      _clearedLocally = await _readClearedLocally();
 
-      await _persistLocalState(
-        tracks: merged,
-        pendingSyncIds: pendingIds,
+      if (_clearedLocally) {
+        final localTracks = _applyOptimisticTo(const <HistoryTrack>[]);
+        await _persistLocalState(localTracks, wasClearedLocally: true);
+
+        return ListeningHistoryState(
+          tracks: localTracks,
+          currentPage: 1,
+          hasMore: false,
+          isRefreshing: false,
+          wasClearedLocally: true,
+        );
+      }
+
+      final backendTracks = await _getHistory(page: 1, limit: _pageSize);
+      final merged = _mergeLoadedTracks(
+        backendTracks: backendTracks,
+        cachedTracks: cachedTracks,
       );
+
+      await _persistLocalState(merged, wasClearedLocally: false);
 
       return ListeningHistoryState(
         tracks: merged,
         currentPage: 1,
         hasMore: backendTracks.length >= _pageSize,
         isRefreshing: false,
-        pendingSyncIds: pendingIds,
+        wasClearedLocally: false,
       );
     });
   }
 
   Future<void> loadMore() async {
     final current = state.asData?.value;
-    if (current == null || !current.hasMore || current.isLoadingMore) return;
+    if (current == null ||
+        current.wasClearedLocally ||
+        !current.hasMore ||
+        current.isLoadingMore) {
+      return;
+    }
 
     state = AsyncData(current.copyWith(isLoadingMore: true));
 
@@ -146,16 +164,14 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     try {
       final newTracks = await _getHistory(page: nextPage, limit: _pageSize);
       final existingIds = current.tracks.map((track) => track.trackId).toSet();
+
       final uniqueNewTracks = newTracks
           .where((track) => !existingIds.contains(track.trackId))
           .toList(growable: false);
 
       final updatedTracks = [...current.tracks, ...uniqueNewTracks];
 
-      await _persistLocalState(
-        tracks: updatedTracks,
-        pendingSyncIds: current.pendingSyncIds,
-      );
+      await _persistLocalState(updatedTracks, wasClearedLocally: false);
 
       state = AsyncData(
         current.copyWith(
@@ -163,6 +179,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
           currentPage: nextPage,
           hasMore: newTracks.length >= _pageSize,
           isLoadingMore: false,
+          wasClearedLocally: false,
         ),
       );
     } catch (_) {
@@ -170,52 +187,94 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
   }
 
-  /// Called immediately when a track begins playing. This updates the list at
-  /// once instead of waiting for pause/refresh/backend confirmation.
+  /// Called immediately when a track begins playing.
   Future<void> trackPlayed(
     HistoryTrack track, {
     bool needsBackendSync = false,
   }) async {
-    _rememberOptimisticTrack(track, needsBackendSync: needsBackendSync);
+    _clearedLocally = false;
+    _rememberOptimisticTrack(track);
 
     final current = state.asData?.value;
-    final pendingIds = List<String>.from(_pendingSyncIds);
+    final nextTracks = _applyOptimisticTo(
+      current?.tracks ?? const <HistoryTrack>[],
+    );
 
-    if (current == null) {
-      final localState = ListeningHistoryState(
-        tracks: [track],
-        currentPage: 1,
-        hasMore: true,
-        pendingSyncIds: pendingIds,
-      );
-      state = AsyncData(localState);
-      await _persistLocalState(tracks: localState.tracks, pendingSyncIds: pendingIds);
-      return;
+    final nextState = ListeningHistoryState(
+      tracks: nextTracks,
+      currentPage: current?.currentPage ?? 1,
+      hasMore: current?.hasMore ?? true,
+      isLoadingMore: current?.isLoadingMore ?? false,
+      isRefreshing: false,
+      wasClearedLocally: false,
+    );
+
+    state = AsyncData(nextState);
+
+    await _persistLocalState(nextTracks, wasClearedLocally: false);
+
+    // Reserved for backend sync later if/when your backend exposes it again.
+    if (needsBackendSync) {
+      // no-op for now
     }
+  }
 
-    final updatedTracks = _applyOptimisticTo(current.tracks);
+  Future<void> clearHistory() async {
+    _optimisticTracks.clear();
+    _clearedLocally = true;
 
-    state = AsyncData(
-      current.copyWith(
-        tracks: updatedTracks,
-        pendingSyncIds: pendingIds,
+    state = const AsyncData(
+      ListeningHistoryState(
+        tracks: <HistoryTrack>[],
+        currentPage: 1,
+        hasMore: false,
+        wasClearedLocally: true,
       ),
     );
 
-    await _persistLocalState(tracks: updatedTracks, pendingSyncIds: pendingIds);
+    await _persistLocalState(
+      const <HistoryTrack>[],
+      wasClearedLocally: true,
+    );
+
+    try {
+      await _repository.clearListeningHistory();
+    } catch (_) {
+      // Backend clear endpoint may not exist yet.
+      // Local clear still works.
+    }
   }
 
-  List<HistoryTrack> _mergeTopPage(List<HistoryTrack> backendTracks) {
-    final backendIds = backendTracks.map((track) => track.trackId).toSet();
+  List<HistoryTrack> _mergeLoadedTracks({
+    required List<HistoryTrack> backendTracks,
+    required List<HistoryTrack> cachedTracks,
+  }) {
+    final result = <HistoryTrack>[];
+    final seen = <String>{};
+    final cachedById = {
+      for (final track in cachedTracks) track.trackId: track,
+    };
 
-    _optimisticTracks.removeWhere((track) => backendIds.contains(track.trackId));
+    for (final backendTrack in backendTracks) {
+      final cached = cachedById[backendTrack.trackId];
+      final chosen = _pickNewerTrack(backendTrack, cached);
+      if (seen.add(chosen.trackId)) {
+        result.add(chosen);
+      }
+    }
 
-    return [
-      ..._optimisticTracks,
-      ...backendTracks.where(
-        (track) => !_optimisticTracks.any((local) => local.trackId == track.trackId),
-      ),
-    ];
+    for (final cachedTrack in cachedTracks) {
+      if (seen.add(cachedTrack.trackId)) {
+        result.add(cachedTrack);
+      }
+    }
+
+    return _applyOptimisticTo(result);
+  }
+
+  HistoryTrack _pickNewerTrack(HistoryTrack primary, HistoryTrack? secondary) {
+    if (secondary == null) return primary;
+    return secondary.playedAt.isAfter(primary.playedAt) ? secondary : primary;
   }
 
   List<HistoryTrack> _applyOptimisticTo(List<HistoryTrack> tracks) {
@@ -230,67 +289,28 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     return [..._optimisticTracks, ...filtered];
   }
 
-  void _rememberOptimisticTrack(
-    HistoryTrack track, {
-    required bool needsBackendSync,
-  }) {
+  void _rememberOptimisticTrack(HistoryTrack track) {
     _optimisticTracks.removeWhere((item) => item.trackId == track.trackId);
     _optimisticTracks.insert(0, track);
-
-    _pendingSyncIds.removeWhere((id) => id == track.trackId);
-    if (needsBackendSync) {
-      _pendingSyncIds.insert(0, track.trackId);
-    }
   }
 
-  Future<void> _flushPendingHistoryPlays() async {
-    final pendingSyncIds = await _readPendingSyncIds();
-    if (pendingSyncIds.isEmpty) return;
-
-    final successfulIds = <String>[];
-
-    for (final trackId in pendingSyncIds.reversed) {
-      try {
-        await _repository.requestStreamUrl(trackId);
-        successfulIds.add(trackId);
-      } catch (_) {
-        // Stop on the first connectivity failure so we keep the remaining
-        // pending order intact for the next retry.
-        break;
-      }
-    }
-
-    if (successfulIds.isEmpty) return;
-
-    _optimisticTracks.removeWhere((track) => successfulIds.contains(track.trackId));
-
-    final remainingIds = pendingSyncIds
-        .where((id) => !successfulIds.contains(id))
-        .toList(growable: false);
-
-    _pendingSyncIds
-      ..clear()
-      ..addAll(remainingIds);
-
-    await _storage.write(
-      key: StorageKeys.pendingHistorySyncTrackIds,
-      value: jsonEncode(remainingIds),
-    );
-  }
-
-  Future<void> _persistLocalState({
-    required List<HistoryTrack> tracks,
-    required List<String> pendingSyncIds,
+  Future<void> _persistLocalState(
+    List<HistoryTrack> tracks, {
+    required bool wasClearedLocally,
   }) async {
     await _storage.write(
       key: StorageKeys.cachedListeningHistory,
       value: jsonEncode(tracks.map(_historyTrackToJson).toList()),
     );
 
-    await _storage.write(
-      key: StorageKeys.pendingHistorySyncTrackIds,
-      value: jsonEncode(pendingSyncIds),
-    );
+    if (wasClearedLocally) {
+      await _storage.write(
+        key: StorageKeys.historyClearedLocally,
+        value: 'true',
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.historyClearedLocally);
+    }
   }
 
   Future<List<HistoryTrack>> _readCachedTracks() async {
@@ -311,38 +331,9 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
   }
 
-  Future<List<String>> _readPendingSyncIds() async {
-    final raw = await _storage.read(key: StorageKeys.pendingHistorySyncTrackIds);
-    if (raw == null || raw.isEmpty) {
-      return const <String>[];
-    }
-
-    try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((value) => value.toString()).toList(growable: false);
-    } catch (_) {
-      await _storage.delete(key: StorageKeys.pendingHistorySyncTrackIds);
-      return const <String>[];
-    }
-  }
-
-  void _restoreOptimisticTracksFromCache({
-    required List<HistoryTrack> cachedTracks,
-    required List<String> pendingSyncIds,
-  }) {
-    _optimisticTracks.clear();
-    _pendingSyncIds
-      ..clear()
-      ..addAll(pendingSyncIds);
-
-    for (final id in pendingSyncIds) {
-      for (final track in cachedTracks) {
-        if (track.trackId == id) {
-          _optimisticTracks.add(track);
-          break;
-        }
-      }
-    }
+  Future<bool> _readClearedLocally() async {
+    final raw = await _storage.read(key: StorageKeys.historyClearedLocally);
+    return raw == 'true';
   }
 
   Map<String, dynamic> _historyTrackToJson(HistoryTrack track) {
@@ -371,7 +362,8 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   }
 
   HistoryTrack _historyTrackFromJson(Map<String, dynamic> json) {
-    final artistJson = json['artist'] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final artistJson =
+        json['artist'] as Map<String, dynamic>? ?? const <String, dynamic>{};
 
     return HistoryTrack(
       trackId: (json['trackId'] ?? '') as String,
@@ -384,7 +376,9 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
         avatarUrl: artistJson['avatarUrl'] as String?,
         tier: artistJson['tier'] as String?,
       ),
-      playedAt: DateTime.tryParse((json['playedAt'] ?? '').toString()) ?? DateTime.now(),
+      playedAt:
+          DateTime.tryParse((json['playedAt'] ?? '').toString()) ??
+          DateTime.now(),
       durationSeconds: (json['durationSeconds'] as int?) ?? 0,
       status: _statusFromString((json['status'] ?? 'playable').toString()),
       coverUrl: json['coverUrl'] as String?,
@@ -416,7 +410,6 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
         return PlaybackStatus.preview;
       case 'blocked':
         return PlaybackStatus.blocked;
-      case 'playable':
       default:
         return PlaybackStatus.playable;
     }
@@ -425,5 +418,5 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
 
 final listeningHistoryProvider =
     AsyncNotifierProvider<ListeningHistoryNotifier, ListeningHistoryState>(
-  ListeningHistoryNotifier.new,
-);
+      ListeningHistoryNotifier.new,
+    );

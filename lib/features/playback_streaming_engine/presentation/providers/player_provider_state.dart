@@ -14,6 +14,7 @@ class PlayerState {
     this.isBuffering = false,
     this.streamExpiresAt,
     this.localFilePath,
+    this.mediaDurationSeconds,
   });
 
   final TrackPlaybackBundle? bundle;
@@ -26,6 +27,7 @@ class PlayerState {
   final bool isBuffering;
   final DateTime? streamExpiresAt;
   final String? localFilePath;
+  final double? mediaDurationSeconds;
 
   bool get hasTrack => bundle != null;
 
@@ -60,6 +62,43 @@ class PlayerState {
         : activeBundle.durationSeconds;
   }
 
+  double get effectivePositionSeconds {
+    final activeBundle = bundle;
+    if (activeBundle == null) return positionSeconds;
+
+    if (!activeBundle.playability.isPreviewOnly || !activeBundle.preview.enabled) {
+      return positionSeconds;
+    }
+
+    return (positionSeconds - activeBundle.preview.previewStartSeconds)
+        .clamp(0.0, effectiveDurationSeconds.toDouble())
+        .toDouble();
+  }
+
+  int get visualDurationSeconds {
+    final activeBundle = bundle;
+    if (activeBundle == null) return 0;
+
+    if (activeBundle.playability.isPreviewOnly && activeBundle.preview.enabled) {
+      return effectiveDurationSeconds;
+    }
+
+    final media = mediaDurationSeconds?.round() ?? 0;
+    return media > effectiveDurationSeconds ? media : effectiveDurationSeconds;
+  }
+
+  double get normalizedProgress {
+    final durationSeconds = visualDurationSeconds;
+    if (durationSeconds <= 0) return 0.0;
+
+    final effectivePosition = effectivePositionSeconds;
+    if (effectivePosition >= durationSeconds - 0.25) {
+      return 1.0;
+    }
+
+    return (effectivePosition / durationSeconds).clamp(0.0, 1.0).toDouble();
+  }
+
   PlayerState copyWith({
     Object? bundle = _sentinel,
     Object? streamUrl = _sentinel,
@@ -71,6 +110,7 @@ class PlayerState {
     bool? isBuffering,
     Object? streamExpiresAt = _sentinel,
     Object? localFilePath = _sentinel,
+    Object? mediaDurationSeconds = _sentinel,
   }) {
     return PlayerState(
       bundle: identical(bundle, _sentinel)
@@ -91,6 +131,9 @@ class PlayerState {
       localFilePath: identical(localFilePath, _sentinel)
           ? this.localFilePath
           : localFilePath as String?,
+      mediaDurationSeconds: identical(mediaDurationSeconds, _sentinel)
+          ? this.mediaDurationSeconds
+          : mediaDurationSeconds as double?,
     );
   }
 }
@@ -100,9 +143,11 @@ class _ResolvedPlaybackSource {
     this.streamUrl,
     this.streamExpiresAt,
     this.localFilePath,
+    this.mediaDurationSeconds,
   });
 
   final StreamUrl? streamUrl;
   final DateTime? streamExpiresAt;
   final String? localFilePath;
+  final double? mediaDurationSeconds;
 }

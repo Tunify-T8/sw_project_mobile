@@ -35,12 +35,10 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
     final isCurrentTrack = playerState?.bundle?.trackId == item.id;
     final isPlaying = isCurrentTrack && playerState?.isPlaying == true;
     final durationSeconds = isCurrentTrack
-        ? (playerState?.effectiveDurationSeconds ?? item.durationSeconds)
+        ? (playerState?.visualDurationSeconds ?? item.durationSeconds)
         : item.durationSeconds;
-    final progress = isCurrentTrack && durationSeconds > 0
-        ? ((playerState?.positionSeconds ?? 0) / durationSeconds)
-              .clamp(0.0, 1.0)
-              .toDouble()
+    final progress = isCurrentTrack
+        ? (playerState?.normalizedProgress ?? 0.0)
         : 0.0;
 
     return Positioned.fill(

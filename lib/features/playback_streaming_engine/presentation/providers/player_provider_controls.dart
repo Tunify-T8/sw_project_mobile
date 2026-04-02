@@ -23,13 +23,8 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     await _applyVolume(preparedState);
 
-    // IMPORTANT:
     // just_audio.play() completes when playback finishes or is interrupted,
-    // not immediately when audio starts. Awaiting it here blocks the whole
-    // tap flow: the history update waits, the track screen push waits, and
-    // next/previous can look broken until pause/completion.
-    //
-    // So we fire it without awaiting, then update UI state immediately.
+    // not when playback STARTS. So awaiting it blocks navigation/history/queue.
     unawaited(_audioPlayer.play());
 
     final playingState = preparedState.copyWith(
@@ -37,8 +32,8 @@ extension PlayerNotifierControls on PlayerNotifier {
       isBuffering: false,
     );
     state = AsyncData(playingState);
+    unawaited(_persistCurrentSession(playerState: playingState, force: true));
 
-    // Optimistically update listening history immediately on play.
     _notifyHistoryPlayed();
 
     await _safeReportEvent(
@@ -61,13 +56,14 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     final pausedPosition = _audioPlayer.position.inMilliseconds / 1000.0;
 
-    state = AsyncData(
-      current.copyWith(
-        isPlaying: false,
-        isBuffering: false,
-        positionSeconds: _clampPosition(current.bundle!, pausedPosition),
-      ),
+    final pausedState = current.copyWith(
+      isPlaying: false,
+      isBuffering: false,
+      positionSeconds: _clampPosition(current.bundle!, pausedPosition),
     );
+
+    state = AsyncData(pausedState);
+    await _persistCurrentSession(playerState: pausedState, force: true);
 
     await _safeReportEvent(
       PlaybackEvent(
@@ -91,9 +87,13 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     await _audioPlayer.seek(Duration(milliseconds: (clamped * 1000).round()));
 
-    state = AsyncData(
-      current.copyWith(positionSeconds: clamped, isBuffering: false),
+    final soughtState = current.copyWith(
+      positionSeconds: clamped,
+      isBuffering: false,
     );
+
+    state = AsyncData(soughtState);
+    await _persistCurrentSession(playerState: soughtState, force: true);
 
     await _safeReportEvent(
       PlaybackEvent(
@@ -115,6 +115,7 @@ extension PlayerNotifierControls on PlayerNotifier {
     final next = current.copyWith(isMuted: !current.isMuted);
     state = AsyncData(next);
     unawaited(_applyVolume(next));
+    unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 
   void setVolume(double volume) {
@@ -125,5 +126,6 @@ extension PlayerNotifierControls on PlayerNotifier {
     final next = current.copyWith(volume: safeVolume);
     state = AsyncData(next);
     unawaited(_applyVolume(next));
+    unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 }

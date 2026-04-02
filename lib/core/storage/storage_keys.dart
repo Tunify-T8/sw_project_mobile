@@ -17,14 +17,15 @@ class StorageKeys {
   /// Key used to store playback events queued while offline.
   static const String pendingPlaybackEvents = 'pending_playback_events';
 
-  /// Cached first page of the listening history screen.
+  /// Cached listening history shown in the app.
   static const String cachedListeningHistory = 'cached_listening_history';
 
-  /// Track IDs played locally while offline and still waiting to be synced
-  /// back to the backend once the device reconnects.
-  static const String pendingHistorySyncTrackIds =
-      'pending_history_sync_track_ids';
+  /// Local flag used only when the user explicitly clears history.
+  ///
+  /// We keep this separate from the cached list so the app does not rehydrate
+  /// old backend history on the next launch after a local clear.
+  static const String historyClearedLocally = 'history_cleared_locally';
 
-  /// Cached uploads list so the library remains usable offline.
   static const String cachedLibraryUploads = 'cached_library_uploads';
+  static const String cachedPlayerSession = 'cached_player_session';
 }

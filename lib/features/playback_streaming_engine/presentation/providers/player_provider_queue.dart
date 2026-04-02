@@ -9,8 +9,6 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (queue.trackIds.length <= 1) return;
 
     final nextIndex = queue.currentIndex + 1;
-
-    // Circular: wrap around to first when past the end
     final resolvedIndex = nextIndex >= queue.trackIds.length ? 0 : nextIndex;
 
     await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
@@ -24,8 +22,6 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (queue.trackIds.length <= 1) return;
 
     final previousIndex = queue.currentIndex - 1;
-
-    // Circular: wrap around to last when before the start
     final resolvedIndex =
         previousIndex < 0 ? queue.trackIds.length - 1 : previousIndex;
 

@@ -1,6 +1,6 @@
 part of 'library_screen.dart';
 
-const double _libraryHistoryTileExtent = 86;
+const double _libraryHistoryTileExtent = 92;
 
 class _AnimatedLibraryHistoryPreview extends StatefulWidget {
   const _AnimatedLibraryHistoryPreview({
@@ -98,34 +98,29 @@ class _LibraryHistoryTile extends ConsumerWidget {
         onTap: isBlocked
             ? null
             : () async {
-                final trackIds = queueTracks
-                    .map((item) => item.trackId)
+                final playableHistory = queueTracks
+                    .where((item) => item.status != PlaybackStatus.blocked)
                     .toList(growable: false);
-                final currentIndex = trackIds.indexOf(track.trackId);
+                final queueItems = playableHistory
+                    .map(
+                      (item) => _historyTrackToUploadItem(
+                        item,
+                        storedUploadItemForTrack(store, item.trackId),
+                      ),
+                    )
+                    .toList(growable: false);
+                final selected = _historyTrackToUploadItem(track, stored);
 
-                await ref.read(playerProvider.notifier).loadTrackWithQueue(
-                      trackId: track.trackId,
-                      trackIds: trackIds,
-                      currentIndex: currentIndex < 0 ? 0 : currentIndex,
-                      autoPlay: true,
-                      seedTrack: stored == null
-                          ? null
-                          : PlayerSeedTrack(
-                              trackId: stored.id,
-                              title: stored.title,
-                              artistName: stored.artistDisplay,
-                              durationSeconds: stored.durationSeconds,
-                              coverUrl: stored.artworkUrl,
-                              waveformUrl: stored.waveformUrl,
-                              directAudioUrl: stored.audioUrl,
-                              localFilePath: stored.localFilePath,
-                            ),
-                    );
-                if (!context.mounted) return;
-                await openCurrentPlaybackTrackSurface(context, ref);
+                await openUploadItemPlayer(
+                  context,
+                  ref,
+                  selected,
+                  queueItems: queueItems,
+                  openScreen: true,
+                );
               },
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -139,40 +134,63 @@ class _LibraryHistoryTile extends ConsumerWidget {
                       ? Image.network(
                           track.coverUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(isBlocked),
+                          errorBuilder: (_, error, stackTrace) =>
+                              _placeholder(isBlocked),
                         )
                       : _placeholder(isBlocked),
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      track.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: isBlocked ? Colors.white38 : Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        track.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isBlocked ? Colors.white38 : Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      track.artist.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white54, fontSize: 14),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        track.artist.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatDuration(track.durationSeconds),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(Icons.more_horiz, color: Colors.white54, size: 24),
+              const SizedBox(
+                width: 32,
+                child: Center(
+                  child: Icon(
+                    Icons.more_horiz,
+                    color: Colors.white54,
+                    size: 24,
+                  ),
+                ),
               ),
             ],
           ),
@@ -181,12 +199,42 @@ class _LibraryHistoryTile extends ConsumerWidget {
     );
   }
 
+  UploadItem _historyTrackToUploadItem(HistoryTrack track, UploadItem? stored) {
+    if (stored != null) {
+      return stored;
+    }
+
+    return UploadItem(
+      id: track.trackId,
+      title: track.title,
+      artistDisplay: track.artist.name,
+      durationLabel: _formatDuration(track.durationSeconds),
+      durationSeconds: track.durationSeconds,
+      audioUrl: null,
+      waveformUrl: null,
+      artworkUrl: track.coverUrl,
+      localFilePath: null,
+      description: '',
+      visibility: UploadVisibility.public,
+      status: UploadProcessingStatus.finished,
+      isExplicit: false,
+      createdAt: track.playedAt,
+    );
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final safeSeconds = totalSeconds < 0 ? 0 : totalSeconds;
+    final minutes = safeSeconds ~/ 60;
+    final seconds = (safeSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   Widget _placeholder(bool isBlocked) {
     return Center(
       child: Icon(
         isBlocked ? Icons.lock : Icons.account_circle_rounded,
         color: isBlocked
-            ? Colors.redAccent.withOpacity(0.6)
+            ? Colors.redAccent.withValues(alpha: 0.6)
             : const Color(0xFF4872D7),
         size: 52,
       ),

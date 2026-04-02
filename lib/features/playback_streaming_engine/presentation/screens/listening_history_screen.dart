@@ -47,7 +47,7 @@ class ListeningHistoryScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.white70),
-            onPressed: () {},
+            onPressed: () => _confirmClearHistory(context, ref),
           ),
         ],
       ),

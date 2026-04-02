@@ -15,7 +15,9 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       );
 
       if ((clamped - current.positionSeconds).abs() > 0.03) {
-        state = AsyncData(current.copyWith(positionSeconds: clamped));
+        final nextState = current.copyWith(positionSeconds: clamped);
+        _setPlayerState(nextState);
+        unawaited(_persistCurrentSession(playerState: nextState));
       }
 
       if (current.isPreviewOnly &&
@@ -24,7 +26,19 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       }
     });
 
-    _durationSubscription = _audioPlayer.durationStream.listen((_) {});
+    _durationSubscription = _audioPlayer.durationStream.listen((duration) {
+      final current = _current;
+      if (current == null || duration == null) return;
+
+      final seconds = duration.inMilliseconds / 1000.0;
+      if (seconds <= 0) return;
+
+      if (((current.mediaDurationSeconds ?? 0) - seconds).abs() > 0.2) {
+        final nextState = current.copyWith(mediaDurationSeconds: seconds);
+        _setPlayerState(nextState);
+        unawaited(_persistCurrentSession(playerState: nextState));
+      }
+    });
 
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((
       audioState,
@@ -40,10 +54,15 @@ extension _PlayerNotifierBindings on PlayerNotifier {
 
       if (current.isPlaying != audioState.playing ||
           current.isBuffering != isBuffering) {
-        state = AsyncData(
-          current.copyWith(
-            isPlaying: audioState.playing,
-            isBuffering: isBuffering,
+        final nextState = current.copyWith(
+          isPlaying: audioState.playing,
+          isBuffering: isBuffering,
+        );
+        _setPlayerState(nextState);
+        unawaited(
+          _persistCurrentSession(
+            playerState: nextState,
+            force: !audioState.playing,
           ),
         );
       }
@@ -70,13 +89,14 @@ extension _PlayerNotifierBindings on PlayerNotifier {
         Duration(milliseconds: (previewEnd * 1000).round()),
       );
 
-      state = AsyncData(
-        current.copyWith(
-          isPlaying: false,
-          isBuffering: false,
-          positionSeconds: previewEnd,
-        ),
+      final previewState = current.copyWith(
+        isPlaying: false,
+        isBuffering: false,
+        positionSeconds: previewEnd,
       );
+
+      _setPlayerState(previewState);
+      await _persistCurrentSession(playerState: previewState, force: true);
 
       await _safeReportEvent(
         PlaybackEvent(
@@ -119,20 +139,21 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       }
 
       _progressReportTimer?.cancel();
-      final finalPosition = current.bundle!.durationSeconds.toDouble();
+      final finalPosition = current.visualDurationSeconds.toDouble();
 
       await _audioPlayer.pause();
       await _audioPlayer.seek(
         Duration(milliseconds: (finalPosition * 1000).round()),
       );
 
-      state = AsyncData(
-        current.copyWith(
-          isPlaying: false,
-          isBuffering: false,
-          positionSeconds: finalPosition,
-        ),
+      final completedState = current.copyWith(
+        isPlaying: false,
+        isBuffering: false,
+        positionSeconds: finalPosition,
       );
+
+      _setPlayerState(completedState);
+      await _persistCurrentSession(playerState: completedState, force: true);
     } finally {
       _handlingCompletion = false;
     }
@@ -160,9 +181,6 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     });
   }
 
-  /// Optimistically prepends a HistoryTrack entry so the UI updates instantly,
-  /// regardless of network state. The history provider accumulates pending IDs
-  /// and merges them properly on the next refresh (when back online).
   void _notifyHistoryPlayed() {
     final current = _current;
     final bundle = current?.bundle;
@@ -180,10 +198,10 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       );
 
       unawaited(
-        ref.read(listeningHistoryProvider.notifier).trackPlayed(
-              historyTrack,
-              needsBackendSync: current?.streamUrl == null,
-            ),
+        _trackHistoryPlayed(
+          historyTrack,
+          needsBackendSync: current?.streamUrl == null,
+        ),
       );
     } catch (_) {
       // History update is best-effort; never break playback.

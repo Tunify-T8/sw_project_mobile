@@ -20,12 +20,7 @@ class MiniPlayer extends ConsumerWidget {
     }
 
     final bundle = playerState.bundle!;
-    final maxProgress = playerState.isPreviewOnly
-        ? playerState.previewEndSeconds.toDouble()
-        : bundle.durationSeconds.toDouble();
-    final progress = maxProgress > 0
-        ? (playerState.positionSeconds / maxProgress).clamp(0.0, 1.0).toDouble()
-        : 0.0;
+    final progress = playerState.normalizedProgress;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),

@@ -77,9 +77,11 @@ class MockPlayerRepository implements PlayerRepository {
         .toList();
   }
 
-  // -------------------------------------------------------------------------
-  // Helpers
-  // -------------------------------------------------------------------------
+  @override
+  Future<void> clearListeningHistory() {
+    return service.clearListeningHistory();
+  }
+
   static String _actionToString(PlaybackAction action) {
     switch (action) {
       case PlaybackAction.play:

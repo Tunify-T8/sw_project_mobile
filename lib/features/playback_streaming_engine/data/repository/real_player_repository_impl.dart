@@ -92,6 +92,11 @@ class RealPlayerRepository implements PlayerRepository {
     return dtos.map((dto) => dto.toEntity()).toList();
   }
 
+  @override
+  Future<void> clearListeningHistory() async {
+    await _api.clearListeningHistory();
+  }
+
   Future<void> _sendEvent(PlaybackEvent event) {
     return _api.reportPlaybackEvent(
       trackId: event.trackId,
@@ -139,8 +144,6 @@ class RealPlayerRepository implements PlayerRepository {
             break;
           }
 
-          // Drop invalid/non-retryable events so one bad event does not block
-          // every later pending event.
           _pendingEvents.removeAt(0);
           await _persistPendingEvents();
         }
@@ -173,7 +176,6 @@ class RealPlayerRepository implements PlayerRepository {
       return;
     }
 
-    // For progress/pause we only need the freshest local position per track.
     _pendingEvents.removeWhere(
       (pending) =>
           pending.trackId == event.trackId &&

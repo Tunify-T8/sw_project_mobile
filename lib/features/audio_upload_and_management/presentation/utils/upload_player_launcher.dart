@@ -1,9 +1,18 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/storage_keys.dart';
+import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
+import '../../../playback_streaming_engine/domain/entities/track_artist_summary.dart';
+import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../data/dto/upload_item_dto.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../providers/track_detail_item_provider.dart';
@@ -20,19 +29,27 @@ Future<void> openUploadItemPlayer(
 }) async {
   if (!item.isPlayable) return;
 
-  final hydratedItem = await prepareTrackSurfaceItem(ref, item);
+  await _ensureCachedUploadsHydrated(ref);
 
-  await ensureUploadItemPlayback(
-    ref,
-    hydratedItem,
-    queueItems: queueItems,
-    autoPlay: true,
+  final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
+
+  _optimisticallyPromoteHistory(ref, preparedItem);
+
+  unawaited(
+    ensureUploadItemPlayback(
+      ref,
+      preparedItem,
+      queueItems: queueItems,
+      autoPlay: true,
+    ),
   );
+
+  await _waitForTrackToBecomeCurrent(ref, preparedItem.id);
 
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
+      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
       transitionsBuilder: (_, animation, __, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(0, 1),
@@ -75,6 +92,8 @@ Future<void> ensureUploadItemPlayback(
   bool autoPlay = true,
 }) async {
   if (!item.isPlayable) return;
+
+  await _ensureCachedUploadsHydrated(ref);
 
   final notifier = ref.read(playerProvider.notifier);
   final current = ref.read(playerProvider).asData?.value;
@@ -151,6 +170,8 @@ Future<void> toggleUploadItemPlayback(
     return;
   }
 
+  _optimisticallyPromoteHistory(ref, item);
+
   await ensureUploadItemPlayback(
     ref,
     item,
@@ -163,13 +184,15 @@ Future<void> openCurrentPlaybackTrackSurface(
   BuildContext context,
   WidgetRef ref,
 ) async {
+  await _ensureCachedUploadsHydrated(ref);
+
   final current = ref.read(playerProvider).asData?.value;
   if (current?.bundle == null) return;
   if (current!.bundle!.playability.status == PlaybackStatus.blocked) return;
 
   final store = ref.read(globalTrackStoreProvider);
   final rawItem = uploadItemFromPlayerState(current, store);
-  final hydratedItem = await prepareTrackSurfaceItem(ref, rawItem);
+  final hydratedItem = await _prepareTrackSurfaceItemFast(ref, rawItem);
 
   if (!context.mounted) return;
   await Navigator.of(context).push(
@@ -216,4 +239,141 @@ List<UploadItem> _resolveArtistQueue(
   }
 
   return <UploadItem>[item];
+}
+
+Future<UploadItem> _prepareTrackSurfaceItemFast(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  try {
+    return await prepareTrackSurfaceItem(ref, item).timeout(
+      const Duration(milliseconds: 500),
+      onTimeout: () => item,
+    );
+  } catch (_) {
+    return item;
+  }
+}
+
+Future<void> _waitForTrackToBecomeCurrent(
+  WidgetRef ref,
+  String trackId,
+) async {
+  final startedAt = DateTime.now();
+
+  while (DateTime.now().difference(startedAt) < const Duration(milliseconds: 700)) {
+    final current = ref.read(playerProvider).asData?.value;
+    if (current?.bundle?.trackId == trackId) {
+      return;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 35));
+  }
+}
+
+void _optimisticallyPromoteHistory(WidgetRef ref, UploadItem item) {
+  try {
+    unawaited(
+      ref.read(listeningHistoryProvider.notifier).trackPlayed(
+            HistoryTrack(
+              trackId: item.id,
+              title: item.title,
+              artist: TrackArtistSummary(
+                id: '',
+                name: item.artistDisplay,
+              ),
+              playedAt: DateTime.now(),
+              durationSeconds: item.durationSeconds,
+              status: PlaybackStatus.playable,
+              coverUrl: item.artworkUrl,
+            ),
+          ),
+    );
+  } catch (_) {
+    // Never block playback/navigation because of optimistic history UI.
+  }
+}
+
+Future<void> _ensureCachedUploadsHydrated(WidgetRef ref) async {
+  final store = ref.read(globalTrackStoreProvider);
+  if (store.all.isNotEmpty) return;
+
+  const storage = FlutterSecureStorage();
+  final raw = await storage.read(key: StorageKeys.cachedLibraryUploads);
+  if (raw == null || raw.isEmpty) return;
+
+  try {
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    final uploads = decoded
+        .whereType<Map<String, dynamic>>()
+        .map(UploadItemDto.fromJson)
+        .map(_uploadItemFromDto)
+        .toList(growable: false);
+
+    for (final item in uploads) {
+      store.update(item);
+    }
+  } catch (_) {
+    // Ignore corrupted cache here; the normal uploads provider can rebuild it.
+  }
+}
+
+UploadItem _uploadItemFromDto(UploadItemDto dto) {
+  return UploadItem(
+    id: dto.id,
+    title: dto.title,
+    artistDisplay: dto.artists.join(', '),
+    durationLabel: _formatDuration(dto.durationSeconds),
+    durationSeconds: dto.durationSeconds,
+    audioUrl: dto.audioUrl,
+    waveformUrl: dto.waveformUrl,
+    waveformBars: dto.waveformBars,
+    artworkUrl: dto.artworkUrl,
+    localArtworkPath: dto.localArtworkPath,
+    localFilePath: dto.localFilePath,
+    description: dto.description,
+    tags: dto.tags,
+    genreCategory: dto.genreCategory,
+    genreSubGenre: dto.genreSubGenre,
+    visibility: dto.privacy == 'public'
+        ? UploadVisibility.public
+        : UploadVisibility.private,
+    status: _dtoStatusToEntityStatus(dto.status),
+    isExplicit: dto.contentWarning,
+    recordLabel: dto.recordLabel,
+    publisher: dto.publisher,
+    isrc: dto.isrc,
+    pLine: dto.pLine,
+    scheduledReleaseDate: dto.scheduledReleaseDate == null
+        ? null
+        : DateTime.tryParse(dto.scheduledReleaseDate!),
+    allowDownloads: dto.allowDownloads,
+    offlineListening: dto.offlineListening,
+    includeInRss: dto.includeInRss,
+    displayEmbedCode: dto.displayEmbedCode,
+    appPlaybackEnabled: dto.appPlaybackEnabled,
+    availabilityType: dto.availabilityType,
+    availabilityRegions: dto.availabilityRegions,
+    licensing: dto.licensing,
+    createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
+  );
+}
+
+UploadProcessingStatus _dtoStatusToEntityStatus(String value) {
+  switch (value) {
+    case 'processing':
+    case 'uploading':
+      return UploadProcessingStatus.processing;
+    case 'failed':
+      return UploadProcessingStatus.failed;
+    case 'deleted':
+      return UploadProcessingStatus.deleted;
+    default:
+      return UploadProcessingStatus.finished;
+  }
+}
+
+String _formatDuration(int totalSeconds) {
+  final minutes = totalSeconds ~/ 60;
+  final seconds = totalSeconds % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
