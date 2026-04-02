@@ -1,6 +1,5 @@
 import 'feed_item_source.dart';
 import 'track_preview_entity.dart';
-import 'user_preview_entity.dart';
 import 'feed_actor_entity.dart';
 
 class FeedItemEntity {

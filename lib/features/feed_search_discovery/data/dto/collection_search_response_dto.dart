@@ -6,11 +6,16 @@ class CollectionSearchResponseDto {
   final int limit;
   final int total;
 
-  CollectionSearchResponseDto({required this.items, required this.page, required this.limit, required this.total});
+  CollectionSearchResponseDto({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.total,
+  });
 
   factory CollectionSearchResponseDto.fromJson(Map<String, dynamic> json) {
     return CollectionSearchResponseDto(
-      items: (json['items'] as List<dynamic>? ?? [])
+      items: (json['data'] as List<dynamic>? ?? [])
           .map((e) => CollectionDto.fromJson(e))
           .toList(),
       page: json['page'] ?? 1,

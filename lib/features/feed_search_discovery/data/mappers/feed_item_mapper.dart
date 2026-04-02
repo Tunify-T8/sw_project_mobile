@@ -28,11 +28,11 @@ extension FeedItemMapper on FeedItemDto {
       source: FeedItemSource.values.byName(action.action),
       timeAgo: _calculateTimeAgo(action.date),
       track: TrackPreviewEntity(
-        trackId: id,
+        trackId: trackId,
         title: title,
         artistId: artistId,
         artistName: artist,
-        artistVerified: isCertified,
+        artistVerified: artistIsCertified,
         isFollowingArtist: isFollowingArtist,
         duration: durationInSeconds,
         likesCount: numberOfLikes,
