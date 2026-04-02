@@ -6,6 +6,8 @@ import '../../../playback_streaming_engine/domain/entities/player_seed_track.dar
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
+import '../providers/track_detail_item_provider.dart';
+import '../providers/track_detail_waveform_provider.dart';
 import '../screens/track_detail_screen.dart';
 import 'playback_surface_item_mapper.dart';
 
@@ -18,9 +20,11 @@ Future<void> openUploadItemPlayer(
 }) async {
   if (!item.isPlayable) return;
 
+  final hydratedItem = await prepareTrackSurfaceItem(ref, item);
+
   await ensureUploadItemPlayback(
     ref,
-    item,
+    hydratedItem,
     queueItems: queueItems,
     autoPlay: true,
   );
@@ -28,7 +32,7 @@ Future<void> openUploadItemPlayer(
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: item),
+      pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
       transitionsBuilder: (_, animation, __, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(0, 1),
@@ -41,6 +45,27 @@ Future<void> openUploadItemPlayer(
       transitionDuration: const Duration(milliseconds: 340),
     ),
   );
+}
+
+Future<UploadItem> prepareTrackSurfaceItem(WidgetRef ref, UploadItem item) async {
+  UploadItem resolvedItem = item;
+
+  try {
+    resolvedItem = await ref.read(trackDetailItemProvider(item).future);
+  } catch (_) {
+    resolvedItem = item;
+  }
+
+  try {
+    final bars = await ref.read(trackDetailWaveformBarsProvider(resolvedItem).future);
+    if (bars != null && bars.isNotEmpty) {
+      resolvedItem = resolvedItem.copyWith(waveformBars: bars);
+    }
+  } catch (_) {
+    // Keep the already-resolved metadata even if waveform preloading fails.
+  }
+
+  return resolvedItem;
 }
 
 Future<void> ensureUploadItemPlayback(
@@ -143,12 +168,13 @@ Future<void> openCurrentPlaybackTrackSurface(
   if (current!.bundle!.playability.status == PlaybackStatus.blocked) return;
 
   final store = ref.read(globalTrackStoreProvider);
-  final item = uploadItemFromPlayerState(current, store);
+  final rawItem = uploadItemFromPlayerState(current, store);
+  final hydratedItem = await prepareTrackSurfaceItem(ref, rawItem);
 
   if (!context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: item),
+      pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
       transitionsBuilder: (_, animation, __, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(0, 1),

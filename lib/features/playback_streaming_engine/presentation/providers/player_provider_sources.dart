@@ -110,7 +110,15 @@ extension _PlayerNotifierSources on PlayerNotifier {
         playerState.localFilePath!.trim().isNotEmpty) {
       await _audioPlayer.setFilePath(playerState.localFilePath!);
     } else if (playerState.streamUrl?.url.trim().isNotEmpty == true) {
-      await _audioPlayer.setUrl(playerState.streamUrl!.url);
+      // Use AudioSource.uri for better caching and buffering control.
+      // This avoids repeated seeks causing stuttering on remote URLs.
+      await _audioPlayer.setAudioSource(
+        just_audio.AudioSource.uri(
+          Uri.parse(playerState.streamUrl!.url),
+          // Pre-load headers can be added here for auth if needed
+        ),
+        preload: true,
+      );
     }
 
     _loadedTrackId = activeBundle.trackId;

@@ -50,8 +50,10 @@ class _MainTrackCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
+                      // Use plain text — no unicode arrows or dots that render
+                      // as garbage on some Android devices.
                       Text(
-                        '▶ ${stats.playCountText} · ${item.durationLabel} · ${stats.releaseDateText}',
+                        '${stats.playCountText} plays  ${item.durationLabel}  ${stats.releaseDateText}',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 13,

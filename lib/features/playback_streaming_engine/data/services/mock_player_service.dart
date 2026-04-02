@@ -3,14 +3,17 @@ import 'dart:math';
 
 part 'mock_player_service_history.dart';
 
-/// In-memory fake implementation of all streaming operations
-/// Simulates realistic network behavior
-/// No real HTTP calls
+/// In-memory fake implementation of all streaming operations.
+/// Simulates realistic network behaviour. No real HTTP calls.
 class MockPlayerService {
   MockPlayerService();
 
-  /// Fake listening history â€” grows as reportPlaybackEvent is called.
+  /// Fake listening history — grows as reportPlaybackEvent is called.
   final List<Map<String, dynamic>> _history = [];
+
+  /// Cache of bundle data keyed by trackId so history entries use real titles.
+  final Map<String, Map<String, dynamic>> _bundleCache =
+      <String, Map<String, dynamic>>{};
 
   final _rng = Random();
 
@@ -23,7 +26,7 @@ class MockPlayerService {
     final isBlocked = trackId.contains('blocked');
     final isPreview = trackId.contains('preview');
 
-    return {
+    final bundle = {
       'trackId': trackId,
       'title': _fakeTitles[_rng.nextInt(_fakeTitles.length)],
       'artist': {'id': 'artist_mock_001', 'name': 'Mock Artist', 'tier': 'pro'},
@@ -57,6 +60,11 @@ class MockPlayerService {
       },
       'scheduledReleaseDate': null,
     };
+
+    // Cache so history can use the real title/artist/coverUrl/duration
+    _bundleCache[trackId] = bundle;
+
+    return bundle;
   }
 
   Future<Map<String, dynamic>> requestStreamUrl(
@@ -79,30 +87,61 @@ class MockPlayerService {
     required String trackId,
     required String action,
     required int positionSeconds,
+    // Optional hints passed when the real title/artist are known on the client
+    String? title,
+    String? artistName,
+    String? coverUrl,
+    int? durationSeconds,
   }) async {
     await _delay(80);
 
     if (action == 'play') {
-      final alreadyInHistory = _history.any((e) => e['trackId'] == trackId);
-      if (!alreadyInHistory) {
-        _history.insert(0, {
-          'trackId': trackId,
-          'title': _fakeTitles[_rng.nextInt(_fakeTitles.length)],
-          'artist': 'Mock Artist',
-          'coverUrl': 'https://cdn.mock.app/artwork/$trackId.png',
-          'genre': 'Electronic',
-          'releaseDate': DateTime.now().toIso8601String(),
-          'playedAt': DateTime.now().toIso8601String(),
-          'durationSeconds': 200,
-          'status': 'playable',
-          'engagement': {
-            'likeCount': 25,
-            'commentCount': 4,
-            'repostCount': 2,
-            'playCount': 1200,
-          },
-        });
+      // Resolve the best available metadata in priority order:
+      //   1. Caller-supplied hints (from seedTrack / bundle)
+      //   2. Cached bundle data from a previous getPlaybackBundle call
+      //   3. Fallback mock data
+      final cached = _bundleCache[trackId];
+      final resolvedTitle =
+          title ??
+          (cached?['title'] as String?) ??
+          _fakeTitles[_rng.nextInt(_fakeTitles.length)];
+      final resolvedArtist = artistName ?? 'Mock Artist';
+      final resolvedCover =
+          coverUrl ?? 'https://cdn.mock.app/artwork/$trackId.png';
+      final resolvedDuration =
+          durationSeconds ?? (cached?['durationSeconds'] as int?) ?? 200;
+
+      final existingIndex = _history.indexWhere((e) => e['trackId'] == trackId);
+      final previousPlayCount = existingIndex >= 0
+          ? (((_history[existingIndex]['engagement']
+                        as Map<String, dynamic>?)?['playCount'])
+                    as int? ??
+                0)
+          : 0;
+
+      final entry = {
+        'trackId': trackId,
+        'title': resolvedTitle,
+        'artist': resolvedArtist,
+        'coverUrl': resolvedCover,
+        'genre': 'Electronic',
+        'releaseDate': DateTime.now().toIso8601String(),
+        'playedAt': DateTime.now().toIso8601String(),
+        'durationSeconds': resolvedDuration,
+        'status': 'playable',
+        'engagement': {
+          'likeCount': 25,
+          'commentCount': 4,
+          'repostCount': 2,
+          'playCount': previousPlayCount + 1,
+        },
+      };
+
+      if (existingIndex >= 0) {
+        // Move to top and update playedAt / playCount
+        _history.removeAt(existingIndex);
       }
+      _history.insert(0, entry);
     }
   }
 

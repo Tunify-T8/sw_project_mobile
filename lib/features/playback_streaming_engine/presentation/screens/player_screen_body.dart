@@ -18,6 +18,7 @@ class _PlayerBody extends ConsumerWidget {
     final bundle = playerState.bundle!;
 
     return GestureDetector(
+      // Swipe left → next track, swipe right → previous track
       behavior: HitTestBehavior.translucent,
       onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
@@ -61,7 +62,10 @@ class _PlayerBody extends ConsumerWidget {
                         const SizedBox(height: 20),
                         PlayerWaveformBar(
                           waveformUrl: bundle.waveformUrl,
-                          positionSeconds: playerState.positionSeconds.round(),
+                          // Pass double directly — no .round() — so the bar
+                          // animates smoothly at sub-second resolution and
+                          // reaches exactly 1.0 when the track finishes.
+                          positionSeconds: playerState.positionSeconds,
                           durationSeconds: bundle.durationSeconds,
                           isPreviewOnly: bundle.playability.isPreviewOnly,
                           previewStartSeconds:

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/colors.dart';
 
-/// Seekable playback bar.
+/// Seekable playback progress bar used on the full player screen (PlayerScreen).
 ///
-/// The backend may return preview-only playback. In that case the seekable
-/// window is limited to the preview segment.
+/// Takes [positionSeconds] as a double for smooth sub-second animation
+/// instead of jumping by 1-second intervals.
+///
+/// The bar correctly fills to 100% when the track finishes because
+/// [positionSeconds] is set to [durationSeconds] exactly on completion.
 class PlayerWaveformBar extends StatelessWidget {
   const PlayerWaveformBar({
     super.key,
@@ -19,7 +22,10 @@ class PlayerWaveformBar extends StatelessWidget {
   });
 
   final String waveformUrl;
-  final int positionSeconds;
+
+  /// Current playback position in seconds. Accepts fractional values for smooth
+  /// animation — pass [PlayerState.positionSeconds] directly (no .round()).
+  final double positionSeconds;
   final int durationSeconds;
   final bool isPreviewOnly;
   final int previewStartSeconds;
@@ -28,95 +34,106 @@ class PlayerWaveformBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeStart = isPreviewOnly ? previewStartSeconds : 0;
+    final activeStart = isPreviewOnly ? previewStartSeconds.toDouble() : 0.0;
     final activeEnd = isPreviewOnly
-        ? previewStartSeconds + previewDurationSeconds
-        : durationSeconds;
-    final activeWindow = (activeEnd - activeStart).clamp(1, durationSeconds == 0 ? 1 : durationSeconds);
+        ? (previewStartSeconds + previewDurationSeconds).toDouble()
+        : durationSeconds.toDouble();
+    final activeWindow =
+        (activeEnd - activeStart).clamp(1.0, durationSeconds == 0 ? 1.0 : durationSeconds.toDouble());
+
+    // Clamp position into [activeStart, activeEnd] and compute 0–1 progress.
     final clampedPosition = positionSeconds.clamp(activeStart, activeEnd);
-    final progress = ((clampedPosition - activeStart) / activeWindow)
-        .clamp(0.0, 1.0)
-        .toDouble();
+    final progress =
+        ((clampedPosition - activeStart) / activeWindow).clamp(0.0, 1.0);
+
     final previewCapFraction = durationSeconds > 0
         ? ((previewStartSeconds + previewDurationSeconds) / durationSeconds)
             .clamp(0.0, 1.0)
             .toDouble()
         : 0.0;
 
-    int _mapLocalRatioToPosition(double ratio) {
+    int mapLocalRatioToPosition(double ratio) {
       final relativePosition = (ratio * activeWindow).round();
-      return activeStart + relativePosition;
+      return activeStart.round() + relativePosition;
     }
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
-        final box = context.findRenderObject() as RenderBox;
+        final box = context.findRenderObject() as RenderBox?;
+        if (box == null) return;
         final localPos = box.globalToLocal(details.globalPosition);
-        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0).toDouble();
-        onSeek(_mapLocalRatioToPosition(ratio));
+        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0);
+        onSeek(mapLocalRatioToPosition(ratio));
       },
       onTapDown: (details) {
-        final box = context.findRenderObject() as RenderBox;
+        final box = context.findRenderObject() as RenderBox?;
+        if (box == null) return;
         final localPos = box.globalToLocal(details.globalPosition);
-        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0).toDouble();
-        onSeek(_mapLocalRatioToPosition(ratio));
+        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0);
+        onSeek(mapLocalRatioToPosition(ratio));
       },
       child: SizedBox(
         height: 44,
-        child: Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            Container(
-              height: 3,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(2),
+        child: RepaintBoundary(
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              // Background track
+              Container(
+                height: 3,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            if (isPreviewOnly && durationSeconds > 0)
+              // Preview-only cap (lighter region showing max playable range)
+              if (isPreviewOnly && durationSeconds > 0)
+                FractionallySizedBox(
+                  widthFactor: previewCapFraction,
+                  child: Container(
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              // Played portion — fills to 100% exactly when song ends
               FractionallySizedBox(
-                widthFactor: previewCapFraction,
+                widthFactor: progress,
                 child: Container(
                   height: 3,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(
-                height: 3,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            FractionallySizedBox(
-              widthFactor: progress,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              // Scrubber thumb
+              FractionallySizedBox(
+                widthFactor: progress,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

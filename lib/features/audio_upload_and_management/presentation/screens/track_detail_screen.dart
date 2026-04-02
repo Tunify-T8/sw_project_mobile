@@ -35,7 +35,18 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _initializedPlayback) return;
       _initializedPlayback = true;
-      await ensureUploadItemPlayback(ref, _surfaceItem, autoPlay: true);
+
+      final playerState = ref.read(playerProvider).asData?.value;
+      final alreadyPlayingThisTrack =
+          playerState?.bundle?.trackId == _surfaceItem.id &&
+          playerState?.isPlaying == true;
+
+      // When the user opened the screen from a list tap, the play action has
+      // usually already started before this page appears. Re-loading the same
+      // track here would cause stop -> reload -> play glitches.
+      if (!alreadyPlayingThisTrack) {
+        await ensureUploadItemPlayback(ref, _surfaceItem, autoPlay: true);
+      }
     });
   }
 
@@ -71,10 +82,13 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final activePlayer = playerState;
     final isCurrentTrack = activePlayer?.bundle?.trackId == resolvedItem.id;
     final isPlaying = isCurrentTrack && activePlayer?.isPlaying == true;
-    final progress = isCurrentTrack && resolvedItem.durationSeconds > 0
-        ? ((activePlayer?.positionSeconds ?? 0) / resolvedItem.durationSeconds)
-            .clamp(0.0, 1.0)
-            .toDouble()
+    final activeDurationSeconds = isCurrentTrack
+        ? (activePlayer?.effectiveDurationSeconds ?? resolvedItem.durationSeconds)
+        : resolvedItem.durationSeconds;
+    final progress = isCurrentTrack && activeDurationSeconds > 0
+        ? ((activePlayer?.positionSeconds ?? 0) / activeDurationSeconds)
+              .clamp(0.0, 1.0)
+              .toDouble()
         : 0.0;
 
     return Scaffold(
@@ -104,7 +118,8 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
           TrackDetailHeader(
             item: resolvedItem,
             onDismiss: () => Navigator.of(context).pop(),
-            onArtistTap: () => Navigator.of(context).pushNamed(AppRoutes.profile),
+            onArtistTap: () =>
+                Navigator.of(context).pushNamed(AppRoutes.profile),
             onTrackInfoTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -116,9 +131,12 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
           TrackDetailWaveformPanel(
             item: resolvedItem,
             state: waveformState,
-            onMoreTap: () => showTrackDetailMoreSheet(context, ref, resolvedItem),
-            onPlayPauseTap: () => toggleUploadItemPlayback(ref, resolvedItem),
-            onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
+            onMoreTap: () =>
+                showTrackDetailMoreSheet(context, ref, resolvedItem),
+            onPlayPauseTap: () =>
+                toggleUploadItemPlayback(ref, resolvedItem),
+            onSeekFraction: (fraction) =>
+                _seekToFraction(resolvedItem, fraction),
           ),
         ],
       ),
@@ -131,15 +149,14 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
   ) {
     if (playerState?.bundle == null) return null;
 
-    // This screen represents the currently active player surface.
-    // Whenever the active player track changes, the whole surface should switch
-    // to that new track immediately so artwork, waveform, title, and playback
-    // state stay in sync instead of mixing old and new track data.
     return uploadItemFromPlayerState(playerState!, store);
   }
 
   Future<void> _seekToFraction(UploadItem item, double fraction) async {
-    final duration = item.durationSeconds;
+    final playerState = ref.read(playerProvider).asData?.value;
+    final duration = playerState?.bundle?.trackId == item.id
+        ? playerState?.effectiveDurationSeconds ?? item.durationSeconds
+        : item.durationSeconds;
     if (duration <= 0) return;
     final seconds = (duration * fraction.clamp(0.0, 1.0)).round();
     await ref.read(playerProvider.notifier).seek(seconds);

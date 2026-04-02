@@ -34,8 +34,11 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
     final playerState = ref.watch(playerProvider).asData?.value;
     final isCurrentTrack = playerState?.bundle?.trackId == item.id;
     final isPlaying = isCurrentTrack && playerState?.isPlaying == true;
-    final progress = isCurrentTrack && item.durationSeconds > 0
-        ? ((playerState?.positionSeconds ?? 0) / item.durationSeconds)
+    final durationSeconds = isCurrentTrack
+        ? (playerState?.effectiveDurationSeconds ?? item.durationSeconds)
+        : item.durationSeconds;
+    final progress = isCurrentTrack && durationSeconds > 0
+        ? ((playerState?.positionSeconds ?? 0) / durationSeconds)
               .clamp(0.0, 1.0)
               .toDouble()
         : 0.0;
@@ -75,6 +78,7 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
                         key: const ValueKey('paused'),
                         item: item,
                         progress: progress,
+                        durationSeconds: durationSeconds,
                         onPlayPauseTap: onPlayPauseTap,
                         onSeekFraction: onSeekFraction,
                       ),

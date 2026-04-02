@@ -9,66 +9,40 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
   ) async {
     if (track.status == PlaybackStatus.blocked) return;
 
-    final trackIds = historyTracks
-        .map((item) => item.trackId)
-        .toList(growable: false);
-    final currentIndex = trackIds.indexOf(track.trackId);
     final store = ref.read(globalTrackStoreProvider);
-    final stored = storedUploadItemForTrack(store, track.trackId);
-    final seedTrack = _seedTrackFromHistory(track, stored);
 
-    await ref
-        .read(playerProvider.notifier)
-        .loadTrackWithQueue(
-          trackId: track.trackId,
-          trackIds: trackIds,
-          currentIndex: currentIndex < 0 ? 0 : currentIndex,
-          autoPlay: true,
-          seedTrack: seedTrack,
-        );
-
-    if (!context.mounted) return;
-
-    final current = ref.read(playerProvider).asData?.value;
-    final item = current != null && current.bundle != null
-        ? uploadItemFromPlayerState(current, store)
-        : (stored ?? _historyTrackToUploadItem(track));
-
-    await Navigator.of(context).push(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => TrackDetailScreen(item: item),
-        transitionsBuilder: (_, animation, __, child) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+    final queueItems = historyTracks
+        .where((item) => item.status != PlaybackStatus.blocked)
+        .map(
+          (item) => _historyTrackToUploadItem(
+            item,
+            storedUploadItemForTrack(store, item.trackId),
           ),
-          child: child,
-        ),
-        transitionDuration: const Duration(milliseconds: 340),
-      ),
+        )
+        .toList(growable: false);
+
+    final selected = _historyTrackToUploadItem(
+      track,
+      storedUploadItemForTrack(store, track.trackId),
+    );
+
+    await openUploadItemPlayer(
+      context,
+      ref,
+      selected,
+      queueItems: queueItems,
+      openScreen: true,
     );
   }
 
-  PlayerSeedTrack _seedTrackFromHistory(
+  UploadItem _historyTrackToUploadItem(
     HistoryTrack track,
     UploadItem? stored,
   ) {
-    return PlayerSeedTrack(
-      trackId: track.trackId,
-      title: stored?.title ?? track.title,
-      artistName: stored?.artistDisplay ?? track.artist.name,
-      durationSeconds:
-          stored?.durationSeconds ?? (track.durationSeconds > 0 ? track.durationSeconds : 0),
-      coverUrl: stored?.artworkUrl ?? track.coverUrl,
-      waveformUrl: stored?.waveformUrl,
-      directAudioUrl: stored?.audioUrl,
-      localFilePath: stored?.localFilePath,
-    );
-  }
+    if (stored != null) {
+      return stored;
+    }
 
-  UploadItem _historyTrackToUploadItem(HistoryTrack track) {
     return UploadItem(
       id: track.trackId,
       title: track.title,

@@ -22,20 +22,30 @@ extension PlayerNotifierControls on PlayerNotifier {
     }
 
     await _applyVolume(preparedState);
-    await _audioPlayer.play();
 
-    state = AsyncData(
-      preparedState.copyWith(isPlaying: true, isBuffering: false),
+    // IMPORTANT:
+    // just_audio.play() completes when playback finishes or is interrupted,
+    // not immediately when audio starts. Awaiting it here blocks the whole
+    // tap flow: the history update waits, the track screen push waits, and
+    // next/previous can look broken until pause/completion.
+    //
+    // So we fire it without awaiting, then update UI state immediately.
+    unawaited(_audioPlayer.play());
+
+    final playingState = preparedState.copyWith(
+      isPlaying: true,
+      isBuffering: false,
     );
+    state = AsyncData(playingState);
 
-    // Optimistically update listening history (works offline too).
+    // Optimistically update listening history immediately on play.
     _notifyHistoryPlayed();
 
     await _safeReportEvent(
       PlaybackEvent(
-        trackId: preparedState.bundle!.trackId,
+        trackId: playingState.bundle!.trackId,
         action: PlaybackAction.play,
-        positionSeconds: preparedState.positionSeconds.round(),
+        positionSeconds: playingState.positionSeconds.round(),
       ),
     );
 

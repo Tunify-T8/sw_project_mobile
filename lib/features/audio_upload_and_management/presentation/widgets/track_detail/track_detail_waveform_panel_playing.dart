@@ -57,12 +57,14 @@ class _PausedSurface extends ConsumerWidget {
     super.key,
     required this.item,
     required this.progress,
+    required this.durationSeconds,
     required this.onPlayPauseTap,
     required this.onSeekFraction,
   });
 
   final UploadItem item;
   final double progress;
+  final int durationSeconds;
   final VoidCallback onPlayPauseTap;
   final ValueChanged<double> onSeekFraction;
 
@@ -102,7 +104,7 @@ class _PausedSurface extends ConsumerWidget {
             child: Column(
               children: [
                 Text(
-                  '${_fmt(progress, item.durationSeconds)} | ${_fmt(1, item.durationSeconds)}',
+                  '${_fmt(progress, durationSeconds)} | ${_fmt(1, durationSeconds)}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,

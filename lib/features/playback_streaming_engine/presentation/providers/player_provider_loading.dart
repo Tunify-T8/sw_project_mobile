@@ -13,7 +13,31 @@ extension PlayerNotifierLoading on PlayerNotifier {
     _progressReportTimer?.cancel();
     await _audioPlayer.stop();
 
-    state = const AsyncLoading();
+    final provisionalBundle = seedTrack?.toPlaybackBundle();
+    if (provisionalBundle != null) {
+      state = AsyncData(
+        PlayerState(
+          bundle: provisionalBundle,
+          queue: queue,
+          isPlaying: false,
+          positionSeconds: _initialPositionFor(provisionalBundle).toDouble(),
+          isMuted: previous?.isMuted ?? false,
+          volume: previous?.volume ?? 1.0,
+          isBuffering: true,
+          localFilePath: seedTrack?.localFilePath,
+        ),
+      );
+    } else if (previous != null) {
+      state = AsyncData(
+        previous.copyWith(
+          isPlaying: false,
+          isBuffering: true,
+          queue: queue,
+        ),
+      );
+    } else {
+      state = const AsyncLoading();
+    }
 
     state = await AsyncValue.guard(() async {
       final bundle = await _resolveBundle(

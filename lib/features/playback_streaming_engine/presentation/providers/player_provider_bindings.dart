@@ -164,7 +164,8 @@ extension _PlayerNotifierBindings on PlayerNotifier {
   /// regardless of network state. The history provider accumulates pending IDs
   /// and merges them properly on the next refresh (when back online).
   void _notifyHistoryPlayed() {
-    final bundle = _current?.bundle;
+    final current = _current;
+    final bundle = current?.bundle;
     if (bundle == null) return;
 
     try {
@@ -178,7 +179,12 @@ extension _PlayerNotifierBindings on PlayerNotifier {
         coverUrl: bundle.coverUrl,
       );
 
-      ref.read(listeningHistoryProvider.notifier).trackPlayed(historyTrack);
+      unawaited(
+        ref.read(listeningHistoryProvider.notifier).trackPlayed(
+              historyTrack,
+              needsBackendSync: current?.streamUrl == null,
+            ),
+      );
     } catch (_) {
       // History update is best-effort; never break playback.
     }

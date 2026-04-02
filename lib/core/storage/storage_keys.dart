@@ -13,7 +13,18 @@ class StorageKeys {
 
   /// Key used to store serialized user information (optional).
   static const String user = 'auth_user';
-  
+
   /// Key used to store playback events queued while offline.
   static const String pendingPlaybackEvents = 'pending_playback_events';
+
+  /// Cached first page of the listening history screen.
+  static const String cachedListeningHistory = 'cached_listening_history';
+
+  /// Track IDs played locally while offline and still waiting to be synced
+  /// back to the backend once the device reconnects.
+  static const String pendingHistorySyncTrackIds =
+      'pending_history_sync_track_ids';
+
+  /// Cached uploads list so the library remains usable offline.
+  static const String cachedLibraryUploads = 'cached_library_uploads';
 }

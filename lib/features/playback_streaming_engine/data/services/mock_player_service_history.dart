@@ -7,6 +7,7 @@ extension MockPlayerServiceHistory on MockPlayerService {
   }) async {
     await _delay(300);
 
+    // Seed with example data the first time history is fetched and empty
     if (_history.isEmpty) {
       for (var i = 0; i < 10; i++) {
         _history.add({

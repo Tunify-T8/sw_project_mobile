@@ -2,8 +2,14 @@
 // Purpose: Riverpod notifier for loading, filtering, refreshing, deleting, replacing, and updating the user's uploaded tracks.
 // Used by: upload_flow_controller, upload_provider, artist_home_screen, and 6 more upload files.
 // Concerns: Multi-format support; Track visibility.
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../../core/storage/storage_keys.dart';
+import '../../data/dto/upload_item_dto.dart';
+import '../../data/mappers/library_uploads_mapper.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../shared/upload_error_helpers.dart';
 import 'library_uploads_filter.dart';
@@ -16,14 +22,20 @@ final libraryUploadsProvider =
     );
 
 class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
+
   @override
   LibraryUploadsState build() => const LibraryUploadsState();
 
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
+
     try {
       final uploads = await ref.read(getMyUploadsUsecaseProvider).call();
       final quota = await ref.read(getArtistToolsQuotaUsecaseProvider).call();
+
+      await _persistCachedUploads(uploads);
+
       state = state.copyWith(
         isLoading: false,
         items: uploads,
@@ -31,6 +43,17 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
         quota: quota,
       );
     } catch (error, stackTrace) {
+      final cachedUploads = await _readCachedUploads();
+      if (cachedUploads.isNotEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          items: cachedUploads,
+          filteredItems: _filtered(source: cachedUploads),
+          clearError: true,
+        );
+        return;
+      }
+
       _setError(
         error,
         stackTrace,
@@ -44,9 +67,13 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
 
   Future<void> refresh() async {
     state = state.copyWith(isRefreshing: true, clearError: true);
+
     try {
       final uploads = await ref.read(getMyUploadsUsecaseProvider).call();
       final quota = await ref.read(getArtistToolsQuotaUsecaseProvider).call();
+
+      await _persistCachedUploads(uploads);
+
       state = state.copyWith(
         isRefreshing: false,
         items: uploads,
@@ -54,6 +81,17 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
         quota: quota,
       );
     } catch (error, stackTrace) {
+      final cachedUploads = await _readCachedUploads();
+      if (cachedUploads.isNotEmpty) {
+        state = state.copyWith(
+          isRefreshing: false,
+          items: cachedUploads,
+          filteredItems: _filtered(source: cachedUploads),
+          clearError: true,
+        );
+        return;
+      }
+
       _setError(
         error,
         stackTrace,
@@ -91,6 +129,9 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     try {
       await ref.read(deleteUploadUsecaseProvider).call(trackId);
       final updated = state.items.where((item) => item.id != trackId).toList();
+
+      await _persistCachedUploads(updated);
+
       state = state.copyWith(
         items: updated,
         filteredItems: _filtered(source: updated),
@@ -168,6 +209,89 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     sort: sort ?? state.sortOrder,
     visibility: visibility ?? state.visibilityFilter,
   );
+
+  Future<void> _persistCachedUploads(List<UploadItem> uploads) async {
+    final payload = uploads
+        .map(
+          (item) => UploadItemDto(
+            id: item.id,
+            title: item.title,
+            artists: item.artistDisplay
+                .split(',')
+                .map((value) => value.trim())
+                .where((value) => value.isNotEmpty)
+                .toList(),
+            durationSeconds: item.durationSeconds,
+            audioUrl: item.audioUrl,
+            waveformUrl: item.waveformUrl,
+            waveformBars: item.waveformBars,
+            artworkUrl: item.artworkUrl,
+            localArtworkPath: item.localArtworkPath,
+            localFilePath: item.localFilePath,
+            description: item.description,
+            tags: item.tags,
+            genreCategory: item.genreCategory,
+            genreSubGenre: item.genreSubGenre,
+            privacy: item.visibility == UploadVisibility.public
+                ? 'public'
+                : 'private',
+            status: _statusToString(item.status),
+            contentWarning: item.isExplicit,
+            recordLabel: item.recordLabel,
+            publisher: item.publisher,
+            isrc: item.isrc,
+            pLine: item.pLine,
+            scheduledReleaseDate: item.scheduledReleaseDate?.toIso8601String(),
+            allowDownloads: item.allowDownloads,
+            offlineListening: item.offlineListening,
+            includeInRss: item.includeInRss,
+            displayEmbedCode: item.displayEmbedCode,
+            appPlaybackEnabled: item.appPlaybackEnabled,
+            availabilityType: item.availabilityType,
+            availabilityRegions: item.availabilityRegions,
+            licensing: item.licensing,
+            createdAt: item.createdAt.toIso8601String(),
+          ).toJson(),
+        )
+        .toList(growable: false);
+
+    await _storage.write(
+      key: StorageKeys.cachedLibraryUploads,
+      value: jsonEncode(payload),
+    );
+  }
+
+  Future<List<UploadItem>> _readCachedUploads() async {
+    final raw = await _storage.read(key: StorageKeys.cachedLibraryUploads);
+    if (raw == null || raw.isEmpty) {
+      return const <UploadItem>[];
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(UploadItemDto.fromJson)
+          .map((dto) => dto.toEntity())
+          .toList(growable: false);
+    } catch (_) {
+      await _storage.delete(key: StorageKeys.cachedLibraryUploads);
+      return const <UploadItem>[];
+    }
+  }
+
+  String _statusToString(UploadProcessingStatus value) {
+    switch (value) {
+      case UploadProcessingStatus.processing:
+        return 'processing';
+      case UploadProcessingStatus.failed:
+        return 'failed';
+      case UploadProcessingStatus.deleted:
+        return 'deleted';
+      case UploadProcessingStatus.finished:
+        return 'finished';
+    }
+  }
 
   void _setBusyActionError(
     Object error,

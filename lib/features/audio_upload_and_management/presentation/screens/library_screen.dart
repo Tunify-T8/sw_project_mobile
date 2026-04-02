@@ -169,15 +169,11 @@ class LibraryScreen extends ConsumerWidget {
                     ),
                   );
                 }
-                return SliverList.builder(
-                  itemCount: tracks.length,
-                  itemBuilder: (context, index) {
-                    final track = tracks[index];
-                    return _LibraryHistoryTile(
-                      track: track,
-                      queueTracks: state.tracks,
-                    );
-                  },
+                return SliverToBoxAdapter(
+                  child: _AnimatedLibraryHistoryPreview(
+                    tracks: tracks,
+                    queueTracks: state.tracks,
+                  ),
                 );
               },
               loading: () => const SliverToBoxAdapter(

@@ -11,8 +11,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
     final nextIndex = queue.currentIndex + 1;
 
     // Circular: wrap around to first when past the end
-    final resolvedIndex =
-        nextIndex >= queue.trackIds.length ? 0 : nextIndex;
+    final resolvedIndex = nextIndex >= queue.trackIds.length ? 0 : nextIndex;
 
     await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
   }
@@ -67,6 +66,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
       privateToken: privateToken,
       queue: queue,
       autoPlay: autoPlay,
+      seedTrack: _seedTrackForTrackId(startTrackId),
     );
   }
 
@@ -76,11 +76,47 @@ extension PlayerNotifierQueue on PlayerNotifier {
     required bool autoPlay,
   }) async {
     final nextQueue = queue.copyWith(currentIndex: index);
+    final nextTrackId = queue.trackIds[index];
 
     await loadTrack(
-      queue.trackIds[index],
+      nextTrackId,
       queue: nextQueue,
       autoPlay: autoPlay,
+      seedTrack: _seedTrackForTrackId(nextTrackId),
+    );
+  }
+
+  PlayerSeedTrack? _seedTrackForTrackId(String trackId) {
+    final stored = ref.read(globalTrackStoreProvider).find(trackId);
+    if (stored != null) {
+      return PlayerSeedTrack(
+        trackId: stored.id,
+        title: stored.title,
+        artistName: stored.artistDisplay,
+        durationSeconds: stored.durationSeconds,
+        coverUrl: stored.artworkUrl,
+        waveformUrl: stored.waveformUrl,
+        directAudioUrl: stored.audioUrl,
+        localFilePath: stored.localFilePath,
+      );
+    }
+
+    final historyState = ref.read(listeningHistoryProvider).asData?.value;
+    final historyTrack = historyState?.tracks.cast<HistoryTrack?>().firstWhere(
+          (track) => track?.trackId == trackId,
+          orElse: () => null,
+        );
+
+    if (historyTrack == null) {
+      return null;
+    }
+
+    return PlayerSeedTrack(
+      trackId: historyTrack.trackId,
+      title: historyTrack.title,
+      artistName: historyTrack.artist.name,
+      durationSeconds: historyTrack.durationSeconds,
+      coverUrl: historyTrack.coverUrl,
     );
   }
 }
