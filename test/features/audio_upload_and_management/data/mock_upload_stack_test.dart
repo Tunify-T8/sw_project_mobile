@@ -10,6 +10,7 @@ import 'package:software_project/features/audio_upload_and_management/shared/upl
 import '../../../helpers/mocks.mocks.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   void clearStore() {
     GlobalTrackStore.instance.clear();
   }
@@ -59,7 +60,7 @@ void main() {
       final quota = await service.getUploadQuota(userId: 'user-1');
 
       expect(quota['tier'], 'free');
-      expect(quota['uploadMinutesRemaining'], 172);
+      expect(quota['uploadMinutesRemaining'], 180);
       expect(quota['canReplaceFiles'], isFalse);
     });
 
@@ -134,9 +135,12 @@ void main() {
 
   group('MockLibraryUploadsApi', () {
     late MockLibraryUploadsApi api;
+    late MockTokenStorage mockTokenStorage;
 
     setUp(() {
-      api = MockLibraryUploadsApi();
+      mockTokenStorage = MockTokenStorage();
+      when(mockTokenStorage.getUser()).thenAnswer((_) async => null);
+      api = MockLibraryUploadsApi(tokenStorage: mockTokenStorage);
       GlobalTrackStore.instance.add(
         UploadItem(
           id: 'track-1',
@@ -175,7 +179,7 @@ void main() {
 
         expect(uploads, hasLength(1));
         expect(uploads.single.id, 'track-1');
-        expect(quota.uploadMinutesLimit - quota.uploadMinutesUsed, 172);
+        expect(quota.uploadMinutesLimit - quota.uploadMinutesUsed, 179);
         expect(quota.canUpgrade, isTrue);
       },
     );

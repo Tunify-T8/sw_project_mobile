@@ -23,6 +23,9 @@ import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
 import '../features/auth/presentation/screens/google_account_linking_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
+import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
+import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
+import '../features/playback_streaming_engine/presentation/screens/listening_history_screen.dart';
 import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
@@ -224,6 +227,24 @@ class AppRouter {
           settings,
         );
 
+      case Routes.player:
+        return _slideUp(
+          const AuthProtectedScreen(child: PlayerScreen()),
+          settings,
+        );
+
+      case Routes.queue:
+        return _slide(
+          const AuthProtectedScreen(child: QueueScreen()),
+          settings,
+        );
+
+      case Routes.listeningHistory:
+        return _slide(
+          const AuthProtectedScreen(child: ListeningHistoryScreen()),
+          settings,
+        );
+
       default:
         return _fade(const AuthGate(), settings);
     }
@@ -260,6 +281,21 @@ class AppRouter {
         child: child,
       ),
       transitionDuration: const Duration(milliseconds: 300),
+    );
+  }
+
+  static PageRouteBuilder<T> _slideUp<T>(Widget page, RouteSettings settings) {
+    return PageRouteBuilder<T>(
+      settings: settings,
+      pageBuilder: (_, _, _) => page,
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 350),
     );
   }
 }

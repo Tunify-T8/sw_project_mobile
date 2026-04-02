@@ -1,6 +1,6 @@
 // Upload Feature Guide:
 // Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
-// Used by: upload_mappers, cloudinary_upload_mapper, cloudinary_upload_repository_impl, and 10 more upload files.
+// Used by: upload_mappers, real_upload_repository_impl, and 11 more upload files.
 // Concerns: Multi-format support; Transcoding logic.
 import 'upload_status.dart';
 

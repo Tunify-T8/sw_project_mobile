@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Dio client for the real My Uploads and artist-tools endpoints used after tracks exist.
-// Used by: library_uploads_repository_impl, library_uploads_repository_provider
-// Concerns: Multi-format support; Track visibility.
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_endpoints.dart';
@@ -9,6 +5,8 @@ import '../../../../core/storage/token_storage.dart';
 import '../../shared/upload_error_helpers.dart';
 import '../dto/artist_tools_quota_dto.dart';
 import '../dto/upload_item_dto.dart';
+
+part 'library_uploads_api_helpers.dart';
 
 class LibraryUploadsApi {
   final Dio dio;
@@ -81,13 +79,14 @@ class LibraryUploadsApi {
         .where((t) => t.status == 'finished')
         .fold<int>(0, (sum, t) => sum + t.durationSeconds);
     final computedUsedMinutes = (computedUsedSeconds / 60).ceil();
-
     final limit = (map['uploadMinutesLimit'] as num?)?.toInt() ?? 99;
 
     final correctedMap = Map<String, dynamic>.from(map)
       ..['uploadMinutesUsed'] = computedUsedMinutes
-      ..['uploadMinutesRemaining'] =
-          (limit - computedUsedMinutes).clamp(0, limit);
+      ..['uploadMinutesRemaining'] = (limit - computedUsedMinutes).clamp(
+        0,
+        limit,
+      );
 
     return ArtistToolsQuotaDto.fromJson(correctedMap);
   }
@@ -152,66 +151,5 @@ class LibraryUploadsApi {
     throw const UploadFlowException(
       'We could not save those track changes right now. Please try again.',
     );
-  }
-
-  Future<UploadItemDto> _enrichCollaboratorsIfNeeded(UploadItemDto item) async {
-    if (item.id.isEmpty || item.artists.length > 1) {
-      return item;
-    }
-
-    try {
-      final response = await dio.get(ApiEndpoints.uploadDetails(item.id));
-      final raw = _normalizeTrackJson(response.data);
-      final details = UploadItemDto.fromJson(raw);
-
-      if (details.artists.isEmpty) {
-        return item;
-      }
-
-      return item.copyWith(
-        artists: details.artists,
-        description: _preferText(details.description, item.description),
-        artworkUrl: _preferText(details.artworkUrl, item.artworkUrl),
-        waveformUrl: _preferText(details.waveformUrl, item.waveformUrl),
-        audioUrl: _preferText(details.audioUrl, item.audioUrl),
-      );
-    } catch (_) {
-      return item;
-    }
-  }
-
-  Map<String, dynamic> _normalizeTrackJson(dynamic raw) {
-    if (raw is! Map<String, dynamic>) {
-      return const <String, dynamic>{};
-    }
-
-    Map<String, dynamic> map = raw;
-
-    if (map.containsKey('track') && map['track'] is Map<String, dynamic>) {
-      map = map['track'] as Map<String, dynamic>;
-    }
-
-    if (map.containsKey('data') && map['data'] is Map<String, dynamic>) {
-      map = map['data'] as Map<String, dynamic>;
-    }
-
-    if (!map.containsKey('trackId') && map.containsKey('id')) {
-      map = Map<String, dynamic>.from(map)..['trackId'] = map['id'];
-    }
-
-    if (!map.containsKey('status') && map.containsKey('transcodingStatus')) {
-      map = Map<String, dynamic>.from(map)
-        ..['status'] = map['transcodingStatus'];
-    }
-
-    return map;
-  }
-
-  String? _preferText(String? preferred, String? fallback) {
-    final trimmed = preferred?.trim();
-    if (trimmed == null || trimmed.isEmpty) {
-      return fallback;
-    }
-    return trimmed;
   }
 }

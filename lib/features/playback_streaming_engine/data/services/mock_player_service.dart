@@ -1,46 +1,38 @@
 import 'dart:async';
 import 'dart:math';
 
-/// In-memory fake implementation of all streaming operations
-/// Simulates realistic network behavior
-/// No real HTTP calls 
+part 'mock_player_service_history.dart';
+
+/// In-memory fake implementation of all streaming operations.
+/// Simulates realistic network behaviour. No real HTTP calls.
 class MockPlayerService {
   MockPlayerService();
-
-  // ---------------------------------------------------------------------------
-  // In-memory state
-  // ---------------------------------------------------------------------------
 
   /// Fake listening history — grows as reportPlaybackEvent is called.
   final List<Map<String, dynamic>> _history = [];
 
+  /// Cache of bundle data keyed by trackId so history entries use real titles.
+  final Map<String, Map<String, dynamic>> _bundleCache =
+      <String, Map<String, dynamic>>{};
+
   final _rng = Random();
 
-  // ---------------------------------------------------------------------------
-  // 5.1  getPlaybackBundle   as per backend docs
-  // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> getPlaybackBundle(
-    // trackId is required, privateToken is optional for private tracks
     String trackId, {
     String? privateToken,
   }) async {
     await _delay(350);
 
-    // Simulate a blocked track when id contains 'blocked'
     final isBlocked = trackId.contains('blocked');
     final isPreview = trackId.contains('preview');
-// Generate fake metadata and playability info based on trackId patterns 
-    return {
+
+    final bundle = {
       'trackId': trackId,
       'title': _fakeTitles[_rng.nextInt(_fakeTitles.length)],
-      'artist': {
-        'id': 'artist_mock_001',
-        'name': 'Mock Artist',
-        'tier': 'pro', // wrong prob byfedny b eh its actually role in backend
-      },
+      'artist': {'id': 'artist_mock_001', 'name': 'Mock Artist', 'tier': 'pro'},
       'durationSeconds': 180 + _rng.nextInt(180),
       'waveformUrl': 'https://cdn.mock.app/waveforms/$trackId.json',
-      'coverUrl': 'https://cdn.mock.app/artwork/$trackId.png', //artwork? ask backend
+      'coverUrl': 'https://cdn.mock.app/artwork/$trackId.png',
       'contentWarning': false,
       'engagement': {
         'likeCount': 100 + _rng.nextInt(900),
@@ -54,8 +46,8 @@ class MockPlayerService {
         'status': isBlocked
             ? 'blocked'
             : isPreview
-                ? 'preview'
-                : 'playable',
+            ? 'preview'
+            : 'playable',
         'regionBlocked': false,
         'tierBlocked': isBlocked,
         'requiresSubscription': isBlocked,
@@ -68,14 +60,16 @@ class MockPlayerService {
       },
       'scheduledReleaseDate': null,
     };
+
+    // Cache so history can use the real title/artist/coverUrl/duration
+    _bundleCache[trackId] = bundle;
+
+    return bundle;
   }
 
-  // ---------------------------------------------------------------------------
-  // 5.2  requestStreamUrl
-  // ---------------------------------------------------------------------------
   Future<Map<String, dynamic>> requestStreamUrl(
     String trackId, {
-    String quality = 'auto', //change it
+    String quality = 'auto',
   }) async {
     await _delay(200);
     return {
@@ -84,46 +78,73 @@ class MockPlayerService {
         'url':
             'https://cdn.mock.app/stream/$trackId.m3u8?sig=mock_${DateTime.now().millisecondsSinceEpoch}',
         'expiresInSeconds': 600,
-        'format': 'hls', // is this ,mp3 wav and such ? ask backend
+        'format': 'hls',
       },
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // 5.3  reportPlaybackEvent
-  // ---------------------------------------------------------------------------
   Future<void> reportPlaybackEvent({
     required String trackId,
     required String action,
     required int positionSeconds,
+    // Optional hints passed when the real title/artist are known on the client
+    String? title,
+    String? artistName,
+    String? coverUrl,
+    int? durationSeconds,
   }) async {
     await _delay(80);
 
     if (action == 'play') {
-      // Add to fake history if not already there for this session
-      final alreadyInHistory =
-          _history.any((e) => e['trackId'] == trackId); // put in top of the list if already in history ? ask backend
-      if (!alreadyInHistory) {
-        _history.insert(0, {
-          'trackId': trackId,
-          'title': _fakeTitles[_rng.nextInt(_fakeTitles.length)],
-          'artist': {
-            'id': 'artist_mock_001',
-            'name': 'Mock Artist',
-            'tier': 'pro',
-          },
-          'playedAt': DateTime.now().toIso8601String(),
-          'durationSeconds': 200,
-          'status': 'playable',
-        });
+      // Resolve the best available metadata in priority order:
+      //   1. Caller-supplied hints (from seedTrack / bundle)
+      //   2. Cached bundle data from a previous getPlaybackBundle call
+      //   3. Fallback mock data
+      final cached = _bundleCache[trackId];
+      final resolvedTitle =
+          title ??
+          (cached?['title'] as String?) ??
+          _fakeTitles[_rng.nextInt(_fakeTitles.length)];
+      final resolvedArtist = artistName ?? 'Mock Artist';
+      final resolvedCover =
+          coverUrl ?? 'https://cdn.mock.app/artwork/$trackId.png';
+      final resolvedDuration =
+          durationSeconds ?? (cached?['durationSeconds'] as int?) ?? 200;
+
+      final existingIndex = _history.indexWhere((e) => e['trackId'] == trackId);
+      final previousPlayCount = existingIndex >= 0
+          ? (((_history[existingIndex]['engagement']
+                        as Map<String, dynamic>?)?['playCount'])
+                    as int? ??
+                0)
+          : 0;
+
+      final entry = {
+        'trackId': trackId,
+        'title': resolvedTitle,
+        'artist': resolvedArtist,
+        'coverUrl': resolvedCover,
+        'genre': 'Electronic',
+        'releaseDate': DateTime.now().toIso8601String(),
+        'playedAt': DateTime.now().toIso8601String(),
+        'durationSeconds': resolvedDuration,
+        'status': 'playable',
+        'engagement': {
+          'likeCount': 25,
+          'commentCount': 4,
+          'repostCount': 2,
+          'playCount': previousPlayCount + 1,
+        },
+      };
+
+      if (existingIndex >= 0) {
+        // Move to top and update playedAt / playCount
+        _history.removeAt(existingIndex);
       }
+      _history.insert(0, entry);
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // 5.4  buildPlaybackQueue
-  // ---------------------------------------------------------------------------
-  //ask backend if they nned or want context or just want the list egenrated by us based on the context type and id
   Future<Map<String, dynamic>> buildPlaybackQueue({
     required String contextType,
     required String contextId,
@@ -133,13 +154,8 @@ class MockPlayerService {
   }) async {
     await _delay(250);
 
-    // Generate 5 fake track IDs for the queue
-    final trackIds = List.generate(
-      5,
-      (i) => 'mock_track_${contextId}_$i',
-    );
+    final trackIds = List.generate(5, (i) => 'mock_track_${contextId}_$i');
 
-    // If startTrackId is given and not in the list, insert it at front
     if (startTrackId != null && !trackIds.contains(startTrackId)) {
       trackIds.insert(0, startTrackId);
     }
@@ -155,65 +171,4 @@ class MockPlayerService {
       'repeat': repeat,
     };
   }
-
-  // ---------------------------------------------------------------------------
-  // 5.5  getListeningHistory
-  // ---------------------------------------------------------------------------
-  Future<Map<String, dynamic>> getListeningHistory({
-    int page = 1,
-    int limit = 20,
-  }) async {
-    await _delay(300);
-
-    // Seed some history if empty
-    if (_history.isEmpty) {
-      for (var i = 0; i < 10; i++) {
-        _history.add({
-          'trackId': 'history_track_$i',
-          'title': _fakeTitles[i % _fakeTitles.length],
-          'artist': {
-            'id': 'artist_mock_00$i',
-            'name': 'Mock Artist $i',
-            'tier': i % 3 == 0 ? 'pro' : 'free',
-          },
-          'playedAt': DateTime.now()
-              .subtract(Duration(hours: i * 2))
-              .toIso8601String(),
-          'durationSeconds': 180 + i * 10,
-          'status': 'playable',
-        });
-      }
-    }
-
-    final offset = (page - 1) * limit;
-    final paged = _history.skip(offset).take(limit).toList();
-
-    return {
-      'data': paged,
-      'meta': {
-        'page': page,
-        'limit': limit,
-        'total': _history.length,
-      },
-    };
-  }
-
-  // ---------------------------------------------------------------------------
-  // Helpers  
-  // ---------------------------------------------------------------------------
-  Future<void> _delay(int milliseconds) =>
-      Future.delayed(Duration(milliseconds: milliseconds));
-
-  static const _fakeTitles = [
-    'Midnight Drive',
-    'Electric Soul',
-    'Lost in Bass',
-    'Golden Hour',
-    'Fade to Blue',
-    'Neon Lights',
-    'Echo Chamber',
-    'Broken Clocks',
-    'Summer Static',
-    'Rainy Season',
-  ];
 }

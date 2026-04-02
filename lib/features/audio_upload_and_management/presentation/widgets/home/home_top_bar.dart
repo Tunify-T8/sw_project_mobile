@@ -1,7 +1,3 @@
-// Upload Feature Guide:
-// Purpose: Home surface widget that exposes upload entry points or upload-related discovery sections.
-// Used by: home_screen
-// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 
 class HomeTopBar extends StatelessWidget {
@@ -19,16 +15,17 @@ class HomeTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
           GestureDetector(
             onTap: onOpenArtistHome,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
+                color: const Color(0xFF171717),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white10),
               ),
               child: const Row(
                 children: [
@@ -39,7 +36,7 @@ class HomeTopBar extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -47,35 +44,54 @@ class HomeTopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          GestureDetector(
+          _CircleIconButton(
+            icon: Icons.cloud_upload_outlined,
+            isBusy: isBusy,
             onTap: isBusy ? null : onStartUpload,
-            child: SizedBox(
-              width: 40,
-              height: 40,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (isBusy)
-                    const SizedBox(
-                      width: 38,
-                      height: 38,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: Colors.white,
-                      ),
-                    ),
-                  Icon(
-                    Icons.cloud_upload_outlined,
-                    color: isBusy ? Colors.white54 : Colors.white,
-                    size: 26,
-                  ),
-                ],
-              ),
-            ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 26),
+          const SizedBox(width: 10),
+          const _CircleIconButton(icon: Icons.chat_bubble_outline),
         ],
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.icon,
+    this.isBusy = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final bool isBusy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: const Color(0xFF171717),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Center(
+          child: isBusy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.6,
+                    color: Colors.white,
+                  ),
+                )
+              : Icon(icon, color: Colors.white, size: 22),
+        ),
       ),
     );
   }

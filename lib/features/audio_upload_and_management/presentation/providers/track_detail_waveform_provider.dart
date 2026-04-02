@@ -24,22 +24,36 @@ final trackDetailWaveformProvider = Provider.autoDispose
 ///   1. Already on the item (from DTO — unlikely for getMyTracks)
 ///   2. Fetch the JSON from the backend waveformUrl (Supabase JSON file)
 ///   3. Extract locally from the audio file as last resort
+final Map<String, List<double>> _waveformBarsMemoryCache = <String, List<double>>{};
+
 final trackDetailWaveformBarsProvider = FutureProvider.autoDispose
     .family<List<double>?, UploadItem>((ref, item) async {
-      // 1. Already have bars
+      final cacheKey = item.id;
+
       if (item.waveformBars != null && item.waveformBars!.isNotEmpty) {
+        _waveformBarsMemoryCache[cacheKey] = item.waveformBars!;
         return item.waveformBars;
       }
 
-      // 2. Fetch from backend waveform JSON URL (Supabase storage)
+      final cached = _waveformBarsMemoryCache[cacheKey];
+      if (cached != null && cached.isNotEmpty) {
+        return cached;
+      }
+
       final waveformUrl = item.waveformUrl?.trim();
       if (waveformUrl != null && waveformUrl.isNotEmpty) {
         final bars = await _fetchWaveformJson(waveformUrl);
-        if (bars != null && bars.isNotEmpty) return bars;
+        if (bars != null && bars.isNotEmpty) {
+          _waveformBarsMemoryCache[cacheKey] = bars;
+          return bars;
+        }
       }
 
-      // 3. Fall back to local extraction
-      return _extractWaveformBars(item);
+      final extracted = await _extractWaveformBars(item);
+      if (extracted != null && extracted.isNotEmpty) {
+        _waveformBarsMemoryCache[cacheKey] = extracted;
+      }
+      return extracted;
     });
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -66,8 +80,8 @@ final UploadWaveformService _waveformService = UploadWaveformService();
 
 // ── URL resolution ────────────────────────────────────────────────────────────
 
-/// Returns the waveformUrl directly — backend stores peaks as a JSON file
-/// on Supabase. No Cloudinary derivation needed.
+/// Returns the waveformUrl directly because the backend stores peaks as a JSON
+/// file in storage.
 String? _resolveWaveformUrl(UploadItem item) {
   final url = item.waveformUrl?.trim();
   if (url != null && url.isNotEmpty) return url;

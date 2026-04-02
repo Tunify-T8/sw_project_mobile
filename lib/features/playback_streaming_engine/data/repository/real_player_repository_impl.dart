@@ -1,3 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../../core/storage/storage_keys.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_context_request.dart';
 import '../../domain/entities/playback_event.dart';
@@ -10,8 +17,16 @@ import '../api/streaming_api.dart';
 import '../mapper/playback_mapper.dart';
 
 class RealPlayerRepository implements PlayerRepository {
-  final StreamingApi _api;
   RealPlayerRepository(this._api);
+
+  final StreamingApi _api;
+
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  final List<PlaybackEvent> _pendingEvents = [];
+  Timer? _retryTimer;
+  bool _isFlushingPending = false;
+  bool _hasLoadedPendingEvents = false;
 
   @override
   Future<TrackPlaybackBundle> getPlaybackBundle(
@@ -35,12 +50,20 @@ class RealPlayerRepository implements PlayerRepository {
   }
 
   @override
-  Future<void> reportPlaybackEvent(PlaybackEvent event) {
-    return _api.reportPlaybackEvent(
-      trackId: event.trackId,
-      action: event.action,
-      positionSeconds: event.positionSeconds,
-    );
+  Future<void> reportPlaybackEvent(PlaybackEvent event) async {
+    await _ensurePendingLoaded();
+    await _flushPendingEventsIfPossible();
+
+    try {
+      await _sendEvent(event);
+    } catch (error) {
+      if (_shouldQueueForRetry(error)) {
+        await _enqueuePendingEvent(event);
+        _ensureRetryTimer();
+        return;
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -62,8 +85,182 @@ class RealPlayerRepository implements PlayerRepository {
     int page = 1,
     int limit = 20,
   }) async {
+    await _ensurePendingLoaded();
+    await _flushPendingEventsIfPossible();
+
     final dtos = await _api.getListeningHistory(page: page, limit: limit);
     return dtos.map((dto) => dto.toEntity()).toList();
+  }
+
+  @override
+  Future<void> clearListeningHistory() async {
+    await _api.clearListeningHistory();
+  }
+
+  Future<void> _sendEvent(PlaybackEvent event) {
+    return _api.reportPlaybackEvent(
+      trackId: event.trackId,
+      action: event.action,
+      positionSeconds: event.positionSeconds,
+    );
+  }
+
+  Future<void> _ensurePendingLoaded() async {
+    if (_hasLoadedPendingEvents) return;
+
+    final raw = await _storage.read(key: StorageKeys.pendingPlaybackEvents);
+    _hasLoadedPendingEvents = true;
+
+    if (raw == null || raw.isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      _pendingEvents
+        ..clear()
+        ..addAll(
+          decoded.whereType<Map<String, dynamic>>().map(_eventFromJson),
+        );
+    } catch (_) {
+      await _storage.delete(key: StorageKeys.pendingPlaybackEvents);
+    }
+  }
+
+  Future<void> _flushPendingEventsIfPossible() async {
+    if (_pendingEvents.isEmpty || _isFlushingPending) return;
+
+    _isFlushingPending = true;
+
+    try {
+      while (_pendingEvents.isNotEmpty) {
+        final event = _pendingEvents.first;
+
+        try {
+          await _sendEvent(event);
+          _pendingEvents.removeAt(0);
+          await _persistPendingEvents();
+        } catch (error) {
+          if (_shouldQueueForRetry(error)) {
+            _ensureRetryTimer();
+            break;
+          }
+
+          _pendingEvents.removeAt(0);
+          await _persistPendingEvents();
+        }
+      }
+    } finally {
+      _isFlushingPending = false;
+
+      if (_pendingEvents.isEmpty) {
+        _retryTimer?.cancel();
+        _retryTimer = null;
+      } else {
+        _ensureRetryTimer();
+      }
+    }
+  }
+
+  Future<void> _enqueuePendingEvent(PlaybackEvent event) async {
+    if (event.action == PlaybackAction.play) {
+      final isDuplicatePlay = _pendingEvents.any(
+        (pending) =>
+            pending.trackId == event.trackId &&
+            pending.action == PlaybackAction.play &&
+            pending.positionSeconds == event.positionSeconds,
+      );
+
+      if (!isDuplicatePlay) {
+        _pendingEvents.add(event);
+        await _persistPendingEvents();
+      }
+      return;
+    }
+
+    _pendingEvents.removeWhere(
+      (pending) =>
+          pending.trackId == event.trackId &&
+          pending.action != PlaybackAction.play,
+    );
+    _pendingEvents.add(event);
+    await _persistPendingEvents();
+  }
+
+  Future<void> _persistPendingEvents() async {
+    if (_pendingEvents.isEmpty) {
+      await _storage.delete(key: StorageKeys.pendingPlaybackEvents);
+      return;
+    }
+
+    final payload = jsonEncode(_pendingEvents.map(_eventToJson).toList());
+    await _storage.write(
+      key: StorageKeys.pendingPlaybackEvents,
+      value: payload,
+    );
+  }
+
+  void _ensureRetryTimer() {
+    _retryTimer ??= Timer.periodic(const Duration(seconds: 8), (_) {
+      if (_isFlushingPending || _pendingEvents.isEmpty) return;
+      unawaited(_flushPendingEventsIfPossible());
+    });
+  }
+
+  bool _shouldQueueForRetry(Object error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.connectionError:
+        case DioExceptionType.unknown:
+          return true;
+        case DioExceptionType.cancel:
+        case DioExceptionType.badCertificate:
+        case DioExceptionType.badResponse:
+          return false;
+      }
+    }
+
+    return false;
+  }
+
+  Map<String, dynamic> _eventToJson(PlaybackEvent event) {
+    return {
+      'trackId': event.trackId,
+      'action': _actionToString(event.action),
+      'positionSeconds': event.positionSeconds,
+    };
+  }
+
+  PlaybackEvent _eventFromJson(Map<String, dynamic> json) {
+    return PlaybackEvent(
+      trackId: json['trackId'] as String? ?? '',
+      action: _actionFromString(json['action'] as String? ?? 'progress'),
+      positionSeconds: json['positionSeconds'] as int? ?? 0,
+    );
+  }
+
+  static PlaybackAction _actionFromString(String value) {
+    switch (value) {
+      case 'play':
+        return PlaybackAction.play;
+      case 'pause':
+        return PlaybackAction.pause;
+      case 'progress':
+      default:
+        return PlaybackAction.progress;
+    }
+  }
+
+  static String _actionToString(PlaybackAction action) {
+    switch (action) {
+      case PlaybackAction.play:
+        return 'play';
+      case PlaybackAction.progress:
+        return 'progress';
+      case PlaybackAction.pause:
+        return 'pause';
+    }
   }
 
   static String _repeatToString(RepeatMode mode) {

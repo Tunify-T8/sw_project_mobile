@@ -6,7 +6,7 @@ import 'package:software_project/features/audio_upload_and_management/domain/ent
 import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_status.dart';
 import 'package:software_project/features/audio_upload_and_management/shared/upload_error_helpers.dart';
 
-import '../../../helpers/upload_mocks.mocks.dart' show MockMockUploadService;
+import '../helpers/local_upload_test_mocks.dart' show MockMockUploadService;
 import '../helpers/upload_test_data.dart';
 
 void main() {
@@ -32,7 +32,8 @@ void main() {
     });
 
     test('mapMockTrackResponse and mapMockUploadStatus map known and unknown states', () {
-      final response = mapMockTrackResponse(sampleTrackResponseJson(status: 'finished'));
+      final response =
+          mapMockTrackResponse(sampleTrackResponseJson(status: 'finished'));
 
       expect(response.trackId, 'track-1');
       expect(response.status, UploadStatus.finished);
@@ -111,31 +112,37 @@ void main() {
       );
       verifyNever(
         mockService.uploadAudio(
-          trackId: anyNamed('trackId'),
-          localFilePath: anyNamed('localFilePath'),
+          trackId: 'track-1',
+          localFilePath: samplePickedUploadFile.path,
         ),
       );
     });
 
     test('finalize wait update details and delete delegate to the service', () async {
+      final metadataPayload = buildMockTrackMetadataPayload(sampleTrackMetadata);
+
       when(
         mockService.finalizeMetadata(
           trackId: 'track-1',
-          metadata: anyNamed('metadata'),
+          metadata: metadataPayload,
         ),
       ).thenAnswer((_) async => sampleTrackResponseJson(status: 'processing'));
+
       when(
         mockService.pollTrackStatus(trackId: 'track-1'),
       ).thenAnswer((_) async => sampleTrackResponseJson(status: 'finished'));
+
       when(
         mockService.getTrackDetails(trackId: 'track-1'),
       ).thenAnswer((_) async => sampleTrackResponseJson(status: 'finished'));
+
       when(
         mockService.updateTrackMetadata(
           trackId: 'track-1',
-          metadata: anyNamed('metadata'),
+          metadata: metadataPayload,
         ),
       ).thenAnswer((_) async => sampleTrackResponseJson(status: 'finished'));
+
       when(mockService.deleteTrack(trackId: 'track-1')).thenAnswer((_) async {});
 
       final finalized = await repository.finalizeMetadata(
@@ -155,16 +162,20 @@ void main() {
       expect(details.trackId, 'track-1');
       expect(updated.status, UploadStatus.finished);
 
-      final finalizePayload =
-          verify(
-                mockService.finalizeMetadata(
-                  trackId: 'track-1',
-                  metadata: captureAnyNamed('metadata'),
-                ),
-              ).captured.single
-              as Map<String, dynamic>;
-      expect(finalizePayload['title'], 'Midnight Echo');
-      expect(finalizePayload['genreCategory'], 'music');
+      verify(
+        mockService.finalizeMetadata(
+          trackId: 'track-1',
+          metadata: metadataPayload,
+        ),
+      ).called(1);
+
+      verify(
+        mockService.updateTrackMetadata(
+          trackId: 'track-1',
+          metadata: metadataPayload,
+        ),
+      ).called(1);
+
       verify(mockService.deleteTrack(trackId: 'track-1')).called(1);
     });
   });

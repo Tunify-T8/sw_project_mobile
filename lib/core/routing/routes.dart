@@ -8,4 +8,9 @@ abstract class Routes {
   static const String editTrack = '/edit-track';
   static const String yourUploads = '/your-uploads';
   static const String trackDetail = '/track-detail';
+
+  // Module 5 — Playback
+  static const String player = '/player';
+  static const String queue = '/queue';
+  static const String listeningHistory = '/listening-history';
 }

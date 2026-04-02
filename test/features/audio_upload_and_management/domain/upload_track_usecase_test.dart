@@ -4,7 +4,7 @@ import 'package:software_project/features/audio_upload_and_management/domain/ent
 import 'package:software_project/features/audio_upload_and_management/domain/entities/uploaded_track.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/upload_track_usecase.dart';
 
-import '../../../helpers/upload_mocks.mocks.dart';
+import '../helpers/local_upload_test_mocks.dart';
 import '../helpers/upload_test_data.dart';
 
 void main() {
@@ -22,22 +22,23 @@ void main() {
       status: UploadStatus.idle,
     );
 
-    when(mockRepository.createTrack('user-1')).thenAnswer((_) async => createdTrack);
+    final progressValues = <double>[];
+
+    when(mockRepository.createTrack('user-1'))
+        .thenAnswer((_) async => createdTrack);
+
     when(
       mockRepository.uploadAudio(
         trackId: 'track-1',
         file: samplePickedUploadFile,
-        onProgress: anyNamed('onProgress'),
-        cancellationToken: anyNamed('cancellationToken'),
+        onProgress: progressValues.add,
+        cancellationToken: null,
       ),
-    ).thenAnswer((invocation) async {
-      final onProgress =
-          invocation.namedArguments[#onProgress] as void Function(double);
-      onProgress(1);
+    ).thenAnswer((_) async {
+      progressValues.add(1);
       return sampleUploadedTrack;
     });
 
-    final progressValues = <double>[];
     final result = await usecase(
       userId: 'user-1',
       file: samplePickedUploadFile,
@@ -48,13 +49,14 @@ void main() {
     expect(result.status, sampleUploadedTrack.status);
     expect(result.audioUrl, sampleUploadedTrack.audioUrl);
     expect(progressValues, [1]);
+
     verify(mockRepository.createTrack('user-1')).called(1);
     verify(
       mockRepository.uploadAudio(
         trackId: 'track-1',
         file: samplePickedUploadFile,
-        onProgress: anyNamed('onProgress'),
-        cancellationToken: anyNamed('cancellationToken'),
+        onProgress: progressValues.add,
+        cancellationToken: null,
       ),
     ).called(1);
   });
