@@ -1,3 +1,5 @@
+import 'package:software_project/features/feed_search_discovery/domain/entities/trending_genre_entity.dart';
+
 import '../mappers/discover_item_mapper.dart';
 import '../mappers/feed_item_mapper.dart';
 import '../../domain/entities/discovery_item_entity.dart';
@@ -5,6 +7,7 @@ import '../../domain/entities/feed_item_entity.dart';
 
 import '../api/discovery_api.dart';
 import '../../domain/repositories/discovery_repository.dart';
+import '../services/mock_trending_service.dart';
 
 class DiscoveryRepositoryImpl implements DiscoveryRepository{
   final DiscoveryApi api;
@@ -22,4 +25,5 @@ class DiscoveryRepositoryImpl implements DiscoveryRepository{
     final dtos = await api.getDiscover(page: page, limit: limit);
     return dtos.items.map((dto) => dto.toEntity()).toList();
   }
+
 }
