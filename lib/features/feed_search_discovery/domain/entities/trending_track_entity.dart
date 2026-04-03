@@ -1,4 +1,5 @@
 class TrendingTrackEntity {
+  final String trackId;
   final String title;
   final String artistName;
   final String? coverUrl;
@@ -6,6 +7,7 @@ class TrendingTrackEntity {
   final bool isReposted;
 
   TrendingTrackEntity({
+    required this.trackId,
     required this.title,
     required this.artistName,
     this.coverUrl,
@@ -14,6 +16,7 @@ class TrendingTrackEntity {
   });
 
   TrendingTrackEntity copyWith({
+    String? trackId,
     String? title,
     String? artistName,
     String? coverUrl,
@@ -21,6 +24,7 @@ class TrendingTrackEntity {
     bool? isReposted,
   }) {
     return TrendingTrackEntity(
+      trackId: trackId ?? this.trackId,
       title: title ?? this.title,
       artistName: artistName ?? this.artistName,
       coverUrl: coverUrl ?? this.coverUrl,
