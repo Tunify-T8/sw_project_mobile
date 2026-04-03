@@ -27,7 +27,9 @@ class MockFeedService {
           isFollowingArtist: true,
           coverUrl: 'https://picsum.photos/400/400?random=1',
           duration: 215,
+          listensCount: 12400,
           likesCount: 320,
+          repostsCount: 28,
           commentsCount: 45,
           createdAt: '5:20',
           interaction: TrackInteractionEntity(
@@ -54,7 +56,9 @@ class MockFeedService {
           isFollowingArtist: false,
           coverUrl: 'https://picsum.photos/400/400?random=2',
           duration: 198,
+          listensCount: 28600,
           likesCount: 510,
+          repostsCount: 93,
           commentsCount: 80,
           createdAt: '4:10',
           interaction: TrackInteractionEntity(
@@ -88,7 +92,9 @@ class MockFeedService {
           isFollowingArtist: false,
           coverUrl: 'https://picsum.photos/400/400?random=1',
           duration: 215,
+          listensCount: 12400,
           likesCount: 320,
+          repostsCount: 28,
           commentsCount: 45,
           createdAt: '5:20',
           interaction: TrackInteractionEntity(
@@ -115,7 +121,9 @@ class MockFeedService {
           isFollowingArtist: true,
           coverUrl: 'https://picsum.photos/400/400?random=2',
           duration: 198,
+          listensCount: 28600,
           likesCount: 510,
+          repostsCount: 93,
           commentsCount: 80,
           createdAt: '4:10',
           interaction: TrackInteractionEntity(
@@ -142,7 +150,9 @@ class MockFeedService {
           isFollowingArtist: false,
           coverUrl: 'https://picsum.photos/400/400?random=3',
           duration: 230,
+          listensCount: 54300,
           likesCount: 900,
+          repostsCount: 140,
           commentsCount: 120,
           createdAt: '1:00',
           interaction: TrackInteractionEntity(

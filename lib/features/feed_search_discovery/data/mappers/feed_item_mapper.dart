@@ -1,6 +1,6 @@
-import 'package:software_project/features/feed_search_discovery/domain/entities/track_preview_entity.dart';
 import '../../domain/entities/feed_item_entity.dart';
 import '../../domain/entities/feed_item_source.dart';
+import '../../domain/entities/track_preview_entity.dart';
 import '../../domain/entities/track_interaction_entity.dart';
 import '../dto/feed_item_dto.dart';
 import '../../domain/entities/feed_actor_entity.dart';
@@ -32,11 +32,15 @@ extension FeedItemMapper on FeedItemDto {
         title: title,
         artistId: artistId,
         artistName: artist,
+        artistAvatar: artistAvatarUrl,
         artistVerified: artistIsCertified,
         isFollowingArtist: isFollowingArtist,
+        coverUrl: coverUrl,
         duration: durationInSeconds,
+        listensCount: numberOfListens,
         likesCount: numberOfLikes,
         commentsCount: numberOfComments,
+        repostsCount: numberOfReposts,
         createdAt: _formatTime(action.date),
         interaction: TrackInteractionEntity(
           isLiked: isLiked,
