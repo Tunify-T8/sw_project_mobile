@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
 
+import '../../../features/profile/presentation/providers/profile_provider.dart';
 import '../widgets/library_menu_tile.dart';
 
-class LibraryScreen extends StatelessWidget {
+class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({
     super.key,
     this.onOpenSettings,
@@ -26,7 +28,21 @@ class LibraryScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(profileProvider);
+    final profileImageUrl = profileState.profile?.profileImagePath;
+
+    final Widget profileAvatar = CircleAvatar(
+      radius: 18,
+      backgroundColor: const Color(0xFF9BB4E8),
+      backgroundImage: (profileImageUrl != null && profileImageUrl.isNotEmpty)
+          ? NetworkImage(profileImageUrl)
+          : null,
+      child: (profileImageUrl == null || profileImageUrl.isEmpty)
+          ? const Icon(Icons.person, color: Colors.white, size: 22)
+          : null,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -40,15 +56,7 @@ class LibraryScreen extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onOpenProfile,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: Color(0xFF9BB4E8),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person, color: Colors.white, size: 22),
-            ),
+            child: profileAvatar,
           ),
           const SizedBox(width: 12),
         ],

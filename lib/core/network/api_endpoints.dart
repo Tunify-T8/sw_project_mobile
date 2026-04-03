@@ -68,6 +68,7 @@ class ApiEndpoints {
 
   // Profile
   static const String getProfile = '/users/me';
+  static String getUserProfile(String userIdOrUsername) => '/users/$userIdOrUsername';
   static const String updateProfile = '/users/me/profile';
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';

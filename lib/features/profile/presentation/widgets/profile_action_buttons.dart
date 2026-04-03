@@ -6,18 +6,19 @@ import '../providers/profile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ProfileActionButtons extends ConsumerWidget {
-final File? profileImage;
-final File? coverImage;
-final String userType;
+  final File? profileImage;
+  final File? coverImage;
+  final String userType;
 
-const ProfileActionButtons({
-  super.key,
-  required this.profileImage,
-  required this.coverImage,
-  required this.userType,
-});
+  const ProfileActionButtons({
+    super.key,
+    this.profileImage,
+    this.coverImage,
+    required this.userType,
+  });
+
   @override
-Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
      final profile = ref.watch(profileProvider).profile;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),

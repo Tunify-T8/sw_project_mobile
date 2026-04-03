@@ -2,19 +2,19 @@ import '../entities/profile_entity.dart';
 import '../repositories/profile_repository.dart';
 import '../../data/dto/profile_dto.dart';
 
-class GetProfileUsecase {
+class GetProfileByIdUsecase {
   final ProfileRepository repository;
 
-  GetProfileUsecase(this.repository);
+  GetProfileByIdUsecase(this.repository);
 
-  Future<ProfileEntity> execute() async {
-    final ProfileDto dto = await repository.getProfile();
+  Future<ProfileEntity> execute(String userIdOrUsername) async {
+    final ProfileDto dto = await repository.getProfileById(userIdOrUsername);
 
     return ProfileEntity(
       id: dto.id,
       userName: dto.userName,
       displayName: dto.displayName,
-      email: dto.email ?? '',  // Provide default for current user profile
+      email: dto.email,  // May be null for public profiles
       role: dto.role,
       bio: dto.bio,
       city: dto.city,
@@ -27,14 +27,14 @@ class GetProfileUsecase {
       spotify: dto.spotify,
       tiktok: dto.tiktok,
       soundcloud: dto.soundcloud,
-      followersCount: dto.followersCount ?? 0,  // Provide defaults
-      followingCount: dto.followingCount ?? 0,
-      tracksCount: dto.tracksCount ?? 0,
-      likesReceived: dto.likesReceived ?? 0,
-      visibility: dto.visibility ?? 'PUBLIC',
+      followersCount: dto.followersCount,  // May be null for private profiles
+      followingCount: dto.followingCount,
+      tracksCount: dto.tracksCount,
+      likesReceived: dto.likesReceived,
+      visibility: dto.visibility,
       userType: dto.userType,
-      isActive: dto.isActive ?? true,
-      isCertified: dto.isCertified ?? false,
+      isActive: dto.isActive,
+      isCertified: dto.isCertified,
     );
   }
 }

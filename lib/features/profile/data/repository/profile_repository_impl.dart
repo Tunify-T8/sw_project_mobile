@@ -30,6 +30,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<ProfileDto> getProfileById(String userIdOrUsername) async {
+    return await _profileApi.getProfileById(userIdOrUsername);
+  }
+
+  @override
   Future<ProfileDto> updateProfile(ProfileDto profile) async {
     final user = await _tokenStorage.getUser();
     if (user == null) throw Exception('No authenticated user found.');
