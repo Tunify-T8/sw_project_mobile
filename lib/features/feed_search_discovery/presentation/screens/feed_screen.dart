@@ -27,7 +27,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     Future.microtask(() {
       ref
           .read(feedNotifierProvider.notifier)
-          .loadFeed(tab: FeedTabType.discover);
+          .loadFeed(tab: FeedType.discover);
     });
   }
 
@@ -43,9 +43,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
         !state.hasLoadedFollowing && !state.isFollowingLoading;
 
     if (_tabController.index == 0 && discoverNeedsLoad) {
-      notifier.loadFeed(tab: FeedTabType.discover);
+      notifier.loadFeed(tab: FeedType.discover);
     } else if (_tabController.index == 1 && followingNeedsLoad) {
-      notifier.loadFeed(tab: FeedTabType.following);
+      notifier.loadFeed(tab: FeedType.following);
     }
   }
 
@@ -55,7 +55,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     required String? error,
     required List<FeedItemEntity> items,
     required String emptyMessage,
-   required FeedTabType tabType, 
+   required FeedType tabType, 
   }) {
     if (isLoading || !hasLoaded) {
       return Center(child: CircularProgressIndicator());
@@ -96,7 +96,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       error: state.discoverError,
       items: state.discoverItems,
       emptyMessage: 'Nothing to discover yet',
-      tabType: FeedTabType.discover,
+      tabType: FeedType.discover,
     );
 
     final followingContent = _buildTabContent(
@@ -105,7 +105,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       error: state.followingError,
       items: state.followingItems,
       emptyMessage: 'Follow artists to see their tracks',
-      tabType: FeedTabType.following
+      tabType: FeedType.following
     );
 
     return Scaffold(
@@ -135,11 +135,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
                 if (_tabController.index == 0) {
                   ref
                       .read(feedNotifierProvider.notifier)
-                      .refreshFeed(tab: FeedTabType.discover);
+                      .refreshFeed(tab: FeedType.discover);
                 } else {
                   ref
                       .read(feedNotifierProvider.notifier)
-                      .refreshFeed(tab: FeedTabType.following);
+                      .refreshFeed(tab: FeedType.following);
                 }
               },
               icon: const Icon(Icons.refresh, color: Colors.white, size: 25),
