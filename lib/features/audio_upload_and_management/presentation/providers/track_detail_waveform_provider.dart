@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../core/cache/cache_directories.dart';
 import '../../data/services/upload_waveform_service.dart';
 import '../../domain/entities/upload_item.dart';
 import 'track_detail_waveform_source.dart';
@@ -21,37 +22,65 @@ final trackDetailWaveformProvider = Provider.autoDispose
 
 /// Fetches/extracts waveform bars for a track.
 /// Priority:
-///   1. Already on the item (from DTO — unlikely for getMyTracks)
-///   2. Fetch the JSON from the backend waveformUrl (Supabase JSON file)
-///   3. Extract locally from the audio file as last resort
+///   1. Already on the item (from DTO)
+///   2. In-memory cache (same session, instant)
+///   3. Disk cache  (survived app restart, no network needed)
+///   4. Fetch JSON from backend waveformUrl (Supabase JSON file)
+///   5. Extract locally from the audio file as last resort
+/// After a successful network fetch or local extraction the bars are saved to
+/// disk so future launches never need to repeat the work.
 final Map<String, List<double>> _waveformBarsMemoryCache = <String, List<double>>{};
 
 final trackDetailWaveformBarsProvider = FutureProvider.autoDispose
     .family<List<double>?, UploadItem>((ref, item) async {
       final cacheKey = item.id;
 
+      // 1. Bars already embedded in the DTO.
       if (item.waveformBars != null && item.waveformBars!.isNotEmpty) {
         _waveformBarsMemoryCache[cacheKey] = item.waveformBars!;
         return item.waveformBars;
       }
 
-      final cached = _waveformBarsMemoryCache[cacheKey];
-      if (cached != null && cached.isNotEmpty) {
-        return cached;
+      // 2. In-memory cache.
+      final memoryCached = _waveformBarsMemoryCache[cacheKey];
+      if (memoryCached != null && memoryCached.isNotEmpty) {
+        return memoryCached;
       }
 
+      // 3. Disk cache — survives app restarts.
+      if (!kIsWeb) {
+        final diskFile = await CacheDirectories.waveformFile(item.id);
+        if (diskFile.existsSync()) {
+          try {
+            final raw = jsonDecode(diskFile.readAsStringSync());
+            if (raw is List && raw.isNotEmpty) {
+              final bars = raw.map((e) => (e as num).toDouble()).toList();
+              _waveformBarsMemoryCache[cacheKey] = bars;
+              return bars;
+            }
+          } catch (_) {
+            // Corrupt disk file — delete and fall through to re-fetch.
+            diskFile.deleteSync();
+          }
+        }
+      }
+
+      // 4. Fetch from backend waveformUrl.
       final waveformUrl = item.waveformUrl?.trim();
       if (waveformUrl != null && waveformUrl.isNotEmpty) {
         final bars = await _fetchWaveformJson(waveformUrl);
         if (bars != null && bars.isNotEmpty) {
           _waveformBarsMemoryCache[cacheKey] = bars;
+          _saveToDisk(item.id, bars);
           return bars;
         }
       }
 
+      // 5. Local extraction from audio file.
       final extracted = await _extractWaveformBars(item);
       if (extracted != null && extracted.isNotEmpty) {
         _waveformBarsMemoryCache[cacheKey] = extracted;
+        _saveToDisk(item.id, extracted);
       }
       return extracted;
     });
@@ -127,6 +156,17 @@ Future<List<double>?> _fetchWaveformJson(String url) async {
   } catch (_) {
     return null;
   }
+}
+
+// ── Disk persistence ──────────────────────────────────────────────────────────
+
+/// Saves [bars] to the persistent waveform cache file for [trackId].
+/// Fire-and-forget — errors are swallowed so they never affect the UI.
+void _saveToDisk(String trackId, List<double> bars) {
+  if (kIsWeb) return;
+  CacheDirectories.waveformFile(trackId).then((file) {
+    file.writeAsString(jsonEncode(bars));
+  }).catchError((_) {});
 }
 
 // ── Local extraction ──────────────────────────────────────────────────────────

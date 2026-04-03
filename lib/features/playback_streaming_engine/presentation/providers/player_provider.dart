@@ -20,10 +20,15 @@ import '../../domain/entities/stream_url.dart';
 import '../../domain/entities/track_artist_summary.dart';
 import '../../domain/entities/track_playback_bundle.dart';
 import '../../domain/entities/track_engagement.dart';
+import '../../domain/repositories/player_repository.dart';
 import '../../domain/usecases/build_playback_queue_usecase.dart';
 import '../../domain/usecases/get_playback_bundle_usecase.dart';
 import '../../domain/usecases/report_playback_event_usecase.dart';
+import '../../domain/usecases/report_track_completed_usecase.dart';
 import '../../domain/usecases/request_stream_url_usecase.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+import '../../../audio_upload_and_management/data/services/audio_cache_service.dart';
 import 'listening_history_provider.dart';
 import 'player_backend_mode_provider.dart';
 import 'player_repository_provider.dart';
@@ -38,10 +43,17 @@ part 'player_provider_persistence.dart';
 
 class PlayerNotifier extends AsyncNotifier<PlayerState>
     with WidgetsBindingObserver {
+  late PlayerRepository _repository;
   late GetPlaybackBundleUsecase _getBundle;
   late RequestStreamUrlUsecase _requestStream;
   late ReportPlaybackEventUsecase _reportEvent;
+  late ReportTrackCompletedUsecase _reportTrackCompleted;
   late BuildPlaybackQueueUsecase _buildQueue;
+  late AudioCacheService _audioCache;
+
+  /// Tracks which track IDs have already had a 90 % completion reported this
+  /// session so we never double-report.
+  final Set<String> _completedTrackIds = {};
 
   final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
 
@@ -84,10 +96,13 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   @override
   Future<PlayerState> build() async {
     final repo = ref.watch(playerRepositoryProvider);
+    _repository = repo;
     _getBundle = GetPlaybackBundleUsecase(repo);
     _requestStream = RequestStreamUrlUsecase(repo);
     _reportEvent = ReportPlaybackEventUsecase(repo);
+    _reportTrackCompleted = ReportTrackCompletedUsecase(repo);
     _buildQueue = BuildPlaybackQueueUsecase(repo);
+    _audioCache = AudioCacheService(ref.read(globalTrackStoreProvider));
 
     _attachPlayerBindings();
     _attachLifecycleObserver();

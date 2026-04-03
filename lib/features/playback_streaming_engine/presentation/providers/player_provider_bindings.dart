@@ -24,6 +24,19 @@ extension _PlayerNotifierBindings on PlayerNotifier {
           position.inSeconds >= current.previewEndSeconds) {
         unawaited(_handlePreviewCompletion());
       }
+
+      // 90 % completion — report once per track per session.
+      final trackId = current.bundle!.trackId;
+      final duration =
+          current.mediaDurationSeconds ??
+          current.bundle!.durationSeconds.toDouble();
+      if (!current.isPreviewOnly &&
+          duration > 0 &&
+          clamped >= duration * 0.9 &&
+          !_completedTrackIds.contains(trackId)) {
+        _completedTrackIds.add(trackId);
+        unawaited(_safeReportTrackCompleted(trackId));
+      }
     });
 
     _durationSubscription = _audioPlayer.durationStream.listen((duration) {
@@ -186,6 +199,8 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     final bundle = current?.bundle;
     if (bundle == null) return;
 
+    final isOfflinePlay = current?.streamUrl == null;
+
     try {
       final historyTrack = HistoryTrack(
         trackId: bundle.trackId,
@@ -200,11 +215,21 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       unawaited(
         _trackHistoryPlayed(
           historyTrack,
-          needsBackendSync: current?.streamUrl == null,
+          needsBackendSync: isOfflinePlay,
         ),
       );
     } catch (_) {
       // History update is best-effort; never break playback.
+    }
+
+    // When playing from a local file the stream endpoint was never called, so
+    // the server has no record of this play.  Queue it locally for batch sync.
+    if (isOfflinePlay) {
+      try {
+        unawaited(_repository.addOfflinePlay(bundle.trackId));
+      } catch (_) {
+        // Queue failure must never interrupt playback.
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/network/connectivity_provider.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
@@ -61,6 +62,16 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   Future<ListeningHistoryState> build() async {
     _repository = ref.watch(playerRepositoryProvider);
     _getHistory = GetListeningHistoryUsecase(_repository);
+
+    // When the device comes back online, flush any queued playback events and
+    // pull the latest history from the server so local and remote stay in sync.
+    ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, next) {
+      final wasOffline = previous?.asData?.value == false;
+      final isOnlineNow = next.asData?.value == true;
+      if (wasOffline && isOnlineNow) {
+        refresh();
+      }
+    });
 
     final cachedTracks = await _readCachedTracks();
     _clearedLocally = await _readClearedLocally();
