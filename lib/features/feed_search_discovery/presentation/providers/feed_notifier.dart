@@ -35,7 +35,7 @@ class FeedNotifier extends Notifier<FeedState> {
       final repository = ref.read(feedRepositoryProvider);
 
       if (tab == FeedType.discover) {
-        final items = await repository.getDiscoverFeed(page: page, limit: limit);
+        final items = await repository.getFollowingFeed(page: page, limit: limit);
         state = state.copyWith(
           discoverItems: items,
           isDiscoverLoading: false,
@@ -81,7 +81,7 @@ class FeedNotifier extends Notifier<FeedState> {
       final repository = ref.read(feedRepositoryProvider);
 
       if (tab == FeedType.discover) {
-        final items = await repository.getDiscoverFeed(page: page, limit: limit);
+        final items = await repository.getFollowingFeed(page: page, limit: limit);
         state = state.copyWith(
           discoverItems: items,
           discoverError: null,

@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/services/mock_trending_service.dart';
-import '../../data/repository/mock_trending_repository_impl.dart';
-import '../../domain/repositories/trending_repository.dart';
 
-final trendingServiceProvider = Provider<MockTrendingService>((ref) {
-  return MockTrendingService();
-});
+import '../../../../core/network/dio_client.dart';
+import '../../data/api/discovery_api.dart';
+import '../../data/repository/discovery_repository_impl.dart';
+import '../../domain/repositories/discovery_repository.dart';
 
-final trendingRepositoryProvider = Provider<TrendingRepository>((ref) {
-  final service = ref.read(trendingServiceProvider);
-  return MockTrendingRepositoryImpl(service);
+final trendingRepositoryProvider = Provider<DiscoveryRepository>((ref) {
+  final api = DiscoveryApi(ref.read(dioProvider));
+  return DiscoveryRepositoryImpl(api);
 });

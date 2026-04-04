@@ -1,14 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:software_project/features/feed_search_discovery/domain/repositories/feed_repository.dart';
-import '../../data/services/mock_feed_service.dart';
-import '../../data/repository/mock_feed_repository_impl.dart';
 
-final feedServiceProvider = Provider<MockFeedService>((ref){
-  return MockFeedService();
+import '../../../../core/network/dio_client.dart';
+import '../../data/api/discovery_api.dart';
+import '../../data/repository/discovery_repository_impl.dart';
+import '../../domain/repositories/discovery_repository.dart';
+
+final feedRepositoryProvider = Provider<DiscoveryRepository>((ref) {
+  final api = DiscoveryApi(ref.read(dioProvider));
+  return DiscoveryRepositoryImpl(api);
 });
-
-final feedRepositoryProvider = Provider<FeedRepository>((ref){
-  final service = ref.read(feedServiceProvider);
-  return MockFeedRepositoryImpl(service);
-});
-
