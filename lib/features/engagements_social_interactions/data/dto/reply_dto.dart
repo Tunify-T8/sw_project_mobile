@@ -1,12 +1,11 @@
-
 import 'engagement_user_dto.dart';
 
-class CommentDto {
-  const CommentDto({
+class ReplyDto {
+  const ReplyDto({
     required this.id,
-    required this.trackId,
+    required this.commentId,
     required this.user,
-    this.timestamp,
+    this.parentUsername,
     required this.text,
     this.likesCount = 0,
     this.repliesCount = 0,
@@ -14,22 +13,24 @@ class CommentDto {
   });
 
   final String id;
-  final String trackId;
+  final String commentId;
   final EngagementUserDto user;
-  final int? timestamp; // nullable — BE field is coming later
+  final String? parentUsername; // null = reply to comment, non-null = reply to reply
   final String text;
   final int likesCount;
   final int repliesCount;
   final DateTime createdAt;
 
-  factory CommentDto.fromJson(Map<String, dynamic> json) {
-    return CommentDto(
-      id: (json['commentId'] as String?) ?? (json['id'] as String?) ?? '',
-      trackId: (json['trackId'] as String?) ?? '',
+  factory ReplyDto.fromJson(Map<String, dynamic> json) {
+    return ReplyDto(
+      id: (json['replyId'] as String?) ?? (json['id'] as String?) ?? '',
+      commentId: (json['commentId'] as String?) ?? '',
       user: EngagementUserDto.fromJson(
-        (json['user'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+        (json['author'] as Map<String, dynamic>?) ??
+            (json['user'] as Map<String, dynamic>?) ??
+            <String, dynamic>{},
       ),
-      timestamp: (json['timestamp'] as int?) ?? (json['second'] as int?),
+      parentUsername: json['parentUsername'] as String?,
       text: (json['text'] as String?) ?? '',
       likesCount: (json['likesCount'] as int?) ?? 0,
       repliesCount: (json['repliesCount'] as int?) ?? 0,
@@ -41,10 +42,10 @@ class CommentDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'commentId': id,
-      'trackId': trackId,
-      'user': user.toJson(),
-      'timestamp': timestamp,
+      'replyId': id,
+      'commentId': commentId,
+      'author': user.toJson(),
+      'parentUsername': parentUsername,
       'text': text,
       'likesCount': likesCount,
       'repliesCount': repliesCount,

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
