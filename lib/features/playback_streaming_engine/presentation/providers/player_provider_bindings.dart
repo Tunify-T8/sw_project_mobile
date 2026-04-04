@@ -151,6 +151,15 @@ extension _PlayerNotifierBindings on PlayerNotifier {
 
       if (current.queue != null) {
         final queue = current.queue!;
+
+        // Repeat one: seek back to start and replay without reloading.
+        if (queue.repeat == RepeatMode.one) {
+          await _audioPlayer.seek(Duration.zero);
+          unawaited(_audioPlayer.play());
+          _setPlayerState(current.copyWith(isPlaying: true, positionSeconds: 0));
+          return;
+        }
+
         final hasNext = queue.currentIndex + 1 < queue.trackIds.length;
 
         if (hasNext) {

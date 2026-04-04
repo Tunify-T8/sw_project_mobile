@@ -101,6 +101,12 @@ class _PlayerBody extends ConsumerWidget {
                         PlayerControls(
                           isPlaying: playerState.isPlaying,
                           hasQueue: playerState.queue != null,
+                          isShuffle: playerState.queue?.shuffle ?? false,
+                          repeatMode: switch (playerState.queue?.repeat) {
+                            RepeatMode.one => 1,
+                            RepeatMode.all => 2,
+                            _ => 0,
+                          },
                           onPlay: () =>
                               ref.read(playerProvider.notifier).play(),
                           onPause: () =>
@@ -109,6 +115,10 @@ class _PlayerBody extends ConsumerWidget {
                               ref.read(playerProvider.notifier).next(),
                           onPrevious: () =>
                               ref.read(playerProvider.notifier).previous(),
+                          onShuffle: () =>
+                              ref.read(playerProvider.notifier).toggleShuffle(),
+                          onRepeat: () =>
+                              ref.read(playerProvider.notifier).toggleRepeat(),
                         ),
                         const SizedBox(height: 20),
                         _VolumeRow(

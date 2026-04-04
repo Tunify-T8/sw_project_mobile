@@ -82,6 +82,18 @@ extension PlayerNotifierQueue on PlayerNotifier {
     );
   }
 
+  void removeFromQueue(int index) {
+    final current = _current;
+    if (current?.queue == null) return;
+
+    final queue = current!.queue!;
+    // Only allow removing tracks after the current one.
+    if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
+
+    final newIds = List<String>.from(queue.trackIds)..removeAt(index);
+    _setPlayerState(current.copyWith(queue: queue.copyWith(trackIds: newIds)));
+  }
+
   PlayerSeedTrack? _seedTrackForTrackId(String trackId) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
     if (stored != null) {
