@@ -152,6 +152,14 @@ class _AllTab extends StatelessWidget {
       return _SearchEmptyState(query: state.query);
     }
 
+    // Tracks that appear in the Tracks section:
+    // exclude the top result track and the second inline track shown in the card
+    final visibleTracks = result.tracks
+        .where((t) => t.id != result.topResult?.id)
+        .skip(1)
+        .take(4)
+        .toList();
+
     // Build "More Results" — anything beyond the first few shown in each section
     final moreItems = <_MixedResultItem>[];
     for (final t in result.tracks.skip(4)) {
@@ -237,8 +245,8 @@ class _AllTab extends StatelessWidget {
           },
         ),
 
-        // Tracks section
-        if (result.tracks.isNotEmpty) ...[
+        // Tracks section — only shown when there are tracks beyond top+second
+        if (visibleTracks.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Tracks',
             onSeeAll: () => Navigator.of(context).push(
@@ -248,7 +256,7 @@ class _AllTab extends StatelessWidget {
               ),
             ),
           ),
-          ...result.tracks.take(4).map((t) => SearchResultTileTrack(track: t)),
+          ...visibleTracks.map((t) => SearchResultTileTrack(track: t)),
           const SizedBox(height: 16),
         ],
 
@@ -393,6 +401,7 @@ class _MixedResultTile extends StatelessWidget {
           width: 48,
           height: 48,
           fit: BoxFit.cover,
+          errorBuilder: (c, e, s) => SearchArtworkPlaceholder(size: 48),
         ),
       );
     } else {
@@ -436,14 +445,12 @@ class _MixedResultTile extends StatelessWidget {
   }
 }
 
-// ─── Recently Played card — fixed size, not full-width ─────────────────────
+// ─── Recently Played card ─────────────────────────────────────────────────────
 
 class _RecentlyPlayedCard extends StatelessWidget {
   const _RecentlyPlayedCard({required this.item});
   final RecentResultItem item;
 
-  // Fixed card width — two cards sit side by side with a gap between them
-  // Constrained so they never fill the whole screen even with 1 item.
   static const double _cardSize = 140.0;
 
   @override
@@ -585,8 +592,6 @@ class _AlbumTab extends StatelessWidget {
 }
 
 // ── Top result card ────────────────────────────────────────────────────────────
-// Matches real app: avatar/artwork left, name + subtitle + Follow (profiles),
-// second item (first track or album) shown inline below.
 
 class _TopResultCard extends StatelessWidget {
   const _TopResultCard({
@@ -601,106 +606,112 @@ class _TopResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isProfile = topResult.type == TopResultType.profile;
+    // Find the top result as a track entity (if it is one)
+    final topTrack = state.allResult?.tracks
+        .where((t) => t.id == topResult.id)
+        .firstOrNull;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(isProfile ? 36 : 8),
-                  child: topResult.artworkUrl != null
-                      ? Image.network(
-                          topResult.artworkUrl!,
-                          width: 72,
-                          height: 72,
-                          fit: BoxFit.cover,
-                        )
-                      : SearchArtworkPlaceholder(size: 72, isCircle: isProfile),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              topResult.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isProfile) ...[
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.verified,
-                              color: Colors.blue,
-                              size: 15,
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        topResult.subtitle,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (isProfile)
-                  OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white38),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      minimumSize: const Size(72, 34),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+    // Second item — first track/album that is NOT the top result
+    final secondTrack = state.allResult?.tracks
+        .where((t) => t.id != topResult.id)
+        .firstOrNull;
+    final secondAlbum = state.allResult?.albums
+        .where((a) => a.id != topResult.id)
+        .firstOrNull;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Top result — standard track tile when it's a track
+        if (topTrack != null)
+          SearchResultTileTrack(track: topTrack)
+        else
+          // Fallback large card for profile / album / playlist top results
+          GestureDetector(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      topResult.type == TopResultType.profile ? 36 : 8,
                     ),
-                    child: const Text('Follow'),
+                    child: topResult.artworkUrl != null
+                        ? Image.network(
+                            topResult.artworkUrl!,
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            errorBuilder: (c, e, s) =>
+                                SearchArtworkPlaceholder(size: 72),
+                          )
+                        : SearchArtworkPlaceholder(
+                            size: 72,
+                            isCircle: topResult.type == TopResultType.profile,
+                          ),
                   ),
-              ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          topResult.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          topResult.subtitle,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (topResult.type == TopResultType.profile)
+                    OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white38),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        minimumSize: const Size(72, 34),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      child: const Text('Follow'),
+                    ),
+                ],
+              ),
             ),
           ),
-          // Second item inline — first track or first album
-          if (state.allResult != null) ...[
-            if (state.allResult!.tracks.isNotEmpty)
-              SearchResultTileTrack(track: state.allResult!.tracks.first)
-            else if (state.allResult!.albums.isNotEmpty)
-              SearchResultTileAlbum(album: state.allResult!.albums.first),
-          ],
-        ],
-      ),
+
+        // Second item inline — different from top result
+        if (secondTrack != null)
+          SearchResultTileTrack(track: secondTrack)
+        else if (secondAlbum != null)
+          SearchResultTileAlbum(album: secondAlbum),
+      ],
     );
   }
 }

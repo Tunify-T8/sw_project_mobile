@@ -14,6 +14,7 @@ import '../dto/user_preview_dto.dart';
 import '../dto/collection_search_response_dto.dart';
 import '../dto/user_search_response_dto.dart';
 import '../dto/trending_item_dto.dart';
+import '../dto/track_search_response_dto.dart';
 
 class RealSearchRepositoryImpl implements SearchRepository {
   RealSearchRepositoryImpl(this._api);
@@ -252,24 +253,19 @@ class RealSearchRepositoryImpl implements SearchRepository {
     ];
   }
 
-  // ─── Genre detail ─────────────────────────────────────────────────────────
-  // NOTE: trendingDto.items accesses the new flat TrendingItemDto fields
-  // (id, name, artist, coverUrl). This compiles only after your teammate
-  // merges their trending_item_dto.dart update.
-
   @override
   Future<GenreDetailEntity> getGenreDetail(String genreId) async {
     final results = await Future.wait([
-      _api.getTrending(type: 'track', period: 'week', limit: 10),
-      _api.searchCollections(q: '', tag: genreId, limit: 10),
+      _api.getTrending(type: 'track', period: 'week'),
+      _api.searchCollections(q: genreId, tag: genreId, limit: 10),
       _api.searchPeople(q: genreId, limit: 6),
     ]);
 
     final trendingDto = results[0] as PaginatedTrendingResponseDto;
-    final playlistDto = results[1] as CollectionSearchResponseDto;
+    final collectionDto = results[1] as CollectionSearchResponseDto;
     final profileDto = results[2] as UserSearchResponseDto;
 
-    final trendingTracks = trendingDto.items
+    final allTracks = trendingDto.items
         .map(
           (i) => TrackResultEntity(
             id: i.id,
@@ -277,14 +273,24 @@ class RealSearchRepositoryImpl implements SearchRepository {
             artistName: i.artist,
             artworkUrl: i.coverUrl,
             durationSeconds: 0,
-            playCount: '',
+            playCount: _formatCount(i.score),
           ),
         )
         .toList();
 
-    final playlists = playlistDto.items
+    // First half goes to trending, second half to introducing/discover more
+    final half = (allTracks.length / 2).ceil();
+    final trendingTracks = allTracks.take(half).toList();
+    final introducingTracks = allTracks.skip(half).toList();
+
+    final playlists = collectionDto.items
         .where((c) => c.type.name == 'playlist')
         .map(_collectionDtoToPlaylist)
+        .toList();
+
+    final albums = collectionDto.items
+        .where((c) => c.type.name == 'album')
+        .map(_collectionDtoToAlbum)
         .toList();
 
     final profiles = profileDto.items.map(_userDtoToEntity).toList();
@@ -293,7 +299,9 @@ class RealSearchRepositoryImpl implements SearchRepository {
       genreId: genreId,
       genreLabel: genreId,
       trendingTracks: trendingTracks,
+      introducingTracks: introducingTracks,
       playlists: playlists,
+      albums: albums,
       profiles: profiles,
     );
   }
