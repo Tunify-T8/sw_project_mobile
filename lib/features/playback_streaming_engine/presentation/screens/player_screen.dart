@@ -33,6 +33,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   late Animation<double> _artworkScale;
   bool _showMore = false;
 
+  /// Direction of the most recent track-navigation swipe.
+  /// 1 = next (swiped left), -1 = previous (swiped right), 0 = none.
+  /// Passed to _PlayerBody so AnimatedSwitcher can slide in from the correct side.
+  int _swipeDir = 0;
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +72,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       } else if (!isPlaying && wasPlaying) {
         _artworkController.reverse();
       }
+
+      // Reset swipe direction once the track actually changes so that
+      // subsequent rebuilds don't keep applying the slide offset.
+      final prevId = prev?.asData?.value.bundle?.trackId;
+      final nextId = next.asData?.value.bundle?.trackId;
+      if (prevId != null && nextId != null && prevId != nextId) {
+        // Use addPostFrameCallback so the AnimatedSwitcher picks up _swipeDir
+        // during the current frame before we clear it.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _swipeDir = 0);
+        });
+      }
     });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -90,7 +107,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               playerState: playerState,
               artworkScale: _artworkScale,
               showMore: _showMore,
+              swipeDir: _swipeDir,
               onToggleMore: () => setState(() => _showMore = !_showMore),
+              onSwipeNext: () => setState(() => _swipeDir = 1),
+              onSwipePrevious: () => setState(() => _swipeDir = -1),
             );
           },
         ),

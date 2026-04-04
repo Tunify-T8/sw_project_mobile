@@ -301,7 +301,20 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   }
 
   void _rememberOptimisticTrack(HistoryTrack track) {
-    _optimisticTracks.removeWhere((item) => item.trackId == track.trackId);
+    // If this exact track was already recorded within the last 60 seconds,
+    // keep the existing entry instead of duplicating it. This prevents the
+    // same song from appearing twice when it is played from two different
+    // places (e.g. "My Uploads" and "Recently Played") in quick succession.
+    final existingIdx = _optimisticTracks.indexWhere(
+      (t) => t.trackId == track.trackId,
+    );
+    if (existingIdx != -1) {
+      final age = DateTime.now().difference(
+        _optimisticTracks[existingIdx].playedAt,
+      );
+      if (age.inSeconds < 60) return; // recent enough — keep existing entry
+      _optimisticTracks.removeAt(existingIdx);
+    }
     _optimisticTracks.insert(0, track);
   }
 

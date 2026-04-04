@@ -14,7 +14,10 @@ extension _PlayerNotifierBindings on PlayerNotifier {
         position.inMilliseconds / 1000.0,
       );
 
-      if ((clamped - current.positionSeconds).abs() > 0.03) {
+      // Update state ≈7×/second instead of ≈33×/second. The waveform bar
+      // uses TweenAnimationBuilder to fill the visual gap, so the result is
+      // just as smooth with far fewer widget rebuilds.
+      if ((clamped - current.positionSeconds).abs() > 0.15) {
         final nextState = current.copyWith(positionSeconds: clamped);
         _setPlayerState(nextState);
         unawaited(_persistCurrentSession(playerState: nextState));
@@ -36,6 +39,16 @@ extension _PlayerNotifierBindings on PlayerNotifier {
           !_completedTrackIds.contains(trackId)) {
         _completedTrackIds.add(trackId);
         unawaited(_safeReportTrackCompleted(trackId));
+      }
+
+      // Add track to listening history only after 2 seconds of actual
+      // playback so a tap that never plays (buffering, error) is never counted.
+      final pending = _pendingHistoryTrackId;
+      if (pending != null &&
+          pending == current.bundle!.trackId &&
+          position.inMilliseconds >= 2000) {
+        _pendingHistoryTrackId = null;
+        _notifyHistoryPlayed();
       }
     });
 

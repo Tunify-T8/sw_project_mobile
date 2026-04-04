@@ -55,6 +55,12 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   /// session so we never double-report.
   final Set<String> _completedTrackIds = {};
 
+  /// Set to the current track's ID when play() is called. Cleared once the
+  /// position stream confirms ≥ 2 seconds of real playback have elapsed, at
+  /// which point _notifyHistoryPlayed() is fired. Cleared immediately when a
+  /// new track is loaded so the old track is never mistakenly counted.
+  String? _pendingHistoryTrackId;
+
   final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
 
   StreamSubscription<Duration>? _positionSubscription;
