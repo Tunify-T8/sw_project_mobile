@@ -64,7 +64,9 @@ extension _PlayerNotifierSources on PlayerNotifier {
     // connection timeout (which can be up to 60 s).
     final connectivity = await Connectivity().checkConnectivity();
     if (connectivity.every((r) => r == ConnectivityResult.none)) {
-      throw Exception('No internet connection and no local audio source available.');
+      throw Exception(
+        'No internet connection and no local audio source available.',
+      );
     }
 
     // Request a signed streaming URL from the server (the only correct way
@@ -114,7 +116,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
       );
     }
 
-    state = AsyncData(updated);
+    _setPlayerState(updated);
     return updated;
   }
 
@@ -140,9 +142,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
       // Use AudioSource.uri for better caching and buffering control.
       // This avoids repeated seeks causing stuttering on remote URLs.
       await _audioPlayer.setAudioSource(
-        just_audio.AudioSource.uri(
-          Uri.parse(playerState.streamUrl!.url),
-        ),
+        just_audio.AudioSource.uri(Uri.parse(playerState.streamUrl!.url)),
         preload: true,
       );
 
