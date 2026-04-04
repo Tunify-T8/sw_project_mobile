@@ -32,6 +32,8 @@ class DiscoveryApi {
       ApiEndpoints.getFollowingFeed,
       queryParameters: params,
     );
+    print('FOLLOWING FEED RESPONSE: ${response.data}');
+    print('FOLLOWING FEED TYPE: ${response.data.runtimeType}');
     return PaginatedFeedResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
@@ -55,17 +57,38 @@ class DiscoveryApi {
   }
 
   Future<PaginatedTrendingResponseDto> getTrending({
+    int page = 1,
+    int limit = 20,
     String type = 'track',
     String period = 'week',
     String? genreId,
   }) async {
-    final params = <String, dynamic>{'type': type, 'period': period};
+    final params = <String, dynamic>{
+      //'page': page,
+      //'limit': limit,
+      'type': type,
+      'period': period,
+    };
     if (genreId != null) params['genreId'] = genreId;
 
     final response = await dio.get(
       ApiEndpoints.getTrending,
       queryParameters: params,
     );
+
+    print('TRENDING params: $params');
+    print('TRENDING raw data: ${response.data}');
+    print('TRENDING raw type: ${response.data.runtimeType}');
+
+    if (response.data is Map<String, dynamic>) {
+      final items = (response.data['items'] as List<dynamic>? ?? []);
+      print('TRENDING items count: ${items.length}');
+      if (items.isNotEmpty) {
+        print('TRENDING first item: ${items.first}');
+        print('TRENDING first item type: ${items.first.runtimeType}');
+      }
+    }
+
     return PaginatedTrendingResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );

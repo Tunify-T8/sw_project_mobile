@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'trending_provider.dart';
 import 'trending_state.dart';
+import '../utils/genre_id_mapper.dart';
 
-final trendingNotifierProvider = NotifierProvider<TrendingNotifier, TrendingState>(
-  TrendingNotifier.new,
-);
+final trendingNotifierProvider =
+    NotifierProvider<TrendingNotifier, TrendingState>(TrendingNotifier.new);
 
 class TrendingNotifier extends Notifier<TrendingState> {
   @override
@@ -15,7 +15,10 @@ class TrendingNotifier extends Notifier<TrendingState> {
 
     try {
       final repository = ref.read(trendingRepositoryProvider);
-      final trendingItem = await repository.getTrending(genre: genre);
+
+      final genreId = GenreIdMapper.getId(genre);
+
+      final trendingItem = await repository.getTrending(genre: genreId);
       state = state.copyWith(
         trending: trendingItem,
         isLoading: false,
