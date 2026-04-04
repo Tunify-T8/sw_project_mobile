@@ -1,16 +1,17 @@
 import 'feed_action_dto.dart';
 
 class FeedItemDto {
-  final String id;
+  final String trackId;
   final FeedActionDto action;
   final String title;
   final String artist;
   final String artistId;
-  final bool isCertified;
+  final bool artistIsCertified;
   final String genre;
   final int durationInSeconds;
   final String? coverUrl;
   final String? waveformUrl;
+  final String? artistAvatarUrl;
   final int numberOfComments;
   final int numberOfLikes;
   final int numberOfListens;
@@ -20,16 +21,17 @@ class FeedItemDto {
   final bool? isFollowingArtist;
 
   FeedItemDto({
-    required this.id,
+    required this.trackId,
     required this.action,
     required this.title,
     required this.artist,
     required this.artistId,
-    required this.isCertified,
+    required this.artistIsCertified,
     required this.genre,
     required this.durationInSeconds,
-    required this.coverUrl,
-    required this.waveformUrl,
+    this.coverUrl,
+    this.waveformUrl,
+    this.artistAvatarUrl,
     required this.numberOfComments,
     required this.numberOfLikes,
     required this.numberOfListens,
@@ -41,18 +43,19 @@ class FeedItemDto {
 
   factory FeedItemDto.fromJson(Map<String, dynamic> json) {
     return FeedItemDto(
-      id: json['id']?.toString() ?? '',
+      trackId: json['trackId']?.toString() ?? '',
       action: FeedActionDto.fromJson(
         json['action'] as Map<String, dynamic>? ?? {},
       ),
       title: json['title']?.toString() ?? '',
       artist: json['artist']?.toString() ?? '',
       artistId: json['artistId']?.toString() ?? '',
-      isCertified: json['isCertified'] ?? false,
+      artistIsCertified: json['artistIsCertified'] ?? false,
       genre: json['genre']?.toString() ?? '',
       durationInSeconds: json['durationInSeconds'] ?? 0,
       coverUrl: json['coverUrl']?.toString(),
       waveformUrl: json['waveformUrl']?.toString(),
+      artistAvatarUrl: json['artistAvatarUrl']?.toString(),
       numberOfComments: json['numberOfComments'] ?? 0,
       numberOfLikes: json['numberOfLikes'] ?? 0,
       numberOfListens: json['numberOfListens'] ?? 0,

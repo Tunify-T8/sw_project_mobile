@@ -10,7 +10,9 @@ class TrackPreviewEntity {
   final bool? isFollowingArtist;
   final String? coverUrl;
   final int duration;
+  final int? listensCount;
   final int likesCount;
+  final int repostsCount;
   final int commentsCount;
   final String createdAt;
   final TrackInteractionEntity interaction;
@@ -25,7 +27,9 @@ class TrackPreviewEntity {
     this.isFollowingArtist = true,
     this.coverUrl,
     required this.duration,
+    this.listensCount,
     required this.likesCount,
+    required this.repostsCount,
     required this.commentsCount,
     required this.createdAt,
     required this.interaction,
@@ -41,7 +45,9 @@ class TrackPreviewEntity {
     bool? isFollowingArtist,
     String? coverUrl,
     int? duration,
+    int? listensCount,
     int? likesCount,
+    int? repostsCount,
     int? commentsCount,
     String? createdAt,
     TrackInteractionEntity? interaction,
@@ -56,7 +62,9 @@ class TrackPreviewEntity {
       isFollowingArtist: isFollowingArtist ?? this.isFollowingArtist,
       coverUrl: coverUrl ?? this.coverUrl,
       duration: duration ?? this.duration,
+      listensCount: listensCount ?? this.listensCount,
       likesCount: likesCount ?? this.likesCount,
+      repostsCount: repostsCount ?? this.repostsCount,
       commentsCount: commentsCount ?? this.commentsCount,
       createdAt: createdAt ?? this.createdAt,
       interaction: interaction ?? this.interaction,

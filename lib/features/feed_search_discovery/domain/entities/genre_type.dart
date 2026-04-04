@@ -1,0 +1,17 @@
+enum GenreType {
+  jazz,
+  rockMetalPunk,
+  soul,
+  hipHopRap,
+  pop,
+  house,
+  soundCloud,
+  rnb,
+  folk,
+  latin,
+  techno,
+  indie,
+  country,
+  reggae,
+  electronic,
+}

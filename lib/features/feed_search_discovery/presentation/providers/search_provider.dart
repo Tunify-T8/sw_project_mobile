@@ -47,7 +47,7 @@ class RecentResultItem {
 
 // ─── Mock/Real switch ────────────────────────────────────────────────────────
 // Set to false when backend is ready. One line change, nothing else needed.
-const bool useMock = true;
+const bool useMock = false;
 
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   if (useMock) {
@@ -176,6 +176,7 @@ class SearchState {
     List<SearchGenreEntity>? genres,
     bool? isLoadingGenres,
     SearchAllResultEntity? allResult,
+    bool clearAllResult = false,
     List<TrackResultEntity>? tracks,
     List<ProfileResultEntity>? profiles,
     List<PlaylistResultEntity>? playlists,
@@ -199,7 +200,7 @@ class SearchState {
       activeTab: activeTab ?? this.activeTab,
       genres: genres ?? this.genres,
       isLoadingGenres: isLoadingGenres ?? this.isLoadingGenres,
-      allResult: allResult ?? this.allResult,
+      allResult: clearAllResult ? null : allResult ?? this.allResult,
       tracks: tracks ?? this.tracks,
       profiles: profiles ?? this.profiles,
       playlists: playlists ?? this.playlists,
@@ -340,7 +341,7 @@ class SearchNotifier extends Notifier<SearchState> {
       isLoading: true,
       clearError: true,
       recentSearches: updated,
-      allResult: null,
+        clearAllResult: true,
       tracks: [],
       profiles: [],
       playlists: [],
@@ -358,7 +359,7 @@ class SearchNotifier extends Notifier<SearchState> {
       mode: SearchScreenMode.typing, // stay in typing — show recent searches
       typingSuggestions: [],
       clearError: true,
-      allResult: null,
+        clearAllResult: true,
       tracks: [],
       profiles: [],
       playlists: [],

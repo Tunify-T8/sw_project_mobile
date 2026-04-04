@@ -1,1 +1,1 @@
-enum FeedTabType {following, discover}
+enum FeedType {following, discover, classic}

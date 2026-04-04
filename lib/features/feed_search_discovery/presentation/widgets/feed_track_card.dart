@@ -11,7 +11,7 @@ import 'track_info_box.dart';
 
 class FeedTrackCard extends ConsumerWidget {
   final FeedItemEntity item;
-  final FeedTabType tabType;
+  final FeedType tabType;
 
   const FeedTrackCard({super.key, required this.item, required this.tabType});
 
@@ -63,6 +63,7 @@ class FeedTrackCard extends ConsumerWidget {
                     avatarUrl: item.actor.avatarUrl,
                     timeAgo: item.timeAgo,
                     createdAt: item.track.createdAt,
+                    feedType: tabType,
                     source: item.source,
                     actorName: item.actor.username,
                     trackName: item.track.title,
@@ -111,6 +112,7 @@ class FeedTrackCard extends ConsumerWidget {
               isLiked: item.track.interaction.isLiked,
               likesCount: item.track.likesCount,
               commentsCount: item.track.commentsCount,
+              feedType: tabType,
             ),
           ),
 

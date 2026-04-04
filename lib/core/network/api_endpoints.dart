@@ -90,13 +90,10 @@ class ApiEndpoints {
   static const String legacyPlaybackContext = '/playback/context';
 
   // Feed - Search - Discovery
-  static const String getFeed = '/feed';
   static const String getFollowingFeed = '/feed/me';
-
-  static const String resolveResource = '/resolve';
   static const String getDiscover = '/discover';
-  static const String getTrending = '/trending';
-  static const String getSuggestedArtists = '/artists/suggested';
+  static const String getTrending = 'feed/trending';
+  static const String getSuggestedArtists = '/feed/suggested-artists';
   static const String search = '/search';
   static const String searchTracks = '/search/tracks';
   static const String searchCollections = '/search/collections';

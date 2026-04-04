@@ -1,43 +1,50 @@
-import '../../domain/entities/resource_type.dart';
-import 'track_preview_dto.dart';
-import 'collection_dto.dart';
-import 'user_preview_dto.dart';
-
 class TrendingItemDto {
-  final ResourceType itemType;
-  final TrackPreviewDto? track;
-  final CollectionDto? collection;
-  final UserPreviewDto? user;
+  final String id;
+  final String name;
+  final String artist;
+  final String? coverUrl;
+  final String type; // "track" | "album" | "playlist"
+  final int score;
 
-  TrendingItemDto({required this.itemType, this.track, this.collection, this.user});
+  const TrendingItemDto({
+    required this.id,
+    required this.name,
+    required this.artist,
+    this.coverUrl,
+    required this.type,
+    required this.score,
+  });
 
   factory TrendingItemDto.fromJson(Map<String, dynamic> json) {
-    final type = ResourceType.values.byName(json['itemType']);
     return TrendingItemDto(
-      itemType: type,
-      track: type == ResourceType.track ? TrackPreviewDto.fromJson(json['resource']) : null,
-      collection: type == ResourceType.collection ? CollectionDto.fromJson(json['resource']) : null,
-      user: type == ResourceType.user ? UserPreviewDto.fromJson(json['resource']) : null,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      artist: json['artist']?.toString() ?? '',
+      coverUrl: json['coverUrl']?.toString(),
+      type: json['type']?.toString() ?? 'track',
+      score: json['score'] as int? ?? 0,
     );
   }
 }
 
 class PaginatedTrendingResponseDto {
   final List<TrendingItemDto> items;
-  final int page;
-  final int limit;
-  final int total;
+  final String type;
+  final String period;
 
-  PaginatedTrendingResponseDto({required this.items, required this.page, required this.limit, required this.total});
+  const PaginatedTrendingResponseDto({
+    required this.items,
+    required this.type,
+    required this.period,
+  });
 
   factory PaginatedTrendingResponseDto.fromJson(Map<String, dynamic> json) {
     return PaginatedTrendingResponseDto(
       items: (json['items'] as List<dynamic>? ?? [])
-          .map((e) => TrendingItemDto.fromJson(e))
+          .map((e) => TrendingItemDto.fromJson(e as Map<String, dynamic>))
           .toList(),
-      page: json['page'] ?? 1,
-      limit: json['limit'] ?? 20,
-      total: json['total'] ?? 0,
+      type: json['type']?.toString() ?? 'track',
+      period: json['period']?.toString() ?? 'week',
     );
   }
 }
