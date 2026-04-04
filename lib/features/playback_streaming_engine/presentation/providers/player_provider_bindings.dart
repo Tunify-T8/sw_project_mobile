@@ -6,6 +6,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     _bindingsAttached = true;
 
     _positionSubscription = _audioPlayer.positionStream.listen((position) {
+      if (_isDisposed || !ref.mounted) return;
       final current = _current;
       if (current == null || current.bundle == null) return;
 
@@ -53,6 +54,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     });
 
     _durationSubscription = _audioPlayer.durationStream.listen((duration) {
+      if (_isDisposed || !ref.mounted) return;
       final current = _current;
       if (current == null || duration == null) return;
 
@@ -69,6 +71,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((
       audioState,
     ) {
+      if (_isDisposed || !ref.mounted) return;
       final current = _current;
       if (current == null) return;
 
@@ -208,6 +211,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
   }
 
   void _notifyHistoryPlayed() {
+    if (_isDisposed || !ref.mounted) return;
     final current = _current;
     final bundle = current?.bundle;
     if (bundle == null) return;
@@ -226,10 +230,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       );
 
       unawaited(
-        _trackHistoryPlayed(
-          historyTrack,
-          needsBackendSync: isOfflinePlay,
-        ),
+        _trackHistoryPlayed(historyTrack, needsBackendSync: isOfflinePlay),
       );
     } catch (_) {
       // History update is best-effort; never break playback.

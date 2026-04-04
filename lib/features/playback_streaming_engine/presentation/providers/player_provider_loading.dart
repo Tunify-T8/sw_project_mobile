@@ -19,7 +19,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
 
     final provisionalBundle = seedTrack?.toPlaybackBundle();
     if (provisionalBundle != null) {
-      state = AsyncData(
+      _setPlayerState(
         PlayerState(
           bundle: provisionalBundle,
           queue: queue,
@@ -32,56 +32,54 @@ extension PlayerNotifierLoading on PlayerNotifier {
         ),
       );
     } else if (previous != null) {
-      state = AsyncData(
-        previous.copyWith(
-          isPlaying: false,
-          isBuffering: true,
-          queue: queue,
-        ),
+      _setPlayerState(
+        previous.copyWith(isPlaying: false, isBuffering: true, queue: queue),
       );
     } else {
-      state = const AsyncLoading();
+      _setAsyncState(const AsyncLoading());
     }
 
-    state = await AsyncValue.guard(() async {
-      final bundle = await _resolveBundle(
-        trackId,
-        privateToken: privateToken,
-        seedTrack: seedTrack,
-      );
-
-      final source = await _resolvePlaybackSource(
-        trackId,
-        seedTrack: seedTrack,
-      );
-
-      final initialPosition = _initialPositionFor(bundle).toDouble();
-
-      final nextState = PlayerState(
-        bundle: bundle,
-        streamUrl: source.streamUrl,
-        streamExpiresAt: source.streamExpiresAt,
-        localFilePath: source.localFilePath,
-        queue: queue,
-        isPlaying: false,
-        positionSeconds: initialPosition,
-        isMuted: previous?.isMuted ?? false,
-        volume: previous?.volume ?? 1.0,
-        isBuffering: false,
-        mediaDurationSeconds: bundle.durationSeconds.toDouble(),
-      );
-
-      await _prepareAudioSource(nextState, force: true);
-      await _applyVolume(nextState);
-
-      if (initialPosition > 0) {
-        await _audioPlayer.seek(
-          Duration(milliseconds: (initialPosition * 1000).round()),
+    _setAsyncState(
+      await AsyncValue.guard(() async {
+        final bundle = await _resolveBundle(
+          trackId,
+          privateToken: privateToken,
+          seedTrack: seedTrack,
         );
-      }
 
-      return nextState;
-    });
+        final source = await _resolvePlaybackSource(
+          trackId,
+          seedTrack: seedTrack,
+        );
+
+        final initialPosition = _initialPositionFor(bundle).toDouble();
+
+        final nextState = PlayerState(
+          bundle: bundle,
+          streamUrl: source.streamUrl,
+          streamExpiresAt: source.streamExpiresAt,
+          localFilePath: source.localFilePath,
+          queue: queue,
+          isPlaying: false,
+          positionSeconds: initialPosition,
+          isMuted: previous?.isMuted ?? false,
+          volume: previous?.volume ?? 1.0,
+          isBuffering: false,
+          mediaDurationSeconds: bundle.durationSeconds.toDouble(),
+        );
+
+        await _prepareAudioSource(nextState, force: true);
+        await _applyVolume(nextState);
+
+        if (initialPosition > 0) {
+          await _audioPlayer.seek(
+            Duration(milliseconds: (initialPosition * 1000).round()),
+          );
+        }
+
+        return nextState;
+      }),
+    );
 
     if (state.asData?.value != null) {
       await _persistCurrentSession(

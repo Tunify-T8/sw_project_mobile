@@ -18,7 +18,7 @@ extension PlayerNotifierControls on PlayerNotifier {
         Duration(milliseconds: (restartPosition * 1000).round()),
       );
       preparedState = preparedState.copyWith(positionSeconds: restartPosition);
-      state = AsyncData(preparedState);
+      _setPlayerState(preparedState);
     }
 
     await _applyVolume(preparedState);
@@ -31,7 +31,7 @@ extension PlayerNotifierControls on PlayerNotifier {
       isPlaying: true,
       isBuffering: false,
     );
-    state = AsyncData(playingState);
+    _setPlayerState(playingState);
     unawaited(_persistCurrentSession(playerState: playingState, force: true));
 
     // History is recorded only after 2 seconds of real playback (see
@@ -64,7 +64,7 @@ extension PlayerNotifierControls on PlayerNotifier {
       positionSeconds: _clampPosition(current.bundle!, pausedPosition),
     );
 
-    state = AsyncData(pausedState);
+    _setPlayerState(pausedState);
     await _persistCurrentSession(playerState: pausedState, force: true);
 
     await _safeReportEvent(
@@ -94,7 +94,7 @@ extension PlayerNotifierControls on PlayerNotifier {
       isBuffering: false,
     );
 
-    state = AsyncData(soughtState);
+    _setPlayerState(soughtState);
     await _persistCurrentSession(playerState: soughtState, force: true);
 
     await _safeReportEvent(
@@ -115,7 +115,7 @@ extension PlayerNotifierControls on PlayerNotifier {
     if (current == null) return;
 
     final next = current.copyWith(isMuted: !current.isMuted);
-    state = AsyncData(next);
+    _setPlayerState(next);
     unawaited(_applyVolume(next));
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -126,7 +126,7 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     final safeVolume = volume.clamp(0.0, 1.0).toDouble();
     final next = current.copyWith(volume: safeVolume);
-    state = AsyncData(next);
+    _setPlayerState(next);
     unawaited(_applyVolume(next));
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }

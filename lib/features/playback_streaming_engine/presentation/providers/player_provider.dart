@@ -75,14 +75,30 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   bool _handlingCompletion = false;
   bool _handlingPreviewStop = false;
   bool _isManualSeeking = false;
+  bool _isDisposed = false;
   DateTime? _lastSessionPersistAt;
+  PlayerState? _lastKnownState;
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
-  PlayerState? get _current => state.asData?.value;
+  PlayerState? get _current => _lastKnownState;
 
   void _setPlayerState(PlayerState nextState) {
+    _lastKnownState = nextState;
+    if (_isDisposed || !ref.mounted) {
+      return;
+    }
     state = AsyncData(nextState);
+  }
+
+  void _setAsyncState(AsyncValue<PlayerState> nextState) {
+    if (nextState case AsyncData<PlayerState>(:final value)) {
+      _lastKnownState = value;
+    }
+    if (_isDisposed || !ref.mounted) {
+      return;
+    }
+    state = nextState;
   }
 
   Future<void> _trackHistoryPlayed(
@@ -113,17 +129,28 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
     _attachPlayerBindings();
     _attachLifecycleObserver();
 
-    ref.onDispose(() async {
+    ref.onDispose(() {
+      _isDisposed = true;
+      final current = _lastKnownState;
+      final positionSubscription = _positionSubscription;
+      final durationSubscription = _durationSubscription;
+      final playerStateSubscription = _playerStateSubscription;
+
       _progressReportTimer?.cancel();
-      await _persistCurrentSession(force: true);
       _detachLifecycleObserver();
-      await _positionSubscription?.cancel();
-      await _durationSubscription?.cancel();
-      await _playerStateSubscription?.cancel();
-      await _audioPlayer.dispose();
+
+      unawaited(() async {
+        await _persistCurrentSession(playerState: current, force: true);
+        await positionSubscription?.cancel();
+        await durationSubscription?.cancel();
+        await playerStateSubscription?.cancel();
+        await _audioPlayer.dispose();
+      }());
     });
 
-    return _restorePersistedSession();
+    final restored = await _restorePersistedSession();
+    _lastKnownState = restored;
+    return restored;
   }
 }
 
