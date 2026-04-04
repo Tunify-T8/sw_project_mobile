@@ -8,6 +8,10 @@ extension PlayerNotifierLoading on PlayerNotifier {
     bool autoPlay = false,
     PlayerSeedTrack? seedTrack,
   }) async {
+    // Cancel any pending history notification for the previous track so it is
+    // never recorded just because the user tapped a new song.
+    _pendingHistoryTrackId = null;
+
     final previous = _current;
 
     _progressReportTimer?.cancel();

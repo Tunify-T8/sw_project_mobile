@@ -34,7 +34,9 @@ extension PlayerNotifierControls on PlayerNotifier {
     state = AsyncData(playingState);
     unawaited(_persistCurrentSession(playerState: playingState, force: true));
 
-    _notifyHistoryPlayed();
+    // History is recorded only after 2 seconds of real playback (see
+    // _positionSubscription in player_provider_bindings.dart).
+    _pendingHistoryTrackId = playingState.bundle?.trackId;
 
     await _safeReportEvent(
       PlaybackEvent(

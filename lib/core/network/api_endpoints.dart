@@ -83,6 +83,10 @@ class ApiEndpoints {
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyListeningHistory = '/me/listening-history';
 
+  /// Batch-reports plays that occurred while the device was offline.
+  /// Body: `{ "plays": [{ "trackId", "playedAt", "completed" }] }`
+  static const String batchPlays = '/tracks/plays/batch';
+
   /// Current backend contract (v1.1.0).
   static const String playbackContext = '/tracks/playback-context';
 

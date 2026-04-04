@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/network/connectivity_provider.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
@@ -61,6 +62,16 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   Future<ListeningHistoryState> build() async {
     _repository = ref.watch(playerRepositoryProvider);
     _getHistory = GetListeningHistoryUsecase(_repository);
+
+    // When the device comes back online, flush any queued playback events and
+    // pull the latest history from the server so local and remote stay in sync.
+    ref.listen<AsyncValue<bool>>(connectivityProvider, (previous, next) {
+      final wasOffline = previous?.asData?.value == false;
+      final isOnlineNow = next.asData?.value == true;
+      if (wasOffline && isOnlineNow) {
+        refresh();
+      }
+    });
 
     final cachedTracks = await _readCachedTracks();
     _clearedLocally = await _readClearedLocally();
@@ -290,7 +301,20 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   }
 
   void _rememberOptimisticTrack(HistoryTrack track) {
-    _optimisticTracks.removeWhere((item) => item.trackId == track.trackId);
+    // If this exact track was already recorded within the last 60 seconds,
+    // keep the existing entry instead of duplicating it. This prevents the
+    // same song from appearing twice when it is played from two different
+    // places (e.g. "My Uploads" and "Recently Played") in quick succession.
+    final existingIdx = _optimisticTracks.indexWhere(
+      (t) => t.trackId == track.trackId,
+    );
+    if (existingIdx != -1) {
+      final age = DateTime.now().difference(
+        _optimisticTracks[existingIdx].playedAt,
+      );
+      if (age.inSeconds < 60) return; // recent enough — keep existing entry
+      _optimisticTracks.removeAt(existingIdx);
+    }
     _optimisticTracks.insert(0, track);
   }
 
