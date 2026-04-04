@@ -184,7 +184,6 @@ class _GenreAllTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        // Trending section
         if (detail!.trendingTracks.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Trending',
@@ -197,9 +196,28 @@ class _GenreAllTab extends StatelessWidget {
               ),
             ),
           ),
-          ...detail!.trendingTracks
-              .take(5)
-              .map((track) => SearchResultTileTrack(track: track)),
+          SizedBox(
+            height: 261,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              itemCount: (detail!.trendingTracks.length / 3).ceil(),
+              itemBuilder: (context, colIndex) {
+                final start = colIndex * 3;
+                final end = (start + 3).clamp(0, detail!.trendingTracks.length);
+                final columnTracks = detail!.trendingTracks.sublist(start, end);
+                return SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.88,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: columnTracks
+                        .map((track) => SearchResultTileTrack(track: track))
+                        .toList(),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
 
         // Introducing section — horizontal cards
@@ -275,7 +293,32 @@ class _GenreAllTab extends StatelessWidget {
             ),
           ),
         ],
-
+        // Discover More section — same as introducing but labelled differently
+        if (detail!.introducingTracks.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SearchSectionHeader(
+            title: 'Discover More',
+            onSeeAll: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SearchSeeAllScreen(
+                  title: 'Discover More in $genreLabel',
+                  tracks: detail!.introducingTracks,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 192,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: detail!.introducingTracks.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) =>
+                  _IntroducingCard(track: detail!.introducingTracks[i]),
+            ),
+          ),
+        ],
         const SizedBox(height: 32),
       ],
     );
@@ -357,6 +400,8 @@ class _IntroducingCard extends StatelessWidget {
                     width: 140,
                     height: 140,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) =>
+                        SearchArtworkPlaceholder(size: 140),
                   )
                 : SearchArtworkPlaceholder(size: 140),
           ),
@@ -398,6 +443,8 @@ class _PlaylistCard extends StatelessWidget {
                     width: 130,
                     height: 130,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) =>
+                        SearchArtworkPlaceholder(size: 130),
                   )
                 : SearchArtworkPlaceholder(size: 130),
           ),

@@ -12,16 +12,22 @@ class SearchResultTileTrack extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: track.artworkUrl != null
-            ? Image.network(
-                track.artworkUrl!,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-              )
-            : SearchArtworkPlaceholder(size: 48),
+      leading: SizedBox(
+        width: 48,
+        height: 48,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: track.artworkUrl != null
+              ? Image.network(
+                  track.artworkUrl!,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) =>
+                      SearchArtworkPlaceholder(size: 48),
+                )
+              : SearchArtworkPlaceholder(size: 48),
+        ),
       ),
       title: Text(
         track.title,

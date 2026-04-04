@@ -13,6 +13,7 @@ import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/search_filters_entity.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../../domain/usecases/search_usecases.dart';
+import 'dart:async';
 
 //when backend is ready
 import '../../data/repository/real_search_repository_impl.dart';
@@ -254,11 +255,30 @@ class SearchNotifier extends Notifier<SearchState> {
       mode: SearchScreenMode.typing,
       typingSuggestions: suggestions,
     );
+    // Fire a background search to populate suggestions from real data
+    if (query.trim().length >= 2) {
+      _debouncedSuggestionsSearch(query.trim());
+    }
   }
 
-  // Build live suggestions while typing.
-  // Pulls from the static genre/mock data so suggestions appear immediately
-  // without needing a network call. When backend lands, replace with API call.
+  Timer? _debounce;
+
+  void _debouncedSuggestionsSearch(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final result = await ref.read(searchAllUseCaseProvider).call(query);
+        // Only update if user is still typing the same query
+        if (state.query == query && state.mode == SearchScreenMode.typing) {
+          state = state.copyWith(
+            allResult: result,
+            typingSuggestions: _computeSuggestions(query),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
   List<String> _computeSuggestions(String query) {
     if (query.trim().length < 2) return [];
     final q = query.toLowerCase();
@@ -275,7 +295,6 @@ class SearchNotifier extends Notifier<SearchState> {
       }
     }
 
-    // Pull from already-loaded results if any
     for (final t in state.tracks) {
       add(t.title);
       add(t.artistName);
@@ -291,37 +310,22 @@ class SearchNotifier extends Notifier<SearchState> {
       add(pl.title);
     }
 
-    // Always supplement with hardcoded pool so suggestions appear from first char
-    const pool = [
-      'don toliver',
-      'don omar',
-      'doja cat',
-      'donia wael',
-      'dont call me today',
-      "don't let me down",
-      "don't stop the music",
-      "don't you need somebody",
-      'dont speak no doubt',
-      'dont stop believin',
-      'octane',
-      'ocean drive',
-      'one dance',
-      'old town road',
-      'hip hop',
-      'healing era',
-      'house music',
-      'indie pop',
-      'rock classics',
-      'r&b hits',
-      'pop hits',
-      'party mix',
-      'chill vibes',
-      'workout playlist',
-      'latin mix',
-      'feel good music',
-    ];
-    for (final s in pool) {
-      add(s);
+    if (state.allResult != null) {
+      final r = state.allResult!;
+      for (final t in r.tracks) {
+        add(t.title);
+        add(t.artistName);
+      }
+      for (final p in r.profiles) {
+        add(p.username);
+      }
+      for (final a in r.albums) {
+        add(a.title);
+        add(a.artistName);
+      }
+      for (final pl in r.playlists) {
+        add(pl.title);
+      }
     }
 
     return [...exact, ...partial].take(8).toList();
@@ -341,7 +345,7 @@ class SearchNotifier extends Notifier<SearchState> {
       isLoading: true,
       clearError: true,
       recentSearches: updated,
-        clearAllResult: true,
+      clearAllResult: true,
       tracks: [],
       profiles: [],
       playlists: [],
@@ -359,7 +363,7 @@ class SearchNotifier extends Notifier<SearchState> {
       mode: SearchScreenMode.typing, // stay in typing — show recent searches
       typingSuggestions: [],
       clearError: true,
-        clearAllResult: true,
+      clearAllResult: true,
       tracks: [],
       profiles: [],
       playlists: [],

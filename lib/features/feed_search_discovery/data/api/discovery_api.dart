@@ -55,19 +55,11 @@ class DiscoveryApi {
   }
 
   Future<PaginatedTrendingResponseDto> getTrending({
-    int page = 1,
-    int limit = 20,
-    String type = 'track', // track | album | playlist
-    String period =
-        'week', // day | week | month  (API param is "period", not "since")
+    String type = 'track',
+    String period = 'week',
     String? genreId,
   }) async {
-    final params = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-      'type': type,
-      'period': period,
-    };
+    final params = <String, dynamic>{'type': type, 'period': period};
     if (genreId != null) params['genreId'] = genreId;
 
     final response = await dio.get(
