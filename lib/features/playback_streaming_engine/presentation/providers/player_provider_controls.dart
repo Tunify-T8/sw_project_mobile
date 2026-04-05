@@ -130,4 +130,31 @@ extension PlayerNotifierControls on PlayerNotifier {
     unawaited(_applyVolume(next));
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
+
+  void toggleShuffle() {
+    final current = _current;
+    if (current == null || current.queue == null) return;
+
+    final next = current.copyWith(
+      queue: current.queue!.copyWith(shuffle: !current.queue!.shuffle),
+    );
+    state = AsyncData(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  void toggleRepeat() {
+    final current = _current;
+    if (current == null || current.queue == null) return;
+
+    final nextRepeat = switch (current.queue!.repeat) {
+      RepeatMode.none => RepeatMode.all,
+      RepeatMode.all => RepeatMode.one,
+      RepeatMode.one => RepeatMode.none,
+    };
+    final next = current.copyWith(
+      queue: current.queue!.copyWith(repeat: nextRepeat),
+    );
+    state = AsyncData(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
 }
