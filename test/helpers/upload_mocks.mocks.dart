@@ -3,71 +3,66 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i18;
+import 'dart:async' as _i16;
 
 import 'package:dio/dio.dart' as _i7;
 import 'package:dio/src/adapter.dart' as _i4;
-import 'package:dio/src/cancel_token.dart' as _i19;
+import 'package:dio/src/cancel_token.dart' as _i17;
 import 'package:dio/src/dio_mixin.dart' as _i3;
 import 'package:dio/src/options.dart' as _i2;
 import 'package:dio/src/response.dart' as _i6;
 import 'package:dio/src/transformer.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i30;
 import 'package:software_project/features/audio_upload_and_management/data/api/library_uploads_api.dart'
-    as _i24;
-import 'package:software_project/features/audio_upload_and_management/data/api/mock_library_uploads_api.dart'
-    as _i25;
-import 'package:software_project/features/audio_upload_and_management/data/api/upload_api.dart'
-    as _i20;
-import 'package:software_project/features/audio_upload_and_management/data/dto/artist_tools_quota_dto.dart'
-    as _i10;
-import 'package:software_project/features/audio_upload_and_management/data/dto/create_track_request_dto.dart'
-    as _i21;
-import 'package:software_project/features/audio_upload_and_management/data/dto/finalize_track_metadata_request_dto.dart'
-    as _i23;
-import 'package:software_project/features/audio_upload_and_management/data/dto/track_response_dto.dart'
-    as _i9;
-import 'package:software_project/features/audio_upload_and_management/data/dto/upload_item_dto.dart'
-    as _i11;
-import 'package:software_project/features/audio_upload_and_management/data/dto/upload_quota_dto.dart'
-    as _i8;
-import 'package:software_project/features/audio_upload_and_management/data/services/cloudinary_media_service.dart'
-    as _i16;
-import 'package:software_project/features/audio_upload_and_management/data/services/file_picker_service.dart'
-    as _i29;
-import 'package:software_project/features/audio_upload_and_management/data/services/mock_upload_service.dart'
-    as _i31;
-import 'package:software_project/features/audio_upload_and_management/data/services/upload_waveform_service.dart'
-    as _i32;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/artist_tools_quota.dart'
-    as _i14;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/picked_upload_file.dart'
-    as _i27;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/track_metadata.dart'
-    as _i28;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_cancellation_token.dart'
     as _i22;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_item.dart'
-    as _i15;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_quota.dart'
-    as _i12;
-import 'package:software_project/features/audio_upload_and_management/domain/entities/uploaded_track.dart'
+import 'package:software_project/features/audio_upload_and_management/data/api/mock_library_uploads_api.dart'
+    as _i23;
+import 'package:software_project/features/audio_upload_and_management/data/api/upload_api.dart'
+    as _i18;
+import 'package:software_project/features/audio_upload_and_management/data/dto/artist_tools_quota_dto.dart'
+    as _i9;
+import 'package:software_project/features/audio_upload_and_management/data/dto/create_track_request_dto.dart'
+    as _i19;
+import 'package:software_project/features/audio_upload_and_management/data/dto/finalize_track_metadata_request_dto.dart'
+    as _i21;
+import 'package:software_project/features/audio_upload_and_management/data/dto/track_response_dto.dart'
+    as _i8;
+import 'package:software_project/features/audio_upload_and_management/data/dto/upload_item_dto.dart'
+    as _i10;
+import 'package:software_project/features/audio_upload_and_management/data/services/file_picker_service.dart'
+    as _i27;
+import 'package:software_project/features/audio_upload_and_management/data/services/mock_upload_service.dart'
+    as _i28;
+import 'package:software_project/features/audio_upload_and_management/data/services/upload_waveform_service.dart'
+    as _i29;
+import 'package:software_project/features/audio_upload_and_management/domain/entities/artist_tools_quota.dart'
     as _i13;
-import 'package:software_project/features/audio_upload_and_management/domain/repositories/library_uploads_repository.dart'
-    as _i17;
-import 'package:software_project/features/audio_upload_and_management/domain/repositories/upload_repository.dart'
+import 'package:software_project/features/audio_upload_and_management/domain/entities/picked_upload_file.dart'
+    as _i25;
+import 'package:software_project/features/audio_upload_and_management/domain/entities/track_metadata.dart'
     as _i26;
+import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_cancellation_token.dart'
+    as _i20;
+import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_item.dart'
+    as _i14;
+import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_quota.dart'
+    as _i11;
+import 'package:software_project/features/audio_upload_and_management/domain/entities/uploaded_track.dart'
+    as _i12;
+import 'package:software_project/features/audio_upload_and_management/domain/repositories/library_uploads_repository.dart'
+    as _i15;
+import 'package:software_project/features/audio_upload_and_management/domain/repositories/upload_repository.dart'
+    as _i24;
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/delete_upload_usecase.dart'
-    as _i35;
+    as _i32;
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/get_artist_tools_quota_usecase.dart'
-    as _i34;
+    as _i31;
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/get_my_uploads_usecase.dart'
-    as _i33;
+    as _i30;
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/replace_file_usecase.dart'
-    as _i36;
+    as _i33;
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/update_upload_usecase.dart'
-    as _i37;
+    as _i34;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -115,60 +110,48 @@ class _FakeDio_5 extends _i1.SmartFake implements _i7.Dio {
     : super(parent, parentInvocation);
 }
 
-class _FakeUploadQuotaDto_6 extends _i1.SmartFake
-    implements _i8.UploadQuotaDto {
-  _FakeUploadQuotaDto_6(Object parent, Invocation parentInvocation)
+class _FakeTrackResponseDto_6 extends _i1.SmartFake
+    implements _i8.TrackResponseDto {
+  _FakeTrackResponseDto_6(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeTrackResponseDto_7 extends _i1.SmartFake
-    implements _i9.TrackResponseDto {
-  _FakeTrackResponseDto_7(Object parent, Invocation parentInvocation)
+class _FakeArtistToolsQuotaDto_7 extends _i1.SmartFake
+    implements _i9.ArtistToolsQuotaDto {
+  _FakeArtistToolsQuotaDto_7(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeArtistToolsQuotaDto_8 extends _i1.SmartFake
-    implements _i10.ArtistToolsQuotaDto {
-  _FakeArtistToolsQuotaDto_8(Object parent, Invocation parentInvocation)
+class _FakeUploadItemDto_8 extends _i1.SmartFake implements _i10.UploadItemDto {
+  _FakeUploadItemDto_8(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeUploadItemDto_9 extends _i1.SmartFake implements _i11.UploadItemDto {
-  _FakeUploadItemDto_9(Object parent, Invocation parentInvocation)
+class _FakeUploadQuota_9 extends _i1.SmartFake implements _i11.UploadQuota {
+  _FakeUploadQuota_9(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeUploadQuota_10 extends _i1.SmartFake implements _i12.UploadQuota {
-  _FakeUploadQuota_10(Object parent, Invocation parentInvocation)
+class _FakeUploadedTrack_10 extends _i1.SmartFake
+    implements _i12.UploadedTrack {
+  _FakeUploadedTrack_10(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeUploadedTrack_11 extends _i1.SmartFake
-    implements _i13.UploadedTrack {
-  _FakeUploadedTrack_11(Object parent, Invocation parentInvocation)
+class _FakeArtistToolsQuota_11 extends _i1.SmartFake
+    implements _i13.ArtistToolsQuota {
+  _FakeArtistToolsQuota_11(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeArtistToolsQuota_12 extends _i1.SmartFake
-    implements _i14.ArtistToolsQuota {
-  _FakeArtistToolsQuota_12(Object parent, Invocation parentInvocation)
+class _FakeUploadItem_12 extends _i1.SmartFake implements _i14.UploadItem {
+  _FakeUploadItem_12(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeUploadItem_13 extends _i1.SmartFake implements _i15.UploadItem {
-  _FakeUploadItem_13(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
-class _FakeCloudinaryAsset_14 extends _i1.SmartFake
-    implements _i16.CloudinaryAsset {
-  _FakeCloudinaryAsset_14(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
-class _FakeLibraryUploadsRepository_15 extends _i1.SmartFake
-    implements _i17.LibraryUploadsRepository {
-  _FakeLibraryUploadsRepository_15(Object parent, Invocation parentInvocation)
+class _FakeLibraryUploadsRepository_13 extends _i1.SmartFake
+    implements _i15.LibraryUploadsRepository {
+  _FakeLibraryUploadsRepository_13(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -246,12 +229,12 @@ class MockDio extends _i1.Mock implements _i7.Dio {
   );
 
   @override
-  _i18.Future<_i6.Response<T>> head<T>(
+  _i16.Future<_i6.Response<T>> head<T>(
     String? path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -264,7 +247,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #cancelToken: cancelToken,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -280,14 +263,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> headUri<T>(
+  _i16.Future<_i6.Response<T>> headUri<T>(
     Uri? uri, {
     Object? data,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -295,7 +278,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               [uri],
               {#data: data, #options: options, #cancelToken: cancelToken},
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -306,15 +289,15 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> get<T>(
+  _i16.Future<_i6.Response<T>> get<T>(
     String? path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
       (super.noSuchMethod(
@@ -329,7 +312,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -346,14 +329,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> getUri<T>(
+  _i16.Future<_i6.Response<T>> getUri<T>(
     Uri? uri, {
     Object? data,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
       (super.noSuchMethod(
@@ -367,7 +350,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -383,15 +366,15 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> post<T>(
+  _i16.Future<_i6.Response<T>> post<T>(
     String? path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
@@ -408,7 +391,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -426,14 +409,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> postUri<T>(
+  _i16.Future<_i6.Response<T>> postUri<T>(
     Uri? uri, {
     Object? data,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
@@ -449,7 +432,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -466,15 +449,15 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> put<T>(
+  _i16.Future<_i6.Response<T>> put<T>(
     String? path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
@@ -491,7 +474,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -509,14 +492,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> putUri<T>(
+  _i16.Future<_i6.Response<T>> putUri<T>(
     Uri? uri, {
     Object? data,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
@@ -532,7 +515,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -549,15 +532,15 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> patch<T>(
+  _i16.Future<_i6.Response<T>> patch<T>(
     String? path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
@@ -574,7 +557,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -592,14 +575,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> patchUri<T>(
+  _i16.Future<_i6.Response<T>> patchUri<T>(
     Uri? uri, {
     Object? data,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
   }) =>
@@ -615,7 +598,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -632,15 +615,15 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> delete<T>(
+  _i16.Future<_i6.Response<T>> delete<T>(
     String? path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -653,7 +636,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #cancelToken: cancelToken,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -669,14 +652,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> deleteUri<T>(
+  _i16.Future<_i6.Response<T>> deleteUri<T>(
     Uri? uri, {
     Object? data,
     _i2.Options? options,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -684,7 +667,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               [uri],
               {#data: data, #options: options, #cancelToken: cancelToken},
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -695,15 +678,15 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<dynamic>> download(
+  _i16.Future<_i6.Response<dynamic>> download(
     String? urlPath,
     dynamic savePath, {
     _i2.ProgressCallback? onReceiveProgress,
     Map<String, dynamic>? queryParameters,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     bool? deleteOnError = true,
     _i2.FileAccessMode? fileAccessMode = _i2.FileAccessMode.write,
     String? lengthHeader = 'content-length',
@@ -725,7 +708,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #options: options,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<dynamic>>.value(
+            returnValue: _i16.Future<_i6.Response<dynamic>>.value(
               _FakeResponse_4<dynamic>(
                 this,
                 Invocation.method(
@@ -745,14 +728,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<dynamic>>);
+          as _i16.Future<_i6.Response<dynamic>>);
 
   @override
-  _i18.Future<_i6.Response<dynamic>> downloadUri(
+  _i16.Future<_i6.Response<dynamic>> downloadUri(
     Uri? uri,
     dynamic savePath, {
     _i2.ProgressCallback? onReceiveProgress,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     bool? deleteOnError = true,
     _i2.FileAccessMode? fileAccessMode = _i2.FileAccessMode.write,
     String? lengthHeader = 'content-length',
@@ -773,7 +756,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #options: options,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<dynamic>>.value(
+            returnValue: _i16.Future<_i6.Response<dynamic>>.value(
               _FakeResponse_4<dynamic>(
                 this,
                 Invocation.method(
@@ -792,14 +775,14 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<dynamic>>);
+          as _i16.Future<_i6.Response<dynamic>>);
 
   @override
-  _i18.Future<_i6.Response<T>> request<T>(
+  _i16.Future<_i6.Response<T>> request<T>(
     String? url, {
     Object? data,
     Map<String, dynamic>? queryParameters,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.Options? options,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
@@ -817,7 +800,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -835,13 +818,13 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> requestUri<T>(
+  _i16.Future<_i6.Response<T>> requestUri<T>(
     Uri? uri, {
     Object? data,
-    _i19.CancelToken? cancelToken,
+    _i17.CancelToken? cancelToken,
     _i2.Options? options,
     _i2.ProgressCallback? onSendProgress,
     _i2.ProgressCallback? onReceiveProgress,
@@ -858,7 +841,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
                 #onReceiveProgress: onReceiveProgress,
               },
             ),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(
@@ -875,20 +858,20 @@ class MockDio extends _i1.Mock implements _i7.Dio {
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
-  _i18.Future<_i6.Response<T>> fetch<T>(_i2.RequestOptions? requestOptions) =>
+  _i16.Future<_i6.Response<T>> fetch<T>(_i2.RequestOptions? requestOptions) =>
       (super.noSuchMethod(
             Invocation.method(#fetch, [requestOptions]),
-            returnValue: _i18.Future<_i6.Response<T>>.value(
+            returnValue: _i16.Future<_i6.Response<T>>.value(
               _FakeResponse_4<T>(
                 this,
                 Invocation.method(#fetch, [requestOptions]),
               ),
             ),
           )
-          as _i18.Future<_i6.Response<T>>);
+          as _i16.Future<_i6.Response<T>>);
 
   @override
   _i7.Dio clone({
@@ -920,7 +903,7 @@ class MockDio extends _i1.Mock implements _i7.Dio {
 /// A class which mocks [UploadApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUploadApi extends _i1.Mock implements _i20.UploadApi {
+class MockUploadApi extends _i1.Mock implements _i18.UploadApi {
   MockUploadApi() {
     _i1.throwOnMissingStub(this);
   }
@@ -934,40 +917,27 @@ class MockUploadApi extends _i1.Mock implements _i20.UploadApi {
           as _i7.Dio);
 
   @override
-  _i18.Future<_i8.UploadQuotaDto> getUploadQuota(String? userId) =>
-      (super.noSuchMethod(
-            Invocation.method(#getUploadQuota, [userId]),
-            returnValue: _i18.Future<_i8.UploadQuotaDto>.value(
-              _FakeUploadQuotaDto_6(
-                this,
-                Invocation.method(#getUploadQuota, [userId]),
-              ),
-            ),
-          )
-          as _i18.Future<_i8.UploadQuotaDto>);
-
-  @override
-  _i18.Future<_i9.TrackResponseDto> createTrack(
-    _i21.CreateTrackRequestDto? request,
+  _i16.Future<_i8.TrackResponseDto> createTrack(
+    _i19.CreateTrackRequestDto? request,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#createTrack, [request]),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#createTrack, [request]),
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<_i9.TrackResponseDto> uploadAudio({
+  _i16.Future<_i8.TrackResponseDto> uploadAudio({
     required String? trackId,
     required String? filePath,
     required String? fileName,
     required _i2.ProgressCallback? onSendProgress,
-    _i22.UploadCancellationToken? cancellationToken,
+    _i20.UploadCancellationToken? cancellationToken,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#uploadAudio, [], {
@@ -977,8 +947,8 @@ class MockUploadApi extends _i1.Mock implements _i20.UploadApi {
               #onSendProgress: onSendProgress,
               #cancellationToken: cancellationToken,
             }),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#uploadAudio, [], {
                   #trackId: trackId,
@@ -990,10 +960,10 @@ class MockUploadApi extends _i1.Mock implements _i20.UploadApi {
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<_i9.TrackResponseDto> replaceAudio({
+  _i16.Future<_i8.TrackResponseDto> replaceAudio({
     required String? trackId,
     required String? filePath,
     required String? fileName,
@@ -1006,8 +976,8 @@ class MockUploadApi extends _i1.Mock implements _i20.UploadApi {
               #fileName: fileName,
               #onSendProgress: onSendProgress,
             }),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#replaceAudio, [], {
                   #trackId: trackId,
@@ -1018,78 +988,78 @@ class MockUploadApi extends _i1.Mock implements _i20.UploadApi {
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<_i9.TrackResponseDto> finalizeMetadata(
-    _i23.FinalizeTrackMetadataRequestDto? request,
+  _i16.Future<_i8.TrackResponseDto> finalizeMetadata(
+    _i21.FinalizeTrackMetadataRequestDto? request,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#finalizeMetadata, [request]),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#finalizeMetadata, [request]),
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<_i9.TrackResponseDto> getTrackStatus(String? trackId) =>
+  _i16.Future<_i8.TrackResponseDto> getTrackStatus(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#getTrackStatus, [trackId]),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#getTrackStatus, [trackId]),
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<_i9.TrackResponseDto> getTrackDetails(String? trackId) =>
+  _i16.Future<_i8.TrackResponseDto> getTrackDetails(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#getTrackDetails, [trackId]),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#getTrackDetails, [trackId]),
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<_i9.TrackResponseDto> updateTrackMetadata(
-    _i23.FinalizeTrackMetadataRequestDto? request,
+  _i16.Future<_i8.TrackResponseDto> updateTrackMetadata(
+    _i21.FinalizeTrackMetadataRequestDto? request,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#updateTrackMetadata, [request]),
-            returnValue: _i18.Future<_i9.TrackResponseDto>.value(
-              _FakeTrackResponseDto_7(
+            returnValue: _i16.Future<_i8.TrackResponseDto>.value(
+              _FakeTrackResponseDto_6(
                 this,
                 Invocation.method(#updateTrackMetadata, [request]),
               ),
             ),
           )
-          as _i18.Future<_i9.TrackResponseDto>);
+          as _i16.Future<_i8.TrackResponseDto>);
 
   @override
-  _i18.Future<void> deleteTrack(String? trackId) =>
+  _i16.Future<void> deleteTrack(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteTrack, [trackId]),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 }
 
 /// A class which mocks [LibraryUploadsApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLibraryUploadsApi extends _i1.Mock implements _i24.LibraryUploadsApi {
+class MockLibraryUploadsApi extends _i1.Mock implements _i22.LibraryUploadsApi {
   MockLibraryUploadsApi() {
     _i1.throwOnMissingStub(this);
   }
@@ -1103,39 +1073,39 @@ class MockLibraryUploadsApi extends _i1.Mock implements _i24.LibraryUploadsApi {
           as _i7.Dio);
 
   @override
-  _i18.Future<List<_i11.UploadItemDto>> getMyUploads() =>
+  _i16.Future<List<_i10.UploadItemDto>> getMyUploads() =>
       (super.noSuchMethod(
             Invocation.method(#getMyUploads, []),
-            returnValue: _i18.Future<List<_i11.UploadItemDto>>.value(
-              <_i11.UploadItemDto>[],
+            returnValue: _i16.Future<List<_i10.UploadItemDto>>.value(
+              <_i10.UploadItemDto>[],
             ),
           )
-          as _i18.Future<List<_i11.UploadItemDto>>);
+          as _i16.Future<List<_i10.UploadItemDto>>);
 
   @override
-  _i18.Future<_i10.ArtistToolsQuotaDto> getArtistToolsQuota() =>
+  _i16.Future<_i9.ArtistToolsQuotaDto> getArtistToolsQuota() =>
       (super.noSuchMethod(
             Invocation.method(#getArtistToolsQuota, []),
-            returnValue: _i18.Future<_i10.ArtistToolsQuotaDto>.value(
-              _FakeArtistToolsQuotaDto_8(
+            returnValue: _i16.Future<_i9.ArtistToolsQuotaDto>.value(
+              _FakeArtistToolsQuotaDto_7(
                 this,
                 Invocation.method(#getArtistToolsQuota, []),
               ),
             ),
           )
-          as _i18.Future<_i10.ArtistToolsQuotaDto>);
+          as _i16.Future<_i9.ArtistToolsQuotaDto>);
 
   @override
-  _i18.Future<void> deleteUpload(String? trackId) =>
+  _i16.Future<void> deleteUpload(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteUpload, [trackId]),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<void> replaceUploadFile({
+  _i16.Future<void> replaceUploadFile({
     required String? trackId,
     required String? filePath,
   }) =>
@@ -1144,13 +1114,13 @@ class MockLibraryUploadsApi extends _i1.Mock implements _i24.LibraryUploadsApi {
               #trackId: trackId,
               #filePath: filePath,
             }),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<_i11.UploadItemDto> updateUpload({
+  _i16.Future<_i10.UploadItemDto> updateUpload({
     required String? trackId,
     required String? title,
     required String? description,
@@ -1165,8 +1135,8 @@ class MockLibraryUploadsApi extends _i1.Mock implements _i24.LibraryUploadsApi {
               #privacy: privacy,
               #localArtworkPath: localArtworkPath,
             }),
-            returnValue: _i18.Future<_i11.UploadItemDto>.value(
-              _FakeUploadItemDto_9(
+            returnValue: _i16.Future<_i10.UploadItemDto>.value(
+              _FakeUploadItemDto_8(
                 this,
                 Invocation.method(#updateUpload, [], {
                   #trackId: trackId,
@@ -1178,52 +1148,52 @@ class MockLibraryUploadsApi extends _i1.Mock implements _i24.LibraryUploadsApi {
               ),
             ),
           )
-          as _i18.Future<_i11.UploadItemDto>);
+          as _i16.Future<_i10.UploadItemDto>);
 }
 
 /// A class which mocks [MockLibraryUploadsApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockMockLibraryUploadsApi extends _i1.Mock
-    implements _i25.MockLibraryUploadsApi {
+    implements _i23.MockLibraryUploadsApi {
   MockMockLibraryUploadsApi() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i18.Future<List<_i11.UploadItemDto>> getMyUploads() =>
+  _i16.Future<List<_i10.UploadItemDto>> getMyUploads() =>
       (super.noSuchMethod(
             Invocation.method(#getMyUploads, []),
-            returnValue: _i18.Future<List<_i11.UploadItemDto>>.value(
-              <_i11.UploadItemDto>[],
+            returnValue: _i16.Future<List<_i10.UploadItemDto>>.value(
+              <_i10.UploadItemDto>[],
             ),
           )
-          as _i18.Future<List<_i11.UploadItemDto>>);
+          as _i16.Future<List<_i10.UploadItemDto>>);
 
   @override
-  _i18.Future<_i10.ArtistToolsQuotaDto> getArtistToolsQuota() =>
+  _i16.Future<_i9.ArtistToolsQuotaDto> getArtistToolsQuota() =>
       (super.noSuchMethod(
             Invocation.method(#getArtistToolsQuota, []),
-            returnValue: _i18.Future<_i10.ArtistToolsQuotaDto>.value(
-              _FakeArtistToolsQuotaDto_8(
+            returnValue: _i16.Future<_i9.ArtistToolsQuotaDto>.value(
+              _FakeArtistToolsQuotaDto_7(
                 this,
                 Invocation.method(#getArtistToolsQuota, []),
               ),
             ),
           )
-          as _i18.Future<_i10.ArtistToolsQuotaDto>);
+          as _i16.Future<_i9.ArtistToolsQuotaDto>);
 
   @override
-  _i18.Future<void> deleteUpload(String? trackId) =>
+  _i16.Future<void> deleteUpload(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteUpload, [trackId]),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<void> replaceUploadFile({
+  _i16.Future<void> replaceUploadFile({
     required String? trackId,
     required String? filePath,
   }) =>
@@ -1232,13 +1202,13 @@ class MockMockLibraryUploadsApi extends _i1.Mock
               #trackId: trackId,
               #filePath: filePath,
             }),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<_i11.UploadItemDto> updateUpload({
+  _i16.Future<_i10.UploadItemDto> updateUpload({
     required String? trackId,
     required String? title,
     required String? description,
@@ -1253,8 +1223,8 @@ class MockMockLibraryUploadsApi extends _i1.Mock
               #privacy: privacy,
               #localArtworkPath: localArtworkPath,
             }),
-            returnValue: _i18.Future<_i11.UploadItemDto>.value(
-              _FakeUploadItemDto_9(
+            returnValue: _i16.Future<_i10.UploadItemDto>.value(
+              _FakeUploadItemDto_8(
                 this,
                 Invocation.method(#updateUpload, [], {
                   #trackId: trackId,
@@ -1266,49 +1236,49 @@ class MockMockLibraryUploadsApi extends _i1.Mock
               ),
             ),
           )
-          as _i18.Future<_i11.UploadItemDto>);
+          as _i16.Future<_i10.UploadItemDto>);
 }
 
 /// A class which mocks [UploadRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUploadRepository extends _i1.Mock implements _i26.UploadRepository {
+class MockUploadRepository extends _i1.Mock implements _i24.UploadRepository {
   MockUploadRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i18.Future<_i12.UploadQuota> getUploadQuota(String? userId) =>
+  _i16.Future<_i11.UploadQuota> getUploadQuota(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#getUploadQuota, [userId]),
-            returnValue: _i18.Future<_i12.UploadQuota>.value(
-              _FakeUploadQuota_10(
+            returnValue: _i16.Future<_i11.UploadQuota>.value(
+              _FakeUploadQuota_9(
                 this,
                 Invocation.method(#getUploadQuota, [userId]),
               ),
             ),
           )
-          as _i18.Future<_i12.UploadQuota>);
+          as _i16.Future<_i11.UploadQuota>);
 
   @override
-  _i18.Future<_i13.UploadedTrack> createTrack(String? userId) =>
+  _i16.Future<_i12.UploadedTrack> createTrack(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#createTrack, [userId]),
-            returnValue: _i18.Future<_i13.UploadedTrack>.value(
-              _FakeUploadedTrack_11(
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
                 this,
                 Invocation.method(#createTrack, [userId]),
               ),
             ),
           )
-          as _i18.Future<_i13.UploadedTrack>);
+          as _i16.Future<_i12.UploadedTrack>);
 
   @override
-  _i18.Future<_i13.UploadedTrack> uploadAudio({
+  _i16.Future<_i12.UploadedTrack> uploadAudio({
     required String? trackId,
-    required _i27.PickedUploadFile? file,
+    required _i25.PickedUploadFile? file,
     required void Function(double)? onProgress,
-    _i22.UploadCancellationToken? cancellationToken,
+    _i20.UploadCancellationToken? cancellationToken,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#uploadAudio, [], {
@@ -1317,8 +1287,8 @@ class MockUploadRepository extends _i1.Mock implements _i26.UploadRepository {
               #onProgress: onProgress,
               #cancellationToken: cancellationToken,
             }),
-            returnValue: _i18.Future<_i13.UploadedTrack>.value(
-              _FakeUploadedTrack_11(
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
                 this,
                 Invocation.method(#uploadAudio, [], {
                   #trackId: trackId,
@@ -1329,20 +1299,20 @@ class MockUploadRepository extends _i1.Mock implements _i26.UploadRepository {
               ),
             ),
           )
-          as _i18.Future<_i13.UploadedTrack>);
+          as _i16.Future<_i12.UploadedTrack>);
 
   @override
-  _i18.Future<_i13.UploadedTrack> finalizeMetadata({
+  _i16.Future<_i12.UploadedTrack> finalizeMetadata({
     required String? trackId,
-    required _i28.TrackMetadata? metadata,
+    required _i26.TrackMetadata? metadata,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#finalizeMetadata, [], {
               #trackId: trackId,
               #metadata: metadata,
             }),
-            returnValue: _i18.Future<_i13.UploadedTrack>.value(
-              _FakeUploadedTrack_11(
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
                 this,
                 Invocation.method(#finalizeMetadata, [], {
                   #trackId: trackId,
@@ -1351,46 +1321,59 @@ class MockUploadRepository extends _i1.Mock implements _i26.UploadRepository {
               ),
             ),
           )
-          as _i18.Future<_i13.UploadedTrack>);
+          as _i16.Future<_i12.UploadedTrack>);
 
   @override
-  _i18.Future<_i13.UploadedTrack> waitUntilProcessed(String? trackId) =>
+  _i16.Future<_i12.UploadedTrack> waitUntilProcessed(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#waitUntilProcessed, [trackId]),
-            returnValue: _i18.Future<_i13.UploadedTrack>.value(
-              _FakeUploadedTrack_11(
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
                 this,
                 Invocation.method(#waitUntilProcessed, [trackId]),
               ),
             ),
           )
-          as _i18.Future<_i13.UploadedTrack>);
+          as _i16.Future<_i12.UploadedTrack>);
 
   @override
-  _i18.Future<_i13.UploadedTrack> getTrackDetails(String? trackId) =>
+  _i16.Future<_i12.UploadedTrack> getTrackStatus(String? trackId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTrackStatus, [trackId]),
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
+                this,
+                Invocation.method(#getTrackStatus, [trackId]),
+              ),
+            ),
+          )
+          as _i16.Future<_i12.UploadedTrack>);
+
+  @override
+  _i16.Future<_i12.UploadedTrack> getTrackDetails(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#getTrackDetails, [trackId]),
-            returnValue: _i18.Future<_i13.UploadedTrack>.value(
-              _FakeUploadedTrack_11(
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
                 this,
                 Invocation.method(#getTrackDetails, [trackId]),
               ),
             ),
           )
-          as _i18.Future<_i13.UploadedTrack>);
+          as _i16.Future<_i12.UploadedTrack>);
 
   @override
-  _i18.Future<_i13.UploadedTrack> updateTrackMetadata({
+  _i16.Future<_i12.UploadedTrack> updateTrackMetadata({
     required String? trackId,
-    required _i28.TrackMetadata? metadata,
+    required _i26.TrackMetadata? metadata,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#updateTrackMetadata, [], {
               #trackId: trackId,
               #metadata: metadata,
             }),
-            returnValue: _i18.Future<_i13.UploadedTrack>.value(
-              _FakeUploadedTrack_11(
+            returnValue: _i16.Future<_i12.UploadedTrack>.value(
+              _FakeUploadedTrack_10(
                 this,
                 Invocation.method(#updateTrackMetadata, [], {
                   #trackId: trackId,
@@ -1399,61 +1382,61 @@ class MockUploadRepository extends _i1.Mock implements _i26.UploadRepository {
               ),
             ),
           )
-          as _i18.Future<_i13.UploadedTrack>);
+          as _i16.Future<_i12.UploadedTrack>);
 
   @override
-  _i18.Future<void> deleteTrack(String? trackId) =>
+  _i16.Future<void> deleteTrack(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteTrack, [trackId]),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 }
 
 /// A class which mocks [LibraryUploadsRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockLibraryUploadsRepository extends _i1.Mock
-    implements _i17.LibraryUploadsRepository {
+    implements _i15.LibraryUploadsRepository {
   MockLibraryUploadsRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i18.Future<List<_i15.UploadItem>> getMyUploads() =>
+  _i16.Future<List<_i14.UploadItem>> getMyUploads() =>
       (super.noSuchMethod(
             Invocation.method(#getMyUploads, []),
-            returnValue: _i18.Future<List<_i15.UploadItem>>.value(
-              <_i15.UploadItem>[],
+            returnValue: _i16.Future<List<_i14.UploadItem>>.value(
+              <_i14.UploadItem>[],
             ),
           )
-          as _i18.Future<List<_i15.UploadItem>>);
+          as _i16.Future<List<_i14.UploadItem>>);
 
   @override
-  _i18.Future<_i14.ArtistToolsQuota> getArtistToolsQuota() =>
+  _i16.Future<_i13.ArtistToolsQuota> getArtistToolsQuota() =>
       (super.noSuchMethod(
             Invocation.method(#getArtistToolsQuota, []),
-            returnValue: _i18.Future<_i14.ArtistToolsQuota>.value(
-              _FakeArtistToolsQuota_12(
+            returnValue: _i16.Future<_i13.ArtistToolsQuota>.value(
+              _FakeArtistToolsQuota_11(
                 this,
                 Invocation.method(#getArtistToolsQuota, []),
               ),
             ),
           )
-          as _i18.Future<_i14.ArtistToolsQuota>);
+          as _i16.Future<_i13.ArtistToolsQuota>);
 
   @override
-  _i18.Future<void> deleteUpload(String? trackId) =>
+  _i16.Future<void> deleteUpload(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteUpload, [trackId]),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<void> replaceUploadFile({
+  _i16.Future<void> replaceUploadFile({
     required String? trackId,
     required String? filePath,
   }) =>
@@ -1462,13 +1445,13 @@ class MockLibraryUploadsRepository extends _i1.Mock
               #trackId: trackId,
               #filePath: filePath,
             }),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<_i15.UploadItem> updateUpload({
+  _i16.Future<_i14.UploadItem> updateUpload({
     required String? trackId,
     required String? title,
     required String? description,
@@ -1483,8 +1466,8 @@ class MockLibraryUploadsRepository extends _i1.Mock
               #privacy: privacy,
               #localArtworkPath: localArtworkPath,
             }),
-            returnValue: _i18.Future<_i15.UploadItem>.value(
-              _FakeUploadItem_13(
+            returnValue: _i16.Future<_i14.UploadItem>.value(
+              _FakeUploadItem_12(
                 this,
                 Invocation.method(#updateUpload, [], {
                   #trackId: trackId,
@@ -1496,202 +1479,72 @@ class MockLibraryUploadsRepository extends _i1.Mock
               ),
             ),
           )
-          as _i18.Future<_i15.UploadItem>);
+          as _i16.Future<_i14.UploadItem>);
 }
 
 /// A class which mocks [FilePickerService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockFilePickerService extends _i1.Mock implements _i29.FilePickerService {
+class MockFilePickerService extends _i1.Mock implements _i27.FilePickerService {
   MockFilePickerService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i18.Future<_i27.PickedUploadFile?> pickAudioFile() =>
+  _i16.Future<_i25.PickedUploadFile?> pickAudioFile() =>
       (super.noSuchMethod(
             Invocation.method(#pickAudioFile, []),
-            returnValue: _i18.Future<_i27.PickedUploadFile?>.value(),
+            returnValue: _i16.Future<_i25.PickedUploadFile?>.value(),
           )
-          as _i18.Future<_i27.PickedUploadFile?>);
+          as _i16.Future<_i25.PickedUploadFile?>);
 
   @override
-  _i18.Future<String?> pickArtworkImage({bool? fromCamera = false}) =>
+  _i16.Future<String?> pickArtworkImage({bool? fromCamera = false}) =>
       (super.noSuchMethod(
             Invocation.method(#pickArtworkImage, [], {#fromCamera: fromCamera}),
-            returnValue: _i18.Future<String?>.value(),
+            returnValue: _i16.Future<String?>.value(),
           )
-          as _i18.Future<String?>);
-}
-
-/// A class which mocks [CloudinaryMediaService].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockCloudinaryMediaService extends _i1.Mock
-    implements _i16.CloudinaryMediaService {
-  MockCloudinaryMediaService() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  String get apiKey =>
-      (super.noSuchMethod(
-            Invocation.getter(#apiKey),
-            returnValue: _i30.dummyValue<String>(
-              this,
-              Invocation.getter(#apiKey),
-            ),
-          )
-          as String);
-
-  @override
-  String get apiSecret =>
-      (super.noSuchMethod(
-            Invocation.getter(#apiSecret),
-            returnValue: _i30.dummyValue<String>(
-              this,
-              Invocation.getter(#apiSecret),
-            ),
-          )
-          as String);
-
-  @override
-  bool get isConfigured =>
-      (super.noSuchMethod(Invocation.getter(#isConfigured), returnValue: false)
-          as bool);
-
-  @override
-  bool get canDeleteAssets =>
-      (super.noSuchMethod(
-            Invocation.getter(#canDeleteAssets),
-            returnValue: false,
-          )
-          as bool);
-
-  @override
-  _i18.Future<_i16.CloudinaryAsset> uploadAudio({
-    required String? filePath,
-    required String? fileName,
-    required _i2.ProgressCallback? onSendProgress,
-    _i22.UploadCancellationToken? cancellationToken,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#uploadAudio, [], {
-              #filePath: filePath,
-              #fileName: fileName,
-              #onSendProgress: onSendProgress,
-              #cancellationToken: cancellationToken,
-            }),
-            returnValue: _i18.Future<_i16.CloudinaryAsset>.value(
-              _FakeCloudinaryAsset_14(
-                this,
-                Invocation.method(#uploadAudio, [], {
-                  #filePath: filePath,
-                  #fileName: fileName,
-                  #onSendProgress: onSendProgress,
-                  #cancellationToken: cancellationToken,
-                }),
-              ),
-            ),
-          )
-          as _i18.Future<_i16.CloudinaryAsset>);
-
-  @override
-  _i18.Future<_i16.CloudinaryAsset> uploadArtwork({
-    required String? filePath,
-    required String? fileName,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#uploadArtwork, [], {
-              #filePath: filePath,
-              #fileName: fileName,
-            }),
-            returnValue: _i18.Future<_i16.CloudinaryAsset>.value(
-              _FakeCloudinaryAsset_14(
-                this,
-                Invocation.method(#uploadArtwork, [], {
-                  #filePath: filePath,
-                  #fileName: fileName,
-                }),
-              ),
-            ),
-          )
-          as _i18.Future<_i16.CloudinaryAsset>);
-
-  @override
-  String buildWaveformImageUrl({
-    required String? audioPublicId,
-    int? width = 1200,
-    int? height = 240,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#buildWaveformImageUrl, [], {
-              #audioPublicId: audioPublicId,
-              #width: width,
-              #height: height,
-            }),
-            returnValue: _i30.dummyValue<String>(
-              this,
-              Invocation.method(#buildWaveformImageUrl, [], {
-                #audioPublicId: audioPublicId,
-                #width: width,
-                #height: height,
-              }),
-            ),
-          )
-          as String);
-
-  @override
-  _i18.Future<void> deleteTrackAssets({String? audioUrl, String? artworkUrl}) =>
-      (super.noSuchMethod(
-            Invocation.method(#deleteTrackAssets, [], {
-              #audioUrl: audioUrl,
-              #artworkUrl: artworkUrl,
-            }),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
-          )
-          as _i18.Future<void>);
+          as _i16.Future<String?>);
 }
 
 /// A class which mocks [MockUploadService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMockUploadService extends _i1.Mock implements _i31.MockUploadService {
+class MockMockUploadService extends _i1.Mock implements _i28.MockUploadService {
   MockMockUploadService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i18.Future<Map<String, dynamic>> getUploadQuota({required String? userId}) =>
+  _i16.Future<Map<String, dynamic>> getUploadQuota({required String? userId}) =>
       (super.noSuchMethod(
             Invocation.method(#getUploadQuota, [], {#userId: userId}),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Future<Map<String, dynamic>> createTrack({required String? userId}) =>
+  _i16.Future<Map<String, dynamic>> createTrack({required String? userId}) =>
       (super.noSuchMethod(
             Invocation.method(#createTrack, [], {#userId: userId}),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Stream<double> uploadProgress() =>
+  _i16.Stream<double> uploadProgress() =>
       (super.noSuchMethod(
             Invocation.method(#uploadProgress, []),
-            returnValue: _i18.Stream<double>.empty(),
+            returnValue: _i16.Stream<double>.empty(),
           )
-          as _i18.Stream<double>);
+          as _i16.Stream<double>);
 
   @override
-  _i18.Future<Map<String, dynamic>> uploadAudio({
+  _i16.Future<Map<String, dynamic>> uploadAudio({
     required String? trackId,
     String? localFilePath,
   }) =>
@@ -1700,24 +1553,24 @@ class MockMockUploadService extends _i1.Mock implements _i31.MockUploadService {
               #trackId: trackId,
               #localFilePath: localFilePath,
             }),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Future<Map<String, dynamic>> replaceAudio({required String? trackId}) =>
+  _i16.Future<Map<String, dynamic>> replaceAudio({required String? trackId}) =>
       (super.noSuchMethod(
             Invocation.method(#replaceAudio, [], {#trackId: trackId}),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Future<Map<String, dynamic>> finalizeMetadata({
+  _i16.Future<Map<String, dynamic>> finalizeMetadata({
     required String? trackId,
     required Map<String, dynamic>? metadata,
   }) =>
@@ -1726,47 +1579,47 @@ class MockMockUploadService extends _i1.Mock implements _i31.MockUploadService {
               #trackId: trackId,
               #metadata: metadata,
             }),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Future<Map<String, dynamic>> pollTrackStatus({
+  _i16.Future<Map<String, dynamic>> pollTrackStatus({
     required String? trackId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#pollTrackStatus, [], {#trackId: trackId}),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Future<Map<String, dynamic>> getTrackDetails({
+  _i16.Future<Map<String, dynamic>> getTrackDetails({
     required String? trackId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#getTrackDetails, [], {#trackId: trackId}),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 
   @override
-  _i18.Future<void> deleteTrack({required String? trackId}) =>
+  _i16.Future<void> deleteTrack({required String? trackId}) =>
       (super.noSuchMethod(
             Invocation.method(#deleteTrack, [], {#trackId: trackId}),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 
   @override
-  _i18.Future<Map<String, dynamic>> updateTrackMetadata({
+  _i16.Future<Map<String, dynamic>> updateTrackMetadata({
     required String? trackId,
     required Map<String, dynamic>? metadata,
   }) =>
@@ -1775,24 +1628,24 @@ class MockMockUploadService extends _i1.Mock implements _i31.MockUploadService {
               #trackId: trackId,
               #metadata: metadata,
             }),
-            returnValue: _i18.Future<Map<String, dynamic>>.value(
+            returnValue: _i16.Future<Map<String, dynamic>>.value(
               <String, dynamic>{},
             ),
           )
-          as _i18.Future<Map<String, dynamic>>);
+          as _i16.Future<Map<String, dynamic>>);
 }
 
 /// A class which mocks [UploadWaveformService].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockUploadWaveformService extends _i1.Mock
-    implements _i32.UploadWaveformService {
+    implements _i29.UploadWaveformService {
   MockUploadWaveformService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i18.Future<List<double>?> generateDisplayBarsFromFile(
+  _i16.Future<List<double>?> generateDisplayBarsFromFile(
     String? filePath, {
     int? targetBarCount = 180,
   }) =>
@@ -1802,125 +1655,125 @@ class MockUploadWaveformService extends _i1.Mock
               [filePath],
               {#targetBarCount: targetBarCount},
             ),
-            returnValue: _i18.Future<List<double>?>.value(),
+            returnValue: _i16.Future<List<double>?>.value(),
           )
-          as _i18.Future<List<double>?>);
+          as _i16.Future<List<double>?>);
 }
 
 /// A class which mocks [GetMyUploadsUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGetMyUploadsUsecase extends _i1.Mock
-    implements _i33.GetMyUploadsUsecase {
+    implements _i30.GetMyUploadsUsecase {
   MockGetMyUploadsUsecase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i17.LibraryUploadsRepository get repository =>
+  _i15.LibraryUploadsRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeLibraryUploadsRepository_15(
+            returnValue: _FakeLibraryUploadsRepository_13(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i17.LibraryUploadsRepository);
+          as _i15.LibraryUploadsRepository);
 
   @override
-  _i18.Future<List<_i15.UploadItem>> call() =>
+  _i16.Future<List<_i14.UploadItem>> call() =>
       (super.noSuchMethod(
             Invocation.method(#call, []),
-            returnValue: _i18.Future<List<_i15.UploadItem>>.value(
-              <_i15.UploadItem>[],
+            returnValue: _i16.Future<List<_i14.UploadItem>>.value(
+              <_i14.UploadItem>[],
             ),
           )
-          as _i18.Future<List<_i15.UploadItem>>);
+          as _i16.Future<List<_i14.UploadItem>>);
 }
 
 /// A class which mocks [GetArtistToolsQuotaUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGetArtistToolsQuotaUsecase extends _i1.Mock
-    implements _i34.GetArtistToolsQuotaUsecase {
+    implements _i31.GetArtistToolsQuotaUsecase {
   MockGetArtistToolsQuotaUsecase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i17.LibraryUploadsRepository get repository =>
+  _i15.LibraryUploadsRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeLibraryUploadsRepository_15(
+            returnValue: _FakeLibraryUploadsRepository_13(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i17.LibraryUploadsRepository);
+          as _i15.LibraryUploadsRepository);
 
   @override
-  _i18.Future<_i14.ArtistToolsQuota> call() =>
+  _i16.Future<_i13.ArtistToolsQuota> call() =>
       (super.noSuchMethod(
             Invocation.method(#call, []),
-            returnValue: _i18.Future<_i14.ArtistToolsQuota>.value(
-              _FakeArtistToolsQuota_12(this, Invocation.method(#call, [])),
+            returnValue: _i16.Future<_i13.ArtistToolsQuota>.value(
+              _FakeArtistToolsQuota_11(this, Invocation.method(#call, [])),
             ),
           )
-          as _i18.Future<_i14.ArtistToolsQuota>);
+          as _i16.Future<_i13.ArtistToolsQuota>);
 }
 
 /// A class which mocks [DeleteUploadUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockDeleteUploadUsecase extends _i1.Mock
-    implements _i35.DeleteUploadUsecase {
+    implements _i32.DeleteUploadUsecase {
   MockDeleteUploadUsecase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i17.LibraryUploadsRepository get repository =>
+  _i15.LibraryUploadsRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeLibraryUploadsRepository_15(
+            returnValue: _FakeLibraryUploadsRepository_13(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i17.LibraryUploadsRepository);
+          as _i15.LibraryUploadsRepository);
 
   @override
-  _i18.Future<void> call(String? trackId) =>
+  _i16.Future<void> call(String? trackId) =>
       (super.noSuchMethod(
             Invocation.method(#call, [trackId]),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 }
 
 /// A class which mocks [ReplaceFileUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockReplaceFileUsecase extends _i1.Mock
-    implements _i36.ReplaceFileUsecase {
+    implements _i33.ReplaceFileUsecase {
   MockReplaceFileUsecase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i17.LibraryUploadsRepository get repository =>
+  _i15.LibraryUploadsRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeLibraryUploadsRepository_15(
+            returnValue: _FakeLibraryUploadsRepository_13(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i17.LibraryUploadsRepository);
+          as _i15.LibraryUploadsRepository);
 
   @override
-  _i18.Future<void> call({
+  _i16.Future<void> call({
     required String? trackId,
     required String? filePath,
   }) =>
@@ -1929,34 +1782,34 @@ class MockReplaceFileUsecase extends _i1.Mock
               #trackId: trackId,
               #filePath: filePath,
             }),
-            returnValue: _i18.Future<void>.value(),
-            returnValueForMissingStub: _i18.Future<void>.value(),
+            returnValue: _i16.Future<void>.value(),
+            returnValueForMissingStub: _i16.Future<void>.value(),
           )
-          as _i18.Future<void>);
+          as _i16.Future<void>);
 }
 
 /// A class which mocks [UpdateUploadUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockUpdateUploadUsecase extends _i1.Mock
-    implements _i37.UpdateUploadUsecase {
+    implements _i34.UpdateUploadUsecase {
   MockUpdateUploadUsecase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i17.LibraryUploadsRepository get repository =>
+  _i15.LibraryUploadsRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeLibraryUploadsRepository_15(
+            returnValue: _FakeLibraryUploadsRepository_13(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i17.LibraryUploadsRepository);
+          as _i15.LibraryUploadsRepository);
 
   @override
-  _i18.Future<_i15.UploadItem> call({
+  _i16.Future<_i14.UploadItem> call({
     required String? trackId,
     required String? title,
     required String? description,
@@ -1971,8 +1824,8 @@ class MockUpdateUploadUsecase extends _i1.Mock
               #privacy: privacy,
               #localArtworkPath: localArtworkPath,
             }),
-            returnValue: _i18.Future<_i15.UploadItem>.value(
-              _FakeUploadItem_13(
+            returnValue: _i16.Future<_i14.UploadItem>.value(
+              _FakeUploadItem_12(
                 this,
                 Invocation.method(#call, [], {
                   #trackId: trackId,
@@ -1984,5 +1837,5 @@ class MockUpdateUploadUsecase extends _i1.Mock
               ),
             ),
           )
-          as _i18.Future<_i15.UploadItem>);
+          as _i16.Future<_i14.UploadItem>);
 }

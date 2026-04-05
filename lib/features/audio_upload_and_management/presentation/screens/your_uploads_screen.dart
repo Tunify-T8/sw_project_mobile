@@ -5,11 +5,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../domain/entities/upload_item.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
 import '../utils/upload_error_snackbar.dart';
+import '../utils/upload_player_launcher.dart';
 import '../widgets/artist_tools_banner.dart';
 import '../widgets/artist_tools_sheet.dart';
 import '../widgets/uploads_search_header.dart';
@@ -21,6 +23,8 @@ import '../widgets/your_uploads/your_uploads_options_sheet.dart';
 import '../widgets/your_uploads/your_uploads_track_tile.dart';
 import 'edit_track_screen.dart';
 import 'track_detail_screen.dart';
+
+part 'your_uploads_screen_actions.dart';
 
 class YourUploadsScreen extends ConsumerStatefulWidget {
   const YourUploadsScreen({
@@ -72,6 +76,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      bottomNavigationBar: const MiniPlayer(),
       body: RefreshIndicator(
         color: Colors.white,
         backgroundColor: const Color(0xFF1C1C1E),
@@ -150,53 +155,4 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
       ),
     );
   }
-
-  void _openFirst(List<UploadItem> items) {
-    final first = items.firstWhere(
-      (item) => item.isPlayable,
-      orElse: () => items.first,
-    );
-    _openDetail(first);
-  }
-
-  void _handleUploadTap() {
-    final callback = widget.onStartUpload;
-    if (callback != null) {
-      callback();
-      return;
-    }
-    startUploadFlow(context, ref);
-  }
-
-  void _openDetail(UploadItem item) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)));
-
-  void _showOptions(UploadItem item) {
-    showYourUploadsOptionsSheet(
-      context,
-      item: item,
-      onEditTap: () {
-        Navigator.pop(context);
-        Navigator.of(context)
-            .push(
-              MaterialPageRoute(builder: (_) => EditTrackScreen(item: item)),
-            )
-            .then((result) {
-              if (result == true) {
-                ref.read(libraryUploadsProvider.notifier).refresh();
-              }
-            });
-      },
-      onDeleteTap: () {
-        Navigator.pop(context);
-        _deleteTrack(item);
-      },
-    );
-  }
-
-  Future<void> _deleteTrack(UploadItem item) async =>
-      await confirmYourUploadsDeletion(context, item)
-      ? ref.read(libraryUploadsProvider.notifier).deleteTrack(item.id)
-      : Future<void>.value();
 }

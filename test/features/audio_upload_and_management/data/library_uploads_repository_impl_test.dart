@@ -1,11 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:software_project/features/audio_upload_and_management/data/api/library_uploads_api.dart';
 import 'package:software_project/features/audio_upload_and_management/data/dto/artist_tools_quota_dto.dart';
 import 'package:software_project/features/audio_upload_and_management/data/dto/upload_item_dto.dart';
 import 'package:software_project/features/audio_upload_and_management/data/repository/library_uploads_repository_impl.dart';
 
-import '../../../helpers/upload_mocks.mocks.dart';
+import '../helpers/local_upload_test_mocks.dart';
 import '../helpers/upload_test_data.dart';
 
 void main() {
@@ -24,6 +23,7 @@ void main() {
         mockApi: mockMockApi,
         useMock: true,
       );
+
       when(
         mockMockApi.getMyUploads(),
       ).thenAnswer((_) async => [UploadItemDto.fromJson(sampleUploadItemJson())]);
@@ -41,6 +41,7 @@ void main() {
         mockApi: mockMockApi,
         useMock: false,
       );
+
       when(
         mockApi.getMyUploads(),
       ).thenAnswer((_) async => [UploadItemDto.fromJson(sampleUploadItemJson())]);
@@ -60,6 +61,7 @@ void main() {
         mockApi: mockMockApi,
         useMock: false,
       );
+
       when(
         mockApi.getArtistToolsQuota(),
       ).thenAnswer((_) async => const ArtistToolsQuotaDto(
@@ -84,6 +86,7 @@ void main() {
         mockApi: mockMockApi,
         useMock: false,
       );
+
       when(mockApi.deleteUpload('track-1')).thenAnswer((_) async {});
 
       await repository.deleteUpload('track-1');
@@ -99,6 +102,7 @@ void main() {
         mockApi: mockMockApi,
         useMock: true,
       );
+
       when(
         mockMockApi.replaceUploadFile(
           trackId: 'track-1',
@@ -127,6 +131,7 @@ void main() {
         mockApi: mockMockApi,
         useMock: false,
       );
+
       when(
         mockApi.updateUpload(
           trackId: 'track-1',
@@ -135,7 +140,9 @@ void main() {
           privacy: 'private',
           localArtworkPath: '/tmp/art.png',
         ),
-      ).thenAnswer((_) async => UploadItemDto.fromJson(sampleUploadItemJson(privacy: 'private')));
+      ).thenAnswer(
+        (_) async => UploadItemDto.fromJson(sampleUploadItemJson(privacy: 'private')),
+      );
 
       final result = await repository.updateUpload(
         trackId: 'track-1',

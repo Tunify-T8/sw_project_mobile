@@ -70,7 +70,7 @@ class UserSocialTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (user.isVerified)
+                      if (user.isCertified)
                         Padding(
                           padding: const EdgeInsets.only(left: 5.0),
                           child: Icon(

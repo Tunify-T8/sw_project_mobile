@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
-import '../providers/mock_social_provider.dart';
-import '../providers/network_lists_provider.dart';
-import '../providers/social_actions_provider.dart';
+import '../providers/network_lists_notifier.dart';
+import '../providers/social_actions_notifier.dart';
 import '../widgets/network_lists_empty_state.dart';
 import '../widgets/network_lists_error_state.dart';
 import '../widgets/user_social_tile.dart';
@@ -18,8 +17,6 @@ class BlockedUsersScreen extends ConsumerStatefulWidget {
 }
 
 class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
-  final bool useMock = true;
-
   @override
   void initState() {
     super.initState();
@@ -27,53 +24,36 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
   }
 
   Future<void> _loadBlockedUsers() async {
-    final state = useMock
-        ? ref.read(mockSocialProvider)
-        : ref.read(networkListsProvider);
+    final state = ref.read(networkListsProvider);
+    final blockedUsers = state.userLists[NetworkListType.blocked] ?? const [];
+    final hasLoadedOnce = state.hasLoadedOnce[NetworkListType.blocked] ?? false;
 
-    if (state.blockedUsers.isEmpty && !state.hasLoadedOnce) {
-      if (useMock) {
-        await ref.read(mockSocialProvider.notifier).loadBlockedUsers();
-      } else {
-        await ref.read(networkListsProvider.notifier).loadBlockedUsers();
-      }
+    if (blockedUsers.isEmpty && !hasLoadedOnce) {
+      await ref.read(networkListsProvider.notifier).loadBlockedUsers();
       return;
     }
 
-    if (useMock) {
-      await ref.read(mockSocialProvider.notifier).loadBlockedUsers();
-    } else {
-      await ref.read(networkListsProvider.notifier).loadBlockedUsers();
-    }
+    await ref.read(networkListsProvider.notifier).loadBlockedUsers();
   }
 
   Future<void> _handleBlockAction(SocialUserEntity user) async {
-    if (useMock) {
-      await ref.read(mockSocialProvider.notifier).toggleBlock(user.id);
-    } else {
-      await ref
-          .read(socialActionsProvider)
-          .toggleBlock(user: user, listType: NetworkListType.blocked);
-    }
+    await ref
+        .read(socialActionsProvider)
+        .toggleBlock(user: user, listType: NetworkListType.blocked);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = useMock
-        ? ref.watch(mockSocialProvider)
-        : ref.watch(networkListsProvider);
+    final state = ref.watch(networkListsProvider);
 
-    final users = state.blockedUsers;
+    final users = state.userLists[NetworkListType.blocked] ?? [];
+    final isLoading = state.isLoading[NetworkListType.blocked] ?? false;
+    final error = state.error[NetworkListType.blocked];
+    final hasLoaded = state.hasLoadedOnce[NetworkListType.blocked] ?? false;
 
-    final showInitialLoading =
-        users.isEmpty && (state.isLoading || !state.hasLoadedOnce);
-    final showInitialError =
-        users.isEmpty && state.error != null && state.hasLoadedOnce;
-    final showEmpty =
-        users.isEmpty &&
-        !state.isLoading &&
-        state.error == null &&
-        state.hasLoadedOnce;
+    final showInitialLoading = users.isEmpty && (isLoading || !hasLoaded);
+    final showInitialError = users.isEmpty && error != null && hasLoaded;
+    final showEmpty = users.isEmpty && !isLoading && error == null && hasLoaded;
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
@@ -90,10 +70,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
         child: showInitialLoading
             ? const Center(child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(
-                error: state.error!,
-                onRetry: _loadBlockedUsers,
-              )
+            ? NetworkListsErrorState(error: error, onRetry: _loadBlockedUsers)
             : showEmpty
             ? const NetworkListsEmptyState()
             : RefreshIndicator(

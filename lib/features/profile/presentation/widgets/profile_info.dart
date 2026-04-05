@@ -76,7 +76,7 @@ Widget buildLocation() => Padding(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const NetworkListsScreen(
-                    userId: 'u2',
+                    isMyProfile: true,
                     listType: NetworkListType.followers,
                   ),
                 ),
@@ -91,8 +91,8 @@ Widget buildLocation() => Padding(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const NetworkListsScreen(
-                    userId: 'u2',
                     listType: NetworkListType.following,
+                    isMyProfile: true,
                   ),
                 ),
               );

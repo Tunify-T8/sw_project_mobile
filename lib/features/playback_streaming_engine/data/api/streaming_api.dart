@@ -1,74 +1,73 @@
 import 'package:dio/dio.dart';
 
+import '../../../../core/network/api_endpoints.dart';
+import '../../domain/entities/offline_play_record.dart';
 import '../../domain/entities/playback_event.dart';
 import '../../domain/entities/playback_status.dart';
 import '../dto/history_track_dto.dart';
 import '../dto/playback_context_response_dto.dart';
 import '../dto/stream_response_dto.dart';
 import '../dto/track_playback_bundle_dto.dart';
-import '../../../../core/network/api_endpoints.dart';
 
 class StreamingApi {
   StreamingApi(this._dio);
 
   final Dio _dio;
 
-  // -------------------------------------------------------------------------
-  // 5.1  GET /tracks/{trackId}/playback
-  // -------------------------------------------------------------------------
-  //get the track that is playing, and its metadata, playability info (whether the track is playable, blocked, or has some restrictions (e.g. preview only). It may also include a reason for blocking if applicable.), and preview info
   Future<TrackPlaybackBundleDto> getPlaybackBundle(
     String trackId, {
     String? privateToken,
   }) async {
     final response = await _dio.get(
       ApiEndpoints.trackPlayback(trackId),
-      queryParameters: privateToken != null
-          ? {'privateToken': privateToken}
-          : null,
+      queryParameters:
+          privateToken != null ? {'privateToken': privateToken} : null,
     );
-    return TrackPlaybackBundleDto.fromJson(_unwrap(response.data));
+
+    return TrackPlaybackBundleDto.fromJson(_unwrapMap(response.data));
   }
 
-  // -------------------------------------------------------------------------
-  // 5.2  POST /tracks/{trackId}/stream
-  // -------------------------------------------------------------------------
-  // what does it do? It requests a stream URL for the track, which the client can then use to play the audio. The response includes the stream URL and its expiration time, and may also include a preview URL if the track is not fully playable.
-  // why is it a POST request? Because it may involve some backend processing to generate a temporary stream URL, and it may also take into account the client's context (e.g. device type, network conditions) to determine the best quality to serve.
+  /// Current backend contract:
+  /// GET /tracks/{trackId}/stream
+  ///
+  /// Older drafts used POST, so we still keep the GET -> POST fallback.
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
   }) async {
-    final response = await _dio.post(
+    try {
+      final response = await _dio.get(ApiEndpoints.trackStream(trackId));
+      return StreamResponseDto.fromJson(_unwrapMap(response.data), trackId);
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    final fallbackResponse = await _dio.post(
       ApiEndpoints.trackStream(trackId),
-      data: {'quality': quality},
+      data: {
+        'quality': quality,
+      },
     );
-    return StreamResponseDto.fromJson(_unwrap(response.data), trackId);
+
+    return StreamResponseDto.fromJson(
+      _unwrapMap(fallbackResponse.data),
+      trackId,
+    );
   }
 
-  // -------------------------------------------------------------------------
-  // 5.3  PATCH /me/playback/events
-  // -------------------------------------------------------------------------
-  // it reports playback events (play, pause, progress) to the backend for analytics and history tracking purposes. The client sends the track ID, the action (play, pause, or progress), and the current position in seconds. This allows the backend to keep track of how users are interacting with tracks, which can inform recommendations, popularity metrics, and listening history.
+  /// No-op on purpose.
+  ///
+  /// Your current backend no longer supports `/me/playback/events`, and keeping
+  /// the network call here only creates noisy 404 logs while adding no value to
+  /// playback.
   Future<void> reportPlaybackEvent({
     required String trackId,
     required PlaybackAction action,
-    required int positionSeconds, // current position in seconds
+    required int positionSeconds,
   }) async {
-    await _dio.patch(
-      ApiEndpoints.playbackEvents,
-      data: {
-        'trackId': trackId,
-        'action': _actionToString(action),
-        'positionSeconds': positionSeconds,
-      },
-    );
+    return;
   }
 
-  // -------------------------------------------------------------------------
-  // 5.4  POST /playback/context
-  // -------------------------------------------------------------------------
-  // it builds a playback queue based on a given context (e.g. a playlist, an artist's profile, the user's feed). The client specifies the context type and ID, and optionally a starting track ID, whether to shuffle, and the repeat mode. The backend responds with a list of tracks in the order they should be played, along with metadata for each track. This allows the client to create dynamic playlists for continuous playback based on different contexts.
   Future<PlaybackContextResponseDto> buildPlaybackQueue({
     required String contextType,
     required String contextId,
@@ -76,78 +75,144 @@ class StreamingApi {
     bool shuffle = false,
     String repeat = 'none',
   }) async {
-    final response = await _dio.post(
-      ApiEndpoints.playbackContext,
-      data: {
-        'contextType': contextType,
-        'contextId': contextId,
-        if (startTrackId != null) 'startTrackId': startTrackId,
-        'shuffle': shuffle,
-        'repeat': repeat,
-      },
-    );
-    return PlaybackContextResponseDto.fromJson(_unwrap(response.data));
-  } // to be changed wholly
+    final payload = {
+      'contextType': contextType,
+      'contextId': contextId,
+      if (startTrackId != null) 'startTrackId': startTrackId,
+      'shuffle': shuffle,
+      'repeat': repeat,
+    };
 
-  // -------------------------------------------------------------------------
-  // 5.5  GET /me/listening-history
-  // -------------------------------------------------------------------------
-  // it retrieves the user's listening history, which is a list of tracks the user has played in the past, along with metadata such as when they were played and how long they were listened to. The client can specify pagination parameters (page and limit) to control how many history items are returned at once. This allows the user to view their past listening activity and can also be used for features like recently played tracks or personalized recommendations based on listening habits.
+    try {
+      final response = await _dio.post(
+        ApiEndpoints.playbackContext,
+        data: payload,
+      );
+
+      return PlaybackContextResponseDto.fromJson(_unwrapMap(response.data));
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    final fallbackResponse = await _dio.post(
+      ApiEndpoints.legacyPlaybackContext,
+      data: payload,
+    );
+
+    return PlaybackContextResponseDto.fromJson(
+      _unwrapMap(fallbackResponse.data),
+    );
+  }
+
   Future<List<HistoryTrackDto>> getListeningHistory({
     int page = 1,
     int limit = 20,
   }) async {
-    final response = await _dio.get(
-      ApiEndpoints.listeningHistory,
-      queryParameters: {'page': page, 'limit': limit},
+    final queryParameters = {
+      'page': page,
+      'limit': limit,
+    };
+
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.listeningHistory,
+        queryParameters: queryParameters,
+      );
+
+      return _parseListeningHistory(response.data);
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    final fallbackResponse = await _dio.get(
+      ApiEndpoints.legacyListeningHistory,
+      queryParameters: queryParameters,
     );
 
-    final raw = _unwrap(response.data);
+    return _parseListeningHistory(fallbackResponse.data);
+  }
 
-    // Response shape: { data: [...], meta: {...} }
-    final list = raw['data'] as List<dynamic>? ?? [];
+  /// DELETE /me/listening-history
+  ///
+  /// Clears the user's listening history on the backend.
+  Future<void> clearListeningHistory() async {
+    try {
+      await _dio.delete(ApiEndpoints.clearListeningHistory);
+    } on DioException catch (e) {
+      // If endpoint doesn't exist yet, silently succeed (local clear still works).
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  /// POST /tracks/{trackId}/played
+  ///
+  /// Called once when the user reaches 90 % of a track naturally.
+  /// The server applies a 30-second dedup window, so 409 responses are safe
+  /// to ignore.
+  Future<void> reportTrackCompleted(String trackId) async {
+    try {
+      await _dio.post(ApiEndpoints.trackPlayed(trackId));
+    } on DioException catch (e) {
+      // 409 = already recorded within the dedup window — not an error.
+      if (e.response?.statusCode == 409) return;
+      rethrow;
+    }
+  }
+
+  /// POST /tracks/plays/batch
+  ///
+  /// Sends all plays that were recorded while the device was offline.
+  /// [plays] must not be empty.
+  Future<void> reportBatchOfflinePlays(List<OfflinePlayRecord> plays) async {
+    await _dio.post(
+      ApiEndpoints.batchPlays,
+      data: {
+        'plays': plays.map((p) => p.toJson()).toList(),
+      },
+    );
+  }
+
+  List<HistoryTrackDto> _parseListeningHistory(dynamic raw) {
+    if (raw is! Map<String, dynamic>) {
+      throw StateError('Unexpected listening history response: $raw');
+    }
+
+    final list = raw['data'] as List<dynamic>? ?? const [];
+
     return list
         .whereType<Map<String, dynamic>>()
         .map(HistoryTrackDto.fromJson)
         .toList();
   }
 
-  // -------------------------------------------------------------------------
-  // Helpers
-  // -------------------------------------------------------------------------
-  // The backend may wrap responses in an optional { data: ... } envelope, so we need to unwrap it if present. This is a common pattern in APIs to allow for additional metadata alongside the main response data.
-  /// Unwrap optional { data: {...} } envelope the backend may add.
-  Map<String, dynamic> _unwrap(dynamic raw) {
+  Map<String, dynamic> _unwrapMap(dynamic raw) {
     if (raw is! Map<String, dynamic>) {
       throw StateError('Unexpected response shape from streaming API: $raw');
     }
+
     if (raw.containsKey('data') && raw['data'] is Map<String, dynamic>) {
       return raw['data'] as Map<String, dynamic>;
     }
+
     return raw;
   }
 
-  static String _actionToString(PlaybackAction action) {
-    switch (action) {
-      case PlaybackAction.play:
-        return 'play';
-      case PlaybackAction.progress:
-        return 'progress';
-      case PlaybackAction.pause:
-        return 'pause';
-    }
+  bool _isMethodOrRouteMismatch(DioException error) {
+    final statusCode = error.response?.statusCode;
+    return statusCode == 404 || statusCode == 405;
   }
 
-  // The backend expects context types as lowercase strings, so we need to convert our enum values to the appropriate string format when making the request.
-  // is this for building the playback queue based on context? Yes, when we call the buildPlaybackQueue method, we need to specify the context type (e.g. track, playlist, feed) as a string that the backend understands. This helper method converts our PlaybackContextType enum values to the corresponding lowercase strings that the API expects.
   static String contextTypeToString(PlaybackContextType type) {
     switch (type) {
       case PlaybackContextType.track:
         return 'track';
-      case PlaybackContextType.playlist:
-        return 'playlist';
       case PlaybackContextType.feed:
         return 'feed';
+      case PlaybackContextType.playlist:
+        return 'playlist';
       case PlaybackContextType.profile:
         return 'profile';
       case PlaybackContextType.history:

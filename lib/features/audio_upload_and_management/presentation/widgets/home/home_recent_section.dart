@@ -1,178 +1,134 @@
-// Upload Feature Guide:
-// Purpose: Home surface widget that exposes upload entry points or upload-related discovery sections.
-// Used by: home_screen
-// Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../domain/entities/upload_item.dart';
 import '../../providers/track_detail_item_provider.dart';
 import '../upload_artwork_view.dart';
 
+part 'home_recent_section_recent_card.dart';
+part 'home_recent_section_placeholder_card.dart';
+
+/// Shows a 2-column grid of recently played tracks on the home screen.
+///
+/// Priority:
+///   1. [historyTracks] — tracks from listening history (most recently played first)
+///   2. [latestTrack] — fallback to the user's most recent upload
+///   3. Placeholder cards if neither is available
 class HomeRecentSection extends StatelessWidget {
   const HomeRecentSection({
     super.key,
     required this.latestTrack,
     required this.onOpenTrack,
+    this.historyTracks = const [],
   });
 
   final UploadItem? latestTrack;
+  final List<HistoryTrack> historyTracks;
   final ValueChanged<UploadItem> onOpenTrack;
+
+  static const _placeholders = [
+    _PlaceholderData(
+      label: 'Sherine - Sabry Aalil',
+      sub: 'Sherine',
+      color: Color(0xFF72495F),
+    ),
+    _PlaceholderData(
+      label: 'Ana Sabry Aaleel',
+      sub: 'Alya Al Hashemi',
+      color: Color(0xFF8B6679),
+    ),
+    _PlaceholderData(
+      label: 'Enta Eih',
+      sub: 'SaRa Ahmed',
+      color: Color(0xFF565656),
+    ),
+    _PlaceholderData(
+      label: 'Ocean Eyes',
+      sub: 'Billie Eilish',
+      color: Color(0xFF2A4E72),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    // Build grid items from history first, then fill with placeholders
+    final cards = <Widget>[];
+
+    // Add up to 4 history-based cards
+    final recentHistoryItems = historyTracks.take(4).toList();
+    for (final historyTrack in recentHistoryItems) {
+      cards.add(
+        _HistoryRecentCard(
+          historyTrack: historyTrack,
+          onTap: () {
+            // Convert to minimal UploadItem so the launcher can open it
+            final item = UploadItem(
+              id: historyTrack.trackId,
+              title: historyTrack.title,
+              artistDisplay: historyTrack.artist.name,
+              durationLabel: _fmtDuration(historyTrack.durationSeconds),
+              durationSeconds: historyTrack.durationSeconds,
+              artworkUrl: historyTrack.coverUrl,
+              visibility: UploadVisibility.public,
+              status: UploadProcessingStatus.finished,
+              isExplicit: false,
+              createdAt: historyTrack.playedAt,
+            );
+            onOpenTrack(item);
+          },
+        ),
+      );
+    }
+
+    // If no history at all, show upload-based card if available
+    if (cards.isEmpty && latestTrack != null) {
+      cards.add(
+        _RecentCard(
+          item: latestTrack!,
+          onTap: () => onOpenTrack(latestTrack!),
+        ),
+      );
+    }
+
+    // Fill remaining slots with placeholders up to 4 total
+    int placeholderIndex = 0;
+    while (cards.length < 4 && placeholderIndex < _placeholders.length) {
+      final p = _placeholders[placeholderIndex];
+      cards.add(
+        _PlaceholderCard(label: p.label, sub: p.sub, color: p.color),
+      );
+      placeholderIndex++;
+    }
+
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 3.2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 2.85,
         ),
-        delegate: SliverChildListDelegate([
-          if (latestTrack != null) ...[
-            _RecentCard(
-              item: latestTrack!,
-              onTap: () => onOpenTrack(latestTrack!),
-            ),
-            const _PlaceholderCard(label: 'stateside + z...', sub: 'Playlist'),
-            const _PlaceholderCard(label: 'Pop Fit Workout', sub: 'Discovery'),
-            const _PlaceholderCard(label: 'Your Side Again', sub: 'Yungex 69'),
-          ] else ...[
-            const _PlaceholderCard(label: 'Ocean Eyes', sub: 'Billie Eilish'),
-            const _PlaceholderCard(label: 'stateside + z...', sub: 'Playlist'),
-            const _PlaceholderCard(label: 'Pop Fit Workout', sub: 'Discovery'),
-            const _PlaceholderCard(label: 'Your Side Again', sub: 'Yungex 69'),
-          ],
-        ]),
+        delegate: SliverChildListDelegate(cards),
       ),
     );
   }
-}
 
-class _RecentCard extends ConsumerWidget {
-  const _RecentCard({required this.item, required this.onTap});
-
-  final UploadItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resolvedItemAsync = ref.watch(trackDetailItemProvider(item));
-    final resolvedItem = resolvedItemAsync.asData?.value ?? item;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1E),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Row(
-          children: [
-            UploadArtworkView(
-              localPath: resolvedItem.localArtworkPath,
-              remoteUrl: resolvedItem.artworkUrl,
-              width: 48,
-              height: double.infinity,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(6),
-              ),
-              backgroundColor: const Color(0xFF3A4A5A),
-              placeholder: const Icon(
-                Icons.person,
-                color: Color(0xFF6A8AAA),
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    resolvedItem.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    resolvedItem.artistDisplay,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-          ],
-        ),
-      ),
-    );
+  String _fmtDuration(int totalSeconds) {
+    final m = totalSeconds ~/ 60;
+    final s = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 }
 
-class _PlaceholderCard extends StatelessWidget {
-  const _PlaceholderCard({required this.label, required this.sub});
-
+class _PlaceholderData {
+  const _PlaceholderData({
+    required this.label,
+    required this.sub,
+    required this.color,
+  });
   final String label;
   final String sub;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            decoration: const BoxDecoration(
-              color: Color(0xFF2A3A4A),
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
-            ),
-            child: const Icon(
-              Icons.music_note,
-              color: Color(0xFF4A6A8A),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  sub,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  final Color color;
 }

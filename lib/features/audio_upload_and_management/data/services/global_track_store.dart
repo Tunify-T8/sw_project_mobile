@@ -1,6 +1,6 @@
 // Upload Feature Guide:
-// Purpose: Shared in-memory store that holds uploaded track records for mock flows and Cloudinary-backed local state.
-// Used by: mock_library_uploads_api, cloudinary_upload_mapper, cloudinary_upload_workflow, and 2 more upload files.
+// Purpose: Shared in-memory store that holds uploaded track records for the local mock list and related upload flows.
+// Used by: mock_library_uploads_api, mock_upload_service, and 2 more upload files.
 // Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

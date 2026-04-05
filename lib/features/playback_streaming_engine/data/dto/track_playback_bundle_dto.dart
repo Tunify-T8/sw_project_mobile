@@ -31,7 +31,6 @@ class TrackPlaybackBundleDto {
   final String? scheduledReleaseDate;
 
   factory TrackPlaybackBundleDto.fromJson(Map<String, dynamic> json) {
-    // Unwrap potential { data: {...} } envelope
     final map = json['data'] is Map<String, dynamic>
         ? json['data'] as Map<String, dynamic>
         : json;
@@ -46,7 +45,10 @@ class TrackPlaybackBundleDto {
       title: (map['title'] ?? '') as String,
       artist: artistJson is Map<String, dynamic>
           ? TrackArtistSummaryDto.fromJson(artistJson)
-          : const TrackArtistSummaryDto(id: '', name: '', tier: 'free'),
+          : const TrackArtistSummaryDto(
+              id: '',
+              name: 'Unknown artist',
+            ),
       durationSeconds: (map['durationSeconds'] as int?) ?? 0,
       waveformUrl: (map['waveformUrl'] ?? '') as String,
       coverUrl: (map['coverUrl'] ?? map['artworkUrl'] ?? '') as String,

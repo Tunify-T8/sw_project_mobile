@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/usecases/get_my_uploads_usecase.dart';
 
-import '../../../helpers/upload_mocks.mocks.dart';
+import '../helpers/local_upload_test_mocks.dart';
 import '../helpers/upload_test_data.dart';
 
 void main() {

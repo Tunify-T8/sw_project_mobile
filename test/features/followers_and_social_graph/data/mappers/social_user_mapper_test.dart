@@ -16,7 +16,7 @@ void main() {
         followingCount: 120,
         tracksUploadedCount: 14,
         mutualFollowersCount: 9,
-        isVerified: true,
+        isCertified: true,
         isFollowing: true,
         isNotificationEnabled: true,
         isBlocked: false,
@@ -34,7 +34,7 @@ void main() {
       expect(entity.followingCount, dto.followingCount);
       expect(entity.tracksUploadedCount, dto.tracksUploadedCount);
       expect(entity.mutualFollowersCount, dto.mutualFollowersCount);
-      expect(entity.isVerified, dto.isVerified);
+      expect(entity.isCertified, dto.isCertified);
       expect(entity.isFollowing, dto.isFollowing);
       expect(entity.isNotificationEnabled, dto.isNotificationEnabled);
       expect(entity.isBlocked, dto.isBlocked);

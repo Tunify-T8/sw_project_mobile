@@ -20,14 +20,8 @@ void main() {
         tags: const ['night', 'beats'],
         description: 'Synth demo',
         privacy: 'public',
-        artists: const ['Kevin'],
         availabilityType: 'worldwide',
         availabilityRegions: const [],
-        licensingType: 'creative_commons',
-        allowAttribution: true,
-        nonCommercial: true,
-        noDerivatives: false,
-        shareAlike: true,
         contentWarning: false,
         scheduledReleaseDate: '2026-04-01T00:00:00.000Z',
       );
@@ -38,63 +32,48 @@ void main() {
         'tags': ['night', 'beats'],
         'description': 'Synth demo',
         'privacy': 'public',
-        'artists': ['Kevin'],
         'availability': {
           'type': 'worldwide',
           'regions': <String>[],
         },
-        'licensing': {
-          'type': 'creative_commons',
-          'allowAttribution': true,
-          'nonCommercial': true,
-          'noDerivatives': false,
-          'shareAlike': true,
-        },
-        'scheduledReleaseDate': '2026-04-01T00:00:00.000Z',
         'contentWarning': false,
+        'scheduledReleaseDate': '2026-04-01T00:00:00.000Z',
       });
+    });
+
+    test('uses Untitled track when title is blank after trim', () {
+      final dto = CreateTrackRequestDto(
+        userId: 'user-1',
+        title: '   ',
+      );
+
+      expect(dto.toJson()['title'], 'Untitled track');
+    });
+
+    test('omits scheduledReleaseDate when null', () {
+      final dto = CreateTrackRequestDto(
+        userId: 'user-1',
+        title: 'Midnight Echo',
+      );
+
+      expect(dto.toJson().containsKey('scheduledReleaseDate'), isFalse);
     });
   });
 
   group('FinalizeTrackMetadataRequestDto', () {
-    test('maps entity values and builds form data without artwork', () async {
-      final dto = FinalizeTrackMetadataRequestDto.fromEntity(
-        trackId: 'track-1',
-        metadata: sampleTrackMetadata,
-      );
-      final formData = await dto.toFormData();
+  test('maps entity values and builds json body without artwork', () async {
+  final dto = FinalizeTrackMetadataRequestDto.fromEntity(
+    trackId: 'track-1',
+    metadata: sampleTrackMetadata,
+  );
+  final body = dto.toJsonBody();
 
-      expect(dto.genre, 'music_hiphop');
-      expect(
-        formData.fields.any(
-          (entry) => entry.key == 'trackId' && entry.value == 'track-1',
-        ),
-        isTrue,
-      );
-      expect(
-        formData.fields.any(
-          (entry) => entry.key == 'title' && entry.value == 'Midnight Echo',
-        ),
-        isTrue,
-      );
-      expect(
-        formData.fields.any(
-          (entry) =>
-              entry.key == 'permissions[includeInRSS]' &&
-              entry.value == 'true',
-        ),
-        isTrue,
-      );
-      expect(
-        formData.fields.any(
-          (entry) =>
-              entry.key == 'licensing[type]' &&
-              entry.value == 'creative_commons',
-        ),
-        isTrue,
-      );
-      expect(formData.files, isEmpty);
-    });
+  expect(dto.genre, 'music_hiphop');
+  expect(body['title'], 'Midnight Echo');
+  expect(body['permissions']['includeInRSS'], isTrue);
+  expect(body['licensing']['type'], 'creative_commons');
+  expect(body['availability']['type'], 'worldwide');
+});
 
     test('attaches artwork file when artworkPath points to a local file', () async {
       final directory = await Directory.systemTemp.createTemp('upload_dto_test');

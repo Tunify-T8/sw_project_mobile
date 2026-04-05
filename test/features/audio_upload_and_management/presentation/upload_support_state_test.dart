@@ -22,7 +22,7 @@ import 'package:software_project/features/audio_upload_and_management/presentati
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/track_metadata_state.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/track_metadata_validator.dart';
 
-import '../../../helpers/upload_mocks.mocks.dart'
+import '../helpers/local_upload_test_mocks.dart'
     show MockDio, MockMockLibraryUploadsApi;
 import '../helpers/upload_test_data.dart';
 

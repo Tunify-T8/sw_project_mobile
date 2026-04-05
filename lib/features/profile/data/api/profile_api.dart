@@ -28,6 +28,15 @@ class ProfileApi {
     return profile;
   }
 
+  Future<ProfileDto> getProfileById(String userIdOrUsername) async {
+    final userRes = await _dio.get(ApiEndpoints.getUserProfile(userIdOrUsername));
+
+    // The API returns either PublicUserDto or PrivateUserDto based on permissions
+    // Both have the same base structure, but public users have additional count fields
+    final userData = userRes.data;
+    return ProfileDto.fromJson(userData);
+  }
+
     Future<void> deleteSocialLink(String platform) async {
       await _dio.delete('/users/me/social-links/${platform.toLowerCase()}');
     }

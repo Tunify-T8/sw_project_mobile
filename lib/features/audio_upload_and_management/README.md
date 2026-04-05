@@ -38,14 +38,12 @@ Handled by:
 - `presentation/providers/upload_repository_provider.dart`
 - `data/repository/mock_upload_repository_impl.dart`
 - `data/repository/real_upload_repository_impl.dart`
-- `data/repository/cloudinary_upload_repository_impl.dart`
 - `data/api/upload_api.dart`
-- `data/services/cloudinary_media_service.dart`
 
 How it works:
 
 - The picker accepts uploadable audio from the device.
-- The active repository mode (`mock`, `cloudinary`, or `real`) decides where the file goes.
+- The active repository mode (`mock` or `real`) decides where the file goes.
 - The chosen repository uploads or simulates the audio file and returns a track id plus status.
 
 ### Metadata Engine
@@ -62,7 +60,6 @@ Handled by:
 - `presentation/screens/track_metadata_screen.dart`
 - `presentation/widgets/metadata/`
 - `data/dto/finalize_track_metadata_request_dto.dart`
-- `data/repository/cloudinary_upload_workflow.dart`
 - `data/repository/real_upload_repository_impl.dart`
 - `data/repository/mock_upload_repository_impl.dart`
 
@@ -87,14 +84,13 @@ Handled by:
 - `data/dto/track_response_dto.dart`
 - `data/mappers/upload_status_mapper.dart`
 - `data/repository/real_upload_repository_impl.dart`
-- `data/repository/cloudinary_upload_workflow.dart`
 - `data/services/mock_upload_service.dart`
 
 How it works:
 
 - New uploads move through statuses like `idle`, `uploading`, `processing`, and `finished`.
 - Real mode polls backend status endpoints.
-- Cloudinary/mock flows simulate the processing stage and then mark the track finished.
+- Mock flows simulate the processing stage and then mark the track finished.
 - The progress screen and providers react to those state changes.
 
 ### Track Visibility
@@ -124,8 +120,6 @@ How it works:
 Handled by:
 
 - `data/services/upload_waveform_service.dart`
-- `data/services/cloudinary_media_service.dart`
-- `data/repository/cloudinary_upload_workflow.dart`
 - `presentation/providers/track_detail_waveform_provider.dart`
 - `presentation/providers/track_detail_waveform_source.dart`
 - `presentation/widgets/waveform_preview.dart`
@@ -136,7 +130,6 @@ Handled by:
 How it works:
 
 - Local audio can be analyzed into normalized bar data by `UploadWaveformService`.
-- Cloudinary mode can also derive a waveform image URL from the uploaded audio asset.
 - Track detail providers choose the best waveform source and feed the display widgets.
 
 ## Quick navigation tips
@@ -144,4 +137,3 @@ How it works:
 - Start with `presentation/providers/upload_provider.dart` if you want the upload lifecycle.
 - Start with `presentation/providers/track_metadata_provider.dart` if you want the metadata save flow.
 - Start with `presentation/providers/library_uploads_provider.dart` if you want track management.
-- Start with `data/repository/cloudinary_upload_workflow.dart` if you want the Cloudinary-specific logic.

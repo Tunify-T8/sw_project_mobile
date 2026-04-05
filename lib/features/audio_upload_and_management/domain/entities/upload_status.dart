@@ -1,6 +1,6 @@
 // Upload Feature Guide:
 // Purpose: Domain model used by the upload feature to keep business data independent from API shapes.
-// Used by: upload_mappers, upload_status_mapper, cloudinary_upload_mapper, and 9 more upload files.
+// Used by: upload_mappers, upload_status_mapper, and 10 more upload files.
 // Concerns: Multi-format support; Transcoding logic.
 enum UploadStatus {
   idle,

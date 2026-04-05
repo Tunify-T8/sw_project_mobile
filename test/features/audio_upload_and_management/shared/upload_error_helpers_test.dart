@@ -100,11 +100,11 @@ void main() {
         'Finish uploading the audio file before saving track details.',
       );
       expect(
-        userFriendlyUploadError(StateError('Cloudinary failed to delete asset')),
-        'We could not remove the cloud files right now. Please try again.',
+        userFriendlyUploadError(StateError('Failed to delete asset')),
+        'We could not remove the uploaded files right now. Please try again.',
       );
       expect(
-        userFriendlyUploadError(StateError('Cloudinary is not configured')),
+        userFriendlyUploadError(StateError('Uploads are not configured')),
         'Uploads are not available right now. Please try again later.',
       );
       expect(
