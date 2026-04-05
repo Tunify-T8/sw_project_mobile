@@ -63,19 +63,36 @@ class _QueueBody extends ConsumerWidget {
         // ── Playing next ──────────────────────────────────────────────────
         _SectionLabel('Playing next'),
         if (queueNextIds.isNotEmpty)
-          ...queueNextIds.asMap().entries.map((entry) {
-            final queueIndex = (queue?.currentIndex ?? 0) + 1 + entry.key;
-            return _QueueTrackTile(
-              trackId: entry.value,
-              onTap: () =>
-                  ref.read(playerProvider.notifier).jumpToQueueIndex(queueIndex),
-              onRemove: () =>
-                  ref.read(playerProvider.notifier).removeFromQueue(queueIndex),
-            );
-          })
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorder: (oldIndex, newIndex) {
+              if (newIndex > oldIndex) newIndex -= 1;
+              ref.read(playerProvider.notifier).reorderQueue(oldIndex, newIndex);
+            },
+            children: [
+              for (int i = 0; i < queueNextIds.length; i++)
+                _QueueTrackTile(
+                  key: ValueKey(queueNextIds[i]),
+                  index: i,
+                  trackId: queueNextIds[i],
+                  onTap: () => ref
+                      .read(playerProvider.notifier)
+                      .jumpToQueueIndex((queue?.currentIndex ?? 0) + 1 + i),
+                  onRemove: () => ref
+                      .read(playerProvider.notifier)
+                      .removeFromQueue((queue?.currentIndex ?? 0) + 1 + i),
+                ),
+            ],
+          )
         else if (suggestions.isNotEmpty)
           ...suggestions.map(
-            (t) => _SuggestionTile(track: t),
+            (t) => _SuggestionTile(
+              track: t,
+              onAdd: () =>
+                  ref.read(playerProvider.notifier).addToQueue(t.trackId),
+            ),
           )
         else
           const _EmptyNextHint(),
@@ -203,11 +220,14 @@ class _NowPlayingRow extends StatelessWidget {
 
 class _QueueTrackTile extends ConsumerWidget {
   const _QueueTrackTile({
+    required super.key,
+    required this.index,
     required this.trackId,
     required this.onTap,
     required this.onRemove,
   });
 
+  final int index;
   final String trackId;
   final VoidCallback onTap;
   final VoidCallback onRemove;
@@ -259,7 +279,10 @@ class _QueueTrackTile extends ConsumerWidget {
           ),
         ],
       ),
-      trailing: const Icon(Icons.drag_handle, color: Colors.white38, size: 20),
+      trailing: ReorderableDragStartListener(
+        index: index,
+        child: const Icon(Icons.drag_handle, color: Colors.white38, size: 20),
+      ),
     );
   }
 }
@@ -267,22 +290,26 @@ class _QueueTrackTile extends ConsumerWidget {
 // ── Suggestion tile (same-artist or history fill) ────────────────────────────
 
 class _SuggestionTile extends StatelessWidget {
-  const _SuggestionTile({required this.track});
+  const _SuggestionTile({required this.track, required this.onAdd});
   final HistoryTrack track;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white24),
+      leading: GestureDetector(
+        onTap: onAdd,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.white10,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white24),
+          ),
+          child: const Icon(Icons.add, color: Colors.white54, size: 18),
         ),
-        child: const Icon(Icons.add, color: Colors.white54, size: 18),
       ),
       title: Row(
         children: [

@@ -92,6 +92,57 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final newIds = List<String>.from(queue.trackIds)..removeAt(index);
     _setPlayerState(current.copyWith(queue: queue.copyWith(trackIds: newIds)));
+    unawaited(_persistCurrentSession(playerState: current.copyWith(queue: queue.copyWith(trackIds: newIds)), force: true));
+  }
+
+  /// Appends [trackId] to the end of the queue. If there is no queue yet,
+  /// creates one with the currently playing track followed by the new one.
+  void addToQueue(String trackId) {
+    final current = _current;
+    if (current == null) return;
+
+    if (current.queue == null) {
+      final currentTrackId = current.bundle?.trackId;
+      if (currentTrackId == null) return;
+      final newQueue = PlaybackQueue(
+        trackIds: [currentTrackId, trackId],
+        currentIndex: 0,
+        shuffle: false,
+        repeat: RepeatMode.none,
+      );
+      final next = current.copyWith(queue: newQueue);
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+    } else {
+      final queue = current.queue!;
+      final newIds = List<String>.from(queue.trackIds)..add(trackId);
+      final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+    }
+  }
+
+  /// Reorders a queued track. [oldIndex] and [newIndex] are both relative to
+  /// the tracks AFTER the currently playing track (i.e. the "Playing next" list).
+  void reorderQueue(int oldIndex, int newIndex) {
+    final current = _current;
+    if (current?.queue == null) return;
+
+    final queue = current!.queue!;
+    final offset = queue.currentIndex + 1;
+    final absOld = offset + oldIndex;
+    final absNew = offset + newIndex;
+
+    if (absOld < offset || absOld >= queue.trackIds.length) return;
+    if (absNew < offset || absNew > queue.trackIds.length) return;
+
+    final newIds = List<String>.from(queue.trackIds);
+    final item = newIds.removeAt(absOld);
+    newIds.insert(absNew, item);
+
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 
   PlayerSeedTrack? _seedTrackForTrackId(String trackId) {
