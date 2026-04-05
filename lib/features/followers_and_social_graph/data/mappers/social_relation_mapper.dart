@@ -6,8 +6,6 @@ extension SocialRelationDtoMapper on SocialRelationDTO {
     return SocialRelationEntity(
       targetUserId: targetUserId,
       isFollowing: isFollowing,
-      isFollowedBy: isFollowedBy,
-      isMutual: isMutual,
       isBlocked: isBlocked,
     );
   }

@@ -5,8 +5,8 @@ import 'package:mockito/mockito.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/network_list_type.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/social_user_entity.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/repositories/social_graph_repository.dart';
-import 'package:software_project/features/followers_and_social_graph/presentation/providers/network_lists_provider.dart';
-import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_actions_provider.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_actions_notifier.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
 
 import 'social_actions_provider_test.mocks.dart';
@@ -105,7 +105,7 @@ void main() {
 
       await notifier.toggleBlock(
         user: user,
-        listType: NetworkListType.suggested,
+        listType: NetworkListType.suggestedUsers,
       );
 
       verify(repository.blockUser('user-4')).called(1);

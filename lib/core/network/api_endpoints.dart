@@ -50,18 +50,21 @@ class ApiEndpoints {
       '/tracks/$trackId/audio/replace';
 
   // Followers
-  static String getFollowers(String userId) => '/users/$userId/followers';
-  static String getFollowing(String userId) => '/users/$userId/following';
   static String followUser(String userId) => '/users/$userId/follow';
   static String unfollowUser(String userId) => '/users/$userId/unfollow';
   static String blockUser(String userId) => '/users/$userId/block';
   static String unblockUser(String userId) => '/users/$userId/unblock';
-  static String getBlockedUsers() => '/users/me/blocked-users';
-  static String getSuggestedUsers() => '/users/me/suggested';
   static String getFollowStatus(String userId) =>
       '/users/$userId/follow-status';
-  static String getMutualFriends(String userId) =>
-      '/users/$userId/mutual-friends';
+  static String getUserFollowers(String userId) => '/users/$userId/followers';
+  static String getUserFollowing(String userId) => '/users/$userId/following';
+
+  static const String getMyFollowers = '/users/me/followers';
+  static const String getMyFollowing = '/users/me/following';
+  static const String getBlockedUsers = '/users/me/blocked-users';
+  static const String getTrueFriends = '/users/me/true-friends';
+  static const String getSuggestedUsers = '/users/me/suggested';
+  static const String getSuggestedArtists = '/users/me/suggested/artists';
 
   // Profile
   static const String getProfile = '/users/me';
@@ -97,7 +100,7 @@ class ApiEndpoints {
   static const String getFollowingFeed = '/feed';
   static const String getDiscover = '/discover';
   static const String getTrending = '/feed/trending';
-  static const String getSuggestedArtists = '/feed/suggested-artists';
+  //static const String getSuggestedArtists = '/feed/suggested-artists';
   static const String search = '/search';
   static const String searchTracks = '/search/tracks';
   static const String searchCollections = '/search/collections';

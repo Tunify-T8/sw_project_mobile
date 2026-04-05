@@ -4,23 +4,24 @@ import 'package:software_project/features/profile/presentation/screens/profile_s
 
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
-import '../providers/mock_social_provider.dart';
-import '../providers/network_list_view_mapper.dart';
-import '../providers/network_lists_provider.dart';
-import '../providers/social_actions_provider.dart';
+import '../providers/utils/network_list_view_mapper.dart';
+import '../providers/network_lists_notifier.dart';
+import '../providers/social_actions_notifier.dart';
 import '../widgets/network_lists_empty_state.dart';
 import '../widgets/network_lists_error_state.dart';
 import '../widgets/network_lists_true_friends_tile.dart';
 import '../widgets/user_social_tile.dart';
 
 class NetworkListsScreen extends ConsumerStatefulWidget {
-  final String userId;
+  final String? userId;
   final NetworkListType listType;
+  final bool isMyProfile;
 
   const NetworkListsScreen({
     super.key,
-    required this.userId,
+    this.userId,
     required this.listType,
+    required this.isMyProfile,
   });
 
   @override
@@ -28,8 +29,6 @@ class NetworkListsScreen extends ConsumerStatefulWidget {
 }
 
 class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
-  final bool useMock = true;
-
   @override
   void initState() {
     super.initState();
@@ -37,50 +36,43 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    final notifier = useMock
-        ? ref.read(mockSocialProvider.notifier)
-        : ref.read(networkListsProvider.notifier);
+    final notifier = ref.read(networkListsProvider.notifier);
 
     await NetworkListViewMapper.loadInitialData(
       listType: widget.listType,
       userId: widget.userId,
       notifier: notifier,
+      isMyProfile: widget.isMyProfile,
     );
   }
 
   Future<void> _handleFollowToggle(SocialUserEntity user) async {
-    if (useMock) {
-      await ref.read(mockSocialProvider.notifier).toggleFollow(user.id);
-    } else {
-      await ref.read(socialActionsProvider).toggleFollow(user);
-    }
+    await ref
+        .read(socialActionsProvider)
+        .toggleFollow(user: user, listType: widget.listType);
   }
 
   @override
   Widget build(BuildContext context) {
-    final listsState = useMock
-        ? ref.watch(mockSocialProvider)
-        : ref.watch(networkListsProvider);
+    final listsState = ref.watch(networkListsProvider);
 
     final List<SocialUserEntity> users = NetworkListViewMapper.getUsers(
       widget.listType,
       listsState,
     );
 
-    final isLoading = listsState.isLoading;
-    final error = listsState.error;
-    final hasLoadedOnce = listsState.hasLoadedOnce;
+    final isLoading = listsState.isLoading[widget.listType]!;
+    final error = listsState.error[widget.listType];
+    final hasLoadedOnce = listsState.hasLoadedOnce[widget.listType]!;
 
     final showInitialLoading = users.isEmpty && (isLoading || !hasLoadedOnce);
     final showInitialError = users.isEmpty && error != null && hasLoadedOnce;
     final showEmpty =
         users.isEmpty && !isLoading && error == null && hasLoadedOnce;
 
-    final String currentUserId = 'u2';
     final showTrueFriends = NetworkListViewMapper.shouldShowTrueFriends(
       listType: widget.listType,
-      viewedUserId: widget.userId,
-      currentUserId: currentUserId,
+      isMyProfile: widget.isMyProfile,
     );
 
     return Scaffold(
@@ -115,8 +107,8 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const NetworkListsScreen(
-                                userId: 'u1',
-                                listType: NetworkListType.mutual,
+                                listType: NetworkListType.trueFriends,
+                                isMyProfile: true,
                               ),
                             ),
                           );
