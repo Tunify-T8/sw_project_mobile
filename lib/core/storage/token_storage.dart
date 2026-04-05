@@ -104,5 +104,8 @@ class TokenStorage {
   Future<void> clearSession() async {
     await clearTokens();
     await clearUser();
+    await _storage.delete(key: StorageKeys.cachedListeningHistory);
+    await _storage.delete(key: StorageKeys.historyClearedLocally);
+    await _storage.delete(key: StorageKeys.cachedPlayerSession);
   }
 }
