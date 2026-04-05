@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/track_preview_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
 import '../screens/classic_feed_screen.dart';
+import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 class FeedMenuSheet extends StatelessWidget {
   final TrackPreviewEntity track;
@@ -51,11 +52,19 @@ class FeedMenuSheet extends StatelessWidget {
         ),
       ];
 
-  List<Widget> _socialActions() => [
+  List<Widget> _socialActions(BuildContext context) => [
         _createMenuItem(
           icon: Icons.person_outline,
           label: 'Go to profile',
-          onTap: () {},
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OtherUserProfileScreen(userId: track.artistId),
+              ),
+            );
+          },
         ),
         _createMenuItem(
           icon: Icons.comment_outlined,
@@ -176,7 +185,7 @@ class FeedMenuSheet extends StatelessWidget {
         const Divider(color: Colors.white12),
         ..._trackActions(),
         const Divider(color: Colors.white12),
-        ..._socialActions(),
+        ..._socialActions(context),
         const Divider(color: Colors.white12),
 
         if (tabType == FeedType.discover)

@@ -13,10 +13,10 @@ class ProfileMapper {
     final user = json['user'] ?? json;
 
     // Split "Cairo, Egypt" into city: "Cairo", country: "Egypt"
-    final locationRaw = user['location'] ?? '';
-    final locationParts = locationRaw.split(',');
-    final city = locationParts.isNotEmpty ? locationParts[0].trim() : '';
-    final country = locationParts.length > 1 ? locationParts[1].trim() : '';
+    final locationRaw = (user['location'] ?? '') as String;
+    final commaIndex = locationRaw.indexOf(',');
+    final city = commaIndex >= 0 ? locationRaw.substring(0, commaIndex).trim() : locationRaw.trim();
+    final country = commaIndex >= 0 ? locationRaw.substring(commaIndex + 1).trim() : '';
 
     return ProfileDto(
       id: user['id'] ?? '',          

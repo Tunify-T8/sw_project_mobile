@@ -1,110 +1,164 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:software_project/features/audio_upload_and_management/data/services/global_track_store.dart';
-import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_item.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
+import 'package:software_project/features/profile/data/api/profile_api.dart';
 import 'package:software_project/features/profile/data/dto/profile_dto.dart';
 import 'package:software_project/features/profile/data/repository/profile_repository_impl.dart';
 
 import '../../../helpers/mocks.mocks.dart';
 
-void main() {
-  UploadItem buildItem({required String id, required String title}) {
-    return UploadItem(
+class MockProfileApi extends Mock implements ProfileApi {
+  @override
+  Future<ProfileDto> getProfile(String userId) =>
+      super.noSuchMethod(
+        Invocation.method(#getProfile, [userId]),
+        returnValue: Future.value(_fakeDto()),
+      ) as Future<ProfileDto>;
+
+  @override
+  Future<ProfileDto> getProfileById(String userIdOrUsername) =>
+      super.noSuchMethod(
+        Invocation.method(#getProfileById, [userIdOrUsername]),
+        returnValue: Future.value(_fakeDto()),
+      ) as Future<ProfileDto>;
+
+  @override
+  Future<ProfileDto> updateProfile(String userId, ProfileDto profile) =>
+      super.noSuchMethod(
+        Invocation.method(#updateProfile, [userId, profile]),
+        returnValue: Future.value(profile),
+      ) as Future<ProfileDto>;
+}
+
+ProfileDto _fakeDto({
+  String id = 'user-1',
+  String userName = 'Artist One',
+  String bio = '',
+  String city = '',
+  String country = '',
+}) =>
+    ProfileDto(
       id: id,
-      title: title,
-      artistDisplay: 'Artist',
-      durationLabel: '1:00',
-      durationSeconds: 60,
-      artworkUrl: null,
-      visibility: UploadVisibility.public,
-      status: UploadProcessingStatus.finished,
-      isExplicit: false,
-      createdAt: DateTime.utc(2026, 1, 1),
+      email: 'artist@test.com',
+      role: 'ARTIST',
+      userName: userName,
+      bio: bio,
+      city: city,
+      country: country,
+      userType: 'ARTIST',
+      tracksCount: 3,
+      followersCount: 10,
+      followingCount: 5,
+      likesReceived: 20,
+      isActive: true,
+      isCertified: false,
     );
-  }
 
-  setUp(() {
-    GlobalTrackStore.instance.clear();
-  });
+void main() {
+  late MockTokenStorage mockTokenStorage;
+  late MockProfileApi mockProfileApi;
+  late ProfileRepositoryImpl repository;
 
-  tearDown(() {
-    GlobalTrackStore.instance.clear();
-  });
-
-  test(
-    'getProfile uses the authenticated user and only their uploads',
-    () async {
-      final mockTokenStorage = MockTokenStorage();
-      const user = AuthUserEntity(
-        id: 'artist-1',
-        email: 'artist@test.com',
-        username: 'Artist One',
-        role: 'ARTIST',
-        isVerified: true,
-        avatarUrl: 'https://cdn.example.com/artist.png',
-      );
-
-      when(mockTokenStorage.getUser()).thenAnswer((_) async => user);
-
-      GlobalTrackStore.instance.add(
-        buildItem(id: 'track-1', title: 'Mine'),
-        ownerUserId: user.id,
-      );
-      GlobalTrackStore.instance.add(
-        buildItem(id: 'track-2', title: 'Another User Track'),
-        ownerUserId: 'artist-2',
-      );
-
-      final repository = ProfileRepositoryImpl(
-        tokenStorage: mockTokenStorage,
-        trackStore: GlobalTrackStore.instance,
-      );
-      final profile = await repository.getProfile();
-
-      expect(profile.userName, user.username);
-      expect(profile.email, user.email);
-      expect(profile.profileImagePath, user.avatarUrl);
-      expect(profile.tracksCount, 1);
-      expect(profile.userType, 'ARTIST');
-    },
+  const user = AuthUserEntity(
+    id: 'user-1',
+    email: 'artist@test.com',
+    username: 'Artist One',
+    role: 'ARTIST',
+    isVerified: true,
   );
 
-  test('updateProfile persists editable fields for the current user', () async {
-    final mockTokenStorage = MockTokenStorage();
-    const user = AuthUserEntity(
-      id: 'artist-3',
-      email: 'artist3@test.com',
-      username: 'Artist Three',
-      role: 'ARTIST',
-      isVerified: true,
-    );
-
-    when(mockTokenStorage.getUser()).thenAnswer((_) async => user);
-
-    final repository = ProfileRepositoryImpl(
+  setUp(() {
+    mockTokenStorage = MockTokenStorage();
+    mockProfileApi = MockProfileApi();
+    repository = ProfileRepositoryImpl(
       tokenStorage: mockTokenStorage,
-      trackStore: GlobalTrackStore.instance,
+      profileApi: mockProfileApi,
     );
+    when(mockTokenStorage.getUser()).thenAnswer((_) async => user);
+  });
 
-    await repository.updateProfile(
-      ProfileDto(
-        userName: 'Updated Artist',
-        bio: 'Producer and vocalist',
+  group('constructor', () {
+    test('uses default ProfileApi and GlobalTrackStore when not provided', () {
+      final repo = ProfileRepositoryImpl(
+        tokenStorage: mockTokenStorage,
+      );
+      expect(repo, isNotNull);
+    });
+  });
+
+  group('getProfile', () {
+    test('calls api with authenticated user id', () async {
+      final dto = _fakeDto(id: user.id, userName: user.username);
+      when(mockProfileApi.getProfile(user.id)).thenAnswer((_) async => dto);
+
+      final result = await repository.getProfile();
+
+      verify(mockProfileApi.getProfile(user.id)).called(1);
+      expect(result.userName, user.username);
+      expect(result.id, user.id);
+    });
+
+    test('throws when no authenticated user', () async {
+      when(mockTokenStorage.getUser()).thenAnswer((_) async => null);
+
+      expect(() => repository.getProfile(), throwsException);
+    });
+  });
+
+  group('getProfileById', () {
+    test('calls api with given user id', () async {
+      const otherId = 'other-user-123';
+      final dto = _fakeDto(id: otherId, userName: 'Other User');
+      when(mockProfileApi.getProfileById(otherId))
+          .thenAnswer((_) async => dto);
+
+      final result = await repository.getProfileById(otherId);
+
+      verify(mockProfileApi.getProfileById(otherId)).called(1);
+      expect(result.id, otherId);
+      expect(result.userName, 'Other User');
+    });
+
+    test('calls api with username string', () async {
+      const username = 'someartist';
+      final dto = _fakeDto(userName: username);
+      when(mockProfileApi.getProfileById(username))
+          .thenAnswer((_) async => dto);
+
+      await repository.getProfileById(username);
+
+      verify(mockProfileApi.getProfileById(username)).called(1);
+    });
+  });
+
+  group('updateProfile', () {
+    test('calls api with authenticated user id and given profile', () async {
+      final updated = _fakeDto(
+        id: user.id,
+        userName: 'Updated Name',
+        bio: 'New bio',
         city: 'Cairo',
         country: 'Egypt',
-        instagram: 'https://instagram.com/updatedartist',
-        visibility: 'PUBLIC',
-        userType: 'ARTIST',
-      ),
-    );
+      );
+      when(mockProfileApi.updateProfile(user.id, updated))
+          .thenAnswer((_) async => updated);
 
-    final profile = await repository.getProfile();
+      final result = await repository.updateProfile(updated);
 
-    expect(profile.userName, 'Artist Three');
-    expect(profile.bio, 'Producer and vocalist');
-    expect(profile.city, 'Cairo');
-    expect(profile.country, 'Egypt');
-    expect(profile.instagram, 'https://instagram.com/updatedartist');
+      verify(mockProfileApi.updateProfile(user.id, updated)).called(1);
+      expect(result.userName, 'Updated Name');
+      expect(result.bio, 'New bio');
+      expect(result.city, 'Cairo');
+      expect(result.country, 'Egypt');
+    });
+
+    test('throws when no authenticated user', () async {
+      when(mockTokenStorage.getUser()).thenAnswer((_) async => null);
+
+      expect(
+        () => repository.updateProfile(_fakeDto()),
+        throwsException,
+      );
+    });
   });
 }

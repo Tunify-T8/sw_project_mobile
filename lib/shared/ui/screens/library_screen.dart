@@ -5,7 +5,7 @@ import 'package:software_project/core/design_system/colors.dart';
 import '../../../features/profile/presentation/providers/profile_provider.dart';
 import '../widgets/library_menu_tile.dart';
 
-class LibraryScreen extends ConsumerWidget {
+class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({
     super.key,
     this.onOpenSettings,
@@ -17,6 +17,11 @@ class LibraryScreen extends ConsumerWidget {
   final VoidCallback? onOpenProfile;
   final ValueChanged<String>? onMenuTap;
 
+  @override
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   static const _libraryItems = [
     'Your likes',
     'Playlists',
@@ -28,7 +33,13 @@ class LibraryScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(profileProvider.notifier).loadProfile());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
     final profileImageUrl = profileState.profile?.profileImagePath;
 
@@ -50,12 +61,12 @@ class LibraryScreen extends ConsumerWidget {
         title: const Text('Library', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            onPressed: onOpenSettings,
+            onPressed: widget.onOpenSettings,
             icon: const Icon(Icons.settings),
             color: Colors.white,
           ),
           GestureDetector(
-            onTap: onOpenProfile,
+            onTap: widget.onOpenProfile,
             child: profileAvatar,
           ),
           const SizedBox(width: 12),
@@ -68,16 +79,16 @@ class LibraryScreen extends ConsumerWidget {
 
           return LibraryMenuTile(
             label: label,
-            onTap: () => _handleMenuTap(context, label),
+            onTap: () => _handleMenuTap(context, label, widget.onMenuTap),
           );
         },
       ),
     );
   }
 
-  void _handleMenuTap(BuildContext context, String label) {
+  void _handleMenuTap(BuildContext context, String label, ValueChanged<String>? onMenuTap) {
     if (onMenuTap != null) {
-      onMenuTap!(label);
+      onMenuTap(label);
       return;
     }
 

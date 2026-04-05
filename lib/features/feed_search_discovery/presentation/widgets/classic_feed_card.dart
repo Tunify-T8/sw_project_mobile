@@ -5,6 +5,7 @@ import '../../domain/entities/feed_item_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
 import 'feed_activity_row.dart';
 import 'feed_interaction_buttons.dart';
+import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 class ClassicFeedCard extends ConsumerWidget {
   final FeedItemEntity item;
@@ -63,13 +64,20 @@ class ClassicFeedCard extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 6),
-
-          Text(
-            item.track.artistName,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OtherUserProfileScreen(userId: item.track.artistId),
+              ),
+            ),
+            child: Text(
+              item.track.artistName,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(height: 8),
