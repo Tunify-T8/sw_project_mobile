@@ -130,4 +130,44 @@ extension PlayerNotifierControls on PlayerNotifier {
     unawaited(_applyVolume(next));
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
+
+  void toggleShuffle() {
+    final current = _current;
+    if (current == null || current.queue == null) return;
+
+    final queue = current.queue!;
+    final newShuffle = !queue.shuffle;
+
+    List<String> newTrackIds = List<String>.from(queue.trackIds);
+    if (newShuffle && newTrackIds.length > queue.currentIndex + 1) {
+      // Shuffle only the tracks after the currently playing one.
+      final after = newTrackIds.sublist(queue.currentIndex + 1)..shuffle();
+      newTrackIds = [
+        ...newTrackIds.sublist(0, queue.currentIndex + 1),
+        ...after,
+      ];
+    }
+
+    final next = current.copyWith(
+      queue: queue.copyWith(shuffle: newShuffle, trackIds: newTrackIds),
+    );
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  void toggleRepeat() {
+    final current = _current;
+    if (current == null || current.queue == null) return;
+
+    final nextRepeat = switch (current.queue!.repeat) {
+      RepeatMode.none => RepeatMode.all,
+      RepeatMode.all => RepeatMode.one,
+      RepeatMode.one => RepeatMode.none,
+    };
+    final next = current.copyWith(
+      queue: current.queue!.copyWith(repeat: nextRepeat),
+    );
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
 }

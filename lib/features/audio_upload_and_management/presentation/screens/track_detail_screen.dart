@@ -5,6 +5,7 @@ import '../../../../app/router.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../playback_streaming_engine/presentation/screens/queue_screen.dart';
 import '../providers/track_detail_item_provider.dart';
 import '../providers/track_detail_waveform_provider.dart';
 import '../utils/playback_surface_item_mapper.dart';
@@ -127,6 +128,9 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
             state: waveformState,
             onMoreTap: () =>
                 showTrackDetailMoreSheet(context, ref, resolvedItem),
+            onQueueTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const QueueScreen()),
+            ),
             onPlayPauseTap: () => toggleUploadItemPlayback(ref, resolvedItem),
             onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
           ),
