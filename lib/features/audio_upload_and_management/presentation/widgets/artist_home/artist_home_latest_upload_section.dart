@@ -3,7 +3,9 @@
 // Used by: artist_home_screen
 // Concerns: Multi-format support.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../../../domain/entities/upload_item.dart';
 import '../upload_artwork_view.dart';
 
@@ -31,22 +33,20 @@ class ArtistHomeLatestUploadSection extends StatelessWidget {
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: latest == null
-              ? const _EmptyLatest()
-              : _LatestTile(item: latest!),
+          child: latest == null ? const _EmptyLatest() : _LatestTile(item: latest!),
         ),
       ],
     );
   }
 }
 
-class _LatestTile extends StatelessWidget {
+class _LatestTile extends ConsumerWidget {
   const _LatestTile({required this.item});
 
   final UploadItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -89,7 +89,19 @@ class _LatestTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.more_horiz, color: Colors.white54, size: 22),
+          GestureDetector(
+            onTap: () {
+              showTrackOptionsSheet(
+                context,
+                info: TrackOptionInfo.fromUploadItem(item),
+                ref: ref,
+              );
+            },
+            child: const Padding(
+              padding: EdgeInsets.all(6),
+              child: Icon(Icons.more_horiz, color: Colors.white54, size: 22),
+            ),
+          ),
         ],
       ),
     );
