@@ -56,7 +56,7 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
               child: GestureDetector(
-                onTap: () {},
+                onTap: () => Navigator.pop(context),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 18,
