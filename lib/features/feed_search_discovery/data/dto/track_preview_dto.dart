@@ -42,7 +42,7 @@ class TrackPreviewDto {
           json['artist']?.toString() ?? json['artistName']?.toString() ?? '',
       artistAvatar: json['artistAvatar']?.toString(),
       artistVerified: json['artistVerified'] as bool? ?? false,
-      isFollowingArtist: json['isFollowingArtist'] as bool? ?? false,
+      isFollowingArtist: json['isFollowingArtist'] as bool? ?? true,
       coverUrl: json['coverUrl']?.toString(),
       duration:
           json['durationSeconds'] as int? ?? json['duration'] as int? ?? 0,

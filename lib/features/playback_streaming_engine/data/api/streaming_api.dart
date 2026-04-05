@@ -132,13 +132,19 @@ class StreamingApi {
     return _parseListeningHistory(fallbackResponse.data);
   }
 
-  /// Also a no-op for now.
+  /// DELETE /me/listening-history
   ///
-  /// The backend deployment you're using does not expose a clear-history route.
-  /// We therefore keep clear history local in the app until the backend adds a
-  /// supported endpoint.
+  /// Clears the user's listening history on the backend.
   Future<void> clearListeningHistory() async {
-    return;
+    try {
+      await _dio.delete(ApiEndpoints.clearListeningHistory);
+    } on DioException catch (e) {
+      // If endpoint doesn't exist yet, silently succeed (local clear still works).
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        return;
+      }
+      rethrow;
+    }
   }
 
   /// POST /tracks/{trackId}/played

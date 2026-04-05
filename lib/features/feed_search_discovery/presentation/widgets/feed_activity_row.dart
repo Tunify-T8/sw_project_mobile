@@ -64,7 +64,7 @@ class FeedActivityRow extends StatelessWidget {
             style: const TextStyle(color: Colors.white70, fontSize: 15),
           ),
         Text(
-          '· $timeAgo ago',
+          '· $timeAgo',
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 15,
