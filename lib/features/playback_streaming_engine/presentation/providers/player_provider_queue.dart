@@ -9,9 +9,15 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (queue.trackIds.length <= 1) return;
 
     final nextIndex = queue.currentIndex + 1;
-    final resolvedIndex = nextIndex >= queue.trackIds.length ? 0 : nextIndex;
 
-    await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
+    if (nextIndex >= queue.trackIds.length) {
+      if (queue.repeat == RepeatMode.all) {
+        await _jumpToIndex(0, queue, autoPlay: current.isPlaying);
+      }
+      return;
+    }
+
+    await _jumpToIndex(nextIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> previous() async {
@@ -22,10 +28,19 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (queue.trackIds.length <= 1) return;
 
     final previousIndex = queue.currentIndex - 1;
-    final resolvedIndex =
-        previousIndex < 0 ? queue.trackIds.length - 1 : previousIndex;
 
-    await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
+    if (previousIndex < 0) {
+      if (queue.repeat == RepeatMode.all) {
+        await _jumpToIndex(
+          queue.trackIds.length - 1,
+          queue,
+          autoPlay: current.isPlaying,
+        );
+      }
+      return;
+    }
+
+    await _jumpToIndex(previousIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> jumpToQueueIndex(int index) async {
@@ -87,43 +102,103 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    // Only allow removing tracks after the current one.
     if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
 
     final newIds = List<String>.from(queue.trackIds)..removeAt(index);
-    _setPlayerState(current.copyWith(queue: queue.copyWith(trackIds: newIds)));
-    unawaited(_persistCurrentSession(playerState: current.copyWith(queue: queue.copyWith(trackIds: newIds)), force: true));
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 
-  /// Appends [trackId] to the end of the queue. If there is no queue yet,
-  /// creates one with the currently playing track followed by the new one.
+  /// Backwards-compatible helper. Existing callers that say "add to queue"
+  /// should behave like "Play last".
   void addToQueue(String trackId) {
+    addToQueueLast(trackId);
+  }
+
+  /// Insert a track immediately after the currently playing one.
+  ///
+  /// This is what users expect from "Play next".
+  void addToQueueNext(String trackId) {
     final current = _current;
-    if (current == null) return;
+    if (current == null) {
+      unawaited(
+        loadTrack(
+          trackId,
+          autoPlay: true,
+          seedTrack: _seedTrackForTrackId(trackId),
+        ),
+      );
+      return;
+    }
+
+    final currentTrackId = current.bundle?.trackId;
+    if (currentTrackId == null) return;
 
     if (current.queue == null) {
-      final currentTrackId = current.bundle?.trackId;
-      if (currentTrackId == null) return;
-      final newQueue = PlaybackQueue(
+      final nextQueue = PlaybackQueue(
         trackIds: [currentTrackId, trackId],
         currentIndex: 0,
         shuffle: false,
         repeat: RepeatMode.none,
       );
-      final next = current.copyWith(queue: newQueue);
+      final next = current.copyWith(queue: nextQueue);
       _setPlayerState(next);
       unawaited(_persistCurrentSession(playerState: next, force: true));
-    } else {
-      final queue = current.queue!;
-      final newIds = List<String>.from(queue.trackIds)..add(trackId);
-      final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
-      _setPlayerState(next);
-      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
     }
+
+    final queue = current.queue!;
+    final insertIndex = queue.currentIndex + 1;
+    final newIds = List<String>.from(queue.trackIds)..insert(insertIndex, trackId);
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 
-  /// Reorders a queued track. [oldIndex] and [newIndex] are both relative to
-  /// the tracks AFTER the currently playing track (i.e. the "Playing next" list).
+  /// Append a track to the very end of the queue.
+  ///
+  /// This is what users expect from "Play last".
+  void addToQueueLast(String trackId) {
+    final current = _current;
+    if (current == null) {
+      unawaited(
+        loadTrack(
+          trackId,
+          autoPlay: true,
+          seedTrack: _seedTrackForTrackId(trackId),
+        ),
+      );
+      return;
+    }
+
+    final currentTrackId = current.bundle?.trackId;
+    if (currentTrackId == null) return;
+
+    if (current.queue == null) {
+      final nextQueue = PlaybackQueue(
+        trackIds: [currentTrackId, trackId],
+        currentIndex: 0,
+        shuffle: false,
+        repeat: RepeatMode.none,
+      );
+      final next = current.copyWith(queue: nextQueue);
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
+    }
+
+    final queue = current.queue!;
+    final newIds = List<String>.from(queue.trackIds)..add(trackId);
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  /// Reorders a queued track.
+  ///
+  /// Both indexes are relative to the visible "Playing next" list,
+  /// not the full underlying queue. So we offset them by the current track.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
     if (current?.queue == null) return;

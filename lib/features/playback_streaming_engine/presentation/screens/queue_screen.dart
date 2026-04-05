@@ -8,6 +8,7 @@ import '../../domain/entities/playback_status.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/track_options_sheet.dart';
 
 part 'queue_screen_list.dart';
 part 'queue_screen_misc.dart';

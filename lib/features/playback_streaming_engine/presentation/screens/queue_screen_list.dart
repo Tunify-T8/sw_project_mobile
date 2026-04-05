@@ -11,6 +11,7 @@ class _QueueBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bundle = playerState?.bundle;
     final queue = playerState?.queue;
+    final isRepeatOne = queue?.repeat == RepeatMode.one;
     final historyState = ref.watch(listeningHistoryProvider).asData?.value;
     final historyTracks = historyState?.tracks ?? const [];
 
@@ -30,28 +31,16 @@ class _QueueBody extends ConsumerWidget {
       }
     }
 
-    // Suggestions: same-artist history tracks when Playing Next is empty
-    List<HistoryTrack> suggestions = const [];
-    if (queueNextIds.isEmpty && bundle != null) {
-      final artistName = bundle.artist.name;
-      final sameArtist = historyTracks
-          .where((t) =>
-              t.trackId != currentId && t.artist.name == artistName)
-          .toList();
-      final others = historyTracks
-          .where((t) =>
-              t.trackId != currentId && t.artist.name != artistName)
-          .toList();
-      suggestions = [...sameArtist, ...others].take(10).toList();
-    }
-
     return ListView(
       children: [
-        // ── History ──────────────────────────────────────────────────────
-        if (historyItems.isNotEmpty) ...[
-          _SectionLabel('History'),
-          for (final track in historyItems)
-            _HistoryTile(track: track),
+        // ── History (hidden in repeat-one mode) ───────────────────────────
+        if (!isRepeatOne && historyItems.isNotEmpty) ...[
+          _SectionLabelWithAction(
+            label: 'History',
+            actionLabel: 'Clear',
+            onAction: () => _confirmClearHistory(context, ref),
+          ),
+          for (final track in historyItems) _HistoryTile(track: track),
         ],
 
         // ── Currently playing ─────────────────────────────────────────────
@@ -60,46 +49,75 @@ class _QueueBody extends ConsumerWidget {
           _NowPlayingRow(bundle: bundle),
         ],
 
-        // ── Playing next ──────────────────────────────────────────────────
-        _SectionLabel('Playing next'),
-        if (queueNextIds.isNotEmpty)
-          ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex -= 1;
-              ref.read(playerProvider.notifier).reorderQueue(oldIndex, newIndex);
-            },
-            children: [
-              for (int i = 0; i < queueNextIds.length; i++)
-                _QueueTrackTile(
-                  key: ValueKey(queueNextIds[i]),
-                  index: i,
-                  trackId: queueNextIds[i],
-                  onTap: () => ref
-                      .read(playerProvider.notifier)
-                      .jumpToQueueIndex((queue?.currentIndex ?? 0) + 1 + i),
-                  onRemove: () => ref
-                      .read(playerProvider.notifier)
-                      .removeFromQueue((queue?.currentIndex ?? 0) + 1 + i),
-                ),
-            ],
-          )
-        else if (suggestions.isNotEmpty)
-          ...suggestions.map(
-            (t) => _SuggestionTile(
-              track: t,
-              onAdd: () =>
-                  ref.read(playerProvider.notifier).addToQueue(t.trackId),
-            ),
-          )
-        else
-          const _EmptyNextHint(),
+        // ── Playing next (hidden in repeat-one mode) ──────────────────────
+        if (!isRepeatOne) ...[
+          _SectionLabel('Playing next'),
+          if (queueNextIds.isNotEmpty)
+            ReorderableListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              onReorder: (oldIndex, newIndex) {
+                if (newIndex > oldIndex) newIndex -= 1;
+                ref
+                    .read(playerProvider.notifier)
+                    .reorderQueue(oldIndex, newIndex);
+              },
+              children: [
+                for (int i = 0; i < queueNextIds.length; i++)
+                  _QueueTrackTile(
+                    key: ValueKey(queueNextIds[i]),
+                    index: i,
+                    trackId: queueNextIds[i],
+                    onTap: () => ref
+                        .read(playerProvider.notifier)
+                        .jumpToQueueIndex((queue?.currentIndex ?? 0) + 1 + i),
+                    onRemove: () => ref
+                        .read(playerProvider.notifier)
+                        .removeFromQueue((queue?.currentIndex ?? 0) + 1 + i),
+                  ),
+              ],
+            )
+          else
+            const _EmptyNextHint(),
+        ],
 
         const SizedBox(height: 16),
       ],
     );
+  }
+
+  Future<void> _confirmClearHistory(BuildContext context, WidgetRef ref) async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF171717),
+        title: const Text(
+          'Clear listening history?',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'This will clear your listening history.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Clear',
+              style: TextStyle(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldClear != true) return;
+    await ref.read(listeningHistoryProvider.notifier).clearHistory();
   }
 }
 
@@ -125,14 +143,60 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ── History tile (not tappable) ───────────────────────────────────────────────
+// ── Section label with action button ──────────────────────────────────────────
 
-class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.track});
-  final HistoryTrack track;
+class _SectionLabelWithAction extends StatelessWidget {
+  const _SectionLabelWithAction({
+    required this.label,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String label;
+  final String actionLabel;
+  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: onAction,
+            child: Text(
+              actionLabel,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── History tile ──────────────────────────────────────────────────────────────
+
+class _HistoryTile extends ConsumerWidget {
+  const _HistoryTile({required this.track});
+
+  final HistoryTrack track;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: _Cover(url: track.coverUrl, size: 48),
@@ -148,6 +212,19 @@ class _HistoryTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
+      trailing: GestureDetector(
+        onTap: () {
+          showTrackOptionsSheet(
+            context,
+            info: TrackOptionInfo.fromHistory(track),
+            ref: ref,
+          );
+        },
+        child: const Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Icon(Icons.more_horiz, color: Colors.white54, size: 20),
+        ),
+      ),
     );
   }
 }
@@ -156,6 +233,7 @@ class _HistoryTile extends StatelessWidget {
 
 class _NowPlayingRow extends StatelessWidget {
   const _NowPlayingRow({required this.bundle});
+
   final dynamic bundle;
 
   @override
@@ -216,9 +294,23 @@ class _NowPlayingRow extends StatelessWidget {
   }
 }
 
-// ── Queue track tile (Playing next) ──────────────────────────────────────────
+// ── Queue track tile (Playing next) ───────────────────────────────────────────
+//
+// What was wrong before:
+// 1) The red "Remove" area was visible even when the row was in its normal state.
+//    That happened because the foreground row was not forced to fully cover
+//    the stack width.
+// 2) After opening the remove state, there was no easy way to cancel except
+//    removing the track.
+//
+// What this version does:
+// - The foreground row always fills the whole width.
+// - The red "Remove" background only appears when the row is revealed.
+// - Pressing the red minus opens/closes remove mode.
+// - Pressing the right drag-handle while revealed cancels and returns to normal.
+// - Tapping the row while revealed also cancels instead of opening the song.
 
-class _QueueTrackTile extends ConsumerWidget {
+class _QueueTrackTile extends ConsumerStatefulWidget {
   const _QueueTrackTile({
     required super.key,
     required this.index,
@@ -233,111 +325,175 @@ class _QueueTrackTile extends ConsumerWidget {
   final VoidCallback onRemove;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final info = _resolveTrackInfo(trackId, ref);
-
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: GestureDetector(
-        onTap: onRemove,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: const BoxDecoration(
-            color: Color(0xFFE53935),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.remove, color: Colors.white, size: 18),
-        ),
-      ),
-      title: Row(
-        children: [
-          _Cover(url: info.coverUrl, size: 44),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  info.title,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  info.artist,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      trailing: ReorderableDragStartListener(
-        index: index,
-        child: const Icon(Icons.drag_handle, color: Colors.white38, size: 20),
-      ),
-    );
-  }
+  ConsumerState<_QueueTrackTile> createState() => _QueueTrackTileState();
 }
 
-// ── Suggestion tile (same-artist or history fill) ────────────────────────────
+class _QueueTrackTileState extends ConsumerState<_QueueTrackTile>
+    with SingleTickerProviderStateMixin {
+  static const double _removeActionWidth = 104;
+  late final AnimationController _revealController;
 
-class _SuggestionTile extends StatelessWidget {
-  const _SuggestionTile({required this.track, required this.onAdd});
-  final HistoryTrack track;
-  final VoidCallback onAdd;
+  bool get _isRevealed => _revealController.value > 0.5;
+
+  @override
+  void initState() {
+    super.initState();
+    _revealController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+  }
+
+  @override
+  void dispose() {
+    _revealController.dispose();
+    super.dispose();
+  }
+
+  void _openReveal() {
+    _revealController.forward();
+  }
+
+  void _closeReveal() {
+    _revealController.reverse();
+  }
+
+  void _toggleReveal() {
+    if (_isRevealed) {
+      _closeReveal();
+    } else {
+      _openReveal();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: GestureDetector(
-        onTap: onAdd,
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: Colors.white10,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white24),
-          ),
-          child: const Icon(Icons.add, color: Colors.white54, size: 18),
-        ),
-      ),
-      title: Row(
-        children: [
-          _Cover(url: track.coverUrl, size: 44),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final info = _resolveTrackInfo(widget.trackId, ref);
+
+    return SizedBox(
+      key: widget.key,
+      height: 72,
+      child: AnimatedBuilder(
+        animation: _revealController,
+        builder: (context, child) {
+          final revealProgress = _revealController.value;
+          final slideOffset = -_removeActionWidth * revealProgress;
+          final showRemoveBackground = revealProgress > 0.0;
+
+          return ClipRect(
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Text(
-                  track.title,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  track.artist.name,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 12,
+                if (showRemoveBackground)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: _removeActionWidth,
+                      child: Material(
+                        color: const Color(0xFFE53935),
+                        child: InkWell(
+                          onTap: () {
+                            _closeReveal();
+                            widget.onRemove();
+                          },
+                          child: const Center(
+                            child: Text(
+                              'Remove',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Transform.translate(
+                  offset: Offset(slideOffset, 0),
+                  child: Container(
+                    color: const Color(0xFF111111),
+                    child: ListTile(
+                      onTap: _isRevealed ? _closeReveal : widget.onTap,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: _toggleReveal,
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE53935),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.remove,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          _Cover(url: info.coverUrl, size: 44),
+                        ],
+                      ),
+                      title: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            info.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            info.artist,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                      trailing: _isRevealed
+                          ? GestureDetector(
+                              onTap: _closeReveal,
+                              child: const Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: Icon(
+                                  Icons.drag_handle,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
+                              ),
+                            )
+                          : ReorderableDragStartListener(
+                              index: widget.index,
+                              child: const Icon(
+                                Icons.drag_handle,
+                                color: Colors.white38,
+                                size: 20,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -347,6 +503,7 @@ class _SuggestionTile extends StatelessWidget {
 
 class _Cover extends StatelessWidget {
   const _Cover({required this.url, required this.size});
+
   final String? url;
   final double size;
 
@@ -384,6 +541,7 @@ class _TrackInfo {
     required this.artist,
     this.coverUrl,
   });
+
   final String title;
   final String artist;
   final String? coverUrl;

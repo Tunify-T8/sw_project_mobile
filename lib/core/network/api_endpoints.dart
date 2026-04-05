@@ -76,23 +76,26 @@ class ApiEndpoints {
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';
   static String trackPlayed(String trackId) => '/tracks/$trackId/played';
-
+ 
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String playbackEvents = '/me/playback/events';
-
+ 
   /// Current backend contract (v1.1.0).
   static const String listeningHistory = '/tracks/me/listening-history';
-
+ 
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyListeningHistory = '/me/listening-history';
-
+ 
+  /// DELETE /me/listening-history — clears the user's listening history.
+  static const String clearListeningHistory = '/me/listening-history';
+ 
   /// Batch-reports plays that occurred while the device was offline.
   /// Body: `{ "plays": [{ "trackId", "playedAt", "completed" }] }`
   static const String batchPlays = '/tracks/plays/batch';
-
+ 
   /// Current backend contract (v1.1.0).
   static const String playbackContext = '/tracks/playback-context';
-
+ 
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyPlaybackContext = '/playback/context';
 

@@ -182,13 +182,25 @@ class _LibraryHistoryTile extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(
+              SizedBox(
                 width: 32,
                 child: Center(
-                  child: Icon(
-                    Icons.more_horiz,
-                    color: Colors.white54,
-                    size: 24,
+                  child: GestureDetector(
+                    onTap: () {
+                      showTrackOptionsSheet(
+                        context,
+                        info: TrackOptionInfo.fromHistory(track),
+                        ref: ref,
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.more_horiz,
+                        color: Colors.white54,
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -14,8 +14,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
           style: TextStyle(color: Colors.white),
         ),
         content: const Text(
-          'This clears the history saved on this device. '
-          'Your backend currently has no clear-history endpoint, so the app keeps this clear locally.',
+          'This will clear your listening history.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
