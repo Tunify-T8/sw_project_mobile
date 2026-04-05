@@ -1,6 +1,6 @@
 part of 'library_screen.dart';
 
-extension _LibraryScreenActions on LibraryScreen {
+extension _LibraryScreenActions on _LibraryScreenState {
   void _handleTap(BuildContext context, String label) {
     if (label == 'Following') {
       Navigator.of(context).push(
@@ -16,16 +16,16 @@ extension _LibraryScreenActions on LibraryScreen {
     }
 
     if (label == 'Your uploads') {
-      if (onOpenYourUploads != null) {
-        onOpenYourUploads!();
+      if (widget.onOpenYourUploads != null) {
+        widget.onOpenYourUploads!();
         return;
       }
 
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => YourUploadsScreen(
-            onStartUpload: onStartUpload,
-            onOpenSubscription: onOpenSubscription,
+            onStartUpload: widget.onStartUpload,
+            onOpenSubscription: widget.onOpenSubscription,
           ),
         ),
       );

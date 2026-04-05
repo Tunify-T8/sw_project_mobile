@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:software_project/features/profile/presentation/screens/profile_screen.dart';
+import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
@@ -127,7 +127,7 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
+                            builder: (_) => OtherUserProfileScreen(userId: user.id),
                           ),
                         );
                       },

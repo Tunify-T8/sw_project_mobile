@@ -11,9 +11,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
     TokenStorage tokenStorage = const TokenStorage(),
     GlobalTrackStore? trackStore,
     Dio? dio,
+    ProfileApi? profileApi,
   })  : _tokenStorage = tokenStorage,
         _trackStore = trackStore ?? GlobalTrackStore.instance,
-        _profileApi = ProfileApi(
+        _profileApi = profileApi ?? ProfileApi(
           dio: dio ?? DioClient.create(const TokenStorage()),
         );
 
@@ -27,6 +28,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
     if (user == null) throw Exception('No authenticated user found.');
 
     return await _profileApi.getProfile(user.id);
+  }
+
+  @override
+  Future<ProfileDto> getProfileById(String userIdOrUsername) async {
+    return await _profileApi.getProfileById(userIdOrUsername);
   }
 
   @override
