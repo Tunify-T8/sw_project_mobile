@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/features/profile/presentation/screens/profile_screen.dart';
 
 import '../../domain/entities/social_user_entity.dart';
-import '../providers/mock_social_provider.dart';
-import '../providers/network_lists_provider.dart';
-import '../providers/social_actions_provider.dart';
+import '../providers/network_lists_notifier.dart';
+import '../providers/social_actions_notifier.dart';
 import 'suggested_user_item.dart';
+import '../../domain/entities/network_list_type.dart';
 
 class SuggestedUsersSection extends ConsumerStatefulWidget {
-  const SuggestedUsersSection({super.key});
+  final NetworkListType listType;
+  const SuggestedUsersSection({super.key, required this.listType});
 
   @override
   ConsumerState<SuggestedUsersSection> createState() =>
@@ -17,8 +18,6 @@ class SuggestedUsersSection extends ConsumerStatefulWidget {
 }
 
 class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
-  final bool useMock = true;
-
   @override
   void initState() {
     super.initState();
@@ -26,44 +25,40 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
   }
 
   Future<void> _loadSuggestedUsers() async {
-    final state = useMock
-        ? ref.read(mockSocialProvider)
-        : ref.read(networkListsProvider);
+    final state = ref.read(networkListsProvider);
 
-    if (state.suggestedUsers.isEmpty && !state.hasLoadedOnce) {
-      if (useMock) {
-        await ref.read(mockSocialProvider.notifier).loadSuggestedUsers();
-      } else {
-        await ref.read(networkListsProvider.notifier).loadSuggestedUsers();
+    if ((state.userLists[widget.listType] ?? []).isEmpty &&
+        !state.hasLoadedOnce[widget.listType]!) {
+      {
+        (widget.listType == NetworkListType.suggestedUsers)
+            ? await ref.read(networkListsProvider.notifier).loadSuggestedUsers()
+            : await ref
+                  .read(networkListsProvider.notifier)
+                  .loadSuggestedArtists();
       }
     }
   }
 
   Future<void> _handleFollowToggle(SocialUserEntity user) async {
-    if (useMock) {
-      await ref.read(mockSocialProvider.notifier).toggleFollow(user.id);
-    } else {
-      await ref.read(socialActionsProvider).toggleFollow(user);
-    }
+    await ref
+        .read(socialActionsProvider)
+        .toggleFollow(user: user, listType: widget.listType);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = useMock
-        ? ref.watch(mockSocialProvider)
-        : ref.watch(networkListsProvider);
+    final state = ref.watch(networkListsProvider);
 
-    final users = state.suggestedUsers;
+    final users = state.userLists[widget.listType] ?? [];
 
-    final showInitialLoading =
-        users.isEmpty && (state.isLoading || !state.hasLoadedOnce);
-    final showInitialError =
-        users.isEmpty && state.error != null && state.hasLoadedOnce;
+    final isLoading = state.isLoading[widget.listType]!;
+    final error = state.error[widget.listType];
+    final hasLoadedOnce = state.hasLoadedOnce[widget.listType]!;
+
+    final showInitialLoading = users.isEmpty && (isLoading || !hasLoadedOnce);
+    final showInitialError = users.isEmpty && error != null && hasLoadedOnce;
     final showEmpty =
-        users.isEmpty &&
-        !state.isLoading &&
-        state.error == null &&
-        state.hasLoadedOnce;
+        users.isEmpty && !isLoading && error == null && hasLoadedOnce;
 
     if (showInitialLoading) {
       return const SizedBox(
@@ -76,7 +71,7 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
       return SizedBox(
         height: 200,
         child: Center(
-          child: Text(state.error!, style: const TextStyle(color: Colors.red)),
+          child: Text(error, style: const TextStyle(color: Colors.red)),
         ),
       );
     }

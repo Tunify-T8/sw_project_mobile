@@ -1,14 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/followers_and_social_graph/data/repository/real_social_graph_repository_impl.dart';
 
+import '../../../../core/network/dio_client.dart';
 import '../../domain/repositories/social_graph_repository.dart';
-import '../../data/repository/mock_social_graph_repository_impl.dart';
-import '../../data/services/mock_social_graph_service.dart';
-
-final mockSocialGraphServiceProvider = Provider<MockSocialGraphService>((ref) {
-  return MockSocialGraphService();
-});
+import '../../data/api/social_api.dart';
 
 final socialGraphRepositoryProvider = Provider<SocialGraphRepository>((ref) {
-  final service = ref.read(mockSocialGraphServiceProvider);
-  return MockSocialGraphRepositoryImpl(service: service);
+  final api = SocialApi(ref.read(dioProvider));
+  return SocialGraphRepositoryImpl(api);
 });

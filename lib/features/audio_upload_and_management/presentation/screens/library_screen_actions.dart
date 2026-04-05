@@ -8,6 +8,7 @@ extension _LibraryScreenActions on LibraryScreen {
           builder: (_) => const NetworkListsScreen(
             userId: 'u2',
             listType: NetworkListType.following,
+            isMyProfile: true,
           ),
         ),
       );

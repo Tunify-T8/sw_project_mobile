@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/widgets/suggested_users_section.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/trending_genre_section.dart';
+import '../../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 
 import 'home_liked_by_list.dart';
 
@@ -24,7 +25,9 @@ class HomeDiscoverySections extends StatelessWidget {
         _SectionTitle(title: 'Liked by', topPadding: 28),
         HomeLikedByList(),
         _SectionTitle(title: 'Suggested users', topPadding: 28),
-        SuggestedUsersSection(),
+        SuggestedUsersSection(listType: NetworkListType.suggestedUsers),
+        _SectionTitle(title: 'Suggested artists', topPadding: 28),
+        SuggestedUsersSection(listType: NetworkListType.suggestedArtists),
         _SectionTitle(title: 'Trending by genre', topPadding: 28),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
