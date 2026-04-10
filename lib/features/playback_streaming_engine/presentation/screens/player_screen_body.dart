@@ -57,7 +57,9 @@ class _PlayerBody extends ConsumerWidget {
                           title: bundle.title,
                           artistName: bundle.artist.name,
                           isLiked: bundle.engagement.isLiked,
-                          onLike: () {},
+                          onLike: () => ref
+                              .read(engagementProvider(bundle.trackId).notifier)
+                              .toggleLike(),
                         ),
                         const SizedBox(height: 20),
                         PlayerWaveformBar(
@@ -105,6 +107,7 @@ class _PlayerBody extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         _BottomActions(
+                          trackId: bundle.trackId,
                           onQueue: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -112,8 +115,15 @@ class _PlayerBody extends ConsumerWidget {
                               ),
                             );
                           },
-                          repostsCount: bundle.engagement.repostCount,
-                          commentsCount: bundle.engagement.commentCount,
+                          onComments: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => CommentsScreen(
+                                  trackId: bundle.trackId,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 12),
                       ],

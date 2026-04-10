@@ -36,7 +36,7 @@ class EngagementMockDataDto {
   static final List<TrackEngagementDto> trackEngagements =
       <TrackEngagementDto>[
         const TrackEngagementDto(
-          trackId: 'track_1',
+          trackId: 't1',
           likeCount: 126,
           repostCount: 34,
           commentCount: 9,
@@ -44,7 +44,7 @@ class EngagementMockDataDto {
           isReposted: false,
         ),
         const TrackEngagementDto(
-          trackId: 'track_2',
+          trackId: 't2',
           likeCount: 52,
           repostCount: 12,
           commentCount: 5,
@@ -52,7 +52,7 @@ class EngagementMockDataDto {
           isReposted: false,
         ),
         const TrackEngagementDto(
-          trackId: 'track_3',
+          trackId: 't3',
           likeCount: 902,
           repostCount: 210,
           commentCount: 47,
@@ -64,7 +64,7 @@ class EngagementMockDataDto {
   static final List<CommentDto> comments = <CommentDto>[
     CommentDto(
       id: 'comment_1',
-      trackId: 'track_1',
+      trackId: 't1',
       user: users[1],
       timestamp: 14,
       text: 'Kick is crazy here.',
@@ -74,7 +74,7 @@ class EngagementMockDataDto {
     ),
     CommentDto(
       id: 'comment_2',
-      trackId: 'track_1',
+      trackId: 't1',
       user: users[2],
       timestamp: 47,
       text: 'That switch up is clean.',
@@ -84,7 +84,57 @@ class EngagementMockDataDto {
     ),
     CommentDto(
       id: 'comment_3',
-      trackId: 'track_3',
+      trackId: 't2',
+      user: users[1],
+      timestamp: 18,
+      text: 'The intro gives me chills every time.',
+      likesCount: 4,
+      repliesCount: 1,
+      createdAt: DateTime.parse('2026-03-22T10:00:00Z'),
+    ),
+    CommentDto(
+      id: 'comment_4',
+      trackId: 't2',
+      user: users[2],
+      timestamp: 45,
+      text: 'That chord progression is insane.',
+      likesCount: 9,
+      repliesCount: 0,
+      createdAt: DateTime.parse('2026-03-22T10:20:00Z'),
+    ),
+    CommentDto(
+      id: 'comment_5',
+      trackId: 't2',
+      user: users[3],
+      timestamp: 78,
+      text: 'This is where the track really opens up.',
+      likesCount: 6,
+      repliesCount: 2,
+      createdAt: DateTime.parse('2026-03-22T11:00:00Z'),
+    ),
+    CommentDto(
+      id: 'comment_6',
+      trackId: 't2',
+      user: users[4],
+      timestamp: 112,
+      text: 'The build here never gets old.',
+      likesCount: 3,
+      repliesCount: 0,
+      createdAt: DateTime.parse('2026-03-22T11:30:00Z'),
+    ),
+    CommentDto(
+      id: 'comment_7',
+      trackId: 't2',
+      user: users[0],
+      timestamp: 140,
+      text: 'Outro is pure gold.',
+      likesCount: 11,
+      repliesCount: 1,
+      createdAt: DateTime.parse('2026-03-22T12:00:00Z'),
+    ),
+    CommentDto(
+      id: 'comment_8',
+      trackId: 't3',
       user: users[3],
       timestamp: 91,
       text: 'Bass drop hit hard.',
@@ -95,9 +145,9 @@ class EngagementMockDataDto {
   ];
 
   static final Map<String, List<String>> trackLikers = <String, List<String>>{
-    'track_1': <String>['user_current_1', 'user_2', 'user_3', 'user_4'],
-    'track_2': <String>['user_2', 'user_5'],
-    'track_3': <String>[
+    't1': <String>['user_current_1', 'user_2', 'user_3', 'user_4'],
+    't2': <String>['user_2', 'user_5'],
+    't3': <String>[
       'user_current_1',
       'user_2',
       'user_3',
@@ -108,8 +158,8 @@ class EngagementMockDataDto {
 
   static final Map<String, List<String>> trackReposters =
       <String, List<String>>{
-        'track_1': <String>['user_2', 'user_4'],
-        'track_2': <String>['user_5'],
-        'track_3': <String>['user_current_1', 'user_3', 'user_4'],
+        't1': <String>['user_2', 'user_4'],
+        't2': <String>['user_5'],
+        't3': <String>['user_current_1', 'user_3', 'user_4'],
       };
 }

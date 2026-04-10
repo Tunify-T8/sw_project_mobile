@@ -1,31 +1,69 @@
 part of 'player_screen.dart';
 
-class _BottomActions extends StatelessWidget {
+class _BottomActions extends ConsumerWidget {
   const _BottomActions({
+    required this.trackId,
     required this.onQueue,
-    required this.repostsCount,
-    required this.commentsCount,
+    required this.onComments,
   });
 
+  final String trackId;
   final VoidCallback onQueue;
-  final int repostsCount;
-  final int commentsCount;
+  final VoidCallback onComments;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(engagementProvider(trackId));
+    final isReposted = state.engagement?.isReposted ?? false;
+    final repostCount = state.engagement?.repostCount ?? 0;
+    final commentCount = state.engagement?.commentCount ?? 0;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _ActionBtn(icon: Icons.share_outlined, label: 'Share', onTap: () {}),
-        _ActionBtn(
-          icon: Icons.repeat,
-          label: _fmtCount(repostsCount),
-          onTap: () {},
+        GestureDetector(
+          onTap: () {
+            final notifier = ref.read(engagementProvider(trackId).notifier);
+            if (isReposted) {
+              notifier.removeRepost();
+            } else {
+              notifier.repostTrack();
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isReposted ? Icons.repeat_on : Icons.repeat,
+                color: isReposted ? Colors.orange : Colors.white60,
+                size: 22,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                _fmtCount(repostCount),
+                style: TextStyle(
+                  color: isReposted ? Colors.orange : Colors.white54,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
         ),
-        _ActionBtn(
-          icon: Icons.chat_bubble_outline,
-          label: _fmtCount(commentsCount),
-          onTap: () {},
+        GestureDetector(
+          onTap: onComments,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.chat_bubble_outline,
+                  color: Colors.white60, size: 22),
+              const SizedBox(height: 3),
+              Text(
+                _fmtCount(commentCount),
+                style: const TextStyle(color: Colors.white54, fontSize: 10),
+              ),
+            ],
+          ),
         ),
         _ActionBtn(icon: Icons.queue_music, label: 'Queue', onTap: onQueue),
       ],

@@ -11,6 +11,8 @@ import '../../domain/usecases/get_comments_usecase.dart';
 import '../../domain/usecases/add_comment_usecase.dart';
 import '../../domain/usecases/get_likers_usecase.dart';
 import '../../domain/usecases/get_reposters_usecase.dart';
+import '../../domain/usecases/get_replies_usecase.dart';
+import '../../domain/usecases/add_reply_usecase.dart';
 import 'engagement_state.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
@@ -51,6 +53,12 @@ final getLikersUsecaseProvider = Provider((ref) =>
 
 final getRepostersUsecaseProvider = Provider((ref) =>
     GetRepostersUsecase(ref.watch(engagementRepositoryProvider)));
+
+final getRepliesUsecaseProvider = Provider((ref) =>
+    GetRepliesUsecase(ref.watch(engagementRepositoryProvider)));
+
+final addReplyUsecaseProvider = Provider((ref) =>
+    AddReplyUsecase(ref.watch(engagementRepositoryProvider)));
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
@@ -165,12 +173,23 @@ class EngagementNotifier extends Notifier<EngagementState> {
             text: text,
           );
       await loadComments();
+      await loadEngagement();
     } catch (e) {
       state = state.copyWith(
         commentsStatus: EngagementStatus.error,
         error: e.toString(),
       );
     }
+  }
+
+  void toggleCommentLike(String commentId) {
+    final updated = Set<String>.from(state.likedCommentIds);
+    if (updated.contains(commentId)) {
+      updated.remove(commentId);
+    } else {
+      updated.add(commentId);
+    }
+    state = state.copyWith(likedCommentIds: updated);
   }
 
   Future<void> loadLikers() async {

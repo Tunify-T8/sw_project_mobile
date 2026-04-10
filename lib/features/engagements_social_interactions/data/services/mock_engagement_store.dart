@@ -43,13 +43,27 @@ class MockEngagementStore {
 
   TrackEngagementDto getTrackEngagement(String trackId) {
     final existing = _engagementByTrackId[trackId];
-    if (existing != null) return existing;
+    final actualCommentCount = (_commentsByTrackId[trackId] ?? []).length;
+
+    if (existing != null) {
+      // keep all fields but override commentCount with real list length
+      final synced = TrackEngagementDto(
+        trackId: existing.trackId,
+        likeCount: existing.likeCount,
+        repostCount: existing.repostCount,
+        commentCount: actualCommentCount,
+        isLiked: existing.isLiked,
+        isReposted: existing.isReposted,
+      );
+      _engagementByTrackId[trackId] = synced;
+      return synced;
+    }
 
     final created = TrackEngagementDto(
       trackId: trackId,
       likeCount: 0,
       repostCount: 0,
-      commentCount: 0,
+      commentCount: actualCommentCount,
       isLiked: false,
       isReposted: false,
     );
@@ -71,8 +85,6 @@ class MockEngagementStore {
       likers.add(viewerId);
     }
 
-    // likeCount increments/decrements independently from the likers list
-    // so that when the likers list is removed on BE integration, count still works
     final updated = TrackEngagementDto(
       trackId: current.trackId,
       likeCount: hasLiked ? current.likeCount - 1 : current.likeCount + 1,

@@ -11,6 +11,8 @@ import '../widgets/blocked_track_view.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_waveform_bar.dart';
 import 'queue_screen.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 
 part 'player_screen_body.dart';
 part 'player_screen_visuals.dart';
@@ -46,6 +48,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final playerState = ref.read(playerProvider).asData?.value;
       if (playerState?.isPlaying == true) _artworkController.forward();
+      final trackId = playerState?.bundle?.trackId;
+      if (trackId != null) {
+        ref.read(engagementProvider(trackId).notifier).loadEngagement();
+      }
     });
   }
 

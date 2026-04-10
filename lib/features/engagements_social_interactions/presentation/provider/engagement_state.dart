@@ -10,6 +10,7 @@ class EngagementState {
   final CommentsPageEntity? commentsPage;
   final List<EngagementUserEntity> likers;
   final List<EngagementUserEntity> reposters;
+  final Set<String> likedCommentIds;
   final EngagementStatus engagementStatus;
   final EngagementStatus commentsStatus;
   final EngagementStatus likersStatus;
@@ -21,6 +22,7 @@ class EngagementState {
     this.commentsPage,
     this.likers = const [],
     this.reposters = const [],
+    this.likedCommentIds = const {},
     this.engagementStatus = EngagementStatus.initial,
     this.commentsStatus = EngagementStatus.initial,
     this.likersStatus = EngagementStatus.initial,
@@ -32,11 +34,14 @@ class EngagementState {
   bool get hasNextCommentsPage => commentsPage?.meta.hasNextPage ?? false;
   int get totalCommentsCount => commentsPage?.meta.totalCount ?? 0;
 
+  bool isCommentLiked(String commentId) => likedCommentIds.contains(commentId);
+
   EngagementState copyWith({
     TrackEngagementEntity? engagement,
     CommentsPageEntity? commentsPage,
     List<EngagementUserEntity>? likers,
     List<EngagementUserEntity>? reposters,
+    Set<String>? likedCommentIds,
     EngagementStatus? engagementStatus,
     EngagementStatus? commentsStatus,
     EngagementStatus? likersStatus,
@@ -48,6 +53,7 @@ class EngagementState {
       commentsPage: commentsPage ?? this.commentsPage,
       likers: likers ?? this.likers,
       reposters: reposters ?? this.reposters,
+      likedCommentIds: likedCommentIds ?? this.likedCommentIds,
       engagementStatus: engagementStatus ?? this.engagementStatus,
       commentsStatus: commentsStatus ?? this.commentsStatus,
       likersStatus: likersStatus ?? this.likersStatus,

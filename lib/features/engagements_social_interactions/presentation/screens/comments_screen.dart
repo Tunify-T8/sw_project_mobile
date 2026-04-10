@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../provider/enagement_providers.dart';
 import '../provider/engagement_state.dart';
+import '../utils/engagement_formatters.dart';
 import '../widgets/comment_tile.dart';
 
 class CommentsScreen extends ConsumerStatefulWidget {
@@ -37,12 +38,6 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   int get _currentTimestampSeconds {
     final playerState = ref.read(playerProvider).value;
     return playerState?.positionSeconds.toInt() ?? 0;
-  }
-
-  String _formatTimestamp(int seconds) {
-    final m = seconds ~/ 60;
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
   }
 
   Future<void> _submit() async {
@@ -115,12 +110,24 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
         final comment = state.comments[index];
         return CommentTile(
           comment: comment,
+          trackId: widget.trackId,
           onTapTimestamp: (seconds) {
-            // seek player to timestamp and pop screen
-            ref
-                .read(playerProvider.notifier)
-                .seek(seconds.toDouble());
-            Navigator.pop(context);
+            final currentTrackId = ref
+                .read(playerProvider)
+                .value
+                ?.bundle
+                ?.trackId;
+            if (currentTrackId == widget.trackId) {
+              ref.read(playerProvider.notifier).seek(seconds.toDouble());
+              Navigator.pop(context);
+            }
+          },
+          onReply: () {
+            _controller.text = '@${comment.user.username} ';
+            _controller.selection = TextSelection.fromPosition(
+              TextPosition(offset: _controller.text.length),
+            );
+            _focusNode.requestFocus();
           },
         );
       },
@@ -143,7 +150,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                 focusNode: _focusNode,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Comment at ${_formatTimestamp(seconds)}',
+                  hintText: 'Comment at ${EngagementFormatters.timestamp(seconds)}',
                   hintStyle: const TextStyle(color: Colors.white54),
                   filled: true,
                   fillColor: Colors.white10,
