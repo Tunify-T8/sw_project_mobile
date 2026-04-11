@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../features/profile/presentation/providers/profile_provider.dart';
 import '../../data/repository/engagement_repository_impl.dart';
 import '../../data/services/mock_engagement_store.dart';
 import '../../domain/repositories/engagement_repository.dart';
@@ -17,6 +19,7 @@ import '../../domain/usecases/delete_comment_usecase.dart';
 import '../../domain/usecases/delete_reply_usecase.dart';
 import '../../domain/usecases/toggle_reply_like_usecase.dart'; // engagement addition
 import '../../domain/usecases/get_liked_tracks_usecase.dart'; // engagement addition
+import '../../domain/entities/track_engagement_entity.dart';
 import 'engagement_state.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
@@ -82,11 +85,54 @@ class EngagementNotifier extends Notifier<EngagementState> {
   EngagementNotifier(this._trackId);
 
   final String _trackId;
-  static const String _viewerId = 'user_current_1'; // swap with real auth later
+
+  String get _viewerId =>
+      ref.read(authControllerProvider).value?.id ?? 'user_current_1';
+
+  void _ensureCurrentUserSeeded() {
+    final user = ref.read(authControllerProvider).value;
+    if (user == null) return;
+    // prefer profile avatar (profileImagePath) over auth avatar
+    final profileAvatar = ref.read(profileProvider).profile?.profileImagePath;
+    ref.read(mockEngagementStoreProvider).seedUser(
+      id: user.id,
+      username: user.username,
+      avatarUrl: profileAvatar ?? user.avatarUrl,
+    );
+  }
 
   @override
   EngagementState build() {
     return const EngagementState();
+  }
+
+  void seedFromFeed({
+    required int likeCount,
+    required int repostCount,
+    required int commentCount,
+    required bool isLiked,
+    required bool isReposted,
+  }) {
+    if (state.engagementStatus != EngagementStatus.initial) return;
+    ref.read(mockEngagementStoreProvider).seedEngagement(
+      trackId: _trackId,
+      likeCount: likeCount,
+      repostCount: repostCount,
+      commentCount: commentCount,
+      isLiked: isLiked,
+      isReposted: isReposted,
+    );
+    state = state.copyWith(
+      engagementStatus: EngagementStatus.success,
+      engagement: TrackEngagementEntity(
+        trackId: _trackId,
+        likeCount: likeCount,
+        repostCount: repostCount,
+        commentCount: commentCount,
+        isLiked: isLiked,
+        isReposted: isReposted,
+      ),
+    );
   }
 
   Future<void> loadEngagement() async {
@@ -108,6 +154,7 @@ class EngagementNotifier extends Notifier<EngagementState> {
   }
 
   Future<void> toggleLike() async {
+    _ensureCurrentUserSeeded();
     state = state.copyWith(engagementStatus: EngagementStatus.loading);
     try {
       final updated = await ref
@@ -180,6 +227,7 @@ class EngagementNotifier extends Notifier<EngagementState> {
   }
 
   Future<void> addComment({int? timestamp, required String text}) async {
+    _ensureCurrentUserSeeded();
     state = state.copyWith(commentsStatus: EngagementStatus.loading);
     try {
       await ref.read(addCommentUsecaseProvider).call(

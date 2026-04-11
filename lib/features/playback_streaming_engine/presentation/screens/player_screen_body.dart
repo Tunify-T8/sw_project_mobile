@@ -203,7 +203,7 @@ class _PlayerBody extends ConsumerWidget {
 
 /// Artwork + track info + waveform bar + time row for one track.
 /// Keyed by [bundle.trackId] so AnimatedSwitcher can animate between tracks.
-class _TrackContent extends StatelessWidget {
+class _TrackContent extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
   const _TrackContent({
     super.key,
     required this.playerState,
@@ -216,8 +216,11 @@ class _TrackContent extends StatelessWidget {
   final void Function(int positionSeconds) onSeek;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) { // engagement modification — added WidgetRef ref
     final bundle = playerState.bundle!;
+    final engagementState = ref.watch(engagementProvider(bundle.trackId)); // engagement modification — watch live engagement state
+    final isLiked = engagementState.engagement?.isLiked ?? bundle.engagement.isLiked; // engagement modification — prefer live state over stale bundle
+    final likeCount = engagementState.engagement?.likeCount ?? bundle.engagement.likeCount; // engagement modification — prefer live state over stale bundle
     return Column(
       children: [
         const SizedBox(height: 12),
@@ -232,8 +235,14 @@ class _TrackContent extends StatelessWidget {
         _TrackInfo(
           title: bundle.title,
           artistName: bundle.artist.name,
-          isLiked: bundle.engagement.isLiked,
-          onLike: () {},
+          isLiked: isLiked, // engagement modification — was bundle.engagement.isLiked
+          onLike: () => ref.read(engagementProvider(bundle.trackId).notifier).toggleLike(), // engagement modification — was () {}
+          likeCount: likeCount, // engagement modification — added
+          onLikeCountTap: () => Navigator.of(context).push( // engagement modification — added, navigates to LikersScreen
+            MaterialPageRoute(
+              builder: (_) => LikersScreen(trackId: bundle.trackId),
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         PlayerWaveformBar(

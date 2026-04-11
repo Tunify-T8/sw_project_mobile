@@ -27,7 +27,9 @@ class _LikersScreenState extends ConsumerState<LikersScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(engagementProvider(widget.trackId));
-    final likeCount = state.engagement?.likeCount ?? 0;
+    final likeCount = state.likers.isNotEmpty
+        ? state.likers.length
+        : state.engagement?.likeCount ?? 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),

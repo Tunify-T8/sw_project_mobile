@@ -113,6 +113,9 @@ class FeedTrackCard extends ConsumerWidget {
               fallbackLikesCount: item.track.likesCount,
               fallbackCommentsCount: item.track.commentsCount,
               feedType: tabType,
+              coverUrl: item.track.coverUrl,
+              trackTitle: item.track.title,
+              artistName: item.track.artistName,
             ),
           ),
 

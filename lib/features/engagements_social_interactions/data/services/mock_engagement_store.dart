@@ -78,7 +78,11 @@ class MockEngagementStore {
     required String viewerId,
   }) {
     final current = getTrackEngagement(trackId);
-    final likers = _likersByTrackId.putIfAbsent(trackId, () => <String>[]);
+    // seed from t1's likers so default likers stay when a real track is liked
+    if (!_likersByTrackId.containsKey(trackId)) {
+      _likersByTrackId[trackId] = List<String>.from(_likersByTrackId['t1'] ?? []);
+    }
+    final likers = _likersByTrackId[trackId]!;
     final hasLiked = likers.contains(viewerId);
 
     if (hasLiked) {
@@ -152,7 +156,11 @@ class MockEngagementStore {
   }
 
   List<CommentDto> getTrackComments(String trackId) {
-    final comments = _commentsByTrackId[trackId] ?? <CommentDto>[];
+    // Fall back to t1's comments for any track not in the mock store
+    // (real API track IDs won't match t1/t2/t3, so this keeps comments visible)
+    final comments = _commentsByTrackId[trackId] ??
+        _commentsByTrackId['t1'] ??
+        <CommentDto>[];
     final sorted = List<CommentDto>.from(comments)
       ..sort((a, b) => (a.timestamp ?? 0).compareTo(b.timestamp ?? 0));
     return sorted;
@@ -173,6 +181,14 @@ class MockEngagementStore {
         );
 
     _usersById.putIfAbsent(viewerId, () => user);
+
+    // If this track has no comments yet, seed it with t1's mock comments first
+    // so new comments appear alongside the existing mock ones
+    if (!_commentsByTrackId.containsKey(trackId)) {
+      _commentsByTrackId[trackId] = List<CommentDto>.from(
+        _commentsByTrackId['t1'] ?? <CommentDto>[],
+      );
+    }
 
     final newComment = CommentDto(
       id: 'comment_${DateTime.now().microsecondsSinceEpoch}',
@@ -202,7 +218,7 @@ class MockEngagementStore {
   }
 
   List<EngagementUserDto> getTrackLikers(String trackId) {
-    final userIds = _likersByTrackId[trackId] ?? <String>[];
+    final userIds = _likersByTrackId[trackId] ?? _likersByTrackId['t1'] ?? <String>[];
     return userIds
         .map((id) => _usersById[id])
         .whereType<EngagementUserDto>()
@@ -210,7 +226,7 @@ class MockEngagementStore {
   }
 
   List<EngagementUserDto> getTrackReposters(String trackId) {
-    final userIds = _repostersByTrackId[trackId] ?? <String>[];
+    final userIds = _repostersByTrackId[trackId] ?? _repostersByTrackId['t1'] ?? <String>[];
     return userIds
         .map((id) => _usersById[id])
         .whereType<EngagementUserDto>()
@@ -221,6 +237,46 @@ class MockEngagementStore {
   // replaces GET /users/me/likes; swap with real API call when BE is ready
   List<LikedTrackEntity> getLikedTracks(String viewerId) {
     return EngagementMockDataDto.likedTracks;
+  }
+
+  void seedUser({
+    required String id,
+    required String username,
+    String? avatarUrl,
+  }) {
+    _usersById.putIfAbsent(
+      id,
+      () => EngagementUserDto(id: id, username: username, avatarUrl: avatarUrl),
+    );
+  }
+
+  void seedEngagement({
+    required String trackId,
+    required int likeCount,
+    required int repostCount,
+    required int commentCount,
+    required bool isLiked,
+    required bool isReposted,
+  }) {
+    _engagementByTrackId.putIfAbsent(
+      trackId,
+      () => TrackEngagementDto(
+        trackId: trackId,
+        likeCount: likeCount,
+        repostCount: repostCount,
+        commentCount: commentCount,
+        isLiked: isLiked,
+        isReposted: isReposted,
+      ),
+    );
+    _likersByTrackId.putIfAbsent(
+      trackId,
+      () => isLiked ? [EngagementMockDataDto.viewerId] : [],
+    );
+    _repostersByTrackId.putIfAbsent(
+      trackId,
+      () => isReposted ? [EngagementMockDataDto.viewerId] : [],
+    );
   }
 
   void deleteComment(String trackId, String commentId) {
@@ -321,9 +377,8 @@ class MockEngagementStore {
     _repliesByCommentId.putIfAbsent(commentId, () => <ReplyDto>[]);
     _repliesByCommentId[commentId]!.add(newReply);
 
-    // update repliesCount on the parent comment so CommentTile reloads
-    for (final trackId in _commentsByTrackId.keys) {
-      final comments = _commentsByTrackId[trackId]!;
+    // update repliesCount in every copy of the comment list (t1 + any seeded copies)
+    for (final comments in _commentsByTrackId.values) {
       final idx = comments.indexWhere((c) => c.id == commentId);
       if (idx != -1) {
         final old = comments[idx];
@@ -337,7 +392,6 @@ class MockEngagementStore {
           repliesCount: _repliesByCommentId[commentId]!.length,
           createdAt: old.createdAt,
         );
-        break;
       }
     }
 

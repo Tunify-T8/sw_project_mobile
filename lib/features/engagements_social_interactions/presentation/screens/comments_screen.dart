@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../data/services/mock_engagement_store.dart';
 import '../provider/enagement_providers.dart';
 import '../provider/engagement_state.dart';
 import '../utils/engagement_formatters.dart';
 import '../widgets/comment_tile.dart';
 
 class CommentsScreen extends ConsumerStatefulWidget {
-  const CommentsScreen({super.key, required this.trackId});
+  const CommentsScreen({
+    super.key,
+    required this.trackId,
+    this.coverUrl,
+    this.trackTitle,
+    this.artistName,
+  });
 
   final String trackId;
+  final String? coverUrl;
+  final String? trackTitle;
+  final String? artistName;
 
   @override
   ConsumerState<CommentsScreen> createState() => _CommentsScreenState();
@@ -51,9 +62,18 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
 
     if (replyTarget != null) {
       // engagement addition — submit as a reply instead of a top-level comment
+      final authUser = ref.read(authControllerProvider).value;
+      final viewerId = authUser?.id ?? 'user_current_1';
+      if (authUser != null) {
+        ref.read(mockEngagementStoreProvider).seedUser(
+          id: authUser.id,
+          username: authUser.username,
+          avatarUrl: authUser.avatarUrl,
+        );
+      }
       await ref.read(addReplyUsecaseProvider).call(
             commentId: replyTarget,
-            viewerId: 'user_current_1',
+            viewerId: viewerId,
             text: text,
           );
       await ref.read(engagementProvider(widget.trackId).notifier).loadComments();
@@ -84,10 +104,103 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
       ),
       body: Column(
         children: [
+          _buildTrackHeader(),
+          _buildReactionsStripe(totalCount),
           Expanded(
             child: _buildList(state),
           ),
           _buildInputBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrackHeader() {
+    if (widget.trackTitle == null && widget.coverUrl == null) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: const Color(0xFF1A1A1A),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: widget.coverUrl != null
+                ? Image.network(
+                    widget.coverUrl!,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholderCover(),
+                  )
+                : _placeholderCover(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.trackTitle != null)
+                  Text(
+                    widget.trackTitle!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (widget.artistName != null)
+                  Text(
+                    widget.artistName!,
+                    style: const TextStyle(color: Colors.white60, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _placeholderCover() => Container(
+        width: 48,
+        height: 48,
+        color: Colors.white12,
+        child: const Icon(Icons.music_note, color: Colors.white30, size: 22),
+      );
+
+  Widget _buildReactionsStripe(int commentsCount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFF222222),
+        border: Border(
+          top: BorderSide(color: Colors.white12),
+          bottom: BorderSide(color: Colors.white12),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Text('👋', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 4),
+          const Text('🔥', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 4),
+          const Text('😍', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 8),
+          const Text(
+            '148',
+            style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const Spacer(),
+          Text(
+            '$commentsCount comments',
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
         ],
       ),
     );

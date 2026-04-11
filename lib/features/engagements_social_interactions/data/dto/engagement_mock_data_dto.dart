@@ -10,27 +10,27 @@ class EngagementMockDataDto {
     const EngagementUserDto(
       id: 'user_current_1',
       username: 'darine',
-      avatarUrl: null,
+      avatarUrl: 'https://i.pravatar.cc/150?img=47',
     ),
     const EngagementUserDto(
       id: 'user_2',
       username: 'beatmaker_ali',
-      avatarUrl: null,
+      avatarUrl: 'https://i.pravatar.cc/150?img=12',
     ),
     const EngagementUserDto(
       id: 'user_3',
       username: 'sara_mix',
-      avatarUrl: null,
+      avatarUrl: 'https://i.pravatar.cc/150?img=23',
     ),
     const EngagementUserDto(
       id: 'user_4',
       username: 'omar.wav',
-      avatarUrl: null,
+      avatarUrl: 'https://i.pravatar.cc/150?img=33',
     ),
     const EngagementUserDto(
       id: 'user_5',
       username: 'nour_lofi',
-      avatarUrl: null,
+      avatarUrl: 'https://i.pravatar.cc/150?img=41',
     ),
   ];
 

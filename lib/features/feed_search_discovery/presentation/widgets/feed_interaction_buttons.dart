@@ -12,6 +12,9 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
   final int fallbackLikesCount;
   final int fallbackCommentsCount;
   final FeedType feedType;
+  final String? coverUrl;
+  final String? trackTitle;
+  final String? artistName;
 
   const FeedInteractionButtons({
     super.key,
@@ -19,6 +22,9 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
     required this.fallbackLikesCount,
     required this.fallbackCommentsCount,
     required this.feedType,
+    this.coverUrl,
+    this.trackTitle,
+    this.artistName,
   });
 
   @override
@@ -79,7 +85,12 @@ class _FeedInteractionButtonsState
         IconButton(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => CommentsScreen(trackId: widget.trackId),
+              builder: (_) => CommentsScreen(
+                trackId: widget.trackId,
+                coverUrl: widget.coverUrl,
+                trackTitle: widget.trackTitle,
+                artistName: widget.artistName,
+              ),
             ),
           ),
           icon: const Icon(Icons.comment, color: Colors.white),

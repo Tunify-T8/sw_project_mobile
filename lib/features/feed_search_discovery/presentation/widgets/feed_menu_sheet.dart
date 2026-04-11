@@ -5,6 +5,7 @@ import '../../domain/entities/feed_tab_type.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../screens/classic_feed_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 class FeedMenuSheet extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
@@ -87,13 +88,18 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
       label: isReposted ? 'Reposted' : 'Repost',
       color: isReposted ? Colors.orange : Colors.white,
       onTap: () {
-        final notifier = ref.read(engagementProvider(track.trackId).notifier);
-        if (isReposted) {
-          notifier.removeRepost();
-        } else {
-          notifier.repostTrack();
-        }
         Navigator.pop(context);
+        if (isReposted) {
+          ref.read(engagementProvider(track.trackId).notifier).removeRepost();
+        } else {
+          RepostCaptionSheet.show(
+            context,
+            trackId: track.trackId,
+            trackTitle: track.title,
+            artistName: track.artistName,
+            coverUrl: track.coverUrl,
+          );
+        }
       },
     ),
   ];
