@@ -8,7 +8,11 @@ class EngagementFormatters {
     if (diff.inHours < 1) return '${diff.inMinutes}m';
     if (diff.inDays < 1) return '${diff.inHours}h';
     if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${time.day}/${time.month}/${time.year}';
+    final weeks = (diff.inDays / 7).floor();
+    if (weeks < 52) return '${weeks}w';
+    final months = (diff.inDays / 30).floor();
+    if (months < 12) return '${months}mo';
+    return '${(diff.inDays / 365).floor()}y';
   }
 
   static String timestamp(int seconds) {

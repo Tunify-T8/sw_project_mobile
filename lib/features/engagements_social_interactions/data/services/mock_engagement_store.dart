@@ -3,6 +3,7 @@ import '../dto/engagement_mock_data_dto.dart';
 import '../dto/engagement_user_dto.dart';
 import '../dto/reply_dto.dart';
 import '../dto/track_engagement_dto.dart';
+import '../../domain/entities/liked_track_entity.dart';
 
 class MockEngagementStore {
   MockEngagementStore() {
@@ -32,6 +33,7 @@ class MockEngagementStore {
       for (final entry in EngagementMockDataDto.trackReposters.entries)
         entry.key: List<String>.from(entry.value),
     };
+
   }
 
   late final Map<String, EngagementUserDto> _usersById;
@@ -215,8 +217,79 @@ class MockEngagementStore {
         .toList();
   }
 
+  // engagement addition — returns mock liked tracks for the viewer
+  // replaces GET /users/me/likes; swap with real API call when BE is ready
+  List<LikedTrackEntity> getLikedTracks(String viewerId) {
+    return EngagementMockDataDto.likedTracks;
+  }
+
+  void deleteComment(String trackId, String commentId) {
+    _commentsByTrackId[trackId]?.removeWhere((c) => c.id == commentId);
+    final current = getTrackEngagement(trackId);
+    _engagementByTrackId[trackId] = TrackEngagementDto(
+      trackId: current.trackId,
+      likeCount: current.likeCount,
+      repostCount: current.repostCount,
+      commentCount: (_commentsByTrackId[trackId] ?? []).length,
+      isLiked: current.isLiked,
+      isReposted: current.isReposted,
+    );
+  }
+
+  void deleteReply(String commentId, String replyId) {
+    _repliesByCommentId[commentId]?.removeWhere((r) => r.id == replyId);
+
+    // keep repliesCount on parent comment in sync
+    for (final trackId in _commentsByTrackId.keys) {
+      final comments = _commentsByTrackId[trackId]!;
+      final idx = comments.indexWhere((c) => c.id == commentId);
+      if (idx != -1) {
+        final old = comments[idx];
+        comments[idx] = CommentDto(
+          id: old.id,
+          trackId: old.trackId,
+          user: old.user,
+          timestamp: old.timestamp,
+          text: old.text,
+          likesCount: old.likesCount,
+          repliesCount: (_repliesByCommentId[commentId] ?? []).length,
+          createdAt: old.createdAt,
+        );
+        break;
+      }
+    }
+  }
+
   List<ReplyDto> getReplies(String commentId) {
     return List<ReplyDto>.from(_repliesByCommentId[commentId] ?? <ReplyDto>[]);
+  }
+
+  // engagement addition — toggles like on a reply, persisting count + viewer state in the store
+  ReplyDto toggleReplyLike({
+    required String commentId,
+    required String replyId,
+    required String viewerId,
+  }) {
+    final replies = _repliesByCommentId[commentId] ?? <ReplyDto>[];
+    final idx = replies.indexWhere((r) => r.id == replyId);
+    if (idx == -1) throw StateError('Reply $replyId not found');
+
+    final old = replies[idx];
+    final nowLiked = !old.isLikedByViewer;
+    final updated = ReplyDto(
+      id: old.id,
+      commentId: old.commentId,
+      user: old.user,
+      parentUsername: old.parentUsername,
+      text: old.text,
+      likesCount: nowLiked ? old.likesCount + 1 : (old.likesCount - 1).clamp(0, 999999),
+      repliesCount: old.repliesCount,
+      isLikedByViewer: nowLiked,
+      createdAt: old.createdAt,
+    );
+    replies[idx] = updated;
+    _repliesByCommentId[commentId] = replies;
+    return updated;
   }
 
   ReplyDto addReply({
@@ -247,6 +320,26 @@ class MockEngagementStore {
 
     _repliesByCommentId.putIfAbsent(commentId, () => <ReplyDto>[]);
     _repliesByCommentId[commentId]!.add(newReply);
+
+    // update repliesCount on the parent comment so CommentTile reloads
+    for (final trackId in _commentsByTrackId.keys) {
+      final comments = _commentsByTrackId[trackId]!;
+      final idx = comments.indexWhere((c) => c.id == commentId);
+      if (idx != -1) {
+        final old = comments[idx];
+        comments[idx] = CommentDto(
+          id: old.id,
+          trackId: old.trackId,
+          user: old.user,
+          timestamp: old.timestamp,
+          text: old.text,
+          likesCount: old.likesCount,
+          repliesCount: _repliesByCommentId[commentId]!.length,
+          createdAt: old.createdAt,
+        );
+        break;
+      }
+    }
 
     return newReply;
   }

@@ -8,11 +8,15 @@ class CommentOptionsSheet extends StatelessWidget {
     required this.username,
     this.timestamp,
     this.onPlayFromTimestamp,
+    this.isOwner = false,
+    this.onDelete,
   });
 
   final String username;
   final int? timestamp;
   final VoidCallback? onPlayFromTimestamp;
+  final bool isOwner;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -57,21 +61,32 @@ class CommentOptionsSheet extends StatelessWidget {
             title: const Text('Copy', style: TextStyle(color: Colors.white)),
             onTap: () => Navigator.pop(context),
           ),
-          ListTile(
-            leading: const Icon(Icons.flag_outlined, color: Colors.white70),
-            title: const Text('Report', style: TextStyle(color: Colors.white)),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.outlined_flag, color: Colors.white70),
-            title: const Text('Report as spam', style: TextStyle(color: Colors.white)),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.block, color: Colors.white70),
-            title: const Text('Block', style: TextStyle(color: Colors.white)),
-            onTap: () => Navigator.pop(context),
-          ),
+          if (isOwner) ...[
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              title: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              onTap: () {
+                Navigator.pop(context);
+                onDelete?.call();
+              },
+            ),
+          ] else ...[
+            ListTile(
+              leading: const Icon(Icons.flag_outlined, color: Colors.white70),
+              title: const Text('Report', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.outlined_flag, color: Colors.white70),
+              title: const Text('Report as spam', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.block, color: Colors.white70),
+              title: const Text('Block', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
         ],
       ),
     );
@@ -82,6 +97,8 @@ class CommentOptionsSheet extends StatelessWidget {
     required String username,
     int? timestamp,
     VoidCallback? onPlayFromTimestamp,
+    bool isOwner = false,
+    VoidCallback? onDelete,
   }) {
     showModalBottomSheet(
       context: context,
@@ -93,6 +110,8 @@ class CommentOptionsSheet extends StatelessWidget {
         username: username,
         timestamp: timestamp,
         onPlayFromTimestamp: onPlayFromTimestamp,
+        isOwner: isOwner,
+        onDelete: onDelete,
       ),
     );
   }

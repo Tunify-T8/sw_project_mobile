@@ -19,6 +19,7 @@ class CommentsScreen extends ConsumerStatefulWidget {
 class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  String? _replyingToCommentId; // engagement addition — tracks which comment the user is replying to
 
   @override
   void initState() {
@@ -43,13 +44,26 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   Future<void> _submit() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    final timestamp = _currentTimestampSeconds;
+    final replyTarget = _replyingToCommentId; // engagement addition — capture before clearing
     _controller.clear();
     _focusNode.unfocus();
-    await ref.read(engagementProvider(widget.trackId).notifier).addComment(
-          timestamp: timestamp,
-          text: text,
-        );
+    setState(() => _replyingToCommentId = null);
+
+    if (replyTarget != null) {
+      // engagement addition — submit as a reply instead of a top-level comment
+      await ref.read(addReplyUsecaseProvider).call(
+            commentId: replyTarget,
+            viewerId: 'user_current_1',
+            text: text,
+          );
+      await ref.read(engagementProvider(widget.trackId).notifier).loadComments();
+    } else {
+      final timestamp = _currentTimestampSeconds;
+      await ref.read(engagementProvider(widget.trackId).notifier).addComment(
+            timestamp: timestamp,
+            text: text,
+          );
+    }
   }
 
   @override
@@ -122,8 +136,9 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
               Navigator.pop(context);
             }
           },
-          onReply: () {
-            _controller.text = '@${comment.user.username} ';
+          onReply: (username) {
+            setState(() => _replyingToCommentId = comment.id); // engagement addition — mark which comment we're replying to
+            _controller.text = '@$username ';
             _controller.selection = TextSelection.fromPosition(
               TextPosition(offset: _controller.text.length),
             );

@@ -1,6 +1,7 @@
 import 'comment_dto.dart';
 import 'engagement_user_dto.dart';
 import 'track_engagement_dto.dart';
+import '../../domain/entities/liked_track_entity.dart'; // engagement addition
 
 class EngagementMockDataDto {
   static const String viewerId = 'user_current_1';
@@ -8,7 +9,7 @@ class EngagementMockDataDto {
   static final List<EngagementUserDto> users = <EngagementUserDto>[
     const EngagementUserDto(
       id: 'user_current_1',
-      username: 'you',
+      username: 'darine',
       avatarUrl: null,
     ),
     const EngagementUserDto(
@@ -155,6 +156,37 @@ class EngagementMockDataDto {
       'user_5',
     ],
   };
+
+  // engagement addition — mock response for GET /users/me/likes
+  // replace this list with a real API call when BE is ready
+  static final List<LikedTrackEntity> likedTracks = [
+    LikedTrackEntity(
+      trackId: 't1',
+      title: 'Midnight Drive',
+      artistId: 'a1',
+      artistName: 'Drake',
+      artistAvatar: 'https://i.pravatar.cc/150?img=1',
+      artistVerified: true,
+      coverUrl: 'https://picsum.photos/400/400?random=1',
+      duration: 215,
+      likesCount: 320,
+      commentsCount: 45,
+      likedAt: DateTime.parse('2026-03-18T10:00:00Z'),
+    ),
+    LikedTrackEntity(
+      trackId: 't3',
+      title: 'Astro Vibes',
+      artistId: 'a3',
+      artistName: 'Travis Scott',
+      artistAvatar: 'https://i.pravatar.cc/150?img=4',
+      artistVerified: true,
+      coverUrl: 'https://picsum.photos/400/400?random=3',
+      duration: 230,
+      likesCount: 900,
+      commentsCount: 120,
+      likedAt: DateTime.parse('2026-03-19T14:30:00Z'),
+    ),
+  ];
 
   static final Map<String, List<String>> trackReposters =
       <String, List<String>>{

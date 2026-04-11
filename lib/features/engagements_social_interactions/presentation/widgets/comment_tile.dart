@@ -21,7 +21,7 @@ class CommentTile extends ConsumerStatefulWidget {
   final CommentEntity comment;
   final String trackId;
   final ValueChanged<int>? onTapTimestamp;
-  final VoidCallback? onReply;
+  final ValueChanged<String>? onReply; // receives username to pre-fill @mention in input
 
   @override
   ConsumerState<CommentTile> createState() => _CommentTileState();
@@ -32,20 +32,45 @@ class _CommentTileState extends ConsumerState<CommentTile> {
   bool _loadingReplies = false;
   List<ReplyEntity> _replies = [];
 
+  @override
+  void initState() {
+    super.initState();
+    // engagement addition — auto-load replies if the comment already has some
+    if (widget.comment.repliesCount > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadReplies());
+    }
+  }
+
+  @override
+  void didUpdateWidget(CommentTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // engagement addition — reload if repliesCount changed (reply added or deleted)
+    if (widget.comment.repliesCount != oldWidget.comment.repliesCount &&
+        widget.comment.repliesCount > 0) {
+      _loadReplies();
+    }
+  }
+
+  Future<void> _loadReplies() async {
+    setState(() => _loadingReplies = true);
+    final replies = await ref
+        .read(getRepliesUsecaseProvider)
+        .call(commentId: widget.comment.id);
+    if (mounted) {
+      setState(() {
+        _replies = replies;
+        _showReplies = replies.isNotEmpty;
+        _loadingReplies = false;
+      });
+    }
+  }
+
   Future<void> _toggleReplies() async {
     if (_showReplies) {
       setState(() => _showReplies = false);
       return;
     }
-    setState(() => _loadingReplies = true);
-    final replies = await ref
-        .read(getRepliesUsecaseProvider)
-        .call(commentId: widget.comment.id);
-    setState(() {
-      _replies = replies;
-      _showReplies = true;
-      _loadingReplies = false;
-    });
+    await _loadReplies();
   }
 
   @override
@@ -88,7 +113,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       repliesCount: comment.repliesCount,
                       loadingReplies: _loadingReplies,
                       onReply: () {
-                        widget.onReply?.call();
+                        widget.onReply?.call(comment.user.username);
                         if (comment.repliesCount > 0) _toggleReplies();
                       },
                       onOptions: () => CommentOptionsSheet.show(
@@ -98,6 +123,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                         onPlayFromTimestamp: timestamp != null && widget.onTapTimestamp != null
                             ? () => widget.onTapTimestamp!(timestamp)
                             : null,
+                        isOwner: comment.user.id == 'user_current_1',
+                        onDelete: () => ref
+                            .read(engagementProvider(widget.trackId).notifier)
+                            .deleteComment(comment.id),
                       ),
                     ),
                   ],
@@ -117,7 +146,18 @@ class _CommentTileState extends ConsumerState<CommentTile> {
             padding: const EdgeInsets.only(left: 52),
             child: Column(
               children: _replies
-                  .map((reply) => ReplyTile(reply: reply))
+                  .map((reply) => ReplyTile(
+                        reply: reply,
+                        parentTimestamp: comment.timestamp,
+                        onReply: () => widget.onReply?.call(reply.user.username),
+                        onDelete: () async {
+                          await ref.read(deleteReplyUsecaseProvider).call(
+                                commentId: comment.id,
+                                replyId: reply.id,
+                              );
+                          await _loadReplies();
+                        },
+                      ))
                   .toList(),
             ),
           ),
@@ -232,9 +272,9 @@ class _CommentActions extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: onReply,
-              child: Text(
-                repliesCount > 0 ? 'Reply ($repliesCount)' : 'Reply',
-                style: const TextStyle(color: Colors.white54, fontSize: 13),
+              child: const Text(
+                'Reply',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ),
             const SizedBox(width: 16),

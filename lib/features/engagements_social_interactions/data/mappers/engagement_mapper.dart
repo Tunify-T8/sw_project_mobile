@@ -98,6 +98,7 @@ class EngagementMapper {
       parentUsername: dto.parentUsername,
       text: dto.text,
       likesCount: dto.likesCount,
+      isLikedByViewer: dto.isLikedByViewer, // engagement addition — carry like state through to entity
       createdAt: dto.createdAt,
     );
   }

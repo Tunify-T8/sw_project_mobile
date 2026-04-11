@@ -9,6 +9,7 @@ class ReplyDto {
     required this.text,
     this.likesCount = 0,
     this.repliesCount = 0,
+    this.isLikedByViewer = false, // engagement addition — persists like state in store
     required this.createdAt,
   });
 
@@ -19,6 +20,7 @@ class ReplyDto {
   final String text;
   final int likesCount;
   final int repliesCount;
+  final bool isLikedByViewer; // engagement addition — true if current viewer has liked this reply
   final DateTime createdAt;
 
   factory ReplyDto.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class ReplyDto {
       text: (json['text'] as String?) ?? '',
       likesCount: (json['likesCount'] as int?) ?? 0,
       repliesCount: (json['repliesCount'] as int?) ?? 0,
+      isLikedByViewer: (json['isLikedByViewer'] as bool?) ?? false, // engagement addition
       createdAt:
           DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -49,6 +52,7 @@ class ReplyDto {
       'text': text,
       'likesCount': likesCount,
       'repliesCount': repliesCount,
+      'isLikedByViewer': isLikedByViewer, // engagement addition
       'createdAt': createdAt.toIso8601String(),
     };
   }

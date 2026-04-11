@@ -13,6 +13,7 @@ import '../widgets/player_waveform_bar.dart';
 import 'queue_screen.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart'; // engagement addition
 
 part 'player_screen_body.dart';
 part 'player_screen_visuals.dart';
@@ -50,7 +51,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       if (playerState?.isPlaying == true) _artworkController.forward();
       final trackId = playerState?.bundle?.trackId;
       if (trackId != null) {
-        ref.read(engagementProvider(trackId).notifier).loadEngagement();
+        ref.read(engagementProvider(trackId).notifier).loadEngagement(); // engagement addition — load engagement for the initial track on screen open
       }
     });
   }
@@ -72,6 +73,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         _artworkController.forward();
       } else if (!isPlaying && wasPlaying) {
         _artworkController.reverse();
+      }
+
+      // engagement addition — reload engagement when user skips to a different track
+      final prevTrackId = prev?.asData?.value.bundle?.trackId;
+      final nextTrackId = next.asData?.value.bundle?.trackId;
+      if (nextTrackId != null && nextTrackId != prevTrackId) {
+        ref.read(engagementProvider(nextTrackId).notifier).loadEngagement();
       }
     });
 

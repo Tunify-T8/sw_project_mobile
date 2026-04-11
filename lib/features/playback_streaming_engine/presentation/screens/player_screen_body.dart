@@ -16,6 +16,9 @@ class _PlayerBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bundle = playerState.bundle!;
+    final engagementState = ref.watch(engagementProvider(bundle.trackId)); // engagement addition — watch live engagement state for this track
+    final isLiked =
+        engagementState.engagement?.isLiked ?? bundle.engagement.isLiked; // engagement addition — prefer engagementProvider over stale bundle value
 
     return GestureDetector(
       // Swipe left → next track, swipe right → previous track
@@ -56,10 +59,16 @@ class _PlayerBody extends ConsumerWidget {
                         _TrackInfo(
                           title: bundle.title,
                           artistName: bundle.artist.name,
-                          isLiked: bundle.engagement.isLiked,
+                          isLiked: isLiked, // engagement modification — was bundle.engagement.isLiked, now uses reactive isLiked above
                           onLike: () => ref
                               .read(engagementProvider(bundle.trackId).notifier)
                               .toggleLike(),
+                          likeCount: engagementState.engagement?.likeCount ?? 0, // engagement addition
+                          onLikeCountTap: () => Navigator.of(context).push( // engagement addition — open LikersScreen on count tap
+                            MaterialPageRoute(
+                              builder: (_) => LikersScreen(trackId: bundle.trackId),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 20),
                         PlayerWaveformBar(

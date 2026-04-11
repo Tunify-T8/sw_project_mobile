@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart'; // engagement addition
 
-class FeedInteractionButtons extends ConsumerStatefulWidget {
-  final String trackId;
+class FeedInteractionButtons extends ConsumerStatefulWidget { // engagement modification — was StatelessWidget, converted to ConsumerStatefulWidget
+  final String trackId; // engagement addition — replaces static isLiked, now drives engagementProvider
   final int fallbackLikesCount;
   final int fallbackCommentsCount;
 
@@ -33,7 +34,7 @@ class _FeedInteractionButtonsState
       if (state.engagementStatus == EngagementStatus.initial) {
         ref
             .read(engagementProvider(widget.trackId).notifier)
-            .loadEngagement();
+            .loadEngagement(); // engagement addition — fetch engagement data when card first appears
       }
     });
   }
@@ -52,7 +53,7 @@ class _FeedInteractionButtonsState
         IconButton(
           onPressed: () => ref
               .read(engagementProvider(widget.trackId).notifier)
-              .toggleLike(),
+              .toggleLike(), // engagement addition — was () {}, now calls toggleLike
           icon: Icon(
             isLiked ? Icons.favorite : Icons.favorite_border,
             color: isLiked ? Colors.red : Colors.white,
@@ -61,12 +62,19 @@ class _FeedInteractionButtonsState
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
-        Text(
-          likesCount.toString(),
-          style: const TextStyle(color: Colors.white, fontSize: 15),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push( // engagement addition — tap like count to open LikersScreen
+            MaterialPageRoute(
+              builder: (_) => LikersScreen(trackId: widget.trackId),
+            ),
+          ),
+          child: Text(
+            likesCount.toString(),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
         ),
         IconButton(
-          onPressed: () => Navigator.of(context).push(
+          onPressed: () => Navigator.of(context).push( // engagement addition — was () {}, now navigates to CommentsScreen
             MaterialPageRoute(
               builder: (_) => CommentsScreen(trackId: widget.trackId),
             ),
@@ -82,7 +90,7 @@ class _FeedInteractionButtonsState
         ),
         IconButton(
           onPressed: () {},
-          icon: const Icon(Icons.more_vert, color: Colors.white),
+          icon: const Icon(Icons.playlist_add, color: Colors.white),
           padding: EdgeInsets.zero,
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,

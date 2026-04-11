@@ -13,6 +13,10 @@ import '../../domain/usecases/get_likers_usecase.dart';
 import '../../domain/usecases/get_reposters_usecase.dart';
 import '../../domain/usecases/get_replies_usecase.dart';
 import '../../domain/usecases/add_reply_usecase.dart';
+import '../../domain/usecases/delete_comment_usecase.dart';
+import '../../domain/usecases/delete_reply_usecase.dart';
+import '../../domain/usecases/toggle_reply_like_usecase.dart'; // engagement addition
+import '../../domain/usecases/get_liked_tracks_usecase.dart'; // engagement addition
 import 'engagement_state.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
@@ -59,6 +63,18 @@ final getRepliesUsecaseProvider = Provider((ref) =>
 
 final addReplyUsecaseProvider = Provider((ref) =>
     AddReplyUsecase(ref.watch(engagementRepositoryProvider)));
+
+final deleteCommentUsecaseProvider = Provider((ref) =>
+    DeleteCommentUsecase(ref.watch(engagementRepositoryProvider)));
+
+final deleteReplyUsecaseProvider = Provider((ref) =>
+    DeleteReplyUsecase(ref.watch(engagementRepositoryProvider)));
+
+final toggleReplyLikeUsecaseProvider = Provider((ref) => // engagement addition
+    ToggleReplyLikeUsecase(ref.watch(engagementRepositoryProvider)));
+
+final getLikedTracksUsecaseProvider = Provider((ref) => // engagement addition
+    GetLikedTracksUsecase(ref.watch(engagementRepositoryProvider)));
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
@@ -180,6 +196,15 @@ class EngagementNotifier extends Notifier<EngagementState> {
         error: e.toString(),
       );
     }
+  }
+
+  Future<void> deleteComment(String commentId) async {
+    await ref.read(deleteCommentUsecaseProvider).call(
+          trackId: _trackId,
+          commentId: commentId,
+        );
+    await loadComments();
+    await loadEngagement();
   }
 
   void toggleCommentLike(String commentId) {

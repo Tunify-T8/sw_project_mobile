@@ -1,6 +1,7 @@
 import '../../domain/entities/comment_entity.dart';
 import '../../domain/entities/comments_page_entity.dart';
 import '../../domain/entities/engagement_user_entity.dart';
+import '../../domain/entities/liked_track_entity.dart';
 import '../../domain/entities/reply_entity.dart';
 import '../../domain/entities/track_engagement_entity.dart';
 import '../../domain/repositories/engagement_repository.dart';
@@ -79,6 +80,36 @@ class EngagementRepositoryImpl implements EngagementRepository {
         parentUsername: parentUsername,
       ),
     );
+  }
+
+  @override
+  Future<void> deleteComment({required String trackId, required String commentId}) async {
+    await Future<void>.delayed(_delay);
+    _store.deleteComment(trackId, commentId);
+  }
+
+  @override
+  Future<void> deleteReply({required String commentId, required String replyId}) async {
+    await Future<void>.delayed(_delay);
+    _store.deleteReply(commentId, replyId);
+  }
+
+  @override
+  Future<ReplyEntity> toggleReplyLike({ // engagement addition — persists like toggle in store
+    required String commentId,
+    required String replyId,
+    required String viewerId,
+  }) async {
+    await Future<void>.delayed(_delay);
+    return EngagementMapper.toReplyEntity(
+      _store.toggleReplyLike(commentId: commentId, replyId: replyId, viewerId: viewerId),
+    );
+  }
+
+  @override
+  Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}) async { // engagement addition — maps to GET /users/me/likes
+    await Future<void>.delayed(_delay);
+    return _store.getLikedTracks(viewerId);
   }
 
   @override

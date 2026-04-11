@@ -7,6 +7,7 @@ class ReplyEntity {
   final String? parentUsername;
   final String text;
   final int likesCount;
+  final bool isLikedByViewer; // engagement addition — viewer's like state, persisted in store
   final DateTime createdAt;
   const ReplyEntity({
     required this.id,
@@ -15,6 +16,7 @@ class ReplyEntity {
     this.parentUsername,
     required this.text,
     this.likesCount = 0,
+    this.isLikedByViewer = false, // engagement addition
     required this.createdAt,
   });
 }

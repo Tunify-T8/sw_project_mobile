@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/track_preview_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 
-class FeedMenuSheet extends StatelessWidget {
+class FeedMenuSheet extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
   final TrackPreviewEntity track;
   final FeedTabType tabType;
 
@@ -21,12 +24,19 @@ class FeedMenuSheet extends StatelessWidget {
     );
   }
 
-  List<Widget> _trackActions() => [
+  List<Widget> _trackActions(BuildContext context, WidgetRef ref) {
+    final engagementState = ref.watch(engagementProvider(track.trackId));
+    final isLiked = engagementState.engagement?.isLiked ?? track.interaction.isLiked; // engagement addition — prefer live engagementProvider state over stale track value
+    final isReposted = engagementState.engagement?.isReposted ?? track.interaction.isReposted; // engagement addition — prefer live engagementProvider state over stale track value
+    return [
     _createMenuItem(
-      icon: track.interaction.isLiked ? Icons.favorite : Icons.favorite_border,
-      label: track.interaction.isLiked ? 'Liked' : 'Like',
-      color: track.interaction.isLiked ? Colors.orange : Colors.white,
-      onTap: () {},
+      icon: isLiked ? Icons.favorite : Icons.favorite_border,
+      label: isLiked ? 'Liked' : 'Like',
+      color: isLiked ? Colors.orange : Colors.white,
+      onTap: () { // engagement addition — was () {}, now toggles like and closes sheet
+        ref.read(engagementProvider(track.trackId).notifier).toggleLike();
+        Navigator.pop(context);
+      },
     ),
     _createMenuItem(
       icon: Icons.queue_play_next,
@@ -40,8 +50,9 @@ class FeedMenuSheet extends StatelessWidget {
       onTap: () {},
     ),
   ];
+  }
 
-  List<Widget> _socialActions() => [
+  List<Widget> _socialActions(BuildContext context, WidgetRef ref, bool isReposted) => [
     _createMenuItem(
       icon: Icons.person_outline,
       label: 'Go to profile',
@@ -50,13 +61,26 @@ class FeedMenuSheet extends StatelessWidget {
     _createMenuItem(
       icon: Icons.comment_outlined,
       label: 'View comments',
-      onTap: () {},
+      onTap: () { // engagement addition — was () {}, now navigates to CommentsScreen
+        Navigator.pop(context);
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => CommentsScreen(trackId: track.trackId),
+        ));
+      },
     ),
     _createMenuItem(
-      icon: Icons.repeat,
-      label: track.interaction.isReposted ? 'Reposted' : 'Repost',
-      color: track.interaction.isReposted ? Colors.orange : Colors.white,
-      onTap: () {},
+      icon: isReposted ? Icons.repeat_on : Icons.repeat,
+      label: isReposted ? 'Reposted' : 'Repost',
+      color: isReposted ? Colors.orange : Colors.white,
+      onTap: () { // engagement addition — was () {}, now toggles repost and closes sheet
+        final notifier = ref.read(engagementProvider(track.trackId).notifier);
+        if (isReposted) {
+          notifier.removeRepost();
+        } else {
+          notifier.repostTrack();
+        }
+        Navigator.pop(context);
+      },
     ),
   ];
 
@@ -157,14 +181,15 @@ Widget _trackHeader() {
 }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isReposted = (ref.watch(engagementProvider(track.trackId)).engagement?.isReposted) ?? track.interaction.isReposted;
     return ListView(
       children: [
         _trackHeader(),
         const Divider(color: Colors.white12),
-        ..._trackActions(),
+        ..._trackActions(context, ref),
         const Divider(color: Colors.white12),
-        ..._socialActions(),
+        ..._socialActions(context, ref, isReposted),
         const Divider(color: Colors.white12),
         ..._feedControls(),
         const Divider(color: Colors.white12),
