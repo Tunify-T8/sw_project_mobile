@@ -4,6 +4,7 @@ import '../dto/engagement_user_dto.dart';
 import '../dto/reply_dto.dart';
 import '../dto/track_engagement_dto.dart';
 import '../../domain/entities/liked_track_entity.dart';
+import '../../domain/entities/reposted_track_entity.dart';
 
 class MockEngagementStore {
   MockEngagementStore() {
@@ -237,6 +238,13 @@ class MockEngagementStore {
   // replaces GET /users/me/likes; swap with real API call when BE is ready
   List<LikedTrackEntity> getLikedTracks(String viewerId) {
     return EngagementMockDataDto.likedTracks;
+  }
+
+  // returns mock reposted tracks for the given user
+  // null userId → GET /users/me/reposts; non-null → GET /users/{id}/reposts
+  // swap with real API call when BE is ready
+  List<RepostedTrackEntity> getRepostedTracks(String? userId) {
+    return EngagementMockDataDto.repostedTracks;
   }
 
   void seedUser({

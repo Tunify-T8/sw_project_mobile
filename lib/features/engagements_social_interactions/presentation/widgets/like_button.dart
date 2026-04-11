@@ -5,8 +5,9 @@ import '../provider/enagement_providers.dart';
 
 class LikeButton extends ConsumerWidget {
   final String trackId;
+  final bool showCount;
 
-  const LikeButton({super.key, required this.trackId});
+  const LikeButton({super.key, required this.trackId, this.showCount = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,13 +29,14 @@ class LikeButton extends ConsumerWidget {
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
-        Text(
-          likeCount.toString(),
-          style: TextStyle(
-            color: isLiked ? Colors.orange : Colors.white,
-            fontSize: 15,
+        if (showCount)
+          Text(
+            likeCount.toString(),
+            style: TextStyle(
+              color: isLiked ? Colors.orange : Colors.white,
+              fontSize: 15,
+            ),
           ),
-        ),
       ],
     );
   }

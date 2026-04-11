@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/design_system/colors.dart';
+import '../../../../engagements_social_interactions/presentation/provider/enagement_providers.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/provider/engagement_state.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/screens/comments_screen.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/screens/likers_screen.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/widgets/comment_input_bar.dart'; // engagement addition
 import '../../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../domain/entities/upload_item.dart';
 import '../../providers/track_detail_waveform_provider.dart';
@@ -84,9 +89,18 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
                       ),
               ),
               const SizedBox(height: 16),
-              const _CommentComposerBar(),
+              CommentInputBar( // engagement addition
+                trackId: item.id,
+              ),
               const SizedBox(height: 16),
-              _BottomActionBar(onMoreTap: onMoreTap, onQueueTap: onQueueTap),
+              _BottomActionBar( // engagement addition
+                trackId: item.id,
+                coverUrl: item.artworkUrl,
+                trackTitle: item.title,
+                artistName: item.artistDisplay,
+                onMoreTap: onMoreTap,
+                onQueueTap: onQueueTap,
+              ),
             ],
           ),
         ),

@@ -2,6 +2,7 @@ import 'comment_dto.dart';
 import 'engagement_user_dto.dart';
 import 'track_engagement_dto.dart';
 import '../../domain/entities/liked_track_entity.dart'; // engagement addition
+import '../../domain/entities/reposted_track_entity.dart';
 
 class EngagementMockDataDto {
   static const String viewerId = 'user_current_1';
@@ -194,4 +195,35 @@ class EngagementMockDataDto {
         't2': <String>['user_5'],
         't3': <String>['user_current_1', 'user_3', 'user_4'],
       };
+
+  // mock response for GET /users/me/reposts
+  // replace this list with a real API call when BE is ready
+  static final List<RepostedTrackEntity> repostedTracks = [
+    RepostedTrackEntity(
+      trackId: 't3',
+      title: 'Astro Vibes',
+      artistId: 'a3',
+      artistName: 'Travis Scott',
+      artistAvatar: 'https://i.pravatar.cc/150?img=4',
+      artistVerified: true,
+      coverUrl: 'https://picsum.photos/400/400?random=3',
+      duration: 230,
+      repostCount: 210,
+      playCount: 461000,
+      repostedAt: DateTime.parse('2026-03-21T18:00:00Z'),
+    ),
+    RepostedTrackEntity(
+      trackId: 't2',
+      title: 'Golden Hour',
+      artistId: 'a2',
+      artistName: 'Billie Eilish',
+      artistAvatar: 'https://i.pravatar.cc/150?img=9',
+      artistVerified: true,
+      coverUrl: 'https://picsum.photos/400/400?random=2',
+      duration: 195,
+      repostCount: 52,
+      playCount: 128000,
+      repostedAt: DateTime.parse('2026-03-22T09:15:00Z'),
+    ),
+  ];
 }

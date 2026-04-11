@@ -10,6 +10,7 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_info.dart';
 import '../widgets/profile_share_sheet.dart';
 import '../widgets/user_options_sheet.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -236,6 +237,7 @@ class _OtherUserProfileScreenState
                         ).showInfoSheet(),
                         actionButtons: _buildActionButtons(),
                       ),
+                      ProfileRepostsSection(userId: widget.userId),
                     ],
                   ),
                 ),

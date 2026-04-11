@@ -19,6 +19,7 @@ import '../../domain/usecases/delete_comment_usecase.dart';
 import '../../domain/usecases/delete_reply_usecase.dart';
 import '../../domain/usecases/toggle_reply_like_usecase.dart'; // engagement addition
 import '../../domain/usecases/get_liked_tracks_usecase.dart'; // engagement addition
+import '../../domain/usecases/get_user_reposts_usecase.dart';
 import '../../domain/entities/track_engagement_entity.dart';
 import 'engagement_state.dart';
 
@@ -78,6 +79,9 @@ final toggleReplyLikeUsecaseProvider = Provider((ref) => // engagement addition
 
 final getLikedTracksUsecaseProvider = Provider((ref) => // engagement addition
     GetLikedTracksUsecase(ref.watch(engagementRepositoryProvider)));
+
+final getUserRepostsUsecaseProvider = Provider((ref) =>
+    GetUserRepostsUsecase(ref.watch(engagementRepositoryProvider)));
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 

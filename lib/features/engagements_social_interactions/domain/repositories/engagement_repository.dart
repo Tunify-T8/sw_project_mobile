@@ -4,6 +4,7 @@ import '../entities/comments_page_entity.dart';
 import '../entities/reply_entity.dart';
 import '../entities/engagement_user_entity.dart';
 import '../entities/liked_track_entity.dart';
+import '../entities/reposted_track_entity.dart';
 
 abstract class EngagementRepository {
   Future<TrackEngagementEntity> getTrackEngagement({required String trackId});
@@ -20,4 +21,7 @@ abstract class EngagementRepository {
   Future<List<EngagementUserEntity>> getLikers({required String trackId});
   Future<List<EngagementUserEntity>> getReposters({required String trackId});
   Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}); // engagement addition — maps to GET /users/me/likes
+  /// [userId] null  → GET /users/me/reposts
+  /// [userId] non-null → GET /users/{userId}/reposts
+  Future<List<RepostedTrackEntity>> getUserReposts({String? userId}); // maps to GET /users/me/reposts or /users/{id}/reposts
 }

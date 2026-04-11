@@ -2,6 +2,7 @@ import '../../domain/entities/comment_entity.dart';
 import '../../domain/entities/comments_page_entity.dart';
 import '../../domain/entities/engagement_user_entity.dart';
 import '../../domain/entities/liked_track_entity.dart';
+import '../../domain/entities/reposted_track_entity.dart';
 import '../../domain/entities/reply_entity.dart';
 import '../../domain/entities/track_engagement_entity.dart';
 import '../../domain/repositories/engagement_repository.dart';
@@ -110,6 +111,12 @@ class EngagementRepositoryImpl implements EngagementRepository {
   Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}) async { // engagement addition — maps to GET /users/me/likes
     await Future<void>.delayed(_delay);
     return _store.getLikedTracks(viewerId);
+  }
+
+  @override
+  Future<List<RepostedTrackEntity>> getUserReposts({String? userId}) async { // maps to GET /users/me/reposts or /users/{id}/reposts
+    await Future<void>.delayed(_delay);
+    return _store.getRepostedTracks(userId);
   }
 
   @override
