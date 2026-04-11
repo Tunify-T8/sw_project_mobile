@@ -8,6 +8,8 @@ import '../../../../core/design_system/colors.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/presentation/screens/listening_history_screen.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../../data/services/global_track_store.dart';
 import '../../../engagements_social_interactions/presentation/screens/liked_tracks_screen.dart'; // engagement addition
 import '../../domain/entities/upload_item.dart';
@@ -28,7 +30,7 @@ const _libraryMenuItems = [
   'Your uploads',
 ];
 
-class LibraryScreen extends ConsumerWidget {
+class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({
     super.key,
     this.onOpenSettings,
@@ -45,8 +47,20 @@ class LibraryScreen extends ConsumerWidget {
   final VoidCallback? onOpenYourUploads;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(profileProvider.notifier).loadProfile());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(listeningHistoryProvider);
+    final profileImageUrl = ref.watch(profileProvider).profile?.profileImagePath;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -70,20 +84,21 @@ class LibraryScreen extends ConsumerWidget {
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: onOpenSettings,
+                      onPressed: widget.onOpenSettings,
                       icon: const Icon(Icons.settings_outlined),
                       color: Colors.white,
                     ),
                     GestureDetector(
-                      onTap: onOpenProfile,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE7E7E7),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.person, color: Colors.black54),
+                      onTap: widget.onOpenProfile,
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFFE7E7E7),
+                        backgroundImage: (profileImageUrl != null && profileImageUrl.isNotEmpty)
+                            ? NetworkImage(profileImageUrl)
+                            : null,
+                        child: (profileImageUrl == null || profileImageUrl.isEmpty)
+                            ? const Icon(Icons.person, color: Colors.black54)
+                            : null,
                       ),
                     ),
                   ],

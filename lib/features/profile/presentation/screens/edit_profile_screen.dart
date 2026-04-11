@@ -61,6 +61,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   /////to have editscreen up to date with images
   String? profileImageUrl;
   String? coverImageUrl;
+  //// Track original image states to detect changes
+  File? _originalProfileImage;
+  File? _originalCoverImage;
+  String? _originalProfileImageUrl;
+  String? _originalCoverImageUrl;
   //// 3lshan amsa7 el sa7
   bool _profileImageDeleted = false;
   bool _coverImageDeleted = false;
@@ -100,6 +105,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     coverImage = widget.coverImage;
     profileImageUrl = widget.profileImageUrl;
     coverImageUrl = widget.coverImageUrl;
+    // Store originals to detect changes
+    _originalProfileImage = widget.profileImage;
+    _originalCoverImage = widget.coverImage;
+    _originalProfileImageUrl = widget.profileImageUrl;
+    _originalCoverImageUrl = widget.coverImageUrl;
     _isArtist = widget.userType == 'ARTIST';
   }
 
@@ -184,24 +194,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           String? profileUrl;
           String? coverUrl;
 
-          if (profileImage != null) {
+          // Profile image: only upload if it's a new file (changed by user)
+          final profileChanged = profileImage != null &&
+              profileImage?.path != _originalProfileImage?.path;
+          if (profileChanged) {
             profileUrl = await _resolveSavedImagePath(
               profileImage,
               fallbackFailureMessage:
                   'Profile image upload failed, so we saved the local image instead.',
             );
           } else if (_profileImageDeleted) {
-            profileUrl = ''; // says "deleted"
+            profileUrl = ''; // Marked as deleted
+          } else {
+            profileUrl = _originalProfileImageUrl; // Keep original URL
           }
 
-          if (coverImage != null) {
+          // Cover image: only upload if it's a new file (changed by user)
+          final coverChanged = coverImage != null &&
+              coverImage?.path != _originalCoverImage?.path;
+          if (coverChanged) {
             coverUrl = await _resolveSavedImagePath(
               coverImage,
               fallbackFailureMessage:
                   'Cover image upload failed, so we saved the local image instead.',
             );
           } else if (_coverImageDeleted) {
-            coverUrl = ''; // says "deleted"
+            coverUrl = ''; // Marked as deleted
+          } else {
+            coverUrl = _originalCoverImageUrl; // Keep original URL
           }
 
           if (!context.mounted) return;

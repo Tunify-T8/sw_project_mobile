@@ -9,9 +9,15 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (queue.trackIds.length <= 1) return;
 
     final nextIndex = queue.currentIndex + 1;
-    final resolvedIndex = nextIndex >= queue.trackIds.length ? 0 : nextIndex;
 
-    await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
+    if (nextIndex >= queue.trackIds.length) {
+      if (queue.repeat == RepeatMode.all) {
+        await _jumpToIndex(0, queue, autoPlay: current.isPlaying);
+      }
+      return;
+    }
+
+    await _jumpToIndex(nextIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> previous() async {
@@ -22,10 +28,19 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (queue.trackIds.length <= 1) return;
 
     final previousIndex = queue.currentIndex - 1;
-    final resolvedIndex =
-        previousIndex < 0 ? queue.trackIds.length - 1 : previousIndex;
 
-    await _jumpToIndex(resolvedIndex, queue, autoPlay: current.isPlaying);
+    if (previousIndex < 0) {
+      if (queue.repeat == RepeatMode.all) {
+        await _jumpToIndex(
+          queue.trackIds.length - 1,
+          queue,
+          autoPlay: current.isPlaying,
+        );
+      }
+      return;
+    }
+
+    await _jumpToIndex(previousIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> jumpToQueueIndex(int index) async {
@@ -80,6 +95,129 @@ extension PlayerNotifierQueue on PlayerNotifier {
       autoPlay: autoPlay,
       seedTrack: _seedTrackForTrackId(nextTrackId),
     );
+  }
+
+  void removeFromQueue(int index) {
+    final current = _current;
+    if (current?.queue == null) return;
+
+    final queue = current!.queue!;
+    if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
+
+    final newIds = List<String>.from(queue.trackIds)..removeAt(index);
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  /// Backwards-compatible helper. Existing callers that say "add to queue"
+  /// should behave like "Play last".
+  void addToQueue(String trackId) {
+    addToQueueLast(trackId);
+  }
+
+  /// Insert a track immediately after the currently playing one.
+  ///
+  /// This is what users expect from "Play next".
+  void addToQueueNext(String trackId) {
+    final current = _current;
+    if (current == null) {
+      unawaited(
+        loadTrack(
+          trackId,
+          autoPlay: true,
+          seedTrack: _seedTrackForTrackId(trackId),
+        ),
+      );
+      return;
+    }
+
+    final currentTrackId = current.bundle?.trackId;
+    if (currentTrackId == null) return;
+
+    if (current.queue == null) {
+      final nextQueue = PlaybackQueue(
+        trackIds: [currentTrackId, trackId],
+        currentIndex: 0,
+        shuffle: false,
+        repeat: RepeatMode.none,
+      );
+      final next = current.copyWith(queue: nextQueue);
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
+    }
+
+    final queue = current.queue!;
+    final insertIndex = queue.currentIndex + 1;
+    final newIds = List<String>.from(queue.trackIds)..insert(insertIndex, trackId);
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  /// Append a track to the very end of the queue.
+  ///
+  /// This is what users expect from "Play last".
+  void addToQueueLast(String trackId) {
+    final current = _current;
+    if (current == null) {
+      unawaited(
+        loadTrack(
+          trackId,
+          autoPlay: true,
+          seedTrack: _seedTrackForTrackId(trackId),
+        ),
+      );
+      return;
+    }
+
+    final currentTrackId = current.bundle?.trackId;
+    if (currentTrackId == null) return;
+
+    if (current.queue == null) {
+      final nextQueue = PlaybackQueue(
+        trackIds: [currentTrackId, trackId],
+        currentIndex: 0,
+        shuffle: false,
+        repeat: RepeatMode.none,
+      );
+      final next = current.copyWith(queue: nextQueue);
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
+    }
+
+    final queue = current.queue!;
+    final newIds = List<String>.from(queue.trackIds)..add(trackId);
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  /// Reorders a queued track.
+  ///
+  /// Both indexes are relative to the visible "Playing next" list,
+  /// not the full underlying queue. So we offset them by the current track.
+  void reorderQueue(int oldIndex, int newIndex) {
+    final current = _current;
+    if (current?.queue == null) return;
+
+    final queue = current!.queue!;
+    final offset = queue.currentIndex + 1;
+    final absOld = offset + oldIndex;
+    final absNew = offset + newIndex;
+
+    if (absOld < offset || absOld >= queue.trackIds.length) return;
+    if (absNew < offset || absNew > queue.trackIds.length) return;
+
+    final newIds = List<String>.from(queue.trackIds);
+    final item = newIds.removeAt(absOld);
+    newIds.insert(absNew, item);
+
+    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 
   PlayerSeedTrack? _seedTrackForTrackId(String trackId) {

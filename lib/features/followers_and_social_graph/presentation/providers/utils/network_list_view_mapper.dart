@@ -1,29 +1,46 @@
 import 'package:software_project/features/followers_and_social_graph/domain/entities/social_user_entity.dart';
 
-import '../../domain/entities/network_list_type.dart';
-import 'network_lists_state.dart';
+import '../../../domain/entities/network_list_type.dart';
+import '../network_lists_state.dart';
 
 class NetworkListViewMapper {
   static Future<void> loadInitialData({
     required NetworkListType listType,
-    required String userId,
+    String? userId,
+    required bool isMyProfile,
     required dynamic notifier,
   }) async {
     switch (listType) {
       case NetworkListType.following:
-        await notifier.loadFollowingList(userId: userId);
+        if (isMyProfile) {
+          await notifier.loadMyFollowing();
+        } else if (userId != null) {
+          await notifier.loadFollowingList(userId: userId);
+        }
         break;
+
       case NetworkListType.followers:
-        await notifier.loadFollowersList(userId: userId);
+        if (isMyProfile) {
+          await notifier.loadMyFollowers();
+        } else if (userId != null) {
+          await notifier.loadFollowersList(userId: userId);
+        }
         break;
-      case NetworkListType.suggested:
+
+      case NetworkListType.suggestedUsers:
         await notifier.loadSuggestedUsers();
         break;
+
+      case NetworkListType.suggestedArtists:
+        await notifier.loadSuggestedArtists();
+        break;
+
       case NetworkListType.blocked:
         await notifier.loadBlockedUsers();
         break;
-      case NetworkListType.mutual:
-        await notifier.loadMutualFriends(userId: userId);
+
+      case NetworkListType.trueFriends:
+        await notifier.loadTrueFriends();
         break;
     }
   }
@@ -32,18 +49,7 @@ class NetworkListViewMapper {
     NetworkListType listType,
     NetworkListsState state,
   ) {
-    switch (listType) {
-      case NetworkListType.following:
-        return state.following;
-      case NetworkListType.followers:
-        return state.followers;
-      case NetworkListType.suggested:
-        return state.suggestedUsers;
-      case NetworkListType.blocked:
-        return state.blockedUsers;
-      case NetworkListType.mutual:
-        return state.mutualFriends;
-    }
+    return state.userLists[listType] ?? [];
   }
 
   static String getTitle(NetworkListType listType) {
@@ -52,27 +58,24 @@ class NetworkListViewMapper {
         return 'Following';
       case NetworkListType.followers:
         return 'Followers';
-      case NetworkListType.suggested:
+      case NetworkListType.suggestedUsers:
         return 'Suggested Users';
+      case NetworkListType.suggestedArtists:
+        return 'Suggested Artists';
       case NetworkListType.blocked:
         return 'Blocked Users';
-      case NetworkListType.mutual:
+      case NetworkListType.trueFriends:
         return 'Your true friends';
     }
   }
 
   static bool shouldShowTrueFriends({
     required NetworkListType listType,
-    required String viewedUserId,
-    required String currentUserId,
+    required bool isMyProfile,
   }) {
     if (listType != NetworkListType.following) {
       return false;
     }
-
-    final bool isMyProfile;
-    isMyProfile = (viewedUserId == currentUserId);
-
     return isMyProfile;
   }
 }

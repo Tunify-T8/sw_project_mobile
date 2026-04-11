@@ -31,7 +31,7 @@ void main() {
       expect(dto.followingCount, 55);
       expect(dto.tracksUploadedCount, 19);
       expect(dto.mutualFollowersCount, 7);
-      expect(dto.isVerified, isTrue);
+      expect(dto.isCertified, isTrue);
       expect(dto.isFollowing, isTrue);
       expect(dto.isNotificationEnabled, isTrue);
       expect(dto.isBlocked, isTrue);
@@ -83,7 +83,7 @@ void main() {
           'username': 'artist',
         });
 
-        expect(dto.isVerified, isFalse);
+        expect(dto.isCertified, isFalse);
         expect(dto.isFollowing, isFalse);
         expect(dto.isNotificationEnabled, isFalse);
         expect(dto.isBlocked, isFalse);

@@ -53,7 +53,7 @@ void main() {
         ],
       );
 
-      final result = await repository.getFollowers(
+      final result = await repository.getUserFollowers(
         userId: 'user_1',
         page: 2,
         limit: 2,
@@ -63,7 +63,7 @@ void main() {
       expect(result.length, 2);
       expect(result.first.id, 'follower_3');
       expect(result.first.username, 'follower_user_3');
-      expect(result.first.isVerified, true);
+      expect(result.first.isCertified, true);
 
       verify(
         mockService.getFollowers(
@@ -110,7 +110,7 @@ void main() {
         ],
       );
 
-      final result = await repository.getFollowing(
+      final result = await repository.getUserFollowing(
         userId: 'user_1',
         page: 1,
         limit: 2,
@@ -321,7 +321,7 @@ void main() {
         ],
       );
 
-      final result = await repository.getMutualFriends(
+      final result = await repository.getTrueFriends(
         userId: 'user_1',
         page: 1,
         limit: 2,

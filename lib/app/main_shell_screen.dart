@@ -57,7 +57,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const MiniPlayer(),
+            // Hide the mini player on the Feed tab (index 1) — the full
+            // player screen is used there instead.
+            if (_index != 1) const MiniPlayer(),
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: _SCBottomBar(

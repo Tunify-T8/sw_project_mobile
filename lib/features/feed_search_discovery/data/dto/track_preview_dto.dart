@@ -38,17 +38,21 @@ class TrackPreviewDto {
       trackId: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       artistId: json['artistId']?.toString() ?? '',
-      artistName: json['artistName']?.toString() ?? '',
+      artistName:
+          json['artist']?.toString() ?? json['artistName']?.toString() ?? '',
       artistAvatar: json['artistAvatar']?.toString(),
-      artistVerified: json['artistVerified'] ?? false,
-      isFollowingArtist: json['isFollowingArtist'] ?? false,
+      artistVerified: json['artistVerified'] as bool? ?? false,
+      isFollowingArtist: json['isFollowingArtist'] as bool? ?? true,
       coverUrl: json['coverUrl']?.toString(),
-      duration: json['duration'] as int,
-      likesCount: json['likesCount'] as int,
-      repostsCount: json['repostsCount'] as int,
-      commentsCount: json['commentsCount'] as int,
+      duration:
+          json['durationSeconds'] as int? ?? json['duration'] as int? ?? 0,
+      likesCount: json['likesCount'] as int? ?? 0,
+      repostsCount: json['repostsCount'] as int? ?? 0,
+      commentsCount: json['commentsCount'] as int? ?? 0,
       createdAt: json['createdAt']?.toString() ?? '',
-      interaction: TrackInteractionDto.fromJson(json['interaction'] ?? {}),
+      interaction: TrackInteractionDto.fromJson(
+        json['interaction'] as Map<String, dynamic>? ?? {},
+      ),
     );
   }
 }

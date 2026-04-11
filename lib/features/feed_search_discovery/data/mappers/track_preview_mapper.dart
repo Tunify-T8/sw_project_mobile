@@ -15,6 +15,7 @@ extension TrackPreviewMapper on TrackPreviewDto {
       coverUrl: coverUrl,
       duration: duration,
       likesCount: likesCount,
+      repostsCount: repostsCount,
       commentsCount: commentsCount,
       createdAt: createdAt,
       interaction: interaction.toEntity(),

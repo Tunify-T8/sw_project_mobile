@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/track_preview_entity.dart';
+import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 class TrackInfoBox extends StatelessWidget {
   final TrackPreviewEntity track;
@@ -32,14 +33,24 @@ class TrackInfoBox extends StatelessWidget {
 
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 20.0,
-                      backgroundImage: track.coverUrl != null
-                          ? NetworkImage(track.coverUrl!)
-                          : null,
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OtherUserProfileScreen(userId: track.artistId),
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 20.0,
+                        backgroundImage: track.artistAvatar != null
+                            ? NetworkImage(track.artistAvatar!)
+                            : null,
+                        child: track.artistAvatar == null
+                            ? const Icon(Icons.person, color: Colors.white)
+                            : null,
+                      ),
                     ),
                     const SizedBox(width: 10.0),
-
                     Expanded(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -70,7 +81,7 @@ class TrackInfoBox extends StatelessWidget {
                               foregroundColor: Colors.white,
                             ),
                             child: Text(
-                               (track.isFollowingArtist ?? false) ?'Following' : 'Follow',
+                              (track.isFollowingArtist ?? true) ? 'Following' : 'Follow',
                               style: const TextStyle(fontSize: 15.0),
                             ),
                           ),

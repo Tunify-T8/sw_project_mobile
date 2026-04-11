@@ -51,12 +51,10 @@ Future<void> openUploadItemPlayer(
     PageRouteBuilder(
       pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
       transitionsBuilder: (_, animation, __, child) => SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        ),
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
         child: child,
       ),
       transitionDuration: const Duration(milliseconds: 340),
@@ -64,7 +62,10 @@ Future<void> openUploadItemPlayer(
   );
 }
 
-Future<UploadItem> prepareTrackSurfaceItem(WidgetRef ref, UploadItem item) async {
+Future<UploadItem> prepareTrackSurfaceItem(
+  WidgetRef ref,
+  UploadItem item,
+) async {
   UploadItem resolvedItem = item;
 
   try {
@@ -74,7 +75,9 @@ Future<UploadItem> prepareTrackSurfaceItem(WidgetRef ref, UploadItem item) async
   }
 
   try {
-    final bars = await ref.read(trackDetailWaveformBarsProvider(resolvedItem).future);
+    final bars = await ref.read(
+      trackDetailWaveformBarsProvider(resolvedItem).future,
+    );
     if (bars != null && bars.isNotEmpty) {
       resolvedItem = resolvedItem.copyWith(waveformBars: bars);
     }
@@ -146,11 +149,7 @@ Future<void> ensureUploadItemPlayback(
     return;
   }
 
-  await notifier.loadTrack(
-    item.id,
-    autoPlay: autoPlay,
-    seedTrack: seedTrack,
-  );
+  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
 }
 
 Future<void> toggleUploadItemPlayback(
@@ -199,12 +198,10 @@ Future<void> openCurrentPlaybackTrackSurface(
     PageRouteBuilder(
       pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
       transitionsBuilder: (_, animation, __, child) => SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        ),
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
         child: child,
       ),
       transitionDuration: const Duration(milliseconds: 340),
@@ -224,15 +221,16 @@ List<UploadItem> _resolveArtistQueue(
     return explicitQueue;
   }
 
-  final sameArtist = store.all
-      .where(
-        (track) =>
-            track.isPlayable &&
-            track.artistDisplay.trim().toLowerCase() ==
-                item.artistDisplay.trim().toLowerCase(),
-      )
-      .toList()
-    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  final sameArtist =
+      store.all
+          .where(
+            (track) =>
+                track.isPlayable &&
+                track.artistDisplay.trim().toLowerCase() ==
+                    item.artistDisplay.trim().toLowerCase(),
+          )
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   if (sameArtist.any((track) => track.id == item.id)) {
     return sameArtist;
@@ -246,22 +244,20 @@ Future<UploadItem> _prepareTrackSurfaceItemFast(
   UploadItem item,
 ) async {
   try {
-    return await prepareTrackSurfaceItem(ref, item).timeout(
-      const Duration(milliseconds: 500),
-      onTimeout: () => item,
-    );
+    return await prepareTrackSurfaceItem(
+      ref,
+      item,
+    ).timeout(const Duration(milliseconds: 500), onTimeout: () => item);
   } catch (_) {
     return item;
   }
 }
 
-Future<void> _waitForTrackToBecomeCurrent(
-  WidgetRef ref,
-  String trackId,
-) async {
+Future<void> _waitForTrackToBecomeCurrent(WidgetRef ref, String trackId) async {
   final startedAt = DateTime.now();
 
-  while (DateTime.now().difference(startedAt) < const Duration(milliseconds: 700)) {
+  while (DateTime.now().difference(startedAt) <
+      const Duration(milliseconds: 700)) {
     final current = ref.read(playerProvider).asData?.value;
     if (current?.bundle?.trackId == trackId) {
       return;
@@ -273,14 +269,13 @@ Future<void> _waitForTrackToBecomeCurrent(
 void _optimisticallyPromoteHistory(WidgetRef ref, UploadItem item) {
   try {
     unawaited(
-      ref.read(listeningHistoryProvider.notifier).trackPlayed(
+      ref
+          .read(listeningHistoryProvider.notifier)
+          .trackPlayed(
             HistoryTrack(
               trackId: item.id,
               title: item.title,
-              artist: TrackArtistSummary(
-                id: '',
-                name: item.artistDisplay,
-              ),
+              artist: TrackArtistSummary(id: '', name: item.artistDisplay),
               playedAt: DateTime.now(),
               durationSeconds: item.durationSeconds,
               status: PlaybackStatus.playable,

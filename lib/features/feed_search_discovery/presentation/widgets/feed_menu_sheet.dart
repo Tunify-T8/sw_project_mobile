@@ -4,12 +4,18 @@ import '../../domain/entities/track_preview_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../screens/classic_feed_screen.dart';
+import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 class FeedMenuSheet extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
   final TrackPreviewEntity track;
-  final FeedTabType tabType;
+  final FeedType tabType;
 
-  const FeedMenuSheet({super.key, required this.track, required this.tabType});
+  const FeedMenuSheet({
+    super.key,
+    required this.track,
+    required this.tabType,
+  });
 
   Widget _createMenuItem({
     required IconData icon,
@@ -26,14 +32,14 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
 
   List<Widget> _trackActions(BuildContext context, WidgetRef ref) {
     final engagementState = ref.watch(engagementProvider(track.trackId));
-    final isLiked = engagementState.engagement?.isLiked ?? track.interaction.isLiked; // engagement addition — prefer live engagementProvider state over stale track value
-    final isReposted = engagementState.engagement?.isReposted ?? track.interaction.isReposted; // engagement addition — prefer live engagementProvider state over stale track value
+    final isLiked = engagementState.engagement?.isLiked ?? track.interaction.isLiked;
+    final isReposted = engagementState.engagement?.isReposted ?? track.interaction.isReposted;
     return [
     _createMenuItem(
       icon: isLiked ? Icons.favorite : Icons.favorite_border,
       label: isLiked ? 'Liked' : 'Like',
       color: isLiked ? Colors.orange : Colors.white,
-      onTap: () { // engagement addition — was () {}, now toggles like and closes sheet
+      onTap: () {
         ref.read(engagementProvider(track.trackId).notifier).toggleLike();
         Navigator.pop(context);
       },
@@ -56,12 +62,20 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
     _createMenuItem(
       icon: Icons.person_outline,
       label: 'Go to profile',
-      onTap: () {},
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtherUserProfileScreen(userId: track.artistId),
+          ),
+        );
+      },
     ),
     _createMenuItem(
       icon: Icons.comment_outlined,
       label: 'View comments',
-      onTap: () { // engagement addition — was () {}, now navigates to CommentsScreen
+      onTap: () {
         Navigator.pop(context);
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => CommentsScreen(trackId: track.trackId),
@@ -72,7 +86,7 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
       icon: isReposted ? Icons.repeat_on : Icons.repeat,
       label: isReposted ? 'Reposted' : 'Repost',
       color: isReposted ? Colors.orange : Colors.white,
-      onTap: () { // engagement addition — was () {}, now toggles repost and closes sheet
+      onTap: () {
         final notifier = ref.read(engagementProvider(track.trackId).notifier);
         if (isReposted) {
           notifier.removeRepost();
@@ -84,101 +98,103 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
     ),
   ];
 
-  List<Widget> _feedControls() => [
-    if (tabType == FeedTabType.discover)
-      _createMenuItem(
-        icon: Icons.thumb_down_outlined,
-        label: 'Show me fewer posts like this',
-        onTap: () {},
-      ),
-    _createMenuItem(
-      icon: Icons.swap_horiz,
-      label: 'Switch to Classic feed',
-      onTap: () {},
-    ),
-  ];
-
   List<Widget> _moreOptions() => [
-    _createMenuItem(
-      icon: Icons.graphic_eq,
-      label: 'Behind this track',
-      onTap: () {},
-    ),
-    _createMenuItem(icon: Icons.flag_outlined, label: 'Report', onTap: () {}),
-  ];
+        _createMenuItem(
+          icon: Icons.graphic_eq,
+          label: 'Behind this track',
+          onTap: () {},
+        ),
+        _createMenuItem(
+          icon: Icons.flag_outlined,
+          label: 'Report',
+          onTap: () {},
+        ),
+      ];
 
-Widget _trackHeader() {
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 130,
-          height: 100,
-          child: Stack(
-            children: [
-              Positioned(
-                left: 40.0,
-                child: Container(
-                  width: 80,
-                  height: 90,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFF2A2A2A),
+  Widget _trackHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 130,
+            height: 100,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 40.0,
+                  child: Container(
+                    width: 80,
+                    height: 90,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF2A2A2A),
+                    ),
+                    child: const Icon(
+                      Icons.album,
+                      color: Colors.white24,
+                      size: 80,
+                    ),
                   ),
-                  child: const Icon(Icons.album, color: Colors.white24, size: 80),
                 ),
-              ),
-              Positioned(
-                left: 0,
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: track.coverUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(track.coverUrl!),
+                Positioned(
+                  left: 0,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: track.coverUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(track.coverUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: track.coverUrl == null
+                        ? const Icon(
+                            Icons.music_note,
+                            color: Colors.white24,
+                            size: 40,
                           )
                         : null,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                track.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  track.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                track.artistName,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 16,
+                const SizedBox(height: 4),
+                Text(
+                  track.artistName,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 16,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -191,7 +207,28 @@ Widget _trackHeader() {
         const Divider(color: Colors.white12),
         ..._socialActions(context, ref, isReposted),
         const Divider(color: Colors.white12),
-        ..._feedControls(),
+
+        if (tabType == FeedType.discover)
+          _createMenuItem(
+            icon: Icons.thumb_down_outlined,
+            label: 'Show me fewer posts like this',
+            onTap: () {},
+          ),
+
+        _createMenuItem(
+          icon: Icons.swap_horiz,
+          label: 'Switch to Classic feed',
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ClassicFeedScreen(),
+              ),
+            );
+          },
+        ),
+
         const Divider(color: Colors.white12),
         ..._moreOptions(),
       ],

@@ -283,7 +283,7 @@ class _TopRefreshOverlay extends StatelessWidget {
   }
 }
 
-class _HistoryTrackTile extends StatelessWidget {
+class _HistoryTrackTile extends ConsumerWidget {
   const _HistoryTrackTile({
     super.key,
     required this.track,
@@ -294,7 +294,7 @@ class _HistoryTrackTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isBlocked = track.status == PlaybackStatus.blocked;
 
     return InkWell(
@@ -350,7 +350,19 @@ class _HistoryTrackTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Icon(Icons.more_horiz, color: Colors.white54),
+            GestureDetector(
+              onTap: () {
+                showTrackOptionsSheet(
+                  context,
+                  info: TrackOptionInfo.fromHistory(track),
+                  ref: ref,
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.more_horiz, color: Colors.white54),
+              ),
+            ),
           ],
         ),
       ),

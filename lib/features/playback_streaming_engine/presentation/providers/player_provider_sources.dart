@@ -12,10 +12,19 @@ extension _PlayerNotifierSources on PlayerNotifier {
       return seedTrack.toPlaybackBundle();
     }
 
+    // Skip the network call immediately when offline and we have local metadata.
+    // This avoids waiting for a connection timeout before showing the player.
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOnline = connectivity.any((r) => r != ConnectivityResult.none);
+    if (!isOnline && seedTrack != null) {
+      return seedTrack.toPlaybackBundle();
+    }
+
     try {
       return await _getBundle(trackId, privateToken: privateToken);
     } catch (_) {
-      if (mode == PlayerBackendMode.mock && seedTrack != null) {
+      // Server reachable but request failed — fall back to seed metadata.
+      if (seedTrack != null) {
         return seedTrack.toPlaybackBundle();
       }
       rethrow;
@@ -42,6 +51,26 @@ extension _PlayerNotifierSources on PlayerNotifier {
       );
     }
 
+    // A locally cached audio file — plays fully offline, no server call needed.
+    if (seedTrack?.localFilePath?.trim().isNotEmpty == true) {
+      return _ResolvedPlaybackSource(
+        streamUrl: null,
+        streamExpiresAt: null,
+        localFilePath: seedTrack!.localFilePath,
+      );
+    }
+
+    // No local file.  Fail fast when offline instead of waiting for the
+    // connection timeout (which can be up to 60 s).
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.every((r) => r == ConnectivityResult.none)) {
+      throw Exception(
+        'No internet connection and no local audio source available.',
+      );
+    }
+
+    // Request a signed streaming URL from the server (the only correct way
+    // to play a track online — never use the raw upload audioUrl directly).
     final streamUrl = await _requestStream(trackId);
 
     return _ResolvedPlaybackSource(
@@ -87,7 +116,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
       );
     }
 
-    state = AsyncData(updated);
+    _setPlayerState(updated);
     return updated;
   }
 
@@ -113,12 +142,27 @@ extension _PlayerNotifierSources on PlayerNotifier {
       // Use AudioSource.uri for better caching and buffering control.
       // This avoids repeated seeks causing stuttering on remote URLs.
       await _audioPlayer.setAudioSource(
-        just_audio.AudioSource.uri(
-          Uri.parse(playerState.streamUrl!.url),
-          // Pre-load headers can be added here for auth if needed
-        ),
+        just_audio.AudioSource.uri(Uri.parse(playerState.streamUrl!.url)),
         preload: true,
       );
+
+      // Download audio + artwork to device storage in the background so
+      // subsequent plays work fully offline without requesting a new stream URL.
+      // HLS manifests (.m3u8) are not cacheable as single files — skip them.
+      final streamUrl = playerState.streamUrl;
+      if (streamUrl != null && !streamUrl.isHls) {
+        _audioCache.cacheAudioInBackground(
+          activeBundle.trackId,
+          streamUrl.url,
+          streamUrl.format,
+        );
+      }
+      if (activeBundle.coverUrl.isNotEmpty) {
+        _audioCache.cacheArtworkInBackground(
+          activeBundle.trackId,
+          activeBundle.coverUrl,
+        );
+      }
     }
 
     _loadedTrackId = activeBundle.trackId;
@@ -159,6 +203,27 @@ extension _PlayerNotifierSources on PlayerNotifier {
       await _reportEvent(event);
     } catch (_) {
       // Keep playback working even if reporting is unsupported or fails.
+    }
+  }
+
+  /// Called when the user reaches 90 % of a track naturally.
+  ///
+  /// Online  → POST /tracks/{trackId}/played (server records the completion).
+  /// Offline → marks the pending [OfflinePlayRecord] as completed so it is
+  ///           sent with the batch when the device comes back online.
+  Future<void> _safeReportTrackCompleted(String trackId) async {
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      final isOnline = connectivity.any((r) => r != ConnectivityResult.none);
+
+      if (isOnline) {
+        await _reportTrackCompleted(trackId);
+      } else {
+        // Update the offline record so it carries completed: true when flushed.
+        await _repository.markOfflinePlayCompleted(trackId);
+      }
+    } catch (_) {
+      // Never interrupt playback because of a reporting failure.
     }
   }
 }

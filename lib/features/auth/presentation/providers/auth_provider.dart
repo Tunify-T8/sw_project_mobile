@@ -21,6 +21,8 @@ import 'package:software_project/features/auth/domain/usecases/register_usecase.
 import 'package:software_project/features/auth/domain/usecases/resend_verification_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:software_project/features/auth/domain/usecases/verify_email_usecase.dart';
+import 'package:software_project/features/playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import 'package:software_project/features/playback_streaming_engine/presentation/providers/player_provider.dart';
 
 // ─── Infrastructure ───────────────────────────────────────────────────────────
 
@@ -262,12 +264,16 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   Future<void> logout() async {
     await _logout();
     await _googleSignInService.signOut();
+    ref.invalidate(listeningHistoryProvider);
+    ref.invalidate(playerProvider);
     state = const AsyncData<AuthUserEntity?>(null);
   }
 
   Future<void> logoutAll() async {
     await _logoutAll();
     await _googleSignInService.signOut();
+    ref.invalidate(listeningHistoryProvider);
+    ref.invalidate(playerProvider);
     state = const AsyncData<AuthUserEntity?>(null);
   }
 

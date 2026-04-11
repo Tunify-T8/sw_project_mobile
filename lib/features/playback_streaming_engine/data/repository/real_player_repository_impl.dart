@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
 import '../../domain/entities/history_track.dart';
+import '../../domain/entities/offline_play_record.dart';
 import '../../domain/entities/playback_context_request.dart';
 import '../../domain/entities/playback_event.dart';
 import '../../domain/entities/playback_queue.dart';
@@ -27,6 +28,11 @@ class RealPlayerRepository implements PlayerRepository {
   Timer? _retryTimer;
   bool _isFlushingPending = false;
   bool _hasLoadedPendingEvents = false;
+
+  // ── Offline plays queue ──────────────────────────────────────────────────
+  final List<OfflinePlayRecord> _offlinePlays = [];
+  bool _hasLoadedOfflinePlays = false;
+  bool _isFlushingOfflinePlays = false;
 
   @override
   Future<TrackPlaybackBundle> getPlaybackBundle(
@@ -88,6 +94,11 @@ class RealPlayerRepository implements PlayerRepository {
     await _ensurePendingLoaded();
     await _flushPendingEventsIfPossible();
 
+    // Flush offline batch plays before pulling fresh history so the server
+    // has the most up-to-date play data when it responds.
+    await _ensureOfflinePlaysLoaded();
+    await _flushOfflinePlaysIfPossible();
+
     final dtos = await _api.getListeningHistory(page: page, limit: limit);
     return dtos.map((dto) => dto.toEntity()).toList();
   }
@@ -95,6 +106,103 @@ class RealPlayerRepository implements PlayerRepository {
   @override
   Future<void> clearListeningHistory() async {
     await _api.clearListeningHistory();
+  }
+
+  // ── reportTrackCompleted ─────────────────────────────────────────────────
+
+  @override
+  Future<void> reportTrackCompleted(String trackId) async {
+    await _api.reportTrackCompleted(trackId);
+  }
+
+  // ── Offline plays queue ──────────────────────────────────────────────────
+
+  @override
+  Future<void> addOfflinePlay(String trackId) async {
+    await _ensureOfflinePlaysLoaded();
+
+    // Server-side dedup uses a 30-second window; mirror that locally.
+    final isDuplicate = _offlinePlays.any(
+      (r) =>
+          r.trackId == trackId &&
+          DateTime.now().difference(r.playedAt).inSeconds < 30,
+    );
+    if (isDuplicate) return;
+
+    _offlinePlays.add(OfflinePlayRecord(
+      trackId: trackId,
+      playedAt: DateTime.now(),
+    ));
+    await _persistOfflinePlays();
+  }
+
+  @override
+  Future<void> markOfflinePlayCompleted(String trackId) async {
+    await _ensureOfflinePlaysLoaded();
+
+    final index = _offlinePlays.lastIndexWhere((r) => r.trackId == trackId);
+    if (index == -1) return;
+
+    _offlinePlays[index] = _offlinePlays[index].markCompleted();
+    await _persistOfflinePlays();
+  }
+
+  Future<void> reportBatchOfflinePlays(List<OfflinePlayRecord> plays) async {
+    await _api.reportBatchOfflinePlays(plays);
+  }
+
+  Future<void> _ensureOfflinePlaysLoaded() async {
+    if (_hasLoadedOfflinePlays) return;
+    _hasLoadedOfflinePlays = true;
+
+    final raw = await _storage.read(key: StorageKeys.pendingOfflinePlays);
+    if (raw == null || raw.isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      _offlinePlays
+        ..clear()
+        ..addAll(
+          decoded
+              .whereType<Map<String, dynamic>>()
+              .map(OfflinePlayRecord.fromJson),
+        );
+    } catch (_) {
+      await _storage.delete(key: StorageKeys.pendingOfflinePlays);
+    }
+  }
+
+  Future<void> _flushOfflinePlaysIfPossible() async {
+    if (_offlinePlays.isEmpty || _isFlushingOfflinePlays) return;
+    _isFlushingOfflinePlays = true;
+
+    try {
+      await _api.reportBatchOfflinePlays(List.unmodifiable(_offlinePlays));
+      _offlinePlays.clear();
+      await _persistOfflinePlays();
+    } catch (error) {
+      if (_shouldQueueForRetry(error)) {
+        // Keep the records; they will be retried on the next online trigger.
+        return;
+      }
+      // Non-retryable error (e.g. 400 bad request) — discard to avoid loops.
+      _offlinePlays.clear();
+      await _persistOfflinePlays();
+    } finally {
+      _isFlushingOfflinePlays = false;
+    }
+  }
+
+  Future<void> _persistOfflinePlays() async {
+    if (_offlinePlays.isEmpty) {
+      await _storage.delete(key: StorageKeys.pendingOfflinePlays);
+      return;
+    }
+
+    await _storage.write(
+      key: StorageKeys.pendingOfflinePlays,
+      value: jsonEncode(_offlinePlays.map((r) => r.toJson()).toList()),
+    );
   }
 
   Future<void> _sendEvent(PlaybackEvent event) {

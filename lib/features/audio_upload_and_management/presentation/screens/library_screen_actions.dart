@@ -1,6 +1,6 @@
 part of 'library_screen.dart';
 
-extension _LibraryScreenActions on LibraryScreen {
+extension _LibraryScreenActions on _LibraryScreenState {
   void _handleTap(BuildContext context, String label) {
     if (label == 'Your likes') { // engagement addition — navigate to liked tracks screen
       Navigator.of(context).push(
@@ -15,6 +15,7 @@ extension _LibraryScreenActions on LibraryScreen {
           builder: (_) => const NetworkListsScreen(
             userId: 'u2',
             listType: NetworkListType.following,
+            isMyProfile: true,
           ),
         ),
       );
@@ -22,16 +23,16 @@ extension _LibraryScreenActions on LibraryScreen {
     }
 
     if (label == 'Your uploads') {
-      if (onOpenYourUploads != null) {
-        onOpenYourUploads!();
+      if (widget.onOpenYourUploads != null) {
+        widget.onOpenYourUploads!();
         return;
       }
 
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => YourUploadsScreen(
-            onStartUpload: onStartUpload,
-            onOpenSubscription: onOpenSubscription,
+            onStartUpload: widget.onStartUpload,
+            onOpenSubscription: widget.onOpenSubscription,
           ),
         ),
       );

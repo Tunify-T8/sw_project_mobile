@@ -1,4 +1,5 @@
 import '../entities/history_track.dart';
+import '../entities/offline_play_record.dart';
 import '../entities/playback_context_request.dart';
 import '../entities/playback_event.dart';
 import '../entities/playback_queue.dart';
@@ -43,4 +44,15 @@ abstract class PlayerRepository {
   /// When the backend has no clear-history endpoint yet, implementations may do
   /// nothing and let the presentation layer handle the clear locally.
   Future<void> clearListeningHistory();
+
+  /// POST /tracks/{trackId}/played
+  /// Called once when the user reaches 90 % of a track naturally (not on skip).
+  Future<void> reportTrackCompleted(String trackId);
+
+  /// Adds a play that happened while offline to the local pending queue.
+  /// The queue is flushed via `POST /tracks/plays/batch` when back online.
+  Future<void> addOfflinePlay(String trackId);
+
+  /// Marks the pending offline play for [trackId] as completed (90 % reached).
+  Future<void> markOfflinePlayCompleted(String trackId);
 }

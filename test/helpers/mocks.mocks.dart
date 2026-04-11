@@ -143,6 +143,47 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
           as _i5.Future<_i2.AuthUserEntity>);
 
   @override
+  _i5.Future<_i2.AuthUserEntity> oauthGoogleSignIn({
+    required String? authorizationCode,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#oauthGoogleSignIn, [], {
+              #authorizationCode: authorizationCode,
+            }),
+            returnValue: _i5.Future<_i2.AuthUserEntity>.value(
+              _FakeAuthUserEntity_0(
+                this,
+                Invocation.method(#oauthGoogleSignIn, [], {
+                  #authorizationCode: authorizationCode,
+                }),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.AuthUserEntity>);
+
+  @override
+  _i5.Future<_i2.AuthUserEntity> linkGoogleAccount({
+    required String? linkingToken,
+    required String? password,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#linkGoogleAccount, [], {
+              #linkingToken: linkingToken,
+              #password: password,
+            }),
+            returnValue: _i5.Future<_i2.AuthUserEntity>.value(
+              _FakeAuthUserEntity_0(
+                this,
+                Invocation.method(#linkGoogleAccount, [], {
+                  #linkingToken: linkingToken,
+                  #password: password,
+                }),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.AuthUserEntity>);
+
+  @override
   _i5.Future<void> signOut() =>
       (super.noSuchMethod(
             Invocation.method(#signOut, []),
@@ -268,6 +309,41 @@ class MockAuthApi extends _i1.Mock implements _i6.AuthApi {
             Invocation.method(#login, [dto]),
             returnValue: _i5.Future<_i3.Response<dynamic>>.value(
               _FakeResponse_1<dynamic>(this, Invocation.method(#login, [dto])),
+            ),
+          )
+          as _i5.Future<_i3.Response<dynamic>>);
+
+  @override
+  _i5.Future<_i3.Response<dynamic>> oauthGoogle({required String? code}) =>
+      (super.noSuchMethod(
+            Invocation.method(#oauthGoogle, [], {#code: code}),
+            returnValue: _i5.Future<_i3.Response<dynamic>>.value(
+              _FakeResponse_1<dynamic>(
+                this,
+                Invocation.method(#oauthGoogle, [], {#code: code}),
+              ),
+            ),
+          )
+          as _i5.Future<_i3.Response<dynamic>>);
+
+  @override
+  _i5.Future<_i3.Response<dynamic>> oauthGoogleLink({
+    required String? linkingToken,
+    required String? password,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#oauthGoogleLink, [], {
+              #linkingToken: linkingToken,
+              #password: password,
+            }),
+            returnValue: _i5.Future<_i3.Response<dynamic>>.value(
+              _FakeResponse_1<dynamic>(
+                this,
+                Invocation.method(#oauthGoogleLink, [], {
+                  #linkingToken: linkingToken,
+                  #password: password,
+                }),
+              ),
             ),
           )
           as _i5.Future<_i3.Response<dynamic>>);

@@ -14,7 +14,7 @@ class GetProfileUsecase {
       id: dto.id,
       userName: dto.userName,
       displayName: dto.displayName,
-      email: dto.email,
+      email: dto.email ?? '',  // Provide default for current user profile
       role: dto.role,
       bio: dto.bio,
       city: dto.city,
@@ -27,14 +27,14 @@ class GetProfileUsecase {
       spotify: dto.spotify,
       tiktok: dto.tiktok,
       soundcloud: dto.soundcloud,
-      followersCount: dto.followersCount,
-      followingCount: dto.followingCount,
-      tracksCount: dto.tracksCount,
-      likesReceived: dto.likesReceived,
-      visibility: dto.visibility,
+      followersCount: dto.followersCount ?? 0,  // Provide defaults
+      followingCount: dto.followingCount ?? 0,
+      tracksCount: dto.tracksCount ?? 0,
+      likesReceived: dto.likesReceived ?? 0,
+      visibility: dto.visibility ?? 'PUBLIC',
       userType: dto.userType,
-      isActive: dto.isActive,
-      isCertified: dto.isCertified,
+      isActive: dto.isActive ?? true,
+      isCertified: dto.isCertified ?? false,
     );
   }
 }

@@ -134,13 +134,21 @@ class _TrackOptionsSheet extends ConsumerWidget {
               onTap: onEditTap,
             ),
             const Divider(color: Colors.white12, height: 1),
-            const YourUploadsOptionRow(
+            YourUploadsOptionRow(
               icon: Icons.queue_play_next,
               label: 'Play next',
+              onTap: () {
+                ref.read(playerProvider.notifier).addToQueueNext(resolvedItem.id);
+                Navigator.pop(context);
+              },
             ),
-            const YourUploadsOptionRow(
+            YourUploadsOptionRow(
               icon: Icons.playlist_play,
               label: 'Play last',
+              onTap: () {
+                ref.read(playerProvider.notifier).addToQueueLast(resolvedItem.id);
+                Navigator.pop(context);
+              },
             ),
             const YourUploadsOptionRow(
               icon: Icons.playlist_add,

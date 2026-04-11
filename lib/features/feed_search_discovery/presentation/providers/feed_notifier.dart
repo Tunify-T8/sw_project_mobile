@@ -13,11 +13,11 @@ class FeedNotifier extends Notifier<FeedState> {
   FeedState build() => FeedState();
 
   Future<void> loadFeed({
-    required FeedTabType tab,
+    required FeedType tab,
     int page = 1,
     int limit = 20,
   }) async {
-    if (tab == FeedTabType.discover) {
+    if (tab == FeedType.discover) {
       state = state.copyWith(
         isDiscoverLoading: true,
         discoverError: null,
@@ -34,8 +34,8 @@ class FeedNotifier extends Notifier<FeedState> {
     try {
       final repository = ref.read(feedRepositoryProvider);
 
-      if (tab == FeedTabType.discover) {
-        final items = await repository.getDiscoverFeed(page: page, limit: limit);
+      if (tab == FeedType.discover) {
+        final items = await repository.getFollowingFeed(page: page, limit: limit);
         state = state.copyWith(
           discoverItems: items,
           isDiscoverLoading: false,
@@ -54,7 +54,7 @@ class FeedNotifier extends Notifier<FeedState> {
         );
       }
     } catch (e) {
-      if (tab == FeedTabType.discover) {
+      if (tab == FeedType.discover) {
         state = state.copyWith(
           isDiscoverLoading: false,
           hasLoadedDiscover: true,
@@ -73,15 +73,15 @@ class FeedNotifier extends Notifier<FeedState> {
   }
 
   Future<void> refreshFeed({
-    required FeedTabType tab,
+    required FeedType tab,
     int page = 1,
     int limit = 20,
   }) async {
     try {
       final repository = ref.read(feedRepositoryProvider);
 
-      if (tab == FeedTabType.discover) {
-        final items = await repository.getDiscoverFeed(page: page, limit: limit);
+      if (tab == FeedType.discover) {
+        final items = await repository.getFollowingFeed(page: page, limit: limit);
         state = state.copyWith(
           discoverItems: items,
           discoverError: null,
@@ -96,7 +96,7 @@ class FeedNotifier extends Notifier<FeedState> {
         );
       }
     } catch (e) {
-      if (tab == FeedTabType.discover) {
+      if (tab == FeedType.discover) {
         state = state.copyWith(
           discoverError: e.toString(),
           followingError: state.followingError,

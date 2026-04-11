@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/entities/feed_tab_type.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
-import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart'; // engagement addition
+import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
 
-class FeedInteractionButtons extends ConsumerStatefulWidget { // engagement modification — was StatelessWidget, converted to ConsumerStatefulWidget
-  final String trackId; // engagement addition — replaces static isLiked, now drives engagementProvider
+class FeedInteractionButtons extends ConsumerStatefulWidget {
+  final String trackId;
   final int fallbackLikesCount;
   final int fallbackCommentsCount;
+  final FeedType feedType;
 
   const FeedInteractionButtons({
     super.key,
     required this.trackId,
     required this.fallbackLikesCount,
     required this.fallbackCommentsCount,
+    required this.feedType,
   });
 
   @override
@@ -53,7 +56,7 @@ class _FeedInteractionButtonsState
         IconButton(
           onPressed: () => ref
               .read(engagementProvider(widget.trackId).notifier)
-              .toggleLike(), // engagement addition — was () {}, now calls toggleLike
+              .toggleLike(),
           icon: Icon(
             isLiked ? Icons.favorite : Icons.favorite_border,
             color: isLiked ? Colors.red : Colors.white,
@@ -63,7 +66,7 @@ class _FeedInteractionButtonsState
           highlightColor: Colors.transparent,
         ),
         GestureDetector(
-          onTap: () => Navigator.of(context).push( // engagement addition — tap like count to open LikersScreen
+          onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => LikersScreen(trackId: widget.trackId),
             ),
@@ -74,7 +77,7 @@ class _FeedInteractionButtonsState
           ),
         ),
         IconButton(
-          onPressed: () => Navigator.of(context).push( // engagement addition — was () {}, now navigates to CommentsScreen
+          onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => CommentsScreen(trackId: widget.trackId),
             ),

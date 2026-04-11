@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../../domain/entities/offline_play_record.dart';
 import '../../domain/entities/playback_event.dart';
 import '../../domain/entities/playback_status.dart';
 import '../dto/history_track_dto.dart';
@@ -131,13 +132,47 @@ class StreamingApi {
     return _parseListeningHistory(fallbackResponse.data);
   }
 
-  /// Also a no-op for now.
+  /// DELETE /me/listening-history
   ///
-  /// The backend deployment you're using does not expose a clear-history route.
-  /// We therefore keep clear history local in the app until the backend adds a
-  /// supported endpoint.
+  /// Clears the user's listening history on the backend.
   Future<void> clearListeningHistory() async {
-    return;
+    try {
+      await _dio.delete(ApiEndpoints.clearListeningHistory);
+    } on DioException catch (e) {
+      // If endpoint doesn't exist yet, silently succeed (local clear still works).
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  /// POST /tracks/{trackId}/played
+  ///
+  /// Called once when the user reaches 90 % of a track naturally.
+  /// The server applies a 30-second dedup window, so 409 responses are safe
+  /// to ignore.
+  Future<void> reportTrackCompleted(String trackId) async {
+    try {
+      await _dio.post(ApiEndpoints.trackPlayed(trackId));
+    } on DioException catch (e) {
+      // 409 = already recorded within the dedup window — not an error.
+      if (e.response?.statusCode == 409) return;
+      rethrow;
+    }
+  }
+
+  /// POST /tracks/plays/batch
+  ///
+  /// Sends all plays that were recorded while the device was offline.
+  /// [plays] must not be empty.
+  Future<void> reportBatchOfflinePlays(List<OfflinePlayRecord> plays) async {
+    await _dio.post(
+      ApiEndpoints.batchPlays,
+      data: {
+        'plays': plays.map((p) => p.toJson()).toList(),
+      },
+    );
   }
 
   List<HistoryTrackDto> _parseListeningHistory(dynamic raw) {

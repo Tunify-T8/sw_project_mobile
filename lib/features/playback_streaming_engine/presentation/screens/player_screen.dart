@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,6 +35,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   late AnimationController _artworkController;
   late Animation<double> _artworkScale;
   bool _showMore = false;
+
+  /// Direction of the most recent track-navigation swipe.
+  /// 1 = next (swiped left), -1 = previous (swiped right), 0 = none.
+  /// Passed to _PlayerBody so AnimatedSwitcher can slide in from the correct side.
+  int _swipeDir = 0;
 
   @override
   void initState() {
@@ -74,13 +79,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       } else if (!isPlaying && wasPlaying) {
         _artworkController.reverse();
       }
-
-      // engagement addition — reload engagement when user skips to a different track
-      final prevTrackId = prev?.asData?.value.bundle?.trackId;
-      final nextTrackId = next.asData?.value.bundle?.trackId;
-      if (nextTrackId != null && nextTrackId != prevTrackId) {
-        ref.read(engagementProvider(nextTrackId).notifier).loadEngagement();
-      }
     });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -104,7 +102,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               playerState: playerState,
               artworkScale: _artworkScale,
               showMore: _showMore,
+              swipeDir: _swipeDir,
               onToggleMore: () => setState(() => _showMore = !_showMore),
+              onSwipeNext: () => setState(() => _swipeDir = 1),
+              onSwipePrevious: () => setState(() => _swipeDir = -1),
             );
           },
         ),

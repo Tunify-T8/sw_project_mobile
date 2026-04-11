@@ -104,23 +104,41 @@ class _CommentComposerBar extends StatelessWidget {
 }
 
 class _BottomActionBar extends StatelessWidget {
-  const _BottomActionBar({required this.onMoreTap});
+  const _BottomActionBar({
+    required this.onMoreTap,
+    required this.onQueueTap,
+  });
 
   final VoidCallback onMoreTap;
+  final VoidCallback onQueueTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const _ActionMetric(icon: Icons.favorite_border, label: '36K'),
-          const _ActionMetric(icon: Icons.chat_bubble_outline, label: '191'),
-          const _ActionMetric(icon: Icons.ios_share_outlined, label: ''),
-          const _ActionMetric(icon: Icons.playlist_play, label: ''),
-          _ActionMetric(icon: Icons.more_horiz, label: '', onTap: onMoreTap),
-        ],
+    // Wrap in a GestureDetector that absorbs all taps in this row so the
+    // full-screen background play/pause detector cannot steal them.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {}, // absorb — individual buttons handle their own taps
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const _ActionMetric(icon: Icons.favorite_border, label: '36K'),
+            const _ActionMetric(icon: Icons.chat_bubble_outline, label: '191'),
+            const _ActionMetric(icon: Icons.ios_share_outlined, label: ''),
+            _ActionMetric(
+              icon: Icons.playlist_play,
+              label: '',
+              onTap: onQueueTap,
+            ),
+            _ActionMetric(
+              icon: Icons.more_horiz,
+              label: '',
+              onTap: onMoreTap,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -135,24 +153,34 @@ class _ActionMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Minimum 44×44 touch target as per Material guidelines.
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 29),
-          if (label.isNotEmpty) ...[
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+      child: SizedBox(
+        height: 44,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: Colors.white, size: 29),
+                if (label.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }

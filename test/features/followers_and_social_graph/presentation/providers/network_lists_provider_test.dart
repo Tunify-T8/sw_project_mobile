@@ -4,7 +4,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/social_user_entity.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/repositories/social_graph_repository.dart';
-import 'package:software_project/features/followers_and_social_graph/presentation/providers/network_lists_provider.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
 
 import 'network_lists_provider_test.mocks.dart';
@@ -50,7 +50,7 @@ void main() {
       expect(state.followers, isEmpty);
       expect(state.suggestedUsers, isEmpty);
       expect(state.blockedUsers, isEmpty);
-      expect(state.mutualFriends, isEmpty);
+      expect(state.trueFriends, isEmpty);
       expect(state.isLoading, isTrue);
       expect(state.error, isNull);
       expect(state.hasLoadedOnce, isFalse);
@@ -61,7 +61,7 @@ void main() {
     test('loads following users and passes custom arguments to repository', () async {
       final users = [user('1', isFollowing: true), user('2')];
       when(
-        repository.getFollowing(
+        repository.getUserFollowing(
           userId: 'target-user',
           page: 3,
           limit: 15,
@@ -80,7 +80,7 @@ void main() {
       expect(state.error, isNull);
       expect(state.hasLoadedOnce, isTrue);
       verify(
-        repository.getFollowing(
+        repository.getUserFollowing(
           userId: 'target-user',
           page: 3,
           limit: 15,
@@ -90,7 +90,7 @@ void main() {
 
     test('stores an error when loading following users fails', () async {
       when(
-        repository.getFollowing(
+        repository.getUserFollowing(
           userId: 'target-user',
           page: 1,
           limit: 20,
@@ -105,7 +105,7 @@ void main() {
       expect(state.error, 'Exception: following failed');
       expect(state.hasLoadedOnce, isTrue);
       verify(
-        repository.getFollowing(
+        repository.getUserFollowing(
           userId: 'target-user',
           page: 1,
           limit: 20,
@@ -118,7 +118,7 @@ void main() {
     test('loads followers with default paging values', () async {
       final users = [user('3')];
       when(
-        repository.getFollowers(
+        repository.getUserFollowers(
           userId: 'listener',
           page: 1,
           limit: 20,
@@ -133,7 +133,7 @@ void main() {
       expect(state.error, isNull);
       expect(state.hasLoadedOnce, isTrue);
       verify(
-        repository.getFollowers(
+        repository.getUserFollowers(
           userId: 'listener',
           page: 1,
           limit: 20,
@@ -143,7 +143,7 @@ void main() {
 
     test('stores an error when loading followers fails', () async {
       when(
-        repository.getFollowers(
+        repository.getUserFollowers(
           userId: 'listener',
           page: 2,
           limit: 10,
@@ -162,7 +162,7 @@ void main() {
       expect(state.error, 'Bad state: followers failed');
       expect(state.hasLoadedOnce, isTrue);
       verify(
-        repository.getFollowers(
+        repository.getUserFollowers(
           userId: 'listener',
           page: 2,
           limit: 10,
@@ -281,26 +281,26 @@ void main() {
     test('loads mutual friends and passes required arguments', () async {
       final users = [user('7'), user('8')];
       when(
-        repository.getMutualFriends(
+        repository.getTrueFriends(
           userId: 'artist',
           page: 6,
           limit: 9,
         ),
       ).thenAnswer((_) async => users);
 
-      await notifier.loadMutualFriends(
+      await notifier.loadTrueFriends(
         userId: 'artist',
         page: 6,
         limit: 9,
       );
 
       final state = container.read(networkListsProvider);
-      expect(state.mutualFriends, users);
+      expect(state.trueFriends, users);
       expect(state.isLoading, isFalse);
       expect(state.error, isNull);
       expect(state.hasLoadedOnce, isTrue);
       verify(
-        repository.getMutualFriends(
+        repository.getTrueFriends(
           userId: 'artist',
           page: 6,
           limit: 9,
@@ -310,22 +310,22 @@ void main() {
 
     test('stores an error when mutual friends loading fails', () async {
       when(
-        repository.getMutualFriends(
+        repository.getTrueFriends(
           userId: 'artist',
           page: 1,
           limit: 20,
         ),
       ).thenThrow(Exception('mutual failed'));
 
-      await notifier.loadMutualFriends(userId: 'artist');
+      await notifier.loadTrueFriends(userId: 'artist');
 
       final state = container.read(networkListsProvider);
-      expect(state.mutualFriends, isEmpty);
+      expect(state.trueFriends, isEmpty);
       expect(state.isLoading, isFalse);
       expect(state.error, 'Exception: mutual failed');
       expect(state.hasLoadedOnce, isTrue);
       verify(
-        repository.getMutualFriends(
+        repository.getTrueFriends(
           userId: 'artist',
           page: 1,
           limit: 20,
@@ -340,14 +340,14 @@ void main() {
       final untouched = user('other-user', isFollowing: true);
 
       when(
-        repository.getFollowers(
+        repository.getUserFollowers(
           userId: 'followers-source',
           page: 1,
           limit: 20,
         ),
       ).thenAnswer((_) async => [target, untouched]);
       when(
-        repository.getFollowing(
+        repository.getUserFollowing(
           userId: 'following-source',
           page: 1,
           limit: 20,
@@ -367,7 +367,7 @@ void main() {
         ),
       ).thenAnswer((_) async => [target.copyWith(isBlocked: true)]);
       when(
-        repository.getMutualFriends(
+        repository.getTrueFriends(
           userId: 'mutual-source',
           page: 1,
           limit: 20,
@@ -378,7 +378,7 @@ void main() {
       await notifier.loadFollowingList(userId: 'following-source');
       await notifier.loadSuggestedUsers();
       await notifier.loadBlockedUsers();
-      await notifier.loadMutualFriends(userId: 'mutual-source');
+      await notifier.loadTrueFriends(userId: 'mutual-source');
 
       notifier.updateFollowStatus(
         userId: 'shared-user',
@@ -391,7 +391,7 @@ void main() {
       expect(state.following.first.isFollowing, isTrue);
       expect(state.suggestedUsers.first.isFollowing, isTrue);
       expect(state.blockedUsers.first.isFollowing, isTrue);
-      expect(state.mutualFriends.first.isFollowing, isTrue);
+      expect(state.trueFriends.first.isFollowing, isTrue);
     });
 
     test('updateBlockStatus updates matching user across all lists only', () async {
@@ -399,14 +399,14 @@ void main() {
       final untouched = user('other-user');
 
       when(
-        repository.getFollowers(
+        repository.getUserFollowers(
           userId: 'followers-source',
           page: 1,
           limit: 20,
         ),
       ).thenAnswer((_) async => [target, untouched]);
       when(
-        repository.getFollowing(
+        repository.getUserFollowing(
           userId: 'following-source',
           page: 1,
           limit: 20,
@@ -426,7 +426,7 @@ void main() {
         ),
       ).thenAnswer((_) async => [target]);
       when(
-        repository.getMutualFriends(
+        repository.getTrueFriends(
           userId: 'mutual-source',
           page: 1,
           limit: 20,
@@ -437,7 +437,7 @@ void main() {
       await notifier.loadFollowingList(userId: 'following-source');
       await notifier.loadSuggestedUsers();
       await notifier.loadBlockedUsers();
-      await notifier.loadMutualFriends(userId: 'mutual-source');
+      await notifier.loadTrueFriends(userId: 'mutual-source');
 
       notifier.updateBlockStatus(
         userId: 'shared-user',
@@ -450,7 +450,7 @@ void main() {
       expect(state.following.first.isBlocked, isTrue);
       expect(state.suggestedUsers.first.isBlocked, isTrue);
       expect(state.blockedUsers.first.isBlocked, isTrue);
-      expect(state.mutualFriends.first.isBlocked, isTrue);
+      expect(state.trueFriends.first.isBlocked, isTrue);
     });
 
     test('setError and clearError update the error field', () {

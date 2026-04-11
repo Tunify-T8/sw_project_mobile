@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
+import '../../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../providers/track_detail_item_provider.dart';
 import '../upload_artwork_view.dart';
 import 'your_uploads_options_actions.dart';

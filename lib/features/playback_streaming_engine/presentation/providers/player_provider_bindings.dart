@@ -6,6 +6,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     _bindingsAttached = true;
 
     _positionSubscription = _audioPlayer.positionStream.listen((position) {
+      if (_isDisposed || !ref.mounted) return;
       final current = _current;
       if (current == null || current.bundle == null) return;
 
@@ -14,7 +15,10 @@ extension _PlayerNotifierBindings on PlayerNotifier {
         position.inMilliseconds / 1000.0,
       );
 
-      if ((clamped - current.positionSeconds).abs() > 0.03) {
+      // Update state ≈7×/second instead of ≈33×/second. The waveform bar
+      // uses TweenAnimationBuilder to fill the visual gap, so the result is
+      // just as smooth with far fewer widget rebuilds.
+      if ((clamped - current.positionSeconds).abs() > 0.15) {
         final nextState = current.copyWith(positionSeconds: clamped);
         _setPlayerState(nextState);
         unawaited(_persistCurrentSession(playerState: nextState));
@@ -24,9 +28,33 @@ extension _PlayerNotifierBindings on PlayerNotifier {
           position.inSeconds >= current.previewEndSeconds) {
         unawaited(_handlePreviewCompletion());
       }
+
+      // 90 % completion — report once per track per session.
+      final trackId = current.bundle!.trackId;
+      final duration =
+          current.mediaDurationSeconds ??
+          current.bundle!.durationSeconds.toDouble();
+      if (!current.isPreviewOnly &&
+          duration > 0 &&
+          clamped >= duration * 0.9 &&
+          !_completedTrackIds.contains(trackId)) {
+        _completedTrackIds.add(trackId);
+        unawaited(_safeReportTrackCompleted(trackId));
+      }
+
+      // Add track to listening history only after 2 seconds of actual
+      // playback so a tap that never plays (buffering, error) is never counted.
+      final pending = _pendingHistoryTrackId;
+      if (pending != null &&
+          pending == current.bundle!.trackId &&
+          position.inMilliseconds >= 2000) {
+        _pendingHistoryTrackId = null;
+        _notifyHistoryPlayed();
+      }
     });
 
     _durationSubscription = _audioPlayer.durationStream.listen((duration) {
+      if (_isDisposed || !ref.mounted) return;
       final current = _current;
       if (current == null || duration == null) return;
 
@@ -43,6 +71,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((
       audioState,
     ) {
+      if (_isDisposed || !ref.mounted) return;
       final current = _current;
       if (current == null) return;
 
@@ -125,6 +154,15 @@ extension _PlayerNotifierBindings on PlayerNotifier {
 
       if (current.queue != null) {
         final queue = current.queue!;
+
+        // Repeat one: seek back to start and replay without reloading.
+        if (queue.repeat == RepeatMode.one) {
+          await _audioPlayer.seek(Duration.zero);
+          unawaited(_audioPlayer.play());
+          _setPlayerState(current.copyWith(isPlaying: true, positionSeconds: 0));
+          return;
+        }
+
         final hasNext = queue.currentIndex + 1 < queue.trackIds.length;
 
         if (hasNext) {
@@ -182,9 +220,12 @@ extension _PlayerNotifierBindings on PlayerNotifier {
   }
 
   void _notifyHistoryPlayed() {
+    if (_isDisposed || !ref.mounted) return;
     final current = _current;
     final bundle = current?.bundle;
     if (bundle == null) return;
+
+    final isOfflinePlay = current?.streamUrl == null;
 
     try {
       final historyTrack = HistoryTrack(
@@ -198,13 +239,20 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       );
 
       unawaited(
-        _trackHistoryPlayed(
-          historyTrack,
-          needsBackendSync: current?.streamUrl == null,
-        ),
+        _trackHistoryPlayed(historyTrack, needsBackendSync: isOfflinePlay),
       );
     } catch (_) {
       // History update is best-effort; never break playback.
+    }
+
+    // When playing from a local file the stream endpoint was never called, so
+    // the server has no record of this play.  Queue it locally for batch sync.
+    if (isOfflinePlay) {
+      try {
+        unawaited(_repository.addOfflinePlay(bundle.trackId));
+      } catch (_) {
+        // Queue failure must never interrupt playback.
+      }
     }
   }
 }

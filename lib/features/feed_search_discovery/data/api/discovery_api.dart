@@ -3,7 +3,6 @@ import '../../../../core/network/api_endpoints.dart';
 import '../dto/discovery_item_dto.dart';
 import '../dto/trending_item_dto.dart';
 import '../dto/suggested_artist_dto.dart';
-import '../dto/resolved_resource_response_dto.dart';
 import '../dto/search_result_item_dto.dart';
 import '../dto/feed_item_dto.dart';
 import '../dto/track_search_response_dto.dart';
@@ -33,18 +32,9 @@ class DiscoveryApi {
       ApiEndpoints.getFollowingFeed,
       queryParameters: params,
     );
+    print('FOLLOWING FEED RESPONSE: ${response.data}');
+    print('FOLLOWING FEED TYPE: ${response.data.runtimeType}');
     return PaginatedFeedResponseDto.fromJson(
-      response.data as Map<String, dynamic>,
-    );
-  }
-
-  Future<ResolvedResourceResponseDto> resolveResource(String url) async {
-    final response = await dio.get(
-      ApiEndpoints.resolveResource,
-      queryParameters: {'url': url},
-    );
-
-    return ResolvedResourceResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
   }
@@ -52,12 +42,15 @@ class DiscoveryApi {
   Future<PaginatedDiscoveryResponseDto> getDiscover({
     int page = 1,
     int limit = 20,
+    String? genreId,
   }) async {
+    final params = <String, dynamic>{'page': page, 'limit': limit};
+    if (genreId != null) params['genreId'] = genreId;
+
     final response = await dio.get(
       ApiEndpoints.getDiscover,
-      queryParameters: {'page': page, 'limit': limit},
+      queryParameters: params,
     );
-
     return PaginatedDiscoveryResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
@@ -67,17 +60,34 @@ class DiscoveryApi {
     int page = 1,
     int limit = 20,
     String type = 'track',
-    String since = 'week',
+    String period = 'week',
+    String? genreId,
   }) async {
+    final params = <String, dynamic>{
+      //'page': page,
+      //'limit': limit,
+      'type': type,
+      'period': period,
+    };
+    if (genreId != null) params['genreId'] = genreId;
+
     final response = await dio.get(
       ApiEndpoints.getTrending,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        'type': type,
-        'since': since,
-      },
+      queryParameters: params,
     );
+
+    print('TRENDING params: $params');
+    print('TRENDING raw data: ${response.data}');
+    print('TRENDING raw type: ${response.data.runtimeType}');
+
+    if (response.data is Map<String, dynamic>) {
+      final items = (response.data['items'] as List<dynamic>? ?? []);
+      print('TRENDING items count: ${items.length}');
+      if (items.isNotEmpty) {
+        print('TRENDING first item: ${items.first}');
+        print('TRENDING first item type: ${items.first.runtimeType}');
+      }
+    }
 
     return PaginatedTrendingResponseDto.fromJson(
       response.data as Map<String, dynamic>,
@@ -92,7 +102,6 @@ class DiscoveryApi {
       ApiEndpoints.getSuggestedArtists,
       queryParameters: {'page': page, 'limit': limit},
     );
-
     return PaginatedSuggestedArtistsResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
@@ -107,7 +116,6 @@ class DiscoveryApi {
       ApiEndpoints.search,
       queryParameters: {'q': q, 'page': page, 'limit': limit},
     );
-
     return PaginatedSearchResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
@@ -121,18 +129,19 @@ class DiscoveryApi {
     String? timeAdded,
     String? duration,
     String? toListen,
+    bool? allowDownloads,
   }) async {
     final params = <String, dynamic>{'q': q, 'page': page, 'limit': limit};
     if (tag != null) params['tag'] = tag;
     if (timeAdded != null) params['timeAdded'] = timeAdded;
     if (duration != null) params['duration'] = duration;
     if (toListen != null) params['toListen'] = toListen;
+    if (allowDownloads != null) params['allowDownloads'] = allowDownloads;
 
     final response = await dio.get(
       ApiEndpoints.searchTracks,
       queryParameters: params,
     );
-
     return TrackSearchResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
@@ -153,7 +162,6 @@ class DiscoveryApi {
       ApiEndpoints.searchCollections,
       queryParameters: params,
     );
-
     return CollectionSearchResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );

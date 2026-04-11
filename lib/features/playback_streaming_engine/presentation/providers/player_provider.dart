@@ -20,10 +20,15 @@ import '../../domain/entities/stream_url.dart';
 import '../../domain/entities/track_artist_summary.dart';
 import '../../domain/entities/track_playback_bundle.dart';
 import '../../domain/entities/track_engagement.dart';
+import '../../domain/repositories/player_repository.dart';
 import '../../domain/usecases/build_playback_queue_usecase.dart';
 import '../../domain/usecases/get_playback_bundle_usecase.dart';
 import '../../domain/usecases/report_playback_event_usecase.dart';
+import '../../domain/usecases/report_track_completed_usecase.dart';
 import '../../domain/usecases/request_stream_url_usecase.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+import '../../../audio_upload_and_management/data/services/audio_cache_service.dart';
 import 'listening_history_provider.dart';
 import 'player_backend_mode_provider.dart';
 import 'player_repository_provider.dart';
@@ -38,10 +43,23 @@ part 'player_provider_persistence.dart';
 
 class PlayerNotifier extends AsyncNotifier<PlayerState>
     with WidgetsBindingObserver {
+  late PlayerRepository _repository;
   late GetPlaybackBundleUsecase _getBundle;
   late RequestStreamUrlUsecase _requestStream;
   late ReportPlaybackEventUsecase _reportEvent;
+  late ReportTrackCompletedUsecase _reportTrackCompleted;
   late BuildPlaybackQueueUsecase _buildQueue;
+  late AudioCacheService _audioCache;
+
+  /// Tracks which track IDs have already had a 90 % completion reported this
+  /// session so we never double-report.
+  final Set<String> _completedTrackIds = {};
+
+  /// Set to the current track's ID when play() is called. Cleared once the
+  /// position stream confirms ≥ 2 seconds of real playback have elapsed, at
+  /// which point _notifyHistoryPlayed() is fired. Cleared immediately when a
+  /// new track is loaded so the old track is never mistakenly counted.
+  String? _pendingHistoryTrackId;
 
   final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
 
@@ -57,14 +75,30 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   bool _handlingCompletion = false;
   bool _handlingPreviewStop = false;
   bool _isManualSeeking = false;
+  bool _isDisposed = false;
   DateTime? _lastSessionPersistAt;
+  PlayerState? _lastKnownState;
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
-  PlayerState? get _current => state.asData?.value;
+  PlayerState? get _current => _lastKnownState;
 
   void _setPlayerState(PlayerState nextState) {
+    _lastKnownState = nextState;
+    if (_isDisposed || !ref.mounted) {
+      return;
+    }
     state = AsyncData(nextState);
+  }
+
+  void _setAsyncState(AsyncValue<PlayerState> nextState) {
+    if (nextState case AsyncData<PlayerState>(:final value)) {
+      _lastKnownState = value;
+    }
+    if (_isDisposed || !ref.mounted) {
+      return;
+    }
+    state = nextState;
   }
 
   Future<void> _trackHistoryPlayed(
@@ -84,25 +118,39 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   @override
   Future<PlayerState> build() async {
     final repo = ref.watch(playerRepositoryProvider);
+    _repository = repo;
     _getBundle = GetPlaybackBundleUsecase(repo);
     _requestStream = RequestStreamUrlUsecase(repo);
     _reportEvent = ReportPlaybackEventUsecase(repo);
+    _reportTrackCompleted = ReportTrackCompletedUsecase(repo);
     _buildQueue = BuildPlaybackQueueUsecase(repo);
+    _audioCache = AudioCacheService(ref.read(globalTrackStoreProvider));
 
     _attachPlayerBindings();
     _attachLifecycleObserver();
 
-    ref.onDispose(() async {
+    ref.onDispose(() {
+      _isDisposed = true;
+      final current = _lastKnownState;
+      final positionSubscription = _positionSubscription;
+      final durationSubscription = _durationSubscription;
+      final playerStateSubscription = _playerStateSubscription;
+
       _progressReportTimer?.cancel();
-      await _persistCurrentSession(force: true);
       _detachLifecycleObserver();
-      await _positionSubscription?.cancel();
-      await _durationSubscription?.cancel();
-      await _playerStateSubscription?.cancel();
-      await _audioPlayer.dispose();
+
+      unawaited(() async {
+        await _persistCurrentSession(playerState: current, force: true);
+        await positionSubscription?.cancel();
+        await durationSubscription?.cancel();
+        await playerStateSubscription?.cancel();
+        await _audioPlayer.dispose();
+      }());
     });
 
-    return _restorePersistedSession();
+    final restored = await _restorePersistedSession();
+    _lastKnownState = restored;
+    return restored;
   }
 }
 

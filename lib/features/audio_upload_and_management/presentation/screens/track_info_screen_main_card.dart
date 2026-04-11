@@ -50,8 +50,6 @@ class _MainTrackCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // Use plain text — no unicode arrows or dots that render
-                      // as garbage on some Android devices.
                       Text(
                         '${stats.playCountText} plays  ${item.durationLabel}  ${stats.releaseDateText}',
                         style: const TextStyle(
@@ -103,7 +101,19 @@ class _MainTrackCard extends ConsumerWidget {
               const SizedBox(width: 28),
               _MetricIconText(icon: Icons.repeat, text: stats.repostCountText),
               const SizedBox(width: 28),
-              const Icon(Icons.more_horiz, color: Colors.white70, size: 28),
+              GestureDetector(
+                onTap: () {
+                  showTrackOptionsSheet(
+                    context,
+                    info: TrackOptionInfo.fromUploadItem(item),
+                    ref: ref,
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.more_horiz, color: Colors.white70, size: 28),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),

@@ -4,12 +4,12 @@
 // ─── Track filters ────────────────────────────────────────────────────────────
 
 enum TrackTimeAdded {
-  pastHour('past_hour', 'Past hour'),
-  pastDay('past_day', 'Past day'),
-  pastWeek('past_week', 'Past week'),
-  pastMonth('past_month', 'Past month'),
-  pastYear('past_year', 'Past year'),
-  allTime('all_time', 'All time');
+  pastHour('PAST_HOUR', 'Past hour'),
+  pastDay('PAST_DAY', 'Past day'),
+  pastWeek('PAST_WEEK', 'Past week'),
+  pastMonth('PAST_MONTH', 'Past month'),
+  pastYear('PAST_YEAR', 'Past year'),
+  allTime('ALL_TIME', 'All time');
 
   const TrackTimeAdded(this.apiValue, this.label);
   final String apiValue;
@@ -17,11 +17,11 @@ enum TrackTimeAdded {
 }
 
 enum TrackDuration {
-  under2('lt_2', 'Under 2 min'),
-  twoToTen('2_10', '2–10 min'),
-  tenToThirty('10_30', '10–30 min'),
-  over30('gt_30', 'Over 30 min'),
-  any('any_length', 'Any length');
+  under2('LT_2', 'Under 2 min'),
+  twoToTen('TWO_TEN', '2–10 min'),
+  tenToThirty('TEN_THIRTY', '10–30 min'),
+  over30('GT_30', 'Over 30 min'),
+  any('ANY', 'Any length');
 
   const TrackDuration(this.apiValue, this.label);
   final String apiValue;
@@ -44,32 +44,43 @@ class TrackSearchFilters {
   final TrackTimeAdded? timeAdded;
   final TrackDuration? duration;
   final TrackLicense? toListen;
+  final bool? allowDownloads; // ← new: maps to allowDownloads query param
 
   const TrackSearchFilters({
     this.tag,
     this.timeAdded,
     this.duration,
     this.toListen,
+    this.allowDownloads,
   });
 
   bool get hasAny =>
-      tag != null || timeAdded != null || duration != null || toListen != null;
+      tag != null ||
+      timeAdded != null ||
+      duration != null ||
+      toListen != null ||
+      allowDownloads != null;
 
   TrackSearchFilters copyWith({
     String? tag,
     TrackTimeAdded? timeAdded,
     TrackDuration? duration,
     TrackLicense? toListen,
+    bool? allowDownloads,
     bool clearTag = false,
     bool clearTimeAdded = false,
     bool clearDuration = false,
     bool clearToListen = false,
+    bool clearAllowDownloads = false,
   }) {
     return TrackSearchFilters(
       tag: clearTag ? null : tag ?? this.tag,
       timeAdded: clearTimeAdded ? null : timeAdded ?? this.timeAdded,
       duration: clearDuration ? null : duration ?? this.duration,
       toListen: clearToListen ? null : toListen ?? this.toListen,
+      allowDownloads: clearAllowDownloads
+          ? null
+          : allowDownloads ?? this.allowDownloads,
     );
   }
 
@@ -114,7 +125,7 @@ class CollectionSearchFilters {
 
 enum PeopleSort {
   relevance('relevance', 'Relevance'),
-  followers('followers', 'Most followed');
+  followers('FOLLOWERS', 'Most followed');
 
   const PeopleSort(this.apiValue, this.label);
   final String apiValue;

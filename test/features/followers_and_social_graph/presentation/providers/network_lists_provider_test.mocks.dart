@@ -40,7 +40,7 @@ class _FakeSocialRelationEntity_0 extends _i1.SmartFake
 class MockSocialGraphRepository extends _i1.Mock
     implements _i3.SocialGraphRepository {
   @override
-  _i4.Future<List<_i5.SocialUserEntity>> getFollowers({
+  _i4.Future<List<_i5.SocialUserEntity>> getUserFollowers({
     required String? userId,
     int? page = 1,
     int? limit = 20,
@@ -62,7 +62,7 @@ class MockSocialGraphRepository extends _i1.Mock
           as _i4.Future<List<_i5.SocialUserEntity>>);
 
   @override
-  _i4.Future<List<_i5.SocialUserEntity>> getFollowing({
+  _i4.Future<List<_i5.SocialUserEntity>> getUserFollowing({
     required String? userId,
     int? page = 1,
     int? limit = 20,
@@ -182,7 +182,7 @@ class MockSocialGraphRepository extends _i1.Mock
           as _i4.Future<_i2.SocialRelationEntity>);
 
   @override
-  _i4.Future<List<_i5.SocialUserEntity>> getMutualFriends({
+  _i4.Future<List<_i5.SocialUserEntity>> getTrueFriends({
     required String? userId,
     int? page = 1,
     int? limit = 20,
