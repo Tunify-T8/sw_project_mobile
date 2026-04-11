@@ -2,16 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../provider/enagement_providers.dart';
+import '../provider/engagement_state.dart';
 
-class LikeButton extends ConsumerWidget {
+class LikeButton extends ConsumerStatefulWidget {
   final String trackId;
   final bool showCount;
 
   const LikeButton({super.key, required this.trackId, this.showCount = true});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(engagementProvider(trackId));
+  ConsumerState<LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends ConsumerState<LikeButton> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = ref.read(engagementProvider(widget.trackId));
+      if (state.engagementStatus == EngagementStatus.initial) {
+        ref.read(engagementProvider(widget.trackId).notifier).loadEngagement();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(engagementProvider(widget.trackId));
     final isLiked = state.engagement?.isLiked ?? false;
     final likeCount = state.engagement?.likeCount ?? 0;
 
@@ -19,7 +37,7 @@ class LikeButton extends ConsumerWidget {
       children: [
         IconButton(
           onPressed: () => ref
-              .read(engagementProvider(trackId).notifier)
+              .read(engagementProvider(widget.trackId).notifier)
               .toggleLike(),
           icon: Icon(
             isLiked ? Icons.favorite : Icons.favorite_border,
@@ -29,7 +47,7 @@ class LikeButton extends ConsumerWidget {
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
-        if (showCount)
+        if (widget.showCount)
           Text(
             likeCount.toString(),
             style: TextStyle(

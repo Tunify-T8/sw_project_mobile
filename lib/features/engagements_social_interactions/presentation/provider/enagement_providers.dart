@@ -251,12 +251,19 @@ class EngagementNotifier extends Notifier<EngagementState> {
   }
 
   Future<void> deleteComment(String commentId) async {
-    await ref.read(deleteCommentUsecaseProvider).call(
-          trackId: _trackId,
-          commentId: commentId,
-        );
-    await loadComments();
-    await loadEngagement();
+    try {
+      await ref.read(deleteCommentUsecaseProvider).call(
+            trackId: _trackId,
+            commentId: commentId,
+          );
+      await loadComments();
+      await loadEngagement();
+    } catch (e) {
+      state = state.copyWith(
+        commentsStatus: EngagementStatus.error,
+        error: e.toString(),
+      );
+    }
   }
 
   void toggleCommentLike(String commentId) {
