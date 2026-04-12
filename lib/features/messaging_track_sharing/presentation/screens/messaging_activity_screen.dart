@@ -9,10 +9,7 @@ import '../widgets/conversation_tile.dart';
 import '../widgets/messaging_bottom_shell.dart';
 
 /// Activity screen with two tabs: **Notifications** (placeholder) and
-/// **Messages** (conversation list). The filter icon in the app bar opens a
-/// dropdown to switch between "All messages" and "Unread only".
-///
-/// Matches the SoundCloud Activity look from the provided screenshots.
+/// **Messages** (conversation list).
 class MessagingActivityScreen extends ConsumerStatefulWidget {
   const MessagingActivityScreen({super.key});
 
@@ -31,6 +28,7 @@ class _MessagingActivityScreenState
     super.initState();
     // Start on Messages tab (index 1).
     _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -82,15 +80,29 @@ class _MessagingActivityScreenState
             ),
 
             // ── Tab bar ──────────────────────────────────────────────────
+            // FIX: Use a proper TabBar with transparent divider to remove
+            // the stray default bottom border that caused the half-white bug.
             TabBar(
               controller: _tabController,
-              indicatorColor: AppColors.primary,
-              indicatorWeight: 2.5,
+              // The orange indicator — shown only on the selected tab.
+              indicator: const UnderlineTabIndicator(
+                borderSide: BorderSide(
+                  color: AppColors.primary,
+                  width: 2.5,
+                ),
+                insets: EdgeInsets.symmetric(horizontal: 16),
+              ),
+              // Remove the default grey divider line under the whole bar.
+              dividerColor: Colors.transparent,
               labelColor: Colors.white,
               unselectedLabelColor: const Color(0xFF8A8A8A),
               labelStyle: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
               ),
               tabs: [
                 const Tab(text: 'Notifications'),
@@ -202,7 +214,7 @@ class _MessagesList extends ConsumerWidget {
   }
 }
 
-// ── Filter dropdown (3-slider icon) ──────────────────────────────────────────
+// ── Filter dropdown ──────────────────────────────────────────────────────────
 
 class _FilterButton extends StatelessWidget {
   const _FilterButton({
@@ -229,8 +241,7 @@ class _FilterButton extends StatelessWidget {
               if (selected)
                 const Padding(
                   padding: EdgeInsets.only(right: 8),
-                  child:
-                      Icon(Icons.check, color: Colors.white, size: 18),
+                  child: Icon(Icons.check, color: Colors.white, size: 18),
                 )
               else
                 const SizedBox(width: 26),

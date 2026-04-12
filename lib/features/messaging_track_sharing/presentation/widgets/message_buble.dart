@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/routing/routes.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
 import '../utils/messaging_time_format.dart';
 
 /// A single chat bubble — text or attachment — plus the small h:mm AM/PM
-/// timestamp underneath. Matches the SoundCloud DM look: dark grey rounded
-/// container with a hairline white outline, no fill colour difference between
-/// incoming and outgoing (alignment alone signals direction).
+/// timestamp underneath.
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     super.key,
@@ -115,7 +114,7 @@ class _BubbleContent extends StatelessWidget {
     if (hasAttachments) {
       if (children.isNotEmpty) children.add(const SizedBox(height: 8));
       for (final att in message.attachments) {
-        children.add(_AttachmentChip(attachment: att));
+        children.add(_AttachmentCard(attachment: att));
       }
     }
 
@@ -127,43 +126,105 @@ class _BubbleContent extends StatelessWidget {
   }
 }
 
-class _AttachmentChip extends StatelessWidget {
-  const _AttachmentChip({required this.attachment});
+/// Tappable attachment card. For tracks: opens the track detail/player screen.
+/// For collections: currently shows a snackbar (expand when playlist screen exists).
+class _AttachmentCard extends StatelessWidget {
+  const _AttachmentCard({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
   Widget build(BuildContext context) {
-    final icon = attachment.type == MessageAttachmentType.collection
-        ? Icons.library_music_outlined
-        : Icons.music_note_outlined;
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white70, size: 18),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              attachment.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+    final isTrack = attachment.type == MessageAttachmentType.track;
+    final icon = isTrack
+        ? Icons.music_note_outlined
+        : Icons.library_music_outlined;
+
+    return GestureDetector(
+      onTap: () => _open(context),
+      child: Container(
+        margin: const EdgeInsets.only(top: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF2A2A2A)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Artwork thumbnail
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(10),
+                bottomLeft: Radius.circular(10),
+              ),
+              child: attachment.artworkUrl != null &&
+                      attachment.artworkUrl!.isNotEmpty
+                  ? Image.network(
+                      attachment.artworkUrl!,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => _artworkPlaceholder(),
+                    )
+                  : _artworkPlaceholder(),
+            ),
+            // Title + icon
+            Flexible(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: Colors.white70, size: 16),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        attachment.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+  void _open(BuildContext context) {
+    if (attachment.type == MessageAttachmentType.track) {
+      // Open the track detail / player screen.
+      // Routes.trackDetail expects a trackId argument.
+      Navigator.of(context).pushNamed(
+        Routes.trackDetail,
+        arguments: {'trackId': attachment.id},
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opening "${attachment.title}"…'),
+          backgroundColor: const Color(0xFF2A2A2A),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  static Widget _artworkPlaceholder() => Container(
+        width: 56,
+        height: 56,
+        color: const Color(0xFF2A2A2A),
+        child: const Icon(Icons.music_note, color: Color(0xFF5A5A5A), size: 26),
+      );
 }
