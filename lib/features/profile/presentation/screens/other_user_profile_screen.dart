@@ -13,6 +13,8 @@ import '../widgets/user_options_sheet.dart';
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -29,101 +31,39 @@ class _OtherUserProfileScreenState
   final double profileHeight = 150;
   final double coverHeight = 150;
 
-  bool _isFollowing = false;
-  bool _followLoading = true;
-
   final nameStyle = const TextStyle(
     fontSize: 25,
     fontWeight: FontWeight.bold,
     color: Colors.white,
   );
 
-  late final followerStyle =
-      TextStyle(fontSize: 18, color: Colors.grey.shade200);
-  late final bioStyle =
-      TextStyle(fontSize: 16, color: Colors.grey.shade400, height: 1.5);
+  late final followerStyle = TextStyle(
+    fontSize: 18,
+    color: Colors.grey.shade200,
+  );
+  late final bioStyle = TextStyle(
+    fontSize: 16,
+    color: Colors.grey.shade400,
+    height: 1.5,
+  );
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await ref
-          .read(userProfileProvider.notifier)
-          .loadProfile(widget.userId);
-      await _loadFollowStatus();
+      await ref.read(userProfileProvider.notifier).loadProfile(widget.userId);
     });
   }
 
-  Future<void> _loadFollowStatus() async {
-    try {
-      final repo = ref.read(socialGraphRepositoryProvider);
-      final relation = await repo.getFollowStatus(widget.userId);
-      if (mounted) {
-        setState(() {
-          _isFollowing = relation.isFollowing;
-          _followLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _followLoading = false);
-    }
-  }
-
-  Future<void> _toggleFollow() async {
-    final repo = ref.read(socialGraphRepositoryProvider);
-    final wasFollowing = _isFollowing;
-    setState(() => _isFollowing = !wasFollowing);
-    try {
-      if (wasFollowing) {
-        await repo.unfollowUser(widget.userId);
-      } else {
-        await repo.followUser(widget.userId);
-      }
-      await _syncAfterFollowChange(!wasFollowing);
-    } catch (_) {
-      if (mounted) setState(() => _isFollowing = wasFollowing);
-    }
-  }
-
-  // Called by the three dots sheet after it already made the API call
-  Future<void> _applyFollowChange() async {
-    setState(() => _isFollowing = !_isFollowing);
-    await _syncAfterFollowChange(_isFollowing);
-  }
-
-  Future<void> _syncAfterFollowChange(bool nowFollowing) async {
-    ref.read(networkListsProvider.notifier).updateFollowStatus(
-          userId: widget.userId,
-          isFollowing: nowFollowing,
-        );
-    await ref.read(userProfileProvider.notifier).loadProfile(widget.userId);
-    await ref.read(profileProvider.notifier).loadProfile();
-  }
-
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(bool isBlocked) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: Row(
         children: [
-          _followLoading
-              ? const SizedBox(
-                  width: 100,
-                  height: 36,
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                )
-              : OutlinedButton(
-                  onPressed: _toggleFollow,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
-                  ),
-                  child: Text(_isFollowing ? 'Following' : 'Follow'),
-                ),
+          if (isBlocked)
+            const Icon(Icons.block, color: Colors.white)
+          else
+            RelationshipButton(userId: widget.userId),
           const SizedBox(width: 12),
           IconButton(
             icon: const Icon(Icons.notifications_none, color: Colors.white),
@@ -144,8 +84,7 @@ class _OtherUserProfileScreenState
               shape: BoxShape.circle,
             ),
             child: IconButton(
-              icon: const Icon(Icons.play_arrow,
-                  color: Colors.black, size: 28),
+              icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
               onPressed: () {},
             ),
           ),
@@ -157,6 +96,9 @@ class _OtherUserProfileScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(userProfileProvider);
+    final relationshipState = ref.watch(
+      relationshipStatusProvider(widget.userId),
+    );
     final profile = state.profile;
 
     return Scaffold(
@@ -169,100 +111,117 @@ class _OtherUserProfileScreenState
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.cast),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.cast), onPressed: () {}),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: profile == null
                 ? null
                 : () => UserOptionsSheet.show(
-                      context: context,
-                      userId: widget.userId,
-                      userName: profile.userName,
-                      avatarUrl: profile.profileImagePath,
-                      followersCount: profile.followersCount ?? 0,
-                      tracksCount: profile.tracksCount ?? 0,
-                      isFollowing: _isFollowing,
-                      onFollowChanged: _applyFollowChange,
-                    ),
+                    context: context,
+                    userId: widget.userId,
+                    userName: profile.userName,
+                    avatarUrl: profile.profileImagePath,
+                    followersCount: profile.followersCount ?? 0,
+                    tracksCount: profile.tracksCount ?? 0,
+                    isFollowing: relationshipState.isFollowing ?? false,
+                    isBlocked: relationshipState.isBlocked ?? false,
+                    onFollowChanged: () async {
+                      await ref
+                          .read(
+                            relationshipStatusProvider(widget.userId).notifier,
+                          )
+                          .toggleFollow();
+
+                      await ref
+                          .read(userProfileProvider.notifier)
+                          .loadProfile(widget.userId);
+
+                      await ref.read(profileProvider.notifier).loadProfile();
+                    },
+                    onBlockChanged: () {
+                      ref
+                          .read(
+                            relationshipStatusProvider(widget.userId).notifier,
+                          )
+                          .toggleBlock();
+                    },
+                  ),
           ),
         ],
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.isError
-              ? Center(
-                  child: Text(
-                    state.errorMessage ?? 'Error loading profile',
-                    style: const TextStyle(color: Colors.white),
+          ? Center(
+              child: Text(
+                state.errorMessage ?? 'Error loading profile',
+                style: const TextStyle(color: Colors.white),
+              ),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ProfileHeader(
+                    coverHeight: coverHeight,
+                    profileHeight: profileHeight,
+                    coverUrl: profile?.coverImagePath,
+                    profileUrl: profile?.profileImagePath,
                   ),
-                )
-              : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ProfileHeader(
-                        coverHeight: coverHeight,
-                        profileHeight: profileHeight,
-                        coverUrl: profile?.coverImagePath,
-                        profileUrl: profile?.profileImagePath,
-                      ),
-                      SizedBox(height: profileHeight / 2 + 8),
-                      ProfileInfo(
-                        userName: profile?.userName ?? '',
-                        city: profile?.city ?? '',
-                        country: profile?.country ?? '',
-                        bio: profile?.bio ?? '',
-                        followersCount: profile?.followersCount ?? 0,
-                        followingCount: profile?.followingCount ?? 0,
-                        isCertified: profile?.isCertified ?? false,
-                        nameStyle: nameStyle,
-                        bioStyle: bioStyle,
-                        followerStyle: followerStyle,
-                        onShowMore: () => ProfileShareSheet(
-                          context: context,
-                          userName: profile?.userName ?? '',
-                          bio: profile?.bio ?? '',
-                          followersCount: profile?.followersCount ?? 0,
-                          tracksCount: profile?.tracksCount ?? 0,
-                          profileImage: null,
-                          profileImagePath: profile?.profileImagePath,
-                          instagram: profile?.instagram,
-                          twitter: profile?.twitter,
-                          youtube: profile?.youtube,
-                          spotify: profile?.spotify,
-                          tiktok: profile?.tiktok,
-                          soundcloud: profile?.soundcloud,
-                          bioStyle: bioStyle,
-                        ).showInfoSheet(),
-                        actionButtons: _buildActionButtons(),
-                        onFollowersTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => NetworkListsScreen(
-                              userId: widget.userId,
-                              isMyProfile: false,
-                              listType: NetworkListType.followers,
-                            ),
-                          ),
-                        ),
-                        onFollowingTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => NetworkListsScreen(
-                              userId: widget.userId,
-                              isMyProfile: false,
-                              listType: NetworkListType.following,
-                            ),
-                          ),
+                  SizedBox(height: profileHeight / 2 + 8),
+                  ProfileInfo(
+                    userName: profile?.userName ?? '',
+                    city: profile?.city ?? '',
+                    country: profile?.country ?? '',
+                    bio: profile?.bio ?? '',
+                    followersCount: profile?.followersCount ?? 0,
+                    followingCount: profile?.followingCount ?? 0,
+                    isCertified: profile?.isCertified ?? false,
+                    nameStyle: nameStyle,
+                    bioStyle: bioStyle,
+                    followerStyle: followerStyle,
+                    onShowMore: () => ProfileShareSheet(
+                      context: context,
+                      userName: profile?.userName ?? '',
+                      bio: profile?.bio ?? '',
+                      followersCount: profile?.followersCount ?? 0,
+                      tracksCount: profile?.tracksCount ?? 0,
+                      profileImage: null,
+                      profileImagePath: profile?.profileImagePath,
+                      instagram: profile?.instagram,
+                      twitter: profile?.twitter,
+                      youtube: profile?.youtube,
+                      spotify: profile?.spotify,
+                      tiktok: profile?.tiktok,
+                      soundcloud: profile?.soundcloud,
+                      bioStyle: bioStyle,
+                    ).showInfoSheet(),
+                    actionButtons: _buildActionButtons(relationshipState.isBlocked ?? false),
+                    onFollowersTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NetworkListsScreen(
+                          userId: widget.userId,
+                          isMyProfile: false,
+                          listType: NetworkListType.followers,
                         ),
                       ),
-                      ProfileRepostsSection(userId: widget.userId),
-                    ],
+                    ),
+                    onFollowingTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NetworkListsScreen(
+                          userId: widget.userId,
+                          isMyProfile: false,
+                          listType: NetworkListType.following,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  ProfileRepostsSection(userId: widget.userId),
+                ],
+              ),
+            ),
     );
   }
 }

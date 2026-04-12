@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/social_user_entity.dart';
+import 'relationship_button.dart';
+
 
 class SuggestedUserItem extends StatelessWidget {
   final SocialUserEntity user;
   final VoidCallback? onTap;
-  final VoidCallback onFollowToggle;
 
-  const SuggestedUserItem({
-    super.key,
-    required this.user,
-    this.onTap,
-    required this.onFollowToggle,
-  });
+  const SuggestedUserItem({super.key, required this.user, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isFollowing = user.isFollowing;
 
     return Padding(
       padding: const EdgeInsets.only(right: 16),
@@ -52,28 +47,9 @@ class SuggestedUserItem extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              SizedBox(
-                height: 38,
-                child: TextButton(
-                  onPressed: onFollowToggle,
-                  style: TextButton.styleFrom(
-                    backgroundColor: isFollowing
-                        ? const Color(0xFF303030)
-                        : Colors.white,
-                    foregroundColor: isFollowing ? Colors.white : Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: Text(
-                    isFollowing ? 'Following' : 'Follow',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+              RelationshipButton(
+                userId: user.id,
+                initialIsFollowing: user.isFollowing,
               ),
             ],
           ),

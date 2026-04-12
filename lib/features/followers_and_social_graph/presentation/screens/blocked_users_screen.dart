@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/network_list_type.dart';
-import '../../domain/entities/social_user_entity.dart';
 import '../providers/network_lists_notifier.dart';
-import '../providers/social_actions_notifier.dart';
 import '../widgets/network_lists_empty_state.dart';
 import '../widgets/network_lists_error_state.dart';
 import '../widgets/user_social_tile.dart';
+import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
 class BlockedUsersScreen extends ConsumerStatefulWidget {
   const BlockedUsersScreen({super.key});
@@ -34,12 +33,6 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
     }
 
     await ref.read(networkListsProvider.notifier).loadBlockedUsers();
-  }
-
-  Future<void> _handleBlockAction(SocialUserEntity user) async {
-    await ref
-        .read(socialActionsProvider)
-        .toggleBlock(user: user, listType: NetworkListType.blocked);
   }
 
   @override
@@ -81,11 +74,17 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
                     final user = users[index];
 
                     return UserSocialTile(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OtherUserProfileScreen(userId: user.id),
+                          ),
+                        );
+                      },
                       user: user,
                       listType: NetworkListType.blocked,
-                      onFollowToggle: null,
                       onToggleNotifications: null,
-                      onBlock: () => _handleBlockAction(user),
                     );
                   },
                 ),

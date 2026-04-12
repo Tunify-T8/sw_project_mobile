@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/track_preview_entity.dart';
 import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 
 class TrackInfoBox extends StatelessWidget {
   final TrackPreviewEntity track;
@@ -37,7 +38,8 @@ class TrackInfoBox extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => OtherUserProfileScreen(userId: track.artistId),
+                          builder: (_) =>
+                              OtherUserProfileScreen(userId: track.artistId),
                         ),
                       ),
                       child: CircleAvatar(
@@ -74,16 +76,9 @@ class TrackInfoBox extends StatelessWidget {
                               size: 20.0,
                             ),
                           const SizedBox(width: 8.0),
-                          TextButton(
-                            onPressed: () {},
-                            style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFF605E5F),
-                              foregroundColor: Colors.white,
-                            ),
-                            child: Text(
-                              (track.isFollowingArtist ?? true) ? 'Following' : 'Follow',
-                              style: const TextStyle(fontSize: 15.0),
-                            ),
+                          RelationshipButton(
+                            userId: track.artistId,
+                            initialIsFollowing: track.isFollowingArtist,
                           ),
                         ],
                       ),

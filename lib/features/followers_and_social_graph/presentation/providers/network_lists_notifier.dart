@@ -15,42 +15,6 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     return const NetworkListsState();
   }
 
-  void updateFollowStatus({
-    required String userId,
-    required bool isFollowing,
-  }) {
-    state = state.copyWith(
-      userLists: {
-        for (final entry in state.userLists.entries)
-          entry.key: entry.value
-              .map(
-                (user) => user.id == userId
-                    ? user.copyWith(isFollowing: isFollowing)
-                    : user,
-              )
-              .toList(),
-      },
-    );
-  }
-
-  void updateBlockStatus({
-    required String userId,
-    required bool isBlocked,
-  }) {
-    state = state.copyWith(
-      userLists: {
-        for (final entry in state.userLists.entries)
-          entry.key: entry.value
-              .map(
-                (user) => user.id == userId
-                    ? user.copyWith(isBlocked: isBlocked)
-                    : user,
-              )
-              .toList(),
-      },
-    );
-  }
-
   Future<void> loadFollowingList({
     required String userId,
     int page = 1,
