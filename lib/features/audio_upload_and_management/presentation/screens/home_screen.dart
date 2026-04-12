@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
@@ -42,6 +43,8 @@ class HomeScreen extends ConsumerWidget {
         onRefresh: () async {
           await ref.read(libraryUploadsProvider.notifier).refresh();
           await ref.read(listeningHistoryProvider.notifier).refresh();
+          await ref.read(networkListsProvider.notifier).loadSuggestedUsers();
+          await ref.read(networkListsProvider.notifier).loadSuggestedArtists();
         },
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(
