@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
+import 'relationship_button.dart';
 
 class UserSocialTile extends StatelessWidget {
   final SocialUserEntity user;
   final NetworkListType listType;
   final VoidCallback? onTap;
-  final VoidCallback? onFollowToggle;
   final VoidCallback? onToggleNotifications;
-  final VoidCallback? onBlock;
 
   const UserSocialTile({
     super.key,
     required this.user,
     required this.listType,
     this.onTap,
-    this.onFollowToggle,
     this.onToggleNotifications,
-    this.onBlock,
   });
 
   @override
@@ -26,13 +23,6 @@ class UserSocialTile extends StatelessWidget {
     final bool blockedList = (listType == NetworkListType.blocked)
         ? true
         : false;
-    final String buttonText;
-
-    if (blockedList) {
-      buttonText = user.isBlocked ? 'Unblock' : 'Block';
-    } else {
-      buttonText = user.isFollowing ? 'Following' : 'Follow';
-    }
 
     return GestureDetector(
       onTap: onTap,
@@ -104,19 +94,11 @@ class UserSocialTile extends StatelessWidget {
 
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: TextButton(
-                onPressed: blockedList ? onBlock : onFollowToggle,
-                style: TextButton.styleFrom(
-                  backgroundColor:
-                      (blockedList ? user.isBlocked : user.isFollowing)
-                      ? const Color(0xFF303030)
-                      : Colors.white,
-                  foregroundColor:
-                      (blockedList ? user.isBlocked : user.isFollowing)
-                      ? Colors.white
-                      : Colors.black,
-                ),
-                child: Text(buttonText, style: const TextStyle(fontSize: 15.0)),
+              child: RelationshipButton(
+                userId: user.id,
+                initialIsFollowing: user.isFollowing,
+                initialIsBlocked: user.isBlocked,
+                isBlockMode: blockedList,
               ),
             ),
 

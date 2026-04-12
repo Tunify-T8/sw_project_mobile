@@ -6,7 +6,6 @@ import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
 import '../providers/utils/network_list_view_mapper.dart';
 import '../providers/network_lists_notifier.dart';
-import '../providers/social_actions_notifier.dart';
 import '../widgets/network_lists_empty_state.dart';
 import '../widgets/network_lists_error_state.dart';
 import '../widgets/network_lists_true_friends_tile.dart';
@@ -44,12 +43,6 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
       notifier: notifier,
       isMyProfile: widget.isMyProfile,
     );
-  }
-
-  Future<void> _handleFollowToggle(SocialUserEntity user) async {
-    await ref
-        .read(socialActionsProvider)
-        .toggleFollow(user: user, listType: widget.listType);
   }
 
   @override
@@ -131,7 +124,6 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                           ),
                         );
                       },
-                      onFollowToggle: () => _handleFollowToggle(user),
                       onToggleNotifications: null,
                     );
                   },
