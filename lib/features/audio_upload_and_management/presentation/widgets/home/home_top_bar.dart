@@ -7,9 +7,11 @@ class HomeTopBar extends StatelessWidget {
     required this.onOpenArtistHome,
     required this.onStartUpload,
     this.onOpenMessaging,
+    this.hasUnreadMessages = false,
   });
 
   final bool isBusy;
+  final bool hasUnreadMessages;
   final VoidCallback onOpenArtistHome;
   final VoidCallback onStartUpload;
   final VoidCallback? onOpenMessaging;
@@ -55,6 +57,7 @@ class HomeTopBar extends StatelessWidget {
           _CircleIconButton(
             icon: Icons.chat_bubble_outline,
             onTap: onOpenMessaging,
+            showUnreadDot: hasUnreadMessages,
           ),
         ],
       ),
@@ -67,36 +70,60 @@ class _CircleIconButton extends StatelessWidget {
     required this.icon,
     this.isBusy = false,
     this.onTap,
+    this.showUnreadDot = false,
   });
 
   final IconData icon;
   final bool isBusy;
+  final bool showUnreadDot;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: const Color(0xFF171717),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Center(
-          child: isBusy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.6,
-                    color: Colors.white,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFF171717),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Center(
+              child: isBusy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.6,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(icon, color: Colors.white, size: 22),
+            ),
+          ),
+          if (showUnreadDot)
+            Positioned(
+              right: 1,
+              top: 1,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5500),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF171717),
+                    width: 1.2,
                   ),
-                )
-              : Icon(icon, color: Colors.white, size: 22),
-        ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
@@ -27,6 +28,9 @@ class HomeScreen extends ConsumerWidget {
     final libraryState = ref.watch(libraryUploadsProvider);
     final uploadState = ref.watch(uploadProvider);
     final historyAsync = ref.watch(listeningHistoryProvider);
+    final hasUnreadMessages = ref.watch(
+      conversationsControllerProvider.select((state) => state.totalUnread > 0),
+    );
 
     // Prefer the most recently played track for the "Picked for you" hero card.
     // Fall back to the most recent upload if history is empty/loading.
@@ -69,6 +73,7 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       HomeTopBar(
                         isBusy: uploadState.isBusy,
+                        hasUnreadMessages: hasUnreadMessages,
                         onOpenArtistHome: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(

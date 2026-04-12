@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
-import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../domain/entities/message_attachment.dart';
 
-/// Bottom sheet with four tabs (Likes · Playlists · Albums · Uploads) that
-/// lets the user pick content to attach to a message.
+/// Bottom sheet with four tabs (Likes · Playlists · Albums · Uploads)
+/// for choosing content to attach to a message.
 ///
-/// Returns a `List<MessageAttachment>` when the user taps **Done**, or
-/// `null` if cancelled.
+/// This version fixes the uploads tab by actively loading the user's uploads
+/// when the sheet opens instead of assuming some other screen already loaded them.
 class AttachContentSheet extends ConsumerStatefulWidget {
   const AttachContentSheet({super.key});
 
@@ -29,6 +29,13 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    Future.microtask(() async {
+      final uploadsState = ref.read(libraryUploadsProvider);
+      if (!uploadsState.isLoading && uploadsState.items.isEmpty) {
+        await ref.read(libraryUploadsProvider.notifier).load();
+      }
+    });
   }
 
   @override
@@ -60,7 +67,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
       ),
       child: Column(
         children: [
-          // ── Drag handle ───────────────────────────────────────────────
           const SizedBox(height: 10),
           Container(
             width: 36,
@@ -70,7 +76,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // ── Header: Cancel / Title / Done ─────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
             child: Row(
@@ -95,8 +100,7 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
                   ),
                 ),
                 TextButton(
-                  onPressed: () =>
-                      Navigator.pop(context, _selected.toList()),
+                  onPressed: () => Navigator.pop(context, _selected.toList()),
                   child: const Text(
                     'Done',
                     style: TextStyle(
@@ -109,8 +113,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
               ],
             ),
           ),
-
-          // ── Tabs ──────────────────────────────────────────────────────
           TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
@@ -118,8 +120,10 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
             dividerColor: Colors.transparent,
             labelColor: Colors.white,
             unselectedLabelColor: const Color(0xFF8A8A8A),
-            labelStyle:
-                const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            labelStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
             tabs: const [
               Tab(text: 'Likes'),
               Tab(text: 'Playlists'),
@@ -127,8 +131,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
               Tab(text: 'Uploads'),
             ],
           ),
-
-          // ── Tab bodies ────────────────────────────────────────────────
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -155,8 +157,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
   }
 }
 
-// ── Likes tab ────────────────────────────────────────────────────────────────
-
 class _LikesTab extends ConsumerWidget {
   const _LikesTab({
     required this.isSelected,
@@ -180,10 +180,12 @@ class _LikesTab extends ConsumerWidget {
             child: CircularProgressIndicator(color: AppColors.primary),
           );
         }
+
         final tracks = snapshot.data ?? [];
         if (tracks.isEmpty) {
           return const _EmptyTab(label: 'No liked tracks yet');
         }
+
         return ListView.builder(
           itemCount: tracks.length,
           itemBuilder: (context, index) {
@@ -194,6 +196,7 @@ class _LikesTab extends ConsumerWidget {
               title: track.title,
               artworkUrl: track.coverUrl,
             );
+
             return _ContentTile(
               title: track.title,
               subtitle: track.artistName,
@@ -208,8 +211,6 @@ class _LikesTab extends ConsumerWidget {
   }
 }
 
-// ── Playlists tab (mock) ──────────────────────────────────────────────────────
-
 class _PlaylistsTab extends StatelessWidget {
   const _PlaylistsTab({
     required this.isSelected,
@@ -221,10 +222,8 @@ class _PlaylistsTab extends StatelessWidget {
 
   static const _playlists = [
     _MockPlaylist(id: 'pl_1', title: 'test1', owner: 'Rozana Ahmed'),
-    _MockPlaylist(
-        id: 'pl_2', title: 'Untitled playlist', owner: 'Rozana Ahmed'),
-    _MockPlaylist(
-        id: 'pl_3', title: 'Pop Fit Workout', owner: 'Discovery Playlists'),
+    _MockPlaylist(id: 'pl_2', title: 'Untitled playlist', owner: 'Rozana Ahmed'),
+    _MockPlaylist(id: 'pl_3', title: 'Pop Fit Workout', owner: 'Discovery Playlists'),
     _MockPlaylist(id: 'pl_4', title: 'Rand', owner: 'Rozana Ahmed'),
   ];
 
@@ -239,6 +238,7 @@ class _PlaylistsTab extends StatelessWidget {
           type: MessageAttachmentType.collection,
           title: pl.title,
         );
+
         return _ContentTile(
           title: pl.title,
           subtitle: pl.owner,
@@ -256,12 +256,11 @@ class _MockPlaylist {
     required this.title,
     required this.owner,
   });
+
   final String id;
   final String title;
   final String owner;
 }
-
-// ── Uploads tab — real uploads ────────────────────────────────────────────────
 
 class _UploadsTab extends ConsumerWidget {
   const _UploadsTab({
@@ -275,13 +274,17 @@ class _UploadsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uploadsState = ref.watch(libraryUploadsProvider);
-    final items = uploadsState.items;
+
+    final items = uploadsState.filteredItems.isNotEmpty
+        ? uploadsState.filteredItems
+        : uploadsState.items;
 
     if (uploadsState.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
+
     if (items.isEmpty) {
       return const _EmptyTab(label: 'No uploads yet');
     }
@@ -290,12 +293,14 @@ class _UploadsTab extends ConsumerWidget {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
+
         final attachment = MessageAttachment(
           id: item.id,
           type: MessageAttachmentType.track,
           title: item.title,
           artworkUrl: item.artworkUrl,
         );
+
         return _ContentTile(
           title: item.title,
           subtitle: item.artistDisplay,
@@ -307,8 +312,6 @@ class _UploadsTab extends ConsumerWidget {
     );
   }
 }
-
-// ── Shared content tile ───────────────────────────────────────────────────────
 
 class _ContentTile extends StatelessWidget {
   const _ContentTile({
@@ -338,7 +341,6 @@ class _ContentTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                // FIX: errorBuilder must have 3 distinct parameter names.
                 errorBuilder: (ctx, err, stack) => _placeholder(),
               )
             : _placeholder(),
@@ -387,14 +389,17 @@ class _ContentTile extends StatelessWidget {
           color: const Color(0xFF2A2A2A),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: const Icon(Icons.music_note, color: Color(0xFF5A5A5A), size: 26),
+        child: const Icon(
+          Icons.music_note,
+          color: Color(0xFF5A5A5A),
+          size: 26,
+        ),
       );
 }
 
-// ── Empty tab placeholder ─────────────────────────────────────────────────────
-
 class _EmptyTab extends StatelessWidget {
   const _EmptyTab({required this.label});
+
   final String label;
 
   @override

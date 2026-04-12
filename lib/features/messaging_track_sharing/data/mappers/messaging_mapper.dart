@@ -26,11 +26,14 @@ class MessagingMapper {
         id: d.id,
         type: _attachmentType(d.type),
         title: d.title,
+        subtitle: d.subtitle,
         artworkUrl: d.artworkUrl,
       );
 
   static MessageType _messageType(String raw) =>
-      raw.toUpperCase() == 'ATTACHMENT' ? MessageType.attachment : MessageType.text;
+      raw.toUpperCase() == 'ATTACHMENT'
+          ? MessageType.attachment
+          : MessageType.text;
 
   static MessageEntity message(MessageDto d) => MessageEntity(
         id: d.id,
@@ -52,7 +55,8 @@ class MessagingMapper {
         isBlocked: d.isBlocked,
       );
 
-  static PaginatedMessages messages(PaginatedDto<MessageDto> d) => PaginatedMessages(
+  static PaginatedMessages messages(PaginatedDto<MessageDto> d) =>
+      PaginatedMessages(
         items: d.items.map(message).toList(),
         page: d.page,
         limit: d.limit,
