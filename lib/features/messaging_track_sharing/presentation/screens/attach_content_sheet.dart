@@ -39,9 +39,9 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
 
   void _toggle(MessageAttachment item) {
     setState(() {
-      final existing = _selected.where((s) => s.id == item.id);
+      final existing = _selected.where((s) => s.id == item.id).toList();
       if (existing.isNotEmpty) {
-        _selected.removeAll(existing.toList());
+        _selected.removeAll(existing);
       } else {
         _selected.add(item);
       }
@@ -60,9 +60,19 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
       ),
       child: Column(
         children: [
-          // ── Header: Cancel / Title / Done ────────────────────────────
+          // ── Drag handle ───────────────────────────────────────────────
+          const SizedBox(height: 10),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // ── Header: Cancel / Title / Done ─────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
+            padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
             child: Row(
               children: [
                 TextButton(
@@ -89,18 +99,23 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
                       Navigator.pop(context, _selected.toList()),
                   child: const Text(
                     'Done',
-                    style: TextStyle(color: Colors.white, fontSize: 15),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          // ── Tabs ─────────────────────────────────────────────────────
+          // ── Tabs ──────────────────────────────────────────────────────
           TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
             indicatorWeight: 2,
+            dividerColor: Colors.transparent,
             labelColor: Colors.white,
             unselectedLabelColor: const Color(0xFF8A8A8A),
             labelStyle:
@@ -113,7 +128,7 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
             ],
           ),
 
-          // ── Tab bodies ───────────────────────────────────────────────
+          // ── Tab bodies ────────────────────────────────────────────────
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -153,7 +168,6 @@ class _LikesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Get current user's id to fetch their liked tracks.
     final viewerId =
         ref.watch(authControllerProvider).value?.id ?? 'user_current_1';
     final usecase = ref.read(getLikedTracksUsecaseProvider);
@@ -194,7 +208,7 @@ class _LikesTab extends ConsumerWidget {
   }
 }
 
-// ── Playlists tab (mock data — no playlist provider exists yet) ──────────────
+// ── Playlists tab (mock) ──────────────────────────────────────────────────────
 
 class _PlaylistsTab extends StatelessWidget {
   const _PlaylistsTab({
@@ -205,7 +219,6 @@ class _PlaylistsTab extends StatelessWidget {
   final bool Function(String id) isSelected;
   final ValueChanged<MessageAttachment> onToggle;
 
-  // Hard-coded mock playlists matching the screenshots.
   static const _playlists = [
     _MockPlaylist(id: 'pl_1', title: 'test1', owner: 'Rozana Ahmed'),
     _MockPlaylist(
@@ -248,7 +261,7 @@ class _MockPlaylist {
   final String owner;
 }
 
-// ── Uploads tab ──────────────────────────────────────────────────────────────
+// ── Uploads tab — real uploads ────────────────────────────────────────────────
 
 class _UploadsTab extends ConsumerWidget {
   const _UploadsTab({
@@ -295,7 +308,7 @@ class _UploadsTab extends ConsumerWidget {
   }
 }
 
-// ── Shared content tile (avatar / title / subtitle / radio circle) ───────────
+// ── Shared content tile ───────────────────────────────────────────────────────
 
 class _ContentTile extends StatelessWidget {
   const _ContentTile({
@@ -325,7 +338,8 @@ class _ContentTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _placeholder(),
+                // FIX: errorBuilder must have 3 distinct parameter names.
+                errorBuilder: (ctx, err, stack) => _placeholder(),
               )
             : _placeholder(),
       ),
@@ -373,11 +387,11 @@ class _ContentTile extends StatelessWidget {
           color: const Color(0xFF2A2A2A),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: const Icon(Icons.person, color: Color(0xFF5A5A5A), size: 28),
+        child: const Icon(Icons.music_note, color: Color(0xFF5A5A5A), size: 26),
       );
 }
 
-// ── Empty tab placeholder ────────────────────────────────────────────────────
+// ── Empty tab placeholder ─────────────────────────────────────────────────────
 
 class _EmptyTab extends StatelessWidget {
   const _EmptyTab({required this.label});

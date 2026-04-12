@@ -4,10 +4,9 @@ import '../../../../core/design_system/colors.dart';
 
 /// The text-input bar at the bottom of the chat screen.
 ///
-/// Layout: [ + button ] [ text field ] [ send button (when non-empty) ]
-///
-/// Matches the SoundCloud DM input bar — dark grey rounded field, orange send
-/// circle that fades in once the user has typed at least one character.
+/// FIX: Uses a stable [FocusNode] that survives parent rebuilds.
+/// The node is created once in [initState] and disposed in [dispose],
+/// so the keyboard never closes due to focus being lost on rebuild.
 class ChatInputBar extends StatefulWidget {
   const ChatInputBar({
     super.key,
@@ -26,20 +25,26 @@ class ChatInputBar extends StatefulWidget {
 
 class _ChatInputBarState extends State<ChatInputBar> {
   final _controller = TextEditingController();
+  // FIX: Stable FocusNode — not created inside build().
+  final _focusNode = FocusNode();
   bool _hasText = false;
 
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      final hasText = _controller.text.trim().isNotEmpty;
-      if (hasText != _hasText) setState(() => _hasText = hasText);
-    });
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final hasText = _controller.text.trim().isNotEmpty;
+    if (hasText != _hasText) setState(() => _hasText = hasText);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -48,6 +53,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
     if (text.isEmpty || widget.isSending) return;
     widget.onSend(text);
     _controller.clear();
+    // Keep focus so the user can immediately type the next message.
+    _focusNode.requestFocus();
   }
 
   @override
@@ -77,7 +84,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ),
             ),
             const SizedBox(width: 10),
-            // Text field
+            // Text field — uses the stable _focusNode
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -87,6 +94,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 ),
                 child: TextField(
                   controller: _controller,
+                  focusNode: _focusNode,
                   onSubmitted: (_) => _submit(),
                   textInputAction: TextInputAction.send,
                   style: const TextStyle(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
+import '../../../../core/routing/routes.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
 import '../state/chat_controller.dart';
@@ -13,19 +14,6 @@ import '../widgets/messaging_bottom_shell.dart';
 import 'attach_content_sheet.dart';
 
 /// Full-screen 1-on-1 chat view.
-///
-/// Layout:
-/// ┌──────── App bar ────────────┐
-/// │  ← avatar  Name        ··· │
-/// ├─────────────────────────────┤
-/// │      Date separator         │
-/// │  [bubble]  [bubble]         │
-/// │            [bubble] [time]  │
-/// ├─────────────────────────────┤
-/// │  + | Type your message… | ▸ │
-/// │  MiniPlayer                 │
-/// │  BottomNavBar               │
-/// └─────────────────────────────┘
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
     super.key,
@@ -75,27 +63,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     });
 
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 40;
-
+    // FIX: Do NOT conditionally remove/add the ChatInputBar based on keyboard
+    // state — that destroys and recreates the TextField, killing focus.
+    // Instead, always keep ChatInputBar in bottomNavigationBar and set
+    // resizeToAvoidBottomInset: true so Flutter shifts the whole scaffold up.
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
-      bottomNavigationBar: keyboardOpen
-          ? null
-          : MessagingBottomShell(
-              above: ChatInputBar(
-                isSending: chatState.isSending,
-                onSend: (text) {
-                  ref
-                      .read(chatControllerProvider(widget.conversationId)
-                          .notifier)
-                      .sendText(text);
-                },
-                onAttachTap: () => _showAttachSheet(context),
-              ),
-            ),
+      bottomNavigationBar: MessagingBottomShell(
+        above: ChatInputBar(
+          isSending: chatState.isSending,
+          onSend: (text) {
+            ref
+                .read(
+                    chatControllerProvider(widget.conversationId).notifier)
+                .sendText(text);
+          },
+          onAttachTap: () => _showAttachSheet(context),
+        ),
+      ),
       body: SafeArea(
-        bottom: keyboardOpen,
+        bottom: false,
         child: Column(
           children: [
             // ── App bar ──────────────────────────────────────────────
@@ -103,7 +91,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               name: widget.otherUserName,
               avatarUrl: widget.otherUserAvatar,
               onBack: () => Navigator.of(context).pop(),
-              onOptions: () => _showOptionsMenu(context),
+              onOptionsPressed: _optionsKey,
             ),
             const Divider(height: 0.5, color: Color(0xFF1A1A1A)),
 
@@ -111,32 +99,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Expanded(
               child: chatState.isLoading
                   ? const Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary),
                     )
                   : _MessageList(
                       messages: messages,
                       scrollController: _scrollController,
                     ),
             ),
-
-            // When keyboard is open, show only the input bar inline.
-            if (keyboardOpen)
-              ChatInputBar(
-                isSending: chatState.isSending,
-                onSend: (text) {
-                  ref
-                      .read(chatControllerProvider(widget.conversationId)
-                          .notifier)
-                      .sendText(text);
-                },
-                onAttachTap: () => _showAttachSheet(context),
-              ),
           ],
         ),
       ),
     );
   }
+
+  // Key used to anchor the popup menu to the 3-dots button.
+  final _optionsKey = GlobalKey();
 
   // ── Attach content sheet ─────────────────────────────────────────────────
 
@@ -155,83 +133,136 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
-  // ── Options menu (three dots) ────────────────────────────────────────────
+  // ── Options menu (three dots) — anchored PopupMenu, NOT bottom sheet ──────
 
-  void _showOptionsMenu(BuildContext context) {
-    final nav = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: const Color(0xFF2A2A2A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _OptionTile(
-              icon: Icons.flag_outlined,
-              label: 'Report',
-              onTap: () => Navigator.pop(context, 'report'),
-            ),
-            _OptionTile(
-              icon: Icons.block,
-              label: 'Block',
-              onTap: () => Navigator.pop(context, 'block'),
-            ),
-            _OptionTile(
-              icon: Icons.delete_outline,
-              label: 'Archive',
-              onTap: () => Navigator.pop(context, 'archive'),
-            ),
-            const SizedBox(height: 12),
-          ],
+  void _showOptionsPopup() {
+    final RenderBox? button =
+        _optionsKey.currentContext?.findRenderObject() as RenderBox?;
+    if (button == null) return;
+    final RenderBox overlay = Navigator.of(context)
+        .overlay!
+        .context
+        .findRenderObject()! as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset.zero, ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
         ),
       ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<String>(
+      context: context,
+      position: position,
+      color: const Color(0xFF2A2A2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      items: [
+        _menuItem('report', Icons.flag_outlined, 'Report'),
+        _menuItem('block', Icons.block_outlined, 'Block'),
+        _menuItem('archive', Icons.archive_outlined, 'Archive'),
+      ],
     ).then((action) {
       if (!mounted || action == null) return;
-      switch (action) {
-        case 'block':
-          ref
-              .read(chatControllerProvider(widget.conversationId).notifier)
-              .blockConversation()
-              .then((_) {
-            if (mounted) {
-              ref
-                  .read(conversationsControllerProvider.notifier)
-                  .refresh();
-              nav.pop();
-            }
-          });
-        case 'archive':
-          ref
-              .read(chatControllerProvider(widget.conversationId).notifier)
-              .deleteConversation()
-              .then((_) {
-            if (mounted) {
-              ref
-                  .read(conversationsControllerProvider.notifier)
-                  .refresh();
-              nav.pop();
-            }
-          });
-        case 'report':
-          messenger.showSnackBar(
-            const SnackBar(content: Text('Report submitted')),
-          );
-      }
+      _handleAction(action);
     });
+  }
+
+  PopupMenuItem<String> _menuItem(String value, IconData icon, String label) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 20),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleAction(String action) {
+    final nav = Navigator.of(context);
+    switch (action) {
+      case 'block':
+        _showBlockConfirmation(nav);
+      case 'archive':
+        ref
+            .read(chatControllerProvider(widget.conversationId).notifier)
+            .deleteConversation()
+            .then((_) {
+          if (mounted) {
+            ref
+                .read(conversationsControllerProvider.notifier)
+                .refresh();
+            nav.pop();
+          }
+        });
+      case 'report':
+        _showReportConfirmation();
+    }
+  }
+
+  void _showBlockConfirmation(NavigatorState nav) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Block user?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'You won\'t receive messages from ${widget.otherUserName} anymore.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Block',
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed != true || !mounted) return;
+      ref
+          .read(chatControllerProvider(widget.conversationId).notifier)
+          .blockConversation()
+          .then((_) {
+        if (mounted) {
+          ref
+              .read(conversationsControllerProvider.notifier)
+              .refresh();
+          nav.pop();
+        }
+      });
+    });
+  }
+
+  void _showReportConfirmation() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Report submitted'),
+        backgroundColor: Color(0xFF2A2A2A),
+      ),
+    );
   }
 }
 
@@ -242,13 +273,15 @@ class _ChatAppBar extends StatelessWidget {
     required this.name,
     this.avatarUrl,
     required this.onBack,
-    required this.onOptions,
+    required this.onOptionsPressed,
   });
 
   final String name;
   final String? avatarUrl;
   final VoidCallback onBack;
-  final VoidCallback onOptions;
+  // The key is passed in so the parent can find the button's position for the
+  // anchored popup menu.
+  final GlobalKey onOptionsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -283,9 +316,16 @@ class _ChatAppBar extends StatelessWidget {
               ),
             ),
           ),
+          // FIX: Use a GlobalKey so the parent can anchor a PopupMenu to it.
           IconButton(
+            key: onOptionsPressed,
             icon: const Icon(Icons.more_horiz, color: Colors.white),
-            onPressed: onOptions,
+            onPressed: () {
+              // Trigger the popup from the ChatScreen state.
+              final state = context
+                  .findAncestorStateOfType<_ChatScreenState>();
+              state?._showOptionsPopup();
+            },
           ),
         ],
       ),
@@ -350,36 +390,6 @@ class _MessageList extends StatelessWidget {
       controller: scrollController,
       padding: const EdgeInsets.only(bottom: 8),
       children: widgets,
-    );
-  }
-}
-
-// ── Option tile in the bottom sheet ──────────────────────────────────────────
-
-class _OptionTile extends StatelessWidget {
-  const _OptionTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white, size: 22),
-      title: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      onTap: onTap,
     );
   }
 }
