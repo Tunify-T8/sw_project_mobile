@@ -6,11 +6,13 @@ class HomeTopBar extends StatelessWidget {
     required this.isBusy,
     required this.onOpenArtistHome,
     required this.onStartUpload,
+    this.onOpenMessaging,
   });
 
   final bool isBusy;
   final VoidCallback onOpenArtistHome;
   final VoidCallback onStartUpload;
+  final VoidCallback? onOpenMessaging;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +52,10 @@ class HomeTopBar extends StatelessWidget {
             onTap: isBusy ? null : onStartUpload,
           ),
           const SizedBox(width: 10),
-          const _CircleIconButton(icon: Icons.chat_bubble_outline),
+          _CircleIconButton(
+            icon: Icons.chat_bubble_outline,
+            onTap: onOpenMessaging,
+          ),
         ],
       ),
     );

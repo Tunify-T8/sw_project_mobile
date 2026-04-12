@@ -9,6 +9,7 @@ import '../utils/upload_error_snackbar.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
+import '../../../../core/routing/routes.dart';
 import '../widgets/home/home_top_bar.dart';
 import 'artist_home_screen.dart';
 
@@ -76,6 +77,10 @@ class HomeScreen extends ConsumerWidget {
                           );
                         },
                         onStartUpload: () => startUploadFlow(context, ref),
+                        onOpenMessaging: () {
+                          Navigator.of(context)
+                              .pushNamed(Routes.messagingActivity);
+                        },
                       ),
                       const Padding(
                         padding: EdgeInsets.fromLTRB(18, 8, 18, 4),
