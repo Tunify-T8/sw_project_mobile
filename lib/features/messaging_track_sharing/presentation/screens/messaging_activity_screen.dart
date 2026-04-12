@@ -8,8 +8,6 @@ import '../state/messages_filter.dart';
 import '../widgets/conversation_tile.dart';
 import '../widgets/messaging_bottom_shell.dart';
 
-/// Activity screen with two tabs: **Notifications** (placeholder) and
-/// **Messages** (conversation list).
 class MessagingActivityScreen extends ConsumerStatefulWidget {
   const MessagingActivityScreen({super.key});
 
@@ -19,23 +17,8 @@ class MessagingActivityScreen extends ConsumerStatefulWidget {
 }
 
 class _MessagingActivityScreenState
-    extends ConsumerState<MessagingActivityScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    // Start on Messages tab (index 1).
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
-    _tabController.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+    extends ConsumerState<MessagingActivityScreen> {
+  int _selectedTabIndex = 1; // 0 = notifications, 1 = messages
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +31,8 @@ class _MessagingActivityScreenState
       body: SafeArea(
         child: Column(
           children: [
-            // ── App bar ──────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 0),
               child: Row(
                 children: [
                   IconButton(
@@ -79,71 +61,49 @@ class _MessagingActivityScreenState
               ),
             ),
 
-            // ── Tab bar ──────────────────────────────────────────────────
-            // FIX: Use a proper TabBar with transparent divider to remove
-            // the stray default bottom border that caused the half-white bug.
-            TabBar(
-              controller: _tabController,
-              // The orange indicator — shown only on the selected tab.
-              indicator: const UnderlineTabIndicator(
-                borderSide: BorderSide(
-                  color: AppColors.primary,
-                  width: 2.5,
+            const SizedBox(height: 8),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _ActivityTabButton(
+                    label: 'Notifications',
+                    selected: _selectedTabIndex == 0,
+                    showDot: false,
+                    onTap: () {
+                      setState(() {
+                        _selectedTabIndex = 0;
+                      });
+                    },
+                  ),
                 ),
-                insets: EdgeInsets.symmetric(horizontal: 16),
-              ),
-              // Remove the default grey divider line under the whole bar.
-              dividerColor: Colors.transparent,
-              labelColor: Colors.white,
-              unselectedLabelColor: const Color(0xFF8A8A8A),
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-              tabs: [
-                const Tab(text: 'Notifications'),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Messages'),
-                      if (hasUnread) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
-                    ],
+                Expanded(
+                  child: _ActivityTabButton(
+                    label: 'Messages',
+                    selected: _selectedTabIndex == 1,
+                    showDot: hasUnread,
+                    onTap: () {
+                      setState(() {
+                        _selectedTabIndex = 1;
+                      });
+                    },
                   ),
                 ),
               ],
             ),
 
-            // ── Tab body ─────────────────────────────────────────────────
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Notifications placeholder
-                  const Center(
-                    child: Text(
-                      'No notifications yet',
-                      style: TextStyle(color: Colors.white38, fontSize: 15),
-                    ),
-                  ),
-                  // Messages list
-                  _MessagesList(state: convState),
-                ],
-              ),
+              child: _selectedTabIndex == 0
+                  ? const Center(
+                      child: Text(
+                        'No notifications yet',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 15,
+                        ),
+                      ),
+                    )
+                  : _MessagesList(state: convState),
             ),
           ],
         ),
@@ -152,7 +112,78 @@ class _MessagingActivityScreenState
   }
 }
 
-// ── Messages list ────────────────────────────────────────────────────────────
+class _ActivityTabButton extends StatelessWidget {
+  const _ActivityTabButton({
+    required this.label,
+    required this.selected,
+    required this.showDot,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool showDot;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Container(
+        height: 52,
+        alignment: Alignment.bottomCenter,
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected ? Colors.white : Colors.transparent,
+              width: 2.2,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : const Color(0xFF8A8A8A),
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+              if (showDot)
+                const Positioned(
+                  right: -12,
+                  top: -1,
+                  child: _UnreadDot(),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnreadDot extends StatelessWidget {
+  const _UnreadDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
 
 class _MessagesList extends ConsumerWidget {
   const _MessagesList({required this.state});
@@ -168,6 +199,7 @@ class _MessagesList extends ConsumerWidget {
     }
 
     final conversations = state.visible;
+
     if (conversations.isEmpty) {
       return Center(
         child: Text(
@@ -190,14 +222,14 @@ class _MessagesList extends ConsumerWidget {
         itemCount: conversations.length,
         itemBuilder: (context, index) {
           final convo = conversations[index];
+
           return ConversationTile(
             conversation: convo,
             onTap: () {
-              // Mark read immediately
               ref
                   .read(conversationsControllerProvider.notifier)
                   .markRead(convo.conversationId);
-              // Navigate to chat screen
+
               Navigator.of(context).pushNamed(
                 Routes.chat,
                 arguments: {
@@ -213,8 +245,6 @@ class _MessagesList extends ConsumerWidget {
     );
   }
 }
-
-// ── Filter dropdown ──────────────────────────────────────────────────────────
 
 class _FilterButton extends StatelessWidget {
   const _FilterButton({
@@ -250,8 +280,7 @@ class _FilterButton extends StatelessWidget {
                 style: TextStyle(
                   color: selected ? Colors.white : Colors.white70,
                   fontSize: 14,
-                  fontWeight:
-                      selected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ],

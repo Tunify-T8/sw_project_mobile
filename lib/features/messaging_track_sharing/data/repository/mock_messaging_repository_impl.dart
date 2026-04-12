@@ -11,6 +11,7 @@ import '../../domain/repositories/messaging_repository.dart';
 import '../dto/conversation_dto.dart';
 import '../dto/message_attachment_dto.dart';
 import '../dto/message_dto.dart';
+import '../dto/user_preview_dto.dart';
 import '../mappers/messaging_mapper.dart';
 import '../services/mock_messaging_socket.dart';
 import '../services/mock_messaging_store.dart';
@@ -30,10 +31,21 @@ class MockMessagingRepository implements MessagingRepository {
     int limit = 20,
   }) async {
     final all = _store.conversations.values
+        .where(
+          (conversation) =>
+              !_store.archivedConversationIds.contains(
+                conversation.conversationId,
+              ) &&
+              !conversation.isBlocked,
+        )
         .map(MessagingMapper.conversation)
         .toList()
-      ..sort((a, b) => (b.lastMessageAt ?? DateTime(0))
-          .compareTo(a.lastMessageAt ?? DateTime(0)));
+      ..sort(
+        (a, b) => (b.lastMessageAt ?? DateTime(0)).compareTo(
+          a.lastMessageAt ?? DateTime(0),
+        ),
+      );
+
     return PaginatedConversations(
       items: all,
       page: page,
@@ -47,14 +59,34 @@ class MockMessagingRepository implements MessagingRepository {
     final id = _store.currentUserId.compareTo(otherUserId) < 0
         ? '${_store.currentUserId}:$otherUserId'
         : '$otherUserId:${_store.currentUserId}';
+
     _store.messages.putIfAbsent(id, () => []);
+
+    _store.conversations.putIfAbsent(
+      id,
+      () => ConversationDto(
+        conversationId: id,
+        otherUser: UserPreviewDto(
+          id: otherUserId,
+          displayName: _displayNameFromUserId(otherUserId),
+          avatarUrl: null,
+        ),
+        lastMessagePreview: null,
+        lastMessageAt: null,
+        unreadCount: 0,
+      ),
+    );
+
     return id;
   }
 
   @override
   Future<void> deleteConversation(String conversationId) async {
-    _store.conversations.remove(conversationId);
-    _store.messages.remove(conversationId);
+    // Archive behavior for mock mode:
+    // the chat disappears from Activity, but its messages stay intact.
+    if (_store.conversations.containsKey(conversationId)) {
+      _store.archivedConversationIds.add(conversationId);
+    }
   }
 
   @override
@@ -67,6 +99,7 @@ class MockMessagingRepository implements MessagingRepository {
         .map(MessagingMapper.message)
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
     return PaginatedMessages(
       items: list,
       page: page,
@@ -80,15 +113,20 @@ class MockMessagingRepository implements MessagingRepository {
     String conversationId,
     SendMessageDraft draft,
   ) async {
+    final existingConversation = _store.conversations[conversationId];
+    if (existingConversation != null && existingConversation.isBlocked) {
+      throw Exception('This conversation is blocked.');
+    }
+
     final attachmentDtos = draft.attachments
         .map(
-          (a) => MessageAttachmentDto(
-            id: a.id,
-            type: a.type == MessageAttachmentType.collection
+          (attachment) => MessageAttachmentDto(
+            id: attachment.id,
+            type: attachment.type == MessageAttachmentType.collection
                 ? 'COLLECTION'
                 : 'TRACK',
-            title: a.title,
-            artworkUrl: a.artworkUrl,
+            title: attachment.title,
+            artworkUrl: attachment.artworkUrl,
           ),
         )
         .toList();
@@ -103,15 +141,17 @@ class MockMessagingRepository implements MessagingRepository {
       createdAt: DateTime.now(),
       isRead: true,
     );
+
     _store.messages.putIfAbsent(conversationId, () => []).add(dto);
+    _store.archivedConversationIds.remove(conversationId);
     _bumpConversationPreview(
       conversationId: conversationId,
       preview: _previewFor(dto),
       at: dto.createdAt,
-      // Outgoing message — current user has obviously read it.
       unreadDelta: 0,
       resetUnread: true,
     );
+
     final entity = MessagingMapper.message(dto);
     _socket.emit(MessageReceivedEvent(entity));
     _scheduleAutoReply(conversationId);
@@ -120,16 +160,18 @@ class MockMessagingRepository implements MessagingRepository {
 
   @override
   Future<void> markConversationRead(String conversationId) async {
-    final c = _store.conversations[conversationId];
-    if (c == null) return;
+    final conversation = _store.conversations[conversationId];
+    if (conversation == null) return;
+
     _store.conversations[conversationId] = ConversationDto(
-      conversationId: c.conversationId,
-      otherUser: c.otherUser,
-      lastMessagePreview: c.lastMessagePreview,
-      lastMessageAt: c.lastMessageAt,
+      conversationId: conversation.conversationId,
+      otherUser: conversation.otherUser,
+      lastMessagePreview: conversation.lastMessagePreview,
+      lastMessageAt: conversation.lastMessageAt,
       unreadCount: 0,
-      isBlocked: c.isBlocked,
+      isBlocked: conversation.isBlocked,
     );
+
     _socket.emit(
       MessageReadEvent(
         conversationId: conversationId,
@@ -139,24 +181,31 @@ class MockMessagingRepository implements MessagingRepository {
   }
 
   @override
-  Future<int> getUnreadCount() async => _store.conversations.values.fold<int>(
-    0,
-    (sum, c) => sum + c.unreadCount,
-  );
+  Future<int> getUnreadCount() async => _store.conversations.values
+      .where(
+        (conversation) =>
+            !_store.archivedConversationIds.contains(
+              conversation.conversationId,
+            ) &&
+            !conversation.isBlocked,
+      )
+      .fold<int>(0, (sum, conversation) => sum + conversation.unreadCount);
 
   @override
   Future<void> blockConversation(String conversationId) async {
-    final c = _store.conversations[conversationId];
-    if (c != null) {
+    final conversation = _store.conversations[conversationId];
+    if (conversation != null) {
       _store.conversations[conversationId] = ConversationDto(
-        conversationId: c.conversationId,
-        otherUser: c.otherUser,
-        lastMessagePreview: c.lastMessagePreview,
-        lastMessageAt: c.lastMessageAt,
-        unreadCount: c.unreadCount,
+        conversationId: conversation.conversationId,
+        otherUser: conversation.otherUser,
+        lastMessagePreview: conversation.lastMessagePreview,
+        lastMessageAt: conversation.lastMessageAt,
+        unreadCount: conversation.unreadCount,
         isBlocked: true,
       );
+      _store.archivedConversationIds.remove(conversationId);
     }
+
     _socket.emit(ConversationBlockedEvent(conversationId));
   }
 
@@ -169,14 +218,12 @@ class MockMessagingRepository implements MessagingRepository {
   @override
   Future<void> disconnectRealtime() => _socket.disconnect();
 
-  // ── Mock helpers ──────────────────────────────────────────────────────────
-
   String _previewFor(MessageDto dto) {
     if (dto.type == 'ATTACHMENT' || dto.attachments.isNotEmpty) {
-      final first = dto.attachments.isNotEmpty
+      final firstTitle = dto.attachments.isNotEmpty
           ? dto.attachments.first.title
           : 'Shared content';
-      return '🎵 $first';
+      return '🎵 $firstTitle';
     }
     return (dto.text ?? '').trim();
   }
@@ -188,37 +235,39 @@ class MockMessagingRepository implements MessagingRepository {
     required int unreadDelta,
     bool resetUnread = false,
   }) {
-    final c = _store.conversations[conversationId];
-    if (c == null) return;
+    final conversation = _store.conversations[conversationId];
+    if (conversation == null) return;
+
     _store.conversations[conversationId] = ConversationDto(
-      conversationId: c.conversationId,
-      otherUser: c.otherUser,
+      conversationId: conversation.conversationId,
+      otherUser: conversation.otherUser,
       lastMessagePreview: preview,
       lastMessageAt: at,
-      unreadCount: resetUnread ? 0 : c.unreadCount + unreadDelta,
-      isBlocked: c.isBlocked,
+      unreadCount: resetUnread ? 0 : conversation.unreadCount + unreadDelta,
+      isBlocked: conversation.isBlocked,
     );
   }
 
-  /// After the current user sends a message, schedule a fake incoming reply
-  /// so the realtime UI has something to react to. This is mock-only — the
-  /// real backend obviously doesn't need this.
   void _scheduleAutoReply(String conversationId) {
-    final convo = _store.conversations[conversationId];
-    if (convo == null || convo.isBlocked) return;
+    final conversation = _store.conversations[conversationId];
+    if (conversation == null || conversation.isBlocked) return;
+
     final replies = ['yo', 'haha', 'cool', 'send me a track', 'on it'];
     final reply = replies[_rng.nextInt(replies.length)];
+
     Timer(const Duration(seconds: 2), () {
       final dto = MessageDto(
         id: 'm${DateTime.now().microsecondsSinceEpoch}_auto',
         conversationId: conversationId,
-        senderId: convo.otherUser.id,
+        senderId: conversation.otherUser.id,
         type: 'TEXT',
         text: reply,
         createdAt: DateTime.now(),
         isRead: false,
       );
+
       _store.messages.putIfAbsent(conversationId, () => []).add(dto);
+      _store.archivedConversationIds.remove(conversationId);
       _bumpConversationPreview(
         conversationId: conversationId,
         preview: reply,
@@ -227,5 +276,14 @@ class MockMessagingRepository implements MessagingRepository {
       );
       _socket.emit(MessageReceivedEvent(MessagingMapper.message(dto)));
     });
+  }
+
+  String _displayNameFromUserId(String userId) {
+    if (userId.trim().isEmpty) return 'User';
+    return userId
+        .replaceAll(RegExp(r'^u_'), '')
+        .replaceAll('_', ' ')
+        .replaceAll('-', ' ')
+        .trim();
   }
 }

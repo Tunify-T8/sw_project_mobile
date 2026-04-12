@@ -57,18 +57,13 @@ class ChatController extends Notifier<ChatState> {
       await ref.read(messagingRepositoryProvider).connectRealtime();
       _bindRealtime();
 
-      final page = await ref
-          .read(getMessagesUseCaseProvider)
-          .call(_conversationId);
+      final page = await ref.read(getMessagesUseCaseProvider).call(_conversationId);
       state = state.copyWith(
         isLoading: false,
         messages: page.items,
       );
 
-      // Mark the conversation as read once messages are visible.
-      await ref
-          .read(markConversationReadUseCaseProvider)
-          .call(_conversationId);
+      await ref.read(markConversationReadUseCaseProvider).call(_conversationId);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -83,15 +78,9 @@ class ChatController extends Notifier<ChatState> {
       switch (event) {
         case MessageReceivedEvent(:final message):
           if (message.conversationId != _conversationId) return;
-          // Skip duplicates of optimistic sends.
           if (state.messages.any((m) => m.id == message.id)) return;
-          state = state.copyWith(
-            messages: [...state.messages, message],
-          );
-          // We're actively viewing this conversation — keep it read.
-          ref
-              .read(markConversationReadUseCaseProvider)
-              .call(_conversationId);
+          state = state.copyWith(messages: [...state.messages, message]);
+          ref.read(markConversationReadUseCaseProvider).call(_conversationId);
         case MessageReadEvent():
         case ConversationBlockedEvent():
       }
@@ -101,14 +90,32 @@ class ChatController extends Notifier<ChatState> {
   Future<void> sendText(String raw) async {
     final text = raw.trim();
     if (text.isEmpty || state.isSending) return;
-    await _send(SendMessageDraft(type: MessageType.text, text: text));
+    await sendDraft(
+      text: text,
+      attachments: const [],
+    );
   }
 
   Future<void> sendAttachments(List<MessageAttachment> attachments) async {
     if (attachments.isEmpty || state.isSending) return;
+    await sendDraft(
+      text: '',
+      attachments: attachments,
+    );
+  }
+
+  Future<void> sendDraft({
+    required String text,
+    required List<MessageAttachment> attachments,
+  }) async {
+    final trimmedText = text.trim();
+    if (trimmedText.isEmpty && attachments.isEmpty) return;
+    if (state.isSending) return;
+
     await _send(
       SendMessageDraft(
-        type: MessageType.attachment,
+        type: attachments.isNotEmpty ? MessageType.attachment : MessageType.text,
+        text: trimmedText.isEmpty ? null : trimmedText,
         attachments: attachments,
       ),
     );
@@ -117,11 +124,7 @@ class ChatController extends Notifier<ChatState> {
   Future<void> _send(SendMessageDraft draft) async {
     state = state.copyWith(isSending: true, clearError: true);
     try {
-      await ref
-          .read(sendMessageUseCaseProvider)
-          .call(_conversationId, draft);
-      // The repo emits a MessageReceivedEvent which the realtime listener
-      // appends — no need to mutate state ourselves.
+      await ref.read(sendMessageUseCaseProvider).call(_conversationId, draft);
       state = state.copyWith(isSending: false);
     } catch (e) {
       state = state.copyWith(isSending: false, error: e.toString());
@@ -129,15 +132,11 @@ class ChatController extends Notifier<ChatState> {
   }
 
   Future<void> blockConversation() async {
-    await ref
-        .read(blockConversationUseCaseProvider)
-        .call(_conversationId);
+    await ref.read(blockConversationUseCaseProvider).call(_conversationId);
   }
 
   Future<void> deleteConversation() async {
-    await ref
-        .read(deleteConversationUseCaseProvider)
-        .call(_conversationId);
+    await ref.read(deleteConversationUseCaseProvider).call(_conversationId);
   }
 }
 

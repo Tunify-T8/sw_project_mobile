@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/routes.dart';
-import '../../../followers_and_social_graph/domain/repositories/social_graph_repository.dart';
 import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
-import '../../../followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
 import '../../../messaging_track_sharing/domain/usecases/open_conversation_usecase.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
+import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/profile_header.dart';
@@ -67,6 +66,12 @@ class _OtherUserProfileScreenState
     if (_openingChat) return;
     setState(() => _openingChat = true);
     try {
+      ref.read(mockMessagingStoreProvider).registerUserPreview(
+            id: widget.userId,
+            displayName: displayName,
+            avatarUrl: avatarUrl,
+          );
+
       final conversationId = await ref
           .read(openConversationUseCaseProvider)
           .call(widget.userId);
@@ -75,6 +80,7 @@ class _OtherUserProfileScreenState
         Routes.chat,
         arguments: {
           'conversationId': conversationId,
+          'otherUserId': widget.userId,
           'otherUserName': displayName,
           'otherUserAvatar': avatarUrl,
         },

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/routing/routes.dart';
+import '../../../audio_upload_and_management/data/services/global_track_store.dart';
+import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
+import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
 import '../utils/messaging_time_format.dart';
@@ -23,8 +26,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alignment =
-        isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -126,22 +128,19 @@ class _BubbleContent extends StatelessWidget {
   }
 }
 
-/// Tappable attachment card. For tracks: opens the track detail/player screen.
-/// For collections: currently shows a snackbar (expand when playlist screen exists).
-class _AttachmentCard extends StatelessWidget {
+class _AttachmentCard extends ConsumerWidget {
   const _AttachmentCard({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isTrack = attachment.type == MessageAttachmentType.track;
-    final icon = isTrack
-        ? Icons.music_note_outlined
-        : Icons.library_music_outlined;
+    final icon = isTrack ? Icons.music_note_outlined : Icons.library_music_outlined;
 
-    return GestureDetector(
-      onTap: () => _open(context),
+    return InkWell(
+      onTap: () => _open(context, ref),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
         margin: const EdgeInsets.only(top: 4),
         decoration: BoxDecoration(
@@ -152,44 +151,60 @@ class _AttachmentCard extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Artwork thumbnail
-            ClipRRect(
+            UploadArtworkView(
+              width: 56,
+              height: 56,
+              localPath: _localArtworkPath(attachment.artworkUrl),
+              remoteUrl: _remoteArtworkUrl(attachment.artworkUrl),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(10),
                 bottomLeft: Radius.circular(10),
               ),
-              child: attachment.artworkUrl != null &&
-                      attachment.artworkUrl!.isNotEmpty
-                  ? Image.network(
-                      attachment.artworkUrl!,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (ctx, err, stack) => _artworkPlaceholder(),
-                    )
-                  : _artworkPlaceholder(),
+              placeholder: _artworkPlaceholder(),
             ),
-            // Title + icon
             Flexible(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(icon, color: Colors.white70, size: 16),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Icon(icon, color: Colors.white70, size: 16),
+                    ),
                     const SizedBox(width: 6),
                     Flexible(
-                      child: Text(
-                        attachment.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            attachment.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              height: 1.3,
+                            ),
+                          ),
+                          if (attachment.subtitle != null &&
+                              attachment.subtitle!.trim().isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              attachment.subtitle!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF8A8A8A),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
@@ -202,23 +217,43 @@ class _AttachmentCard extends StatelessWidget {
     );
   }
 
-  void _open(BuildContext context) {
-    if (attachment.type == MessageAttachmentType.track) {
-      // Open the track detail / player screen.
-      // Routes.trackDetail expects a trackId argument.
-      Navigator.of(context).pushNamed(
-        Routes.trackDetail,
-        arguments: {'trackId': attachment.id},
-      );
-    } else {
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    if (attachment.type == MessageAttachmentType.collection) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Opening "${attachment.title}"…'),
+          content: Text('Collection preview ready for "${attachment.title}".'),
           backgroundColor: const Color(0xFF2A2A2A),
           duration: const Duration(seconds: 2),
         ),
       );
+      return;
     }
+
+    final store = ref.read(globalTrackStoreProvider);
+    final uploadItem = store.find(attachment.id);
+
+    if (uploadItem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This shared track will open once track lookup is connected.'),
+          backgroundColor: Color(0xFF2A2A2A),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    await openUploadItemPlayer(context, ref, uploadItem);
+  }
+
+  String? _localArtworkPath(String? artwork) {
+    if (artwork == null || artwork.trim().isEmpty) return null;
+    return artwork.startsWith('http') ? null : artwork;
+  }
+
+  String? _remoteArtworkUrl(String? artwork) {
+    if (artwork == null || artwork.trim().isEmpty) return null;
+    return artwork.startsWith('http') ? artwork : null;
   }
 
   static Widget _artworkPlaceholder() => Container(
