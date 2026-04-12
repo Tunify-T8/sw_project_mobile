@@ -6,7 +6,7 @@ import 'package:software_project/features/followers_and_social_graph/domain/enti
 import 'package:software_project/features/followers_and_social_graph/domain/entities/social_user_entity.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/repositories/social_graph_repository.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
-import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_actions_notifier.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
 
 import 'social_actions_provider_test.mocks.dart';

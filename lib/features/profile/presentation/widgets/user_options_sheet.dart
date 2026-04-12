@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../followers_and_social_graph/domain/repositories/social_graph_repository.dart';
-import '../../../followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
-
 class UserOptionsSheet extends ConsumerWidget {
   final String userId;
   final String userName;
@@ -11,7 +8,9 @@ class UserOptionsSheet extends ConsumerWidget {
   final int followersCount;
   final int tracksCount;
   final bool isFollowing;
+  final bool isBlocked;
   final VoidCallback onFollowChanged;
+  final VoidCallback onBlockChanged;
 
   const UserOptionsSheet({
     super.key,
@@ -20,7 +19,9 @@ class UserOptionsSheet extends ConsumerWidget {
     required this.followersCount,
     required this.tracksCount,
     required this.isFollowing,
+    required this.isBlocked,
     required this.onFollowChanged,
+    required this.onBlockChanged,
     this.avatarUrl,
   });
 
@@ -31,7 +32,9 @@ class UserOptionsSheet extends ConsumerWidget {
     required int followersCount,
     required int tracksCount,
     required bool isFollowing,
+    required bool isBlocked,
     required VoidCallback onFollowChanged,
+    required VoidCallback onBlockChanged,
     String? avatarUrl,
   }) {
     showModalBottomSheet(
@@ -47,7 +50,9 @@ class UserOptionsSheet extends ConsumerWidget {
         followersCount: followersCount,
         tracksCount: tracksCount,
         isFollowing: isFollowing,
+        isBlocked: isBlocked,
         onFollowChanged: onFollowChanged,
+        onBlockChanged: onBlockChanged,
       ),
     );
   }
@@ -103,17 +108,9 @@ class UserOptionsSheet extends ConsumerWidget {
             isFollowing ? 'Unfollow' : 'Follow',
             style: const TextStyle(color: Colors.white),
           ),
-          onTap: () async {
+          onTap: () {
             Navigator.pop(context);
-            final repo = ref.read(socialGraphRepositoryProvider);
-            try {
-              if (isFollowing) {
-                await repo.unfollowUser(userId);
-              } else {
-                await repo.followUser(userId);
-              }
-              onFollowChanged();
-            } catch (_) {}
+            onFollowChanged();
           },
         ),
 
@@ -150,13 +147,10 @@ class UserOptionsSheet extends ConsumerWidget {
         // Block user
         ListTile(
           leading: const Icon(Icons.block, color: Colors.white),
-          title: const Text('Block user', style: TextStyle(color: Colors.white)),
-          onTap: () async {
+          title: Text(isBlocked ? 'Unblock' : 'Block user', style: const TextStyle(color: Colors.white)),
+          onTap: () {
             Navigator.pop(context);
-            final repo = ref.read(socialGraphRepositoryProvider);
-            try {
-              await repo.blockUser(userId);
-            } catch (_) {}
+            onBlockChanged();
           },
         ),
 

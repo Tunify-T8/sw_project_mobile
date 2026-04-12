@@ -4,7 +4,6 @@ import 'package:software_project/features/profile/presentation/screens/other_use
 
 import '../../domain/entities/social_user_entity.dart';
 import '../providers/network_lists_notifier.dart';
-import '../providers/social_actions_notifier.dart';
 import 'suggested_user_item.dart';
 import '../../domain/entities/network_list_type.dart';
 
@@ -37,12 +36,6 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
                   .loadSuggestedArtists();
       }
     }
-  }
-
-  Future<void> _handleFollowToggle(SocialUserEntity user) async {
-    await ref
-        .read(socialActionsProvider)
-        .toggleFollow(user: user, listType: widget.listType);
   }
 
   @override
@@ -104,7 +97,6 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
                 MaterialPageRoute(builder: (_) => OtherUserProfileScreen(userId: user.id)),
               );
             },
-            onFollowToggle: () => _handleFollowToggle(user),
           );
         },
       ),
