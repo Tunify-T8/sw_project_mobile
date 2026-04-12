@@ -9,6 +9,7 @@ import '../widgets/profile_tracks_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -166,6 +167,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       );
                     },
                   ),
+                  const ProfileRepostsSection(),
                 ],
               ),
             ),

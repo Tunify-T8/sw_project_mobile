@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
+import '../../../engagements_social_interactions/presentation/widgets/like_button.dart'; // engagement addition
 import '../providers/player_provider.dart';
 
 part 'mini_player_ring_button.dart';
@@ -112,18 +113,7 @@ class MiniPlayer extends ConsumerWidget {
                 color: Colors.white70,
                 tooltip: 'Open track details',
               ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  bundle.engagement.isLiked
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                ),
-                color: bundle.engagement.isLiked
-                    ? AppColors.primary
-                    : Colors.white70,
-                tooltip: 'Like',
-              ),
+              LikeButton(trackId: bundle.trackId, showCount: false), // engagement addition
               const SizedBox(width: 10),
             ],
           ),

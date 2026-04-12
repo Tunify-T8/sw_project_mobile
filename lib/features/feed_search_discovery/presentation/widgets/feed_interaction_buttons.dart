@@ -1,105 +1,114 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/feed_tab_type.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FeedInteractionButtons extends StatelessWidget {
-  final bool isLiked;
-  final bool? isReposted;
-  final int likesCount;
-  final int? repostsCount;
-  final int commentsCount;
+import '../../domain/entities/feed_tab_type.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
+
+class FeedInteractionButtons extends ConsumerStatefulWidget {
+  final String trackId;
+  final int fallbackLikesCount;
+  final int fallbackCommentsCount;
   final FeedType feedType;
+  final String? coverUrl;
+  final String? trackTitle;
+  final String? artistName;
 
   const FeedInteractionButtons({
     super.key,
-    required this.isLiked,
-    this.isReposted,
-    required this.likesCount,
-    this.repostsCount,
-    required this.commentsCount,
+    required this.trackId,
+    required this.fallbackLikesCount,
+    required this.fallbackCommentsCount,
     required this.feedType,
+    this.coverUrl,
+    this.trackTitle,
+    this.artistName,
   });
 
-  IconButton _buildInteractionButton({
-    required Icon icon,
-    required VoidCallback onPressed,
-  }) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: icon,
-      padding: EdgeInsets.zero,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-    );
+  @override
+  ConsumerState<FeedInteractionButtons> createState() =>
+      _FeedInteractionButtonsState();
+}
+
+class _FeedInteractionButtonsState
+    extends ConsumerState<FeedInteractionButtons> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = ref.read(engagementProvider(widget.trackId));
+      if (state.engagementStatus == EngagementStatus.initial) {
+        ref
+            .read(engagementProvider(widget.trackId).notifier)
+            .loadEngagement(); // engagement addition — fetch engagement data when card first appears
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    final state = ref.watch(engagementProvider(widget.trackId));
+    final isLiked = state.engagement?.isLiked ?? false;
+    final likesCount =
+        state.engagement?.likeCount ?? widget.fallbackLikesCount;
+    final commentsCount =
+        state.engagement?.commentCount ?? widget.fallbackCommentsCount;
+
+    return Column(
       children: [
-        (feedType != FeedType.classic)
-            ? Column(
-                children: [
-                  _buildInteractionButton(
-                    icon: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                    ),
-                    onPressed: () {},
-                  ),
-                  Text(
-                    likesCount.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-
-                  _buildInteractionButton(
-                    icon: const Icon(Icons.comment),
-                    onPressed: () {},
-                  ),
-                  Text(
-                    commentsCount.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-
-                  _buildInteractionButton(
-                    icon: const Icon(Icons.more),
-                    onPressed: () {},
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  _buildInteractionButton(
-                    icon: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                    ),
-                    onPressed: () {},
-                  ),
-                  Text(
-                    likesCount.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-
-                  _buildInteractionButton(
-                    icon: const Icon(Icons.comment),
-                    onPressed: () {},
-                  ),
-                  Text(
-                    commentsCount.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-                  _buildInteractionButton(
-                    icon: Icon(
-                      Icons.repeat,
-                      color: (isReposted ?? false) ? Colors.orange : null,
-                    ),
-                    onPressed: () {},
-                  ),
-                  Text(
-                    (repostsCount ?? 0).toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                  ),
-                ],
+        IconButton(
+          onPressed: () => ref
+              .read(engagementProvider(widget.trackId).notifier)
+              .toggleLike(),
+          icon: Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            color: isLiked ? Colors.red : Colors.white,
+          ),
+          padding: EdgeInsets.zero,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => LikersScreen(trackId: widget.trackId),
+            ),
+          ),
+          child: Text(
+            likesCount.toString(),
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+        ),
+        IconButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => CommentsScreen(
+                trackId: widget.trackId,
+                coverUrl: widget.coverUrl,
+                trackTitle: widget.trackTitle,
+                artistName: widget.artistName,
               ),
+            ),
+          ),
+          icon: const Icon(Icons.comment, color: Colors.white),
+          padding: EdgeInsets.zero,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        Text(
+          commentsCount.toString(),
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.playlist_add, color: Colors.white),
+          padding: EdgeInsets.zero,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
       ],
     );
   }

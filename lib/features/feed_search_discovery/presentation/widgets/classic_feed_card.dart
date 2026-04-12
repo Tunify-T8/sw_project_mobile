@@ -119,12 +119,13 @@ class ClassicFeedCard extends ConsumerWidget {
           Row(
             children: [
               FeedInteractionButtons(
-                isLiked: item.track.interaction.isLiked,
-                isReposted: item.track.interaction.isReposted,
-                likesCount: item.track.likesCount,
-                repostsCount: item.track.repostsCount,
-                commentsCount: item.track.commentsCount,
+                trackId: item.track.trackId,
+                fallbackLikesCount: item.track.likesCount,
+                fallbackCommentsCount: item.track.commentsCount,
                 feedType: FeedType.classic,
+                coverUrl: item.track.coverUrl,
+                trackTitle: item.track.title,
+                artistName: item.track.artistName,
               ),
               const Spacer(),
               IconButton(
