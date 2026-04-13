@@ -26,6 +26,12 @@ class StorageKeys {
   /// old backend history on the next launch after a local clear.
   static const String historyClearedLocally = 'history_cleared_locally';
 
+  /// ISO-8601 timestamp recorded when the user clears their listening history.
+  /// On subsequent backend sync, any history entries older than this timestamp
+  /// are dropped — protects against the backend's clear endpoint silently
+  /// failing and re-serving the pre-clear list on next launch.
+  static const String historyClearedAt = 'history_cleared_at';
+
   static const String cachedLibraryUploads = 'cached_library_uploads';
   static const String cachedPlayerSession = 'cached_player_session';
 

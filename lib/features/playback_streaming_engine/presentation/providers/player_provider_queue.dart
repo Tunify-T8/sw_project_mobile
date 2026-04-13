@@ -220,6 +220,87 @@ extension PlayerNotifierQueue on PlayerNotifier {
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
 
+  /// Asynchronously fetch [artistUserId]'s public catalog and merge the tracks
+  /// into the live queue. Called right after a track starts playing so the
+  /// "Next up" list populates without blocking the play action itself.
+  ///
+  /// Behaviour notes:
+  ///   - No-op if the user is no longer playing the same track by the time the
+  ///     network call returns (they may have skipped to something else).
+  ///   - Tracks already in the queue are skipped — we never duplicate.
+  ///   - The currently playing track keeps its position; new IDs are appended
+  ///     after the current index.
+  ///   - When shuffle is on, new IDs append to BOTH the visible (shuffled)
+  ///     trackIds AND the originalTrackIds snapshot, so toggling shuffle off
+  ///     later doesn't drop them.
+  ///   - All errors are swallowed (the API client itself returns [] on failure).
+  Future<void> enrichQueueWithArtistTracks({
+    required String artistUserId,
+    required String anchorTrackId,
+  }) async {
+    if (artistUserId.trim().isEmpty) return;
+
+    final api = ref.read(userTracksApiProvider);
+    final fetched = await api.getUserTracks(artistUserId);
+    if (fetched.isEmpty) return;
+
+    // The user may have moved on while the request was in flight.
+    final after = _current;
+    if (after == null || after.bundle?.trackId != anchorTrackId) return;
+
+    final existingQueue = after.queue;
+    final existingIds = existingQueue?.trackIds ?? <String>[];
+    final existingSet = existingIds.toSet();
+
+    // Keep playable tracks that aren't already queued, and never re-add the
+    // currently playing track (it must stay at its current index).
+    final newIds = fetched
+        .where((t) => t.isPlayable)
+        .map((t) => t.id)
+        .where((id) => id.isNotEmpty && !existingSet.contains(id))
+        .toList(growable: false);
+
+    if (newIds.isEmpty) return;
+
+    if (existingQueue == null) {
+      // No queue yet — build a fresh one with the current track at index 0
+      // followed by the artist's other tracks.
+      final fullIds = <String>[anchorTrackId, ...newIds];
+      final newQueue = PlaybackQueue(
+        trackIds: fullIds,
+        currentIndex: 0,
+        shuffle: false,
+        repeat: RepeatMode.all,
+      );
+      final next = after.copyWith(queue: newQueue);
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
+    }
+
+    // Existing queue — splice the new IDs in after the current index.
+    final updatedIds = <String>[
+      ...existingIds.sublist(0, existingQueue.currentIndex + 1),
+      ...newIds,
+      ...existingIds.sublist(existingQueue.currentIndex + 1),
+    ];
+
+    // Mirror the additions into the original-order snapshot so unshuffling
+    // doesn't lose the freshly fetched tracks.
+    final updatedOriginal = existingQueue.originalTrackIds == null
+        ? null
+        : <String>[...existingQueue.originalTrackIds!, ...newIds];
+
+    final updatedQueue = existingQueue.copyWith(
+      trackIds: updatedIds,
+      originalTrackIds: updatedOriginal,
+    );
+
+    final next = after.copyWith(queue: updatedQueue);
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
   PlayerSeedTrack? _seedTrackForTrackId(String trackId) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
     if (stored != null) {

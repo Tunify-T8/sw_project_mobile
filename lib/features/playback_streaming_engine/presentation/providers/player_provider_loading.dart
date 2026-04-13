@@ -91,6 +91,25 @@ extension PlayerNotifierLoading on PlayerNotifier {
     if (autoPlay && state.asData?.value != null) {
       await play();
     }
+
+    // Kick off the "more by this artist" enrichment now that the real bundle
+    // is in state. Doing it here (instead of polling from the launcher) makes
+    // the trigger reliable: we only run it when artist.id is real, never on
+    // the seed bundle's empty placeholder. Fire-and-forget — audio start
+    // never waits on this.
+    final landed = state.asData?.value;
+    final landedArtistId = landed?.bundle?.artist.id;
+    if (landed != null &&
+        landed.bundle?.trackId == trackId &&
+        landedArtistId != null &&
+        landedArtistId.trim().isNotEmpty) {
+      unawaited(
+        enrichQueueWithArtistTracks(
+          artistUserId: landedArtistId,
+          anchorTrackId: trackId,
+        ),
+      );
+    }
   }
 
   Future<void> loadTrackWithQueue({

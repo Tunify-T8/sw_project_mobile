@@ -69,6 +69,10 @@ class ApiEndpoints {
   // Profile
   static const String getProfile = '/users/me';
   static String getUserProfile(String userIdOrUsername) => '/users/$userIdOrUsername';
+  // Public tracks for any user — used to build the "Next up" queue from the
+  // playing artist's catalog without needing the current user to have played
+  // those tracks before. Mirrors the /tracks/me response shape.
+  static String getUserTracks(String userId) => '/users/$userId/tracks';
   static const String updateProfile = '/users/me/profile';
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';
@@ -87,8 +91,11 @@ class ApiEndpoints {
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyListeningHistory = '/me/listening-history';
  
-  /// DELETE /me/listening-history — clears the user's listening history.
-  static const String clearListeningHistory = '/me/listening-history';
+  /// Current backend contract (v1.1.0).
+  static const String clearListeningHistory = '/tracks/me/listening-history';
+
+  /// Older contract endpoint kept only as a compatibility fallback.
+  static const String legacyClearListeningHistory = '/me/listening-history';
  
   /// Batch-reports plays that occurred while the device was offline.
   /// Body: `{ "plays": [{ "trackId", "playedAt", "completed" }] }`

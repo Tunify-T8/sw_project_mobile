@@ -45,20 +45,22 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
   ) async {
     if (track.status == PlaybackStatus.blocked) return;
 
-    final trackIds = historyTracks
-        .map((item) => item.trackId)
-        .toList(growable: false);
-    final currentIndex = trackIds.indexOf(track.trackId);
     final store = ref.read(globalTrackStoreProvider);
     final stored = storedUploadItemForTrack(store, track.trackId);
     final seedTrack = _seedTrackFromHistory(track, stored);
 
+    // Bug fix: previously this passed the entire listening history as the
+    // queue.  That made "Next up" show the user's recent plays instead of
+    // "more by this artist" — and worse, blocked the artist-tracks
+    // enrichment because it sees the queue is already "full" of history.
+    //
+    // Launching with no queue lets enrichQueueWithArtistTracks (fired from
+    // inside loadTrack once the real bundle lands) populate Next up with
+    // the playing artist's actual catalog.
     await ref
         .read(playerProvider.notifier)
-        .loadTrackWithQueue(
-          trackId: track.trackId,
-          trackIds: trackIds,
-          currentIndex: currentIndex < 0 ? 0 : currentIndex,
+        .loadTrack(
+          track.trackId,
           autoPlay: true,
           seedTrack: seedTrack,
         );

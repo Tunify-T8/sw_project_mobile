@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../data/api/streaming_api.dart';
+import '../../data/api/user_tracks_api.dart';
 import '../../data/services/mock_player_service.dart';
 
 /// Singleton mock service — keeps in-memory state alive for the app session.
@@ -13,4 +14,10 @@ final mockPlayerServiceProvider = Provider<MockPlayerService>((ref) {
 final streamingApiProvider = Provider<StreamingApi>((ref) {
   final dio = ref.read(dioProvider);
   return StreamingApi(dio);
+});
+
+/// Fetches another user's track catalog for queue building.
+final userTracksApiProvider = Provider<UserTracksApi>((ref) {
+  final dio = ref.read(dioProvider);
+  return UserTracksApi(dio);
 });
