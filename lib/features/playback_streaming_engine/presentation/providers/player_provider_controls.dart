@@ -141,19 +141,56 @@ extension PlayerNotifierControls on PlayerNotifier {
     final queue = current.queue!;
     final newShuffle = !queue.shuffle;
 
-    List<String> newTrackIds = List<String>.from(queue.trackIds);
-    if (newShuffle && newTrackIds.length > queue.currentIndex + 1) {
-      // Shuffle only the tracks after the currently playing one.
-      final after = newTrackIds.sublist(queue.currentIndex + 1)..shuffle();
-      newTrackIds = [
-        ...newTrackIds.sublist(0, queue.currentIndex + 1),
-        ...after,
-      ];
+    // Single-track queue → nothing to shuffle; still flip the flag so the icon
+    // reflects user intent (next track enqueued will land at a random spot).
+    if (queue.trackIds.length <= 1) {
+      final next = current.copyWith(
+        queue: queue.copyWith(shuffle: newShuffle),
+      );
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
     }
 
-    final next = current.copyWith(
-      queue: queue.copyWith(shuffle: newShuffle, trackIds: newTrackIds),
-    );
+    PlaybackQueue nextQueue;
+
+    if (newShuffle) {
+      // Turning shuffle ON:
+      //  - Snapshot the current order so we can undo it later.
+      //  - Shuffle only the slice AFTER the current track; the already-played
+      //    portion stays intact so next/previous behave predictably.
+      final original = List<String>.from(queue.trackIds);
+      final after = queue.trackIds.sublist(queue.currentIndex + 1)..shuffle();
+      final shuffled = <String>[
+        ...queue.trackIds.sublist(0, queue.currentIndex + 1),
+        ...after,
+      ];
+      nextQueue = queue.copyWith(
+        trackIds: shuffled,
+        shuffle: true,
+        originalTrackIds: original,
+      );
+    } else {
+      // Turning shuffle OFF:
+      //  - Restore original order (if we have it).
+      //  - Re-point currentIndex to wherever the current track now lives.
+      //  - Drop the snapshot so copyWith can't leak it into the next session.
+      final currentTrackId = queue.currentTrackId;
+      final restored =
+          queue.originalTrackIds ?? List<String>.from(queue.trackIds);
+      final restoredIndex = currentTrackId == null
+          ? 0
+          : restored.indexOf(currentTrackId).clamp(0, restored.length - 1);
+
+      nextQueue = queue.copyWith(
+        trackIds: restored,
+        shuffle: false,
+        currentIndex: restoredIndex,
+        clearOriginalTrackIds: true,
+      );
+    }
+
+    final next = current.copyWith(queue: nextQueue);
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
