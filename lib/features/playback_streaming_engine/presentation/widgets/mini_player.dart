@@ -24,7 +24,8 @@ class MiniPlayer extends ConsumerWidget {
     final progress = playerState.normalizedProgress;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      // Smaller outer padding for a more compact footprint.
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onHorizontalDragEnd: (details) async {
@@ -36,9 +37,10 @@ class MiniPlayer extends ConsumerWidget {
           }
         },
         child: Container(
-          height: 88,
+          // Height reduced from 88 → 68 and corner radius adjusted to match.
+          height: 68,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(24),
             gradient: const LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
@@ -55,7 +57,8 @@ class MiniPlayer extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              const SizedBox(width: 14),
+              // Tighter left gutter to match the smaller bar.
+              const SizedBox(width: 10),
               _RingPlayButton(
                 progress: progress,
                 isPlaying: playerState.isPlaying,
@@ -67,7 +70,7 @@ class MiniPlayer extends ConsumerWidget {
                   }
                 },
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -85,20 +88,21 @@ class MiniPlayer extends ConsumerWidget {
                           bundle.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          // Slightly smaller to suit the compact bar.
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           bundle.artist.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

@@ -230,6 +230,35 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
   }
 
+  // Called when a track has been deleted on the backend (soft-delete).
+  // Scrubs it from the in-memory list, the optimistic buffer, and the cached
+  // copy in secure storage — so the "recently played" view doesn't keep
+  // resurrecting a track that no longer exists. No-op if absent.
+  Future<void> removeTrack(String trackId) async {
+    _optimisticTracks.removeWhere((track) => track.trackId == trackId);
+
+    final current = state.asData?.value;
+    if (current == null) {
+      // Still update the on-disk cache in case the provider is rebuilt later.
+      final cached = await _readCachedTracks();
+      final cleaned = cached.where((t) => t.trackId != trackId).toList();
+      if (cleaned.length != cached.length) {
+        await _persistLocalState(cleaned, wasClearedLocally: false);
+      }
+      return;
+    }
+
+    final filtered = current.tracks
+        .where((track) => track.trackId != trackId)
+        .toList();
+
+    // Nothing to do if the track wasn't in the list.
+    if (filtered.length == current.tracks.length) return;
+
+    state = AsyncData(current.copyWith(tracks: filtered));
+    await _persistLocalState(filtered, wasClearedLocally: false);
+  }
+
   Future<void> clearHistory() async {
     _optimisticTracks.clear();
     _clearedLocally = true;

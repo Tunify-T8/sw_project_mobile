@@ -22,13 +22,39 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
     try {
       return await _getBundle(trackId, privateToken: privateToken);
-    } catch (_) {
-      // Server reachable but request failed — fall back to seed metadata.
+    } catch (error) {
+      // M5-011B / M5-001 fix: previously ANY error fell back to the seed track,
+      // whose toPlaybackBundle() hardcodes PlaybackStatus.playable. That let
+      // owners play their own deleted/blocked tracks (M5-011B) and bypassed
+      // "processing"/"blocked" states coming from the backend (M5-001).
+      //
+      // A 4xx response is the backend DELIBERATELY refusing (deleted, blocked,
+      // private-no-token, not-found) — we must let it propagate so canPlay
+      // evaluates to false. Only fall back for genuine transport errors
+      // (timeout, connection error, etc.) where the user has local seed data.
+      if (_isClientRefusal(error)) {
+        rethrow;
+      }
       if (seedTrack != null) {
         return seedTrack.toPlaybackBundle();
       }
       rethrow;
     }
+  }
+
+  // A 4xx DioException means the server made a deliberate decision — don't mask it.
+  bool _isClientRefusal(Object error) {
+    if (error is just_audio.PlayerException) return false;
+    // Uses duck-typing on the dynamic to avoid importing Dio here just for the type.
+    // Dio errors expose `.response?.statusCode` as an int.
+    try {
+      final dynamic d = error;
+      final int? code = d.response?.statusCode as int?;
+      if (code != null && code >= 400 && code < 500) return true;
+    } catch (_) {
+      // Not a Dio-shaped error; treat as transport error.
+    }
+    return false;
   }
 
   Future<_ResolvedPlaybackSource> _resolvePlaybackSource(
