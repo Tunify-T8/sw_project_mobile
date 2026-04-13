@@ -132,17 +132,25 @@ class StreamingApi {
     return _parseListeningHistory(fallbackResponse.data);
   }
 
-  /// DELETE /me/listening-history
+  /// DELETE /tracks/me/listening-history
   ///
-  /// Clears the user's listening history on the backend.
+  /// Clears the user's listening history on the backend, with fallback to the
+  /// older `/me/listening-history` contract while the deployed server catches
+  /// up.
   Future<void> clearListeningHistory() async {
     try {
       await _dio.delete(ApiEndpoints.clearListeningHistory);
-    } on DioException catch (e) {
-      // If endpoint doesn't exist yet, silently succeed (local clear still works).
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
-        return;
-      }
+      return;
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    try {
+      await _dio.delete(ApiEndpoints.legacyClearListeningHistory);
+    } on DioException catch (error) {
+      // If neither contract exists yet, silently succeed because the provider
+      // still clears locally and guards against stale backend rows.
+      if (_isMethodOrRouteMismatch(error)) return;
       rethrow;
     }
   }

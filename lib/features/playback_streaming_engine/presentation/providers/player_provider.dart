@@ -31,6 +31,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../audio_upload_and_management/data/services/audio_cache_service.dart';
 import 'listening_history_provider.dart';
 import 'player_backend_mode_provider.dart';
+// Provides userTracksApiProvider used by enrichQueueWithArtistTracks
+// in player_provider_queue.dart to fetch the playing artist's catalog.
+import 'player_dependencies_provider.dart';
 import 'player_repository_provider.dart';
 
 part 'player_provider_state.dart';

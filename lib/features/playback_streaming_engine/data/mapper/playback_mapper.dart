@@ -151,7 +151,12 @@ extension HistoryTrackDtoMapper on HistoryTrackDto {
       trackId: trackId,
       title: title,
       artist: artist.toEntity(),
-      playedAt: DateTime.tryParse(playedAt) ?? DateTime.now(),
+      // Sentinel: epoch when backend omits or sends an unparseable playedAt.
+      // The clear watermark filter must DROP these (DateTime.now() would
+      // always pass it, allowing a backend that lost the clear request to
+      // resurrect the user's old history).
+      playedAt:
+          DateTime.tryParse(playedAt) ?? DateTime.fromMillisecondsSinceEpoch(0),
       durationSeconds: durationSeconds,
       status: _mapStatus(status),
       coverUrl: coverUrl,

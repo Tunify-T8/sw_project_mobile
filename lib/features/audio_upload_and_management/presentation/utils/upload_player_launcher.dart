@@ -102,14 +102,13 @@ Future<void> ensureUploadItemPlayback(
   final current = ref.read(playerProvider).asData?.value;
   final isSameTrack = current?.bundle?.trackId == item.id;
   final store = ref.read(globalTrackStoreProvider);
-  // Include listening history so same-artist siblings are surfaced in the
-  // "Next up" queue even when the artist isn't the signed-in user (the store
-  // only holds own uploads). This is how queue-building works offline without
-  // any backend call.
-  final historyTracks =
-      ref.read(listeningHistoryProvider).asData?.value.tracks ??
-      const <HistoryTrack>[];
-  final queue = _resolveArtistQueue(item, queueItems, store, historyTracks);
+  // Local pre-fetch: only same-artist tracks already in GlobalTrackStore
+  // (own uploads).  Listening history is intentionally NOT used here — those
+  // are tracks the user already played, not "more by this artist", and
+  // surfacing them as the queue was confusing.  The real artist catalog is
+  // fetched from the backend by enrichQueueWithArtistTracks (called from
+  // inside loadTrack once the real bundle lands).
+  final queue = _resolveArtistQueue(item, queueItems, store);
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
 
@@ -158,6 +157,14 @@ Future<void> ensureUploadItemPlayback(
 
   await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
 }
+
+// Fire-and-forget background fetch: pull the playing artist's full track
+// catalog from the backend and merge it into the live queue. Runs AFTER
+// NOTE: the previous _enrichQueueAfterLaunch polling helper was removed.
+// The "more by this artist" enrichment is now triggered from inside
+// loadTrack() itself, as soon as the real backend bundle is in state.
+// This is reliable — no timing race against the seed bundle — and removes
+// the need for the launcher to know anything about it.
 
 Future<void> toggleUploadItemPlayback(
   WidgetRef ref,
@@ -216,30 +223,25 @@ Future<void> openCurrentPlaybackTrackSurface(
   );
 }
 
-// Resolves the "Next up" queue for a track launch.
+// Resolves the local same-artist queue used right at launch.
 //
-// In real-world offline apps like SoundCloud, the queue is built from
-// whatever track data is already cached locally — not from a dedicated
-// backend call. We gather same-artist tracks from three sources:
+// Sources, in priority order:
+//   1. An explicit queueItems list (e.g. playlist context) — trust as-is.
+//   2. Same-artist tracks already in GlobalTrackStore — covers playing your
+//      own tracks (the store only holds the signed-in user's uploads today).
 //
-//   1. An explicit queueItems list when the caller provides one (playlist,
-//      profile, search result — those contexts already know their neighbours).
-//   2. The GlobalTrackStore — only contains the current user's own uploads,
-//      so this covers "play my track" launches.
-//   3. Listening history — this is the key one for OTHER users' tracks
-//      (the screenshot issue): if the user has played Joe's tracks before,
-//      those entries are in history and we can surface them as "Next up"
-//      siblings when Joe's current track starts.
+// History is intentionally NOT consulted here.  Recent plays aren't a queue —
+// they're a queue's *opposite* (tracks the user already heard).  The real
+// "more by this artist" queue for ANY artist is fetched from the backend by
+// enrichQueueWithArtistTracks, which fires from inside loadTrack as soon as
+// the real bundle is in state.
 //
-// Deduped by trackId, current track always included, current track's
-// position in the returned list is wherever it naturally sorts.
+// Dedupes by trackId, always includes the current track.
 List<UploadItem> _resolveArtistQueue(
   UploadItem item,
   List<UploadItem>? queueItems,
   GlobalTrackStore store,
-  List<HistoryTrack> historyTracks,
 ) {
-  // (1) Explicit queue passed by the caller — trust it as-is.
   final explicitQueue = (queueItems ?? const <UploadItem>[])
       .where((track) => track.isPlayable)
       .toList();
@@ -249,7 +251,6 @@ List<UploadItem> _resolveArtistQueue(
 
   final normalizedArtist = item.artistDisplay.trim().toLowerCase();
 
-  // (2) Same-artist tracks already in GlobalTrackStore (own uploads mostly).
   final fromStore = store.all
       .where(
         (track) =>
@@ -258,22 +259,8 @@ List<UploadItem> _resolveArtistQueue(
       )
       .toList();
 
-  // (3) Same-artist tracks in listening history.  Map each history entry to
-  //     a minimal UploadItem so the downstream queue loader can consume them.
-  //     We only use history entries whose artist matches; duration, cover,
-  //     title come straight from the history record.
-  final fromHistory = historyTracks
-      .where(
-        (h) => h.artist.name.trim().toLowerCase() == normalizedArtist,
-      )
-      .map((h) => _historyTrackToUploadItemShell(h))
-      .toList();
-
-  // Merge and dedupe (store entries win over history shells because they
-  // carry more metadata — audioUrl, waveformUrl, etc. — used by the player).
   final seen = <String>{};
   final merged = <UploadItem>[];
-
   void addIfNew(UploadItem u) {
     if (seen.add(u.id)) merged.add(u);
   }
@@ -281,49 +268,12 @@ List<UploadItem> _resolveArtistQueue(
   for (final u in fromStore) {
     addIfNew(u);
   }
-  for (final u in fromHistory) {
-    addIfNew(u);
-  }
-
-  // Ensure the currently-launched track is present even if neither source
-  // contained it (e.g. deep link to an unknown track whose owner has no
-  // siblings in either cache).
+  // Always include the current track even if it isn't in the store
+  // (e.g. another user's track launched from search/profile).
   addIfNew(item);
 
-  // Sort by createdAt desc for store entries. History shells have createdAt =
-  // epoch (no real value), so they end up after store entries; that's fine
-  // and keeps the user's own tracks first when playing one of them.
   merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   return merged;
-}
-
-// Minimal UploadItem constructed from a HistoryTrack so it can flow through
-// the existing queue-building code path. Fields the player doesn't need for
-// queue display (tags, genre, permissions, etc.) are safe defaults.
-UploadItem _historyTrackToUploadItemShell(HistoryTrack h) {
-  return UploadItem(
-    id: h.trackId,
-    title: h.title,
-    artistDisplay: h.artist.name,
-    durationLabel: '',
-    durationSeconds: h.durationSeconds,
-    audioUrl: null,
-    waveformUrl: null,
-    waveformBars: null,
-    artworkUrl: h.coverUrl,
-    localArtworkPath: null,
-    localFilePath: null,
-    description: null,
-    tags: const [],
-    genreCategory: h.genre ?? '',
-    genreSubGenre: '',
-    visibility: UploadVisibility.public,
-    status: UploadProcessingStatus.finished,
-    isExplicit: false,
-    // HistoryTrack doesn't carry createdAt — use epoch so these sort after
-    // real store entries (which have real createdAt values).
-    createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-  );
 }
 
 Future<UploadItem> _prepareTrackSurfaceItemFast(
