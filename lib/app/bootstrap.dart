@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
+import 'package:software_project/features/notifications/data/services/push_notification_service.dart';
 import 'router.dart';
 
 /// Initialises the Flutter framework and launches the app.
@@ -34,6 +35,8 @@ Future<void> bootstrap() async {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
+
+  await PushNotificationService.instance.init();
 
   runApp(const ProviderScope(child: TunifyApp()));
 }

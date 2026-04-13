@@ -24,6 +24,7 @@ import '../features/auth/presentation/screens/verify_email_screen.dart';
 import '../features/auth/presentation/screens/google_account_linking_screen.dart';
 import '../features/messaging_track_sharing/presentation/screens/messaging_activity_screen.dart';
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
+import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
@@ -262,6 +263,12 @@ class AppRouter {
               otherUserAvatar: args['otherUserAvatar'] as String?,
             ),
           ),
+          settings,
+        );
+
+      case Routes.notificationPreferences:
+        return _slide(
+          const AuthProtectedScreen(child: NotificationPreferencesScreen()),
           settings,
         );
 

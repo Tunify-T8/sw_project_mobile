@@ -74,6 +74,7 @@ dependencies:
   just_audio: ^0.10.5
   connectivity_plus: ^6.0.5
   path_provider: ^2.1.5
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:

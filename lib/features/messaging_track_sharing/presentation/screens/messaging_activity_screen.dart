@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../notifications/presentation/state/notification_filter.dart';
+import '../../../notifications/presentation/state/notifications_controller.dart';
+import '../../../notifications/presentation/widgets/notifications_tab.dart';
 import '../state/conversations_controller.dart';
 import '../state/messages_filter.dart';
 import '../widgets/conversation_tile.dart';
@@ -18,12 +21,14 @@ class MessagingActivityScreen extends ConsumerStatefulWidget {
 
 class _MessagingActivityScreenState
     extends ConsumerState<MessagingActivityScreen> {
-  int _selectedTabIndex = 1; // 0 = notifications, 1 = messages
+  int _selectedTabIndex = 0; // 0 = notifications, 1 = messages
 
   @override
   Widget build(BuildContext context) {
     final convState = ref.watch(conversationsControllerProvider);
+    final notifState = ref.watch(notificationsControllerProvider);
     final hasUnread = convState.totalUnread > 0;
+    final hasUnreadNotifs = notifState.unreadCount > 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -51,12 +56,20 @@ class _MessagingActivityScreenState
                       ),
                     ),
                   ),
-                  _FilterButton(
-                    currentFilter: convState.filter,
-                    onChanged: (f) => ref
-                        .read(conversationsControllerProvider.notifier)
-                        .setFilter(f),
-                  ),
+                  // Show the appropriate filter button based on selected tab.
+                  _selectedTabIndex == 0
+                      ? _NotificationFilterButton(
+                          currentFilter: notifState.filter,
+                          onChanged: (f) => ref
+                              .read(notificationsControllerProvider.notifier)
+                              .setFilter(f),
+                        )
+                      : _FilterButton(
+                          currentFilter: convState.filter,
+                          onChanged: (f) => ref
+                              .read(conversationsControllerProvider.notifier)
+                              .setFilter(f),
+                        ),
                 ],
               ),
             ),
@@ -69,7 +82,7 @@ class _MessagingActivityScreenState
                   child: _ActivityTabButton(
                     label: 'Notifications',
                     selected: _selectedTabIndex == 0,
-                    showDot: false,
+                    showDot: hasUnreadNotifs,
                     onTap: () {
                       setState(() {
                         _selectedTabIndex = 0;
@@ -94,15 +107,7 @@ class _MessagingActivityScreenState
 
             Expanded(
               child: _selectedTabIndex == 0
-                  ? const Center(
-                      child: Text(
-                        'No notifications yet',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 15,
-                        ),
-                      ),
-                    )
+                  ? const NotificationsTab()
                   : _MessagesList(state: convState),
             ),
           ],
@@ -245,6 +250,73 @@ class _MessagesList extends ConsumerWidget {
     );
   }
 }
+
+// ── Notification filter dropdown (matches SoundCloud) ───────────────────────
+
+class _NotificationFilterButton extends StatelessWidget {
+  const _NotificationFilterButton({
+    required this.currentFilter,
+    required this.onChanged,
+  });
+
+  final NotificationFilter currentFilter;
+  final ValueChanged<NotificationFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<NotificationFilter>(
+      icon: const Icon(Icons.tune, color: Colors.white, size: 22),
+      color: const Color(0xFF2A2A2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      onSelected: onChanged,
+      itemBuilder: (_) => NotificationFilter.values.map((f) {
+        final selected = f == currentFilter;
+        return PopupMenuItem<NotificationFilter>(
+          value: f,
+          child: Row(
+            children: [
+              if (selected)
+                const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(Icons.check, color: Colors.white, size: 18),
+                )
+              else
+                const SizedBox(width: 26),
+              if (f == NotificationFilter.all)
+                const Icon(Icons.notifications_none,
+                    color: Colors.white70, size: 18)
+              else if (f == NotificationFilter.reposts)
+                const Icon(Icons.repeat, color: Colors.white70, size: 18)
+              else if (f == NotificationFilter.likes)
+                const Icon(Icons.favorite_border,
+                    color: Colors.white70, size: 18)
+              else if (f == NotificationFilter.comments)
+                const Icon(Icons.chat_bubble_outline,
+                    color: Colors.white70, size: 18)
+              else if (f == NotificationFilter.followings)
+                const Icon(Icons.person_add_alt,
+                    color: Colors.white70, size: 18)
+              else if (f == NotificationFilter.reactions)
+                const Icon(Icons.emoji_emotions_outlined,
+                    color: Colors.white70, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                f.label,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white70,
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ── Messages filter dropdown ────────────────────────────────────────────────
 
 class _FilterButton extends StatelessWidget {
   const _FilterButton({
