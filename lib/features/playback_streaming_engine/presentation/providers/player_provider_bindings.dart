@@ -10,6 +10,14 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       final current = _current;
       if (current == null || current.bundle == null) return;
 
+      // M5-002 fix: while the user is actively dragging/seeking, just_audio's
+      // positionStream can briefly emit stale pre-seek positions. If we applied
+      // those, the UI would snap backwards mid-drag and then jump forward once
+      // the seek resolves — the "glitchy seek" behaviour reported in testing.
+      // Suppress stream-driven updates until the manual-seek window closes;
+      // seek() already sets the authoritative position on state directly.
+      if (_isManualSeeking) return;
+
       final clamped = _clampPosition(
         current.bundle!,
         position.inMilliseconds / 1000.0,
