@@ -13,4 +13,11 @@ abstract class Routes {
   static const String player = '/player';
   static const String queue = '/queue';
   static const String listeningHistory = '/listening-history';
+
+  // Module 9 — Messaging
+  static const String messagingActivity = '/messaging-activity';
+  static const String chat = '/chat';
+
+  // Module 10 — Notifications
+  static const String notificationPreferences = '/notification-preferences';
 }

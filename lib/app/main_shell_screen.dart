@@ -12,12 +12,33 @@ import 'router.dart';
 class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({super.key});
 
+  /// Allows pushed screens (e.g. messaging) to switch the active bottom tab
+  /// before popping back. The shell listens to this notifier and rebuilds.
+  static final ValueNotifier<int> tabNotifier = ValueNotifier<int>(0);
+
   @override
   ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
 }
 
 class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    MainShellScreen.tabNotifier.addListener(_onExternalTabChange);
+  }
+
+  @override
+  void dispose() {
+    MainShellScreen.tabNotifier.removeListener(_onExternalTabChange);
+    super.dispose();
+  }
+
+  void _onExternalTabChange() {
+    final next = MainShellScreen.tabNotifier.value;
+    if (mounted && next != _index) setState(() => _index = next);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +85,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: _SCBottomBar(
                 selectedIndex: _index,
-                onTap: (i) => setState(() => _index = i),
+                onTap: (i) {
+                  MainShellScreen.tabNotifier.value = i;
+                  setState(() => _index = i);
+                },
               ),
             ),
           ],

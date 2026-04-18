@@ -1,1 +1,25 @@
+import '../entities/conversation_entity.dart';
+import '../entities/message_entity.dart';
+import '../entities/paginated_conversations.dart';
+import '../entities/paginated_messages.dart';
+import '../entities/realtime_event.dart';
+import '../entities/send_message_draft.dart';
 
+/// Abstraction over the messaging data layer.
+/// UI/providers depend ONLY on this — never on the concrete impl.
+abstract class MessagingRepository {
+  Future<PaginatedConversations> getConversations({int page = 1, int limit = 20});
+  Future<String> createOrGetConversation(String otherUserId);
+  Future<void> deleteConversation(String conversationId);
+  Future<PaginatedMessages> getMessages(String conversationId, {int page = 1, int limit = 20});
+  Future<MessageEntity> sendMessage(String conversationId, SendMessageDraft draft);
+  Future<void> markConversationRead(String conversationId);
+  Future<int> getUnreadCount();
+  Future<void> blockConversation(String conversationId);
+
+  /// Lazy stream of realtime events — repo implementations are responsible
+  /// for the underlying WebSocket lifecycle.
+  Stream<RealtimeMessagingEvent> realtimeEvents();
+  Future<void> connectRealtime();
+  Future<void> disconnectRealtime();
+}

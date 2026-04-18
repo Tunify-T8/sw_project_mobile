@@ -22,6 +22,9 @@ import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
 import '../features/auth/presentation/screens/google_account_linking_screen.dart';
+import '../features/messaging_track_sharing/presentation/screens/messaging_activity_screen.dart';
+import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
+import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
@@ -242,6 +245,30 @@ class AppRouter {
       case Routes.listeningHistory:
         return _slide(
           const AuthProtectedScreen(child: ListeningHistoryScreen()),
+          settings,
+        );
+
+      case Routes.messagingActivity:
+        return _slide(
+          const AuthProtectedScreen(child: MessagingActivityScreen()),
+          settings,
+        );
+
+      case Routes.chat:
+        return _slide(
+          AuthProtectedScreen(
+            child: ChatScreen(
+              conversationId: args['conversationId'] as String? ?? '',
+              otherUserName: args['otherUserName'] as String? ?? '',
+              otherUserAvatar: args['otherUserAvatar'] as String?,
+            ),
+          ),
+          settings,
+        );
+
+      case Routes.notificationPreferences:
+        return _slide(
+          const AuthProtectedScreen(child: NotificationPreferencesScreen()),
           settings,
         );
 

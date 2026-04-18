@@ -109,10 +109,13 @@ class FeedTrackCard extends ConsumerWidget {
             top: 470.0,
             right: 20.0,
             child: FeedInteractionButtons(
-              isLiked: item.track.interaction.isLiked,
-              likesCount: item.track.likesCount,
-              commentsCount: item.track.commentsCount,
+              trackId: item.track.trackId,
+              fallbackLikesCount: item.track.likesCount,
+              fallbackCommentsCount: item.track.commentsCount,
               feedType: tabType,
+              coverUrl: item.track.coverUrl,
+              trackTitle: item.track.title,
+              artistName: item.track.artistName,
             ),
           ),
 

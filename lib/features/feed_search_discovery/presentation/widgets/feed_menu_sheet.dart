@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/track_preview_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../screens/classic_feed_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
-class FeedMenuSheet extends StatelessWidget {
+class FeedMenuSheet extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
   final TrackPreviewEntity track;
   final FeedType tabType;
 
@@ -27,57 +31,78 @@ class FeedMenuSheet extends StatelessWidget {
     );
   }
 
-  List<Widget> _trackActions() => [
-        _createMenuItem(
-          icon:
-              track.interaction.isLiked ? Icons.favorite : Icons.favorite_border,
-          label: track.interaction.isLiked ? 'Liked' : 'Like',
-          color: track.interaction.isLiked ? Colors.orange : Colors.white,
-          onTap: () {},
-        ),
-        _createMenuItem(
-          icon: Icons.queue_play_next,
-          label: 'Play next',
-          onTap: () {},
-        ),
-        _createMenuItem(
-          icon: Icons.add_to_queue,
-          label: 'Play last',
-          onTap: () {},
-        ),
-        _createMenuItem(
-          icon: Icons.playlist_add,
-          label: 'Add to playlist',
-          onTap: () {},
-        ),
-      ];
+  List<Widget> _trackActions(BuildContext context, WidgetRef ref) {
+    final engagementState = ref.watch(engagementProvider(track.trackId));
+    final isLiked = engagementState.engagement?.isLiked ?? track.interaction.isLiked;
+    final isReposted = engagementState.engagement?.isReposted ?? track.interaction.isReposted;
+    return [
+    _createMenuItem(
+      icon: isLiked ? Icons.favorite : Icons.favorite_border,
+      label: isLiked ? 'Liked' : 'Like',
+      color: isLiked ? Colors.orange : Colors.white,
+      onTap: () {
+        ref.read(engagementProvider(track.trackId).notifier).toggleLike();
+        Navigator.pop(context);
+      },
+    ),
+    _createMenuItem(
+      icon: Icons.queue_play_next,
+      label: 'Play next',
+      onTap: () {},
+    ),
+    _createMenuItem(icon: Icons.add_to_queue, label: 'Play last', onTap: () {}),
+    _createMenuItem(
+      icon: Icons.playlist_add,
+      label: 'Add to playlist',
+      onTap: () {},
+    ),
+  ];
+  }
 
-  List<Widget> _socialActions(BuildContext context) => [
-        _createMenuItem(
-          icon: Icons.person_outline,
-          label: 'Go to profile',
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => OtherUserProfileScreen(userId: track.artistId),
-              ),
-            );
-          },
-        ),
-        _createMenuItem(
-          icon: Icons.comment_outlined,
-          label: 'View comments',
-          onTap: () {},
-        ),
-        _createMenuItem(
-          icon: Icons.repeat,
-          label: track.interaction.isReposted ? 'Reposted' : 'Repost',
-          color: track.interaction.isReposted ? Colors.orange : Colors.white,
-          onTap: () {},
-        ),
-      ];
+  List<Widget> _socialActions(BuildContext context, WidgetRef ref, bool isReposted) => [
+    _createMenuItem(
+      icon: Icons.person_outline,
+      label: 'Go to profile',
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtherUserProfileScreen(userId: track.artistId),
+          ),
+        );
+      },
+    ),
+    _createMenuItem(
+      icon: Icons.comment_outlined,
+      label: 'View comments',
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(context, MaterialPageRoute(
+          builder: (_) => CommentsScreen(trackId: track.trackId),
+        ));
+      },
+    ),
+    _createMenuItem(
+      icon: isReposted ? Icons.repeat_on : Icons.repeat,
+      label: isReposted ? 'Reposted' : 'Repost',
+      color: isReposted ? Colors.orange : Colors.white,
+      onTap: () {
+        Navigator.pop(context);
+        if (isReposted) {
+          ref.read(engagementProvider(track.trackId).notifier).removeRepost();
+        } else {
+          RepostCaptionSheet.show(
+            context,
+            trackId: track.trackId,
+            trackTitle: track.title,
+            artistName: track.artistName,
+            coverUrl: track.coverUrl,
+          );
+        }
+      },
+    ),
+  ];
 
   List<Widget> _moreOptions() => [
         _createMenuItem(
@@ -178,14 +203,15 @@ class FeedMenuSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isReposted = (ref.watch(engagementProvider(track.trackId)).engagement?.isReposted) ?? track.interaction.isReposted;
     return ListView(
       children: [
         _trackHeader(),
         const Divider(color: Colors.white12),
-        ..._trackActions(),
+        ..._trackActions(context, ref),
         const Divider(color: Colors.white12),
-        ..._socialActions(context),
+        ..._socialActions(context, ref, isReposted),
         const Divider(color: Colors.white12),
 
         if (tabType == FeedType.discover)

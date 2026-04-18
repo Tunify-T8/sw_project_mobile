@@ -102,6 +102,12 @@ Future<void> ensureUploadItemPlayback(
   final current = ref.read(playerProvider).asData?.value;
   final isSameTrack = current?.bundle?.trackId == item.id;
   final store = ref.read(globalTrackStoreProvider);
+  // Local pre-fetch: only same-artist tracks already in GlobalTrackStore
+  // (own uploads).  Listening history is intentionally NOT used here — those
+  // are tracks the user already played, not "more by this artist", and
+  // surfacing them as the queue was confusing.  The real artist catalog is
+  // fetched from the backend by enrichQueueWithArtistTracks (called from
+  // inside loadTrack once the real bundle lands).
   final queue = _resolveArtistQueue(item, queueItems, store);
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
@@ -151,6 +157,14 @@ Future<void> ensureUploadItemPlayback(
 
   await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
 }
+
+// Fire-and-forget background fetch: pull the playing artist's full track
+// catalog from the backend and merge it into the live queue. Runs AFTER
+// NOTE: the previous _enrichQueueAfterLaunch polling helper was removed.
+// The "more by this artist" enrichment is now triggered from inside
+// loadTrack() itself, as soon as the real backend bundle is in state.
+// This is reliable — no timing race against the seed bundle — and removes
+// the need for the launcher to know anything about it.
 
 Future<void> toggleUploadItemPlayback(
   WidgetRef ref,
@@ -209,6 +223,20 @@ Future<void> openCurrentPlaybackTrackSurface(
   );
 }
 
+// Resolves the local same-artist queue used right at launch.
+//
+// Sources, in priority order:
+//   1. An explicit queueItems list (e.g. playlist context) — trust as-is.
+//   2. Same-artist tracks already in GlobalTrackStore — covers playing your
+//      own tracks (the store only holds the signed-in user's uploads today).
+//
+// History is intentionally NOT consulted here.  Recent plays aren't a queue —
+// they're a queue's *opposite* (tracks the user already heard).  The real
+// "more by this artist" queue for ANY artist is fetched from the backend by
+// enrichQueueWithArtistTracks, which fires from inside loadTrack as soon as
+// the real bundle is in state.
+//
+// Dedupes by trackId, always includes the current track.
 List<UploadItem> _resolveArtistQueue(
   UploadItem item,
   List<UploadItem>? queueItems,
@@ -221,22 +249,31 @@ List<UploadItem> _resolveArtistQueue(
     return explicitQueue;
   }
 
-  final sameArtist =
-      store.all
-          .where(
-            (track) =>
-                track.isPlayable &&
-                track.artistDisplay.trim().toLowerCase() ==
-                    item.artistDisplay.trim().toLowerCase(),
-          )
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  final normalizedArtist = item.artistDisplay.trim().toLowerCase();
 
-  if (sameArtist.any((track) => track.id == item.id)) {
-    return sameArtist;
+  final fromStore = store.all
+      .where(
+        (track) =>
+            track.isPlayable &&
+            track.artistDisplay.trim().toLowerCase() == normalizedArtist,
+      )
+      .toList();
+
+  final seen = <String>{};
+  final merged = <UploadItem>[];
+  void addIfNew(UploadItem u) {
+    if (seen.add(u.id)) merged.add(u);
   }
 
-  return <UploadItem>[item];
+  for (final u in fromStore) {
+    addIfNew(u);
+  }
+  // Always include the current track even if it isn't in the store
+  // (e.g. another user's track launched from search/profile).
+  addIfNew(item);
+
+  merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return merged;
 }
 
 Future<UploadItem> _prepareTrackSurfaceItemFast(

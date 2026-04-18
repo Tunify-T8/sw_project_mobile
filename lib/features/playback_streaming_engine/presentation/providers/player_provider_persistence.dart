@@ -266,11 +266,15 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       'currentIndex': queue.currentIndex,
       'shuffle': queue.shuffle,
       'repeat': _repeatModeToString(queue.repeat),
+      // Pre-shuffle snapshot so unshuffling after an app restart still works.
+      if (queue.originalTrackIds != null)
+        'originalTrackIds': queue.originalTrackIds,
     };
   }
 
   PlaybackQueue _queueFromJson(Map<String, dynamic> json) {
     final rawTrackIds = json['trackIds'] as List<dynamic>? ?? const <dynamic>[];
+    final rawOriginal = json['originalTrackIds'] as List<dynamic>?;
     return PlaybackQueue(
       trackIds: rawTrackIds
           .map((value) => value.toString())
@@ -278,6 +282,9 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       currentIndex: (json['currentIndex'] as int?) ?? 0,
       shuffle: json['shuffle'] as bool? ?? false,
       repeat: _repeatModeFromString((json['repeat'] ?? 'none').toString()),
+      originalTrackIds: rawOriginal
+          ?.map((value) => value.toString())
+          .toList(growable: false),
     );
   }
 

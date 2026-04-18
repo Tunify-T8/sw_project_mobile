@@ -105,7 +105,10 @@ extension PlayerNotifierControls on PlayerNotifier {
       ),
     );
 
-    Future<void>.delayed(const Duration(milliseconds: 180), () {
+    // M5-002: 180ms was not enough on slower networks — the position stream
+    // could still emit a pre-seek position after the flag was cleared.
+    // 400ms covers typical remote-seek latency without feeling laggy.
+    Future<void>.delayed(const Duration(milliseconds: 400), () {
       _isManualSeeking = false;
     });
   }
@@ -138,21 +141,86 @@ extension PlayerNotifierControls on PlayerNotifier {
     final queue = current.queue!;
     final newShuffle = !queue.shuffle;
 
-    List<String> newTrackIds = List<String>.from(queue.trackIds);
-    if (newShuffle && newTrackIds.length > queue.currentIndex + 1) {
-      // Shuffle only the tracks after the currently playing one.
-      final after = newTrackIds.sublist(queue.currentIndex + 1)..shuffle();
-      newTrackIds = [
-        ...newTrackIds.sublist(0, queue.currentIndex + 1),
-        ...after,
-      ];
+    // Single-track queue → nothing to shuffle; still flip the flag so the icon
+    // reflects user intent (next track enqueued will land at a random spot).
+    if (queue.trackIds.length <= 1) {
+      final next = current.copyWith(
+        queue: queue.copyWith(shuffle: newShuffle),
+      );
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
     }
 
-    final next = current.copyWith(
-      queue: queue.copyWith(shuffle: newShuffle, trackIds: newTrackIds),
-    );
+    PlaybackQueue nextQueue;
+
+    if (newShuffle) {
+      // Turning shuffle ON:
+      //  - Snapshot the current order so we can undo it later.
+      //  - Shuffle only the slice AFTER the current track; the already-played
+      //    portion stays intact so next/previous behave predictably.
+      final original = List<String>.from(queue.trackIds);
+      final after = queue.trackIds.sublist(queue.currentIndex + 1)..shuffle();
+      final shuffled = <String>[
+        ...queue.trackIds.sublist(0, queue.currentIndex + 1),
+        ...after,
+      ];
+      nextQueue = queue.copyWith(
+        trackIds: shuffled,
+        shuffle: true,
+        originalTrackIds: original,
+      );
+    } else {
+      // Turning shuffle OFF:
+      //  - Restore original order (if we have it).
+      //  - Re-point currentIndex to wherever the current track now lives.
+      //  - Drop the snapshot so copyWith can't leak it into the next session.
+      final currentTrackId = queue.currentTrackId;
+      final restored =
+          queue.originalTrackIds ?? List<String>.from(queue.trackIds);
+      final restoredIndex = currentTrackId == null
+          ? 0
+          : restored.indexOf(currentTrackId).clamp(0, restored.length - 1);
+
+      nextQueue = queue.copyWith(
+        trackIds: restored,
+        shuffle: false,
+        currentIndex: restoredIndex,
+        clearOriginalTrackIds: true,
+      );
+    }
+
+    final next = current.copyWith(queue: nextQueue);
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  // Called externally (e.g. from the delete-track flow) when a track has been
+  // removed from the backend. If it's what we're currently playing, stop audio,
+  // cancel any pending history write, and clear state so the mini-player
+  // disappears and the cached session is wiped from secure storage
+  // (see _persistCurrentSession — bundle==null → delete branch).
+  //
+  // No-op if the current track is different (or nothing is playing), so it's
+  // always safe to call from a bulk/batch delete.
+  Future<void> stopIfPlaying(String trackId) async {
+    final current = _current;
+    if (current == null || current.bundle?.trackId != trackId) return;
+
+    _progressReportTimer?.cancel();
+    _pendingHistoryTrackId = null;
+    await _audioPlayer.stop();
+
+    // Preserve volume/mute so the next track the user plays picks them up.
+    final cleared = PlayerState(
+      isMuted: current.isMuted,
+      volume: current.volume,
+    );
+    _loadedTrackId = null;
+    _loadedSourceKey = null;
+    _setPlayerState(cleared);
+
+    await _persistCurrentSession(playerState: cleared, force: true);
   }
 
   void toggleRepeat() {
