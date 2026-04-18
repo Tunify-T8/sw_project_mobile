@@ -7,6 +7,7 @@ import '../features/audio_upload_and_management/presentation/screens/library_scr
 import '../features/feed_search_discovery/presentation/screens/feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/search_screen.dart';
 import '../features/playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../features/premium_subscription/presentation/screens/upgrade_screen.dart';
 import 'router.dart';
 
 class MainShellScreen extends ConsumerStatefulWidget {
@@ -45,7 +46,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               onOpenYourUploads: () =>
                   Navigator.of(context).pushNamed(Routes.yourUploads),
             ),
-            const _PlaceholderTab(label: 'Upgrade'),
+            const UpgradeScreen(),
           ],
         ),
       ),
