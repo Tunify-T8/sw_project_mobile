@@ -3,14 +3,16 @@ import '../../../domain/entities/track_result_entity.dart';
 import 'search_artwork_placeholder.dart';
 
 class SearchResultTileTrack extends StatelessWidget {
-  const SearchResultTileTrack({super.key, required this.track});
+  const SearchResultTileTrack({super.key, required this.track, this.onTap});
   final TrackResultEntity track;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final duration = _formatDuration(track.durationSeconds);
 
     return ListTile(
+      onTap: track.isUnavailable ? null : onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: SizedBox(
         width: 48,

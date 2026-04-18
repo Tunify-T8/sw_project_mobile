@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/routes.dart';
+import '../../../audio_upload_and_management/presentation/providers/public_user_uploads_provider.dart';
+import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
 import '../../../messaging_track_sharing/domain/usecases/open_conversation_usecase.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
@@ -11,6 +13,7 @@ import '../providers/user_profile_provider.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info.dart';
 import '../widgets/profile_share_sheet.dart';
+import '../widgets/profile_tracks_section.dart';
 import '../widgets/user_options_sheet.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
@@ -254,9 +257,37 @@ class _OtherUserProfileScreenState
                       profile?.profileImagePath,
                     ),
                   ),
+                  _OtherUserTracksSection(userId: widget.userId),
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _OtherUserTracksSection extends ConsumerWidget {
+  const _OtherUserTracksSection({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tracksAsync = ref.watch(publicUserUploadsProvider(userId));
+
+    // Mirror my-profile behaviour: while loading or on error, show the same
+    // ProfileTracksSection with an empty list so the "No uploaded tracks yet."
+    // placeholder matches exactly. No new UI is introduced here.
+    final items = tracksAsync.asData?.value ?? const [];
+
+    return ProfileTracksSection(
+      items: items,
+      onTrackTap: (item) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TrackDetailScreen(item: item),
+          ),
+        );
+      },
     );
   }
 }

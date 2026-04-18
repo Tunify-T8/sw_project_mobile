@@ -7,6 +7,7 @@ import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../providers/search_provider.dart';
+import '../utils/search_track_playback.dart';
 import '../widgets/search/search_result_tile_track.dart';
 import '../widgets/search/search_result_tile_playlist.dart';
 import '../widgets/search/search_result_tile_album.dart';
@@ -208,11 +209,23 @@ class _GenreAllTab extends StatelessWidget {
                 final columnTracks = detail!.trendingTracks.sublist(start, end);
                 return SizedBox(
                   width: MediaQuery.of(context).size.width * 0.88,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: columnTracks
-                        .map((track) => SearchResultTileTrack(track: track))
-                        .toList(),
+                  child: Consumer(
+                    builder: (context, ref, _) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: columnTracks
+                          .map(
+                            (track) => SearchResultTileTrack(
+                              track: track,
+                              onTap: () => playSearchTrack(
+                                context,
+                                ref,
+                                track,
+                                queueTracks: detail!.trendingTracks,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
                 );
               },
@@ -327,19 +340,30 @@ class _GenreAllTab extends StatelessWidget {
 
 // ─── Tab list views ───────────────────────────────────────────────────────────
 
-class _GenreTrackList extends StatelessWidget {
+class _GenreTrackList extends ConsumerWidget {
   const _GenreTrackList({required this.tracks});
   final List<TrackResultEntity> tracks;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (tracks.isEmpty) {
       return const _GenreEmptyState(message: 'No trending tracks yet.');
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: tracks.length,
-      itemBuilder: (context, i) => SearchResultTileTrack(track: tracks[i]),
+      itemBuilder: (context, i) {
+        final track = tracks[i];
+        return SearchResultTileTrack(
+          track: track,
+          onTap: () => playSearchTrack(
+            context,
+            ref,
+            track,
+            queueTracks: tracks,
+          ),
+        );
+      },
     );
   }
 }
