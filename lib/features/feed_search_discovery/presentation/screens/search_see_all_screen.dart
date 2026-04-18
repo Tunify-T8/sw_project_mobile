@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
+import '../utils/search_track_playback.dart';
 import '../widgets/search/search_result_tile_track.dart';
 import '../widgets/search/search_result_tile_playlist.dart';
 import '../widgets/search/search_result_tile_profile.dart';
@@ -55,10 +57,23 @@ class SearchSeeAllScreen extends StatelessWidget {
 
   Widget _buildList() {
     if (tracks.isNotEmpty) {
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: tracks.length,
-        itemBuilder: (_, i) => SearchResultTileTrack(track: tracks[i]),
+      return Consumer(
+        builder: (context, ref, _) => ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: tracks.length,
+          itemBuilder: (_, i) {
+            final track = tracks[i];
+            return SearchResultTileTrack(
+              track: track,
+              onTap: () => playSearchTrack(
+                context,
+                ref,
+                track,
+                queueTracks: tracks,
+              ),
+            );
+          },
+        ),
       );
     }
 
