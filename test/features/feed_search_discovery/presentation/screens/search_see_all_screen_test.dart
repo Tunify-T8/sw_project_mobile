@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/album_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/playlist_result_entity.dart';
@@ -31,7 +32,8 @@ void main() {
     trackCount: 10,
   );
 
-  Widget buildScreen(Widget child) => MaterialApp(home: child);
+  Widget buildScreen(Widget child) =>
+      ProviderScope(child: MaterialApp(home: child));
 
   testWidgets('renders tracks list before other result types', (tester) async {
     await tester.pumpWidget(
@@ -91,18 +93,20 @@ void main() {
 
   testWidgets('shows empty message and back button pops the route', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SearchSeeAllScreen(title: 'Empty'),
-                  ),
-                );
-              },
-              child: const Text('Open'),
+      ProviderScope(
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SearchSeeAllScreen(title: 'Empty'),
+                    ),
+                  );
+                },
+                child: const Text('Open'),
+              ),
             ),
           ),
         ),

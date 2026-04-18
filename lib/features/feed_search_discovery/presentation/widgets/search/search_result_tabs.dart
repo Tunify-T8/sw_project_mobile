@@ -8,6 +8,7 @@ import '../../../domain/entities/track_result_entity.dart';
 import '../../../domain/entities/top_result_entity.dart';
 import '../../../domain/entities/search_genre_entity.dart';
 import '../../providers/search_provider.dart';
+import '../../utils/search_track_playback.dart';
 import 'search_artwork_placeholder.dart';
 import 'search_section_header.dart';
 import 'search_result_tile_track.dart';
@@ -109,12 +110,25 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
                       onResultTapped: (item) => ref
                           .read(searchProvider.notifier)
                           .recordResultTapped(item),
+                      onTrackTap: (track) => playSearchTrack(
+                        context,
+                        ref,
+                        track,
+                        queueTracks:
+                            widget.state.allResult?.tracks ?? const [],
+                      ),
                     ),
                     _TrackTab(
                       tracks: widget.state.tracks,
                       isLoadingMore: widget.state.isLoadingMore,
                       hasMore: widget.state.hasMore,
                       onLoadMore: widget.onLoadMore,
+                      onTrackTap: (track) => playSearchTrack(
+                        context,
+                        ref,
+                        track,
+                        queueTracks: widget.state.tracks,
+                      ),
                     ),
                     _ProfileTab(profiles: widget.state.profiles),
                     _PlaylistTab(playlists: widget.state.playlists),
@@ -134,11 +148,13 @@ class _AllTab extends StatelessWidget {
     required this.state,
     required this.onLoadMore,
     required this.onResultTapped,
+    required this.onTrackTap,
   });
 
   final SearchState state;
   final VoidCallback onLoadMore;
   final ValueChanged<RecentResultItem> onResultTapped;
+  final ValueChanged<TrackResultEntity> onTrackTap;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +210,7 @@ class _AllTab extends StatelessWidget {
           _TopResultCard(
             state: state,
             topResult: result.topResult!,
+            onTrackTap: onTrackTap,
             onTap: () {
               final top = result.topResult!;
               onResultTapped(
@@ -256,7 +273,12 @@ class _AllTab extends StatelessWidget {
               ),
             ),
           ),
-          ...visibleTracks.map((t) => SearchResultTileTrack(track: t)),
+          ...visibleTracks.map(
+            (t) => SearchResultTileTrack(
+              track: t,
+              onTap: () => onTrackTap(t),
+            ),
+          ),
           const SizedBox(height: 16),
         ],
 
@@ -316,7 +338,9 @@ class _AllTab extends StatelessWidget {
         // More Results — mixed remaining items
         if (moreItems.isNotEmpty) ...[
           const SearchSectionHeader(title: 'More Results'),
-          ...moreItems.map((item) => _MixedResultTile(item: item)),
+          ...moreItems.map(
+            (item) => _MixedResultTile(item: item, onTrackTap: onTrackTap),
+          ),
           const SizedBox(height: 32),
         ],
       ],
@@ -346,6 +370,7 @@ class _MixedResultItem {
     required this.subtitle,
     this.artworkUrl,
     this.isUnavailable = false,
+    this.track,
   });
 
   factory _MixedResultItem.track(TrackResultEntity t) => _MixedResultItem._(
@@ -354,6 +379,7 @@ class _MixedResultItem {
     subtitle: t.artistName,
     artworkUrl: t.artworkUrl,
     isUnavailable: t.isUnavailable,
+    track: t,
   );
 
   factory _MixedResultItem.album(AlbumResultEntity a) => _MixedResultItem._(
@@ -383,11 +409,13 @@ class _MixedResultItem {
   final String subtitle;
   final String? artworkUrl;
   final bool isUnavailable;
+  final TrackResultEntity? track;
 }
 
 class _MixedResultTile extends StatelessWidget {
-  const _MixedResultTile({required this.item});
+  const _MixedResultTile({required this.item, required this.onTrackTap});
   final _MixedResultItem item;
+  final ValueChanged<TrackResultEntity> onTrackTap;
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +442,11 @@ class _MixedResultTile extends StatelessWidget {
           : SearchArtworkPlaceholder(size: 48);
     }
 
+    final track = item.track;
     return ListTile(
+      onTap: (track != null && !track.isUnavailable)
+          ? () => onTrackTap(track)
+          : null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: SizedBox(width: 48, height: 48, child: leading),
       title: Text(
@@ -505,12 +537,14 @@ class _TrackTab extends StatelessWidget {
     required this.isLoadingMore,
     required this.hasMore,
     required this.onLoadMore,
+    required this.onTrackTap,
   });
 
   final List<TrackResultEntity> tracks;
   final bool isLoadingMore;
   final bool hasMore;
   final VoidCallback onLoadMore;
+  final ValueChanged<TrackResultEntity> onTrackTap;
 
   @override
   Widget build(BuildContext context) {
@@ -537,7 +571,11 @@ class _TrackTab extends StatelessWidget {
               ),
             );
           }
-          return SearchResultTileTrack(track: tracks[i]);
+          final track = tracks[i];
+          return SearchResultTileTrack(
+            track: track,
+            onTap: () => onTrackTap(track),
+          );
         },
       ),
     );
@@ -598,11 +636,13 @@ class _TopResultCard extends StatelessWidget {
     required this.state,
     required this.topResult,
     required this.onTap,
+    required this.onTrackTap,
   });
 
   final SearchState state;
   final TopResultEntity topResult;
   final VoidCallback onTap;
+  final ValueChanged<TrackResultEntity> onTrackTap;
 
   @override
   Widget build(BuildContext context) {
@@ -624,7 +664,10 @@ class _TopResultCard extends StatelessWidget {
       children: [
         // Top result — standard track tile when it's a track
         if (topTrack != null)
-          SearchResultTileTrack(track: topTrack)
+          SearchResultTileTrack(
+            track: topTrack,
+            onTap: () => onTrackTap(topTrack),
+          )
         else
           // Fallback large card for profile / album / playlist top results
           GestureDetector(
@@ -708,7 +751,10 @@ class _TopResultCard extends StatelessWidget {
 
         // Second item inline — different from top result
         if (secondTrack != null)
-          SearchResultTileTrack(track: secondTrack)
+          SearchResultTileTrack(
+            track: secondTrack,
+            onTap: () => onTrackTap(secondTrack),
+          )
         else if (secondAlbum != null)
           SearchResultTileAlbum(album: secondAlbum),
       ],
