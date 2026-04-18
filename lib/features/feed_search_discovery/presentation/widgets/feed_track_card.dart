@@ -4,6 +4,7 @@ import '../../domain/entities/feed_tab_type.dart';
 import '../../domain/entities/feed_item_entity.dart';
 import 'feed_menu_sheet.dart';
 import '../providers/feed_notifier.dart';
+import '../providers/feed_preview_playback_controller.dart';
 import 'feed_preview_overlay.dart';
 import 'feed_interaction_buttons.dart';
 import 'feed_activity_row.dart';
@@ -22,7 +23,16 @@ class FeedTrackCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
+        final wasPreviewing = ref.read(feedNotifierProvider).isPreviewing;
         ref.read(feedNotifierProvider.notifier).togglePreview();
+
+        final previewController =
+            ref.read(feedPreviewPlaybackControllerProvider);
+        if (wasPreviewing) {
+          previewController.stop();
+        } else {
+          previewController.start(item.track.trackId, item.track.duration);
+        }
       },
       child: Stack(
         children: [
