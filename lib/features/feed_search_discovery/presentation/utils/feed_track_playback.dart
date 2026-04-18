@@ -15,9 +15,21 @@ Future<void> playFeedTrack(
   // user jumps straight from the preview overlay to the full-track tile.
   await ref.read(feedPreviewPlaybackControllerProvider).stop();
 
+  final stub = _trackPreviewToUploadItem(track);
+
+  // Feed entities don't carry a waveformUrl, so the stub has no way to fetch
+  // bars on its own. The shared launcher only allows 500 ms for pre-resolution
+  // — not enough on a cold first play — and when it times out the waveform
+  // provider caches NULL against this track id, which means the bars never
+  // surface until the screen is closed and reopened.
+  //
+  // Resolving the enriched item (with waveformUrl + waveformBars embedded)
+  // here, WITHOUT a timeout, guarantees the waveform renders on the first
+  // frame of TrackDetailScreen. The user explicitly opted into this delay.
+  final enrichedItem = await prepareTrackSurfaceItem(ref, stub);
+
   if (!context.mounted) return;
-  final item = _trackPreviewToUploadItem(track);
-  await openUploadItemPlayer(context, ref, item);
+  await openUploadItemPlayer(context, ref, enrichedItem);
 }
 
 UploadItem _trackPreviewToUploadItem(TrackPreviewEntity t) {
