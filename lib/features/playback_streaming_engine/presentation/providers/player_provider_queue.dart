@@ -240,6 +240,14 @@ extension PlayerNotifierQueue on PlayerNotifier {
   }) async {
     if (artistUserId.trim().isEmpty) return;
 
+    // History-sourced queues are sacred: the user opened the track from
+    // Listening history and expects "next" to mean "next in history",
+    // NOT "more by this artist". Skip enrichment entirely.
+    final currentBeforeFetch = _current;
+    if (currentBeforeFetch?.queue?.source == QueueSource.history) {
+      return;
+    }
+
     final api = ref.read(userTracksApiProvider);
     final fetched = await api.getUserTracks(artistUserId);
     if (fetched.isEmpty) return;
@@ -247,6 +255,10 @@ extension PlayerNotifierQueue on PlayerNotifier {
     // The user may have moved on while the request was in flight.
     final after = _current;
     if (after == null || after.bundle?.trackId != anchorTrackId) return;
+
+    // Double-check source after the async gap — the user may have tapped
+    // a history track while the fetch was in flight.
+    if (after.queue?.source == QueueSource.history) return;
 
     final existingQueue = after.queue;
     final existingIds = existingQueue?.trackIds ?? <String>[];

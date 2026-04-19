@@ -266,6 +266,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       'currentIndex': queue.currentIndex,
       'shuffle': queue.shuffle,
       'repeat': _repeatModeToString(queue.repeat),
+      'source': queue.source.name,
       // Pre-shuffle snapshot so unshuffling after an app restart still works.
       if (queue.originalTrackIds != null)
         'originalTrackIds': queue.originalTrackIds,
@@ -275,6 +276,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
   PlaybackQueue _queueFromJson(Map<String, dynamic> json) {
     final rawTrackIds = json['trackIds'] as List<dynamic>? ?? const <dynamic>[];
     final rawOriginal = json['originalTrackIds'] as List<dynamic>?;
+    final rawSource = json['source']?.toString();
     return PlaybackQueue(
       trackIds: rawTrackIds
           .map((value) => value.toString())
@@ -285,7 +287,24 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       originalTrackIds: rawOriginal
           ?.map((value) => value.toString())
           .toList(growable: false),
+      source: _queueSourceFromString(rawSource),
     );
+  }
+
+  QueueSource _queueSourceFromString(String? raw) {
+    switch (raw) {
+      case 'history':
+        return QueueSource.history;
+      case 'artistCatalog':
+        return QueueSource.artistCatalog;
+      case 'playlist':
+        return QueueSource.playlist;
+      case 'explicit':
+        return QueueSource.explicit;
+      case 'singleTrack':
+      default:
+        return QueueSource.singleTrack;
+    }
   }
 
   String _playbackStatusToString(PlaybackStatus status) {

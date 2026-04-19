@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../audio_upload_and_management/presentation/screens/track_info_screen.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/history_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
@@ -26,6 +29,7 @@ class TrackOptionInfo {
     this.coverUrl,
     this.localArtworkPath,
     this.isOwned = false,
+    this.artistId,
   });
 
   final String trackId;
@@ -33,9 +37,18 @@ class TrackOptionInfo {
   final String artist;
   final String? coverUrl;
   final String? localArtworkPath;
+
+  /// Signal from the caller that this track is locally known to belong to
+  /// the current user (e.g. it's in the uploads store). The sheet cross-
+  /// checks this against the signed-in user too, so callers can pass false
+  /// and still get the owner layout if the identities match.
   final bool isOwned;
 
-  factory TrackOptionInfo.fromUploadItem(UploadItem item) {
+  /// The uploader's user id, when known. Required for the non-owner sheet
+  /// so "Go to profile" can navigate to the correct profile.
+  final String? artistId;
+
+  factory TrackOptionInfo.fromUploadItem(UploadItem item, {String? artistId}) {
     return TrackOptionInfo(
       trackId: item.id,
       title: item.title,
@@ -43,6 +56,7 @@ class TrackOptionInfo {
       coverUrl: item.artworkUrl,
       localArtworkPath: item.localArtworkPath,
       isOwned: true,
+      artistId: artistId,
     );
   }
 
@@ -52,6 +66,7 @@ class TrackOptionInfo {
       title: track.title,
       artist: track.artist.name,
       coverUrl: track.coverUrl,
+      artistId: track.artist.id.isNotEmpty ? track.artist.id : null,
     );
   }
 
@@ -71,10 +86,14 @@ class TrackOptionInfo {
     String? fallbackCoverUrl,
     String? fallbackLocalArtworkPath,
     bool fallbackIsOwned = false,
+    String? fallbackArtistId,
   }) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
     if (stored != null) {
-      return TrackOptionInfo.fromUploadItem(stored);
+      return TrackOptionInfo.fromUploadItem(
+        stored,
+        artistId: fallbackArtistId,
+      );
     }
 
     final historyTracks =
@@ -85,6 +104,21 @@ class TrackOptionInfo {
       }
     }
 
+    // Playing bundle is a last-resort lookup for tracks we don't know about
+    // locally — e.g. opened from search then we reopen the sheet elsewhere.
+    final playingBundle = ref.read(playerProvider).asData?.value.bundle;
+    if (playingBundle != null && playingBundle.trackId == trackId) {
+      return TrackOptionInfo(
+        trackId: trackId,
+        title: playingBundle.title,
+        artist: playingBundle.artist.name,
+        coverUrl: playingBundle.coverUrl,
+        artistId: playingBundle.artist.id.isNotEmpty
+            ? playingBundle.artist.id
+            : fallbackArtistId,
+      );
+    }
+
     return TrackOptionInfo(
       trackId: trackId,
       title: fallbackTitle ?? 'Track',
@@ -92,6 +126,7 @@ class TrackOptionInfo {
       coverUrl: fallbackCoverUrl,
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
+      artistId: fallbackArtistId,
     );
   }
 }
@@ -118,8 +153,31 @@ class _TrackOptionsSheetContent extends StatelessWidget {
   final TrackOptionInfo info;
   final WidgetRef ref;
 
+  /// Combine the caller's hint with the current authenticated user id.
+  /// If the signed-in user IS the uploader, the sheet always shows the
+  /// owner layout — even if the caller didn't know (e.g. opened from a
+  /// discovery feed where the track isn't in the local store yet).
+  bool _resolveIsOwned() {
+    if (info.isOwned) return true;
+
+    final uploaderId = info.artistId?.trim();
+    if (uploaderId == null || uploaderId.isEmpty) return false;
+
+    final currentUserId = ref
+        .read(authControllerProvider)
+        .asData
+        ?.value
+        ?.id
+        .trim();
+    if (currentUserId == null || currentUserId.isEmpty) return false;
+
+    return currentUserId == uploaderId;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isOwned = _resolveIsOwned();
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF111111),
@@ -127,171 +185,168 @@ class _TrackOptionsSheetContent extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  UploadArtworkView(
-                    localPath: info.localArtworkPath,
-                    remoteUrl: info.coverUrl,
-                    width: 56,
-                    height: 56,
-                    backgroundColor: const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.circular(4),
-                    placeholder: const Icon(
-                      Icons.music_note,
-                      color: Colors.white24,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          info.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          info.artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'SHARE',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  YourUploadsShareButton(
-                    icon: Icons.send_outlined,
-                    label: 'Message',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.copy_outlined,
-                    label: 'Copy link',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.qr_code_2,
-                    label: 'QR code',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.sms_outlined,
-                    label: 'SMS',
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: Colors.white12, height: 1),
-            YourUploadsOptionRow(
-              icon: Icons.favorite_border,
-              label: 'Like',
-              onTap: () => Navigator.pop(context),
-            ),
-            if (info.isOwned)
-              YourUploadsOptionRow(
-                icon: Icons.edit_outlined,
-                label: 'Edit track',
-                onTap: () {
-                  Navigator.pop(context);
-                  _navigateToEditTrack(context);
-                },
-              ),
-            const Divider(color: Colors.white12, height: 1),
-            YourUploadsOptionRow(
-              icon: Icons.queue_play_next,
-              label: 'Play next',
-              onTap: () {
-                ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
-                Navigator.pop(context);
-              },
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.playlist_play,
-              label: 'Play last',
-              onTap: () {
-                ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
-                Navigator.pop(context);
-              },
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.playlist_add,
-              label: 'Add to playlist',
-              onTap: () => Navigator.pop(context),
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.radio,
-              label: 'Start station',
-              onTap: () => Navigator.pop(context),
-            ),
-            const Divider(color: Colors.white12, height: 1),
-            YourUploadsOptionRow(
-              icon: Icons.graphic_eq,
-              label: 'Behind this track',
-              onTap: () => Navigator.pop(context),
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.comment_outlined,
-              label: 'View comments',
-              onTap: () => Navigator.pop(context),
-            ),
-            if (info.isOwned)
-              YourUploadsOptionRow(
-                icon: Icons.delete_outline,
-                label: 'Delete track',
-                color: Colors.redAccent,
-                onTap: () => Navigator.pop(context),
-              ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 16),
+              _TrackHeader(info: info),
+              const _ShareLabel(),
+              const _ShareRow(),
+              const Divider(color: Colors.white12, height: 1),
+              if (isOwned)
+                ..._buildOwnerRows(context)
+              else
+                ..._buildNonOwnerRows(context),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  List<Widget> _buildOwnerRows(BuildContext context) {
+    return [
+      YourUploadsOptionRow(
+        icon: Icons.favorite_border,
+        label: 'Like',
+        onTap: () => Navigator.pop(context),
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.edit_outlined,
+        label: 'Edit track',
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToEditTrack(context);
+        },
+      ),
+      const Divider(color: Colors.white12, height: 1),
+      YourUploadsOptionRow(
+        icon: Icons.queue_play_next,
+        label: 'Play next',
+        onTap: () {
+          ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
+          Navigator.pop(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.playlist_play,
+        label: 'Play last',
+        onTap: () {
+          ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
+          Navigator.pop(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.playlist_add,
+        label: 'Add to playlist',
+        onTap: () => Navigator.pop(context),
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.radio,
+        label: 'Start station',
+        onTap: () => Navigator.pop(context),
+      ),
+      const Divider(color: Colors.white12, height: 1),
+      YourUploadsOptionRow(
+        icon: Icons.graphic_eq,
+        label: 'Behind this track',
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToBehindThisTrack(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.comment_outlined,
+        label: 'View comments',
+        onTap: () => Navigator.pop(context),
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.delete_outline,
+        label: 'Delete track',
+        color: Colors.redAccent,
+        onTap: () => Navigator.pop(context),
+      ),
+    ];
+  }
+
+  List<Widget> _buildNonOwnerRows(BuildContext context) {
+    return [
+      YourUploadsOptionRow(
+        icon: Icons.favorite_border,
+        label: 'Like',
+        onTap: () => Navigator.pop(context),
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.queue_play_next,
+        label: 'Play next',
+        onTap: () {
+          ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
+          Navigator.pop(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.playlist_play,
+        label: 'Play last',
+        onTap: () {
+          ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
+          Navigator.pop(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.playlist_add,
+        label: 'Add to playlist',
+        onTap: () => Navigator.pop(context),
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.radio,
+        label: 'Start station',
+        onTap: () => Navigator.pop(context),
+      ),
+      const Divider(color: Colors.white12, height: 1),
+      YourUploadsOptionRow(
+        icon: Icons.person_outline,
+        label: 'Go to profile',
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToUploaderProfile(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.comment_outlined,
+        label: 'View comments',
+        onTap: () => Navigator.pop(context),
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.repeat,
+        label: 'Repost',
+        onTap: () => Navigator.pop(context),
+      ),
+      const Divider(color: Colors.white12, height: 1),
+      YourUploadsOptionRow(
+        icon: Icons.graphic_eq,
+        label: 'Behind this track',
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToBehindThisTrack(context);
+        },
+      ),
+      YourUploadsOptionRow(
+        icon: Icons.flag_outlined,
+        label: 'Report',
+        onTap: () => Navigator.pop(context),
+      ),
+    ];
   }
 
   void _navigateToEditTrack(BuildContext context) {
@@ -303,6 +358,191 @@ class _TrackOptionsSheetContent extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TrackDetailScreen(item: stored),
+      ),
+    );
+  }
+
+  void _navigateToUploaderProfile(BuildContext context) {
+    // Prefer the id the caller supplied; otherwise try to resolve it from
+    // the currently playing bundle (same track), and finally from the
+    // local store's owner mapping.
+    String? userId = info.artistId?.trim();
+
+    if (userId == null || userId.isEmpty) {
+      final bundle = ref.read(playerProvider).asData?.value.bundle;
+      if (bundle != null && bundle.trackId == info.trackId) {
+        final id = bundle.artist.id.trim();
+        if (id.isNotEmpty) userId = id;
+      }
+    }
+
+    if (userId == null || userId.isEmpty) {
+      final storeOwner = ref
+          .read(globalTrackStoreProvider)
+          .ownerUserIdForTrack(info.trackId);
+      if (storeOwner != null &&
+          storeOwner.isNotEmpty &&
+          storeOwner != '__global__') {
+        userId = storeOwner;
+      }
+    }
+
+    if (userId == null || userId.isEmpty) {
+      // Without an id we cannot open the profile — surface a hint instead
+      // of navigating to a broken screen.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Uploader profile is not available for this track'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => OtherUserProfileScreen(userId: userId!),
+      ),
+    );
+  }
+
+  void _navigateToBehindThisTrack(BuildContext context) {
+    final store = ref.read(globalTrackStoreProvider);
+    final stored = store.find(info.trackId);
+    final item = stored ??
+        UploadItem(
+          id: info.trackId,
+          title: info.title,
+          artistDisplay: info.artist,
+          durationLabel: '',
+          durationSeconds: 0,
+          audioUrl: null,
+          waveformUrl: null,
+          artworkUrl: info.coverUrl,
+          localArtworkPath: info.localArtworkPath,
+          localFilePath: null,
+          description: '',
+          visibility: UploadVisibility.public,
+          status: UploadProcessingStatus.finished,
+          isExplicit: false,
+          createdAt: DateTime.now(),
+        );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TrackInfoScreen(item: item),
+      ),
+    );
+  }
+}
+
+class _TrackHeader extends StatelessWidget {
+  const _TrackHeader({required this.info});
+
+  final TrackOptionInfo info;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          UploadArtworkView(
+            localPath: info.localArtworkPath,
+            remoteUrl: info.coverUrl,
+            width: 56,
+            height: 56,
+            backgroundColor: const Color(0xFF2A2A2A),
+            borderRadius: BorderRadius.circular(4),
+            placeholder: const Icon(
+              Icons.music_note,
+              color: Colors.white24,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  info.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  info.artist,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShareLabel extends StatelessWidget {
+  const _ShareLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'SHARE',
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 12,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareRow extends StatelessWidget {
+  const _ShareRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 80,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: const [
+          YourUploadsShareButton(
+            icon: Icons.send_outlined,
+            label: 'Message',
+          ),
+          YourUploadsShareButton(
+            icon: Icons.copy_outlined,
+            label: 'Copy link',
+          ),
+          YourUploadsShareButton(
+            icon: Icons.qr_code_2,
+            label: 'QR code',
+          ),
+          YourUploadsShareButton(
+            icon: Icons.sms_outlined,
+            label: 'SMS',
+          ),
+        ],
       ),
     );
   }
