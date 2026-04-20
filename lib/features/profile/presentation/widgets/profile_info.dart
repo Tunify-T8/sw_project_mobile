@@ -15,6 +15,8 @@ class ProfileInfo extends StatelessWidget {
   final TextStyle followerStyle;
   final VoidCallback onShowMore;
   final Widget actionButtons; // 3lshan n7ot el actions fel nos
+  final VoidCallback? onFollowersTap;
+  final VoidCallback? onFollowingTap;
 
   const ProfileInfo({
     super.key,
@@ -24,12 +26,14 @@ class ProfileInfo extends StatelessWidget {
     required this.bio,
     required this.followersCount,
     required this.followingCount,
-    required this.isCertified, 
+    required this.isCertified,
     required this.nameStyle,
     required this.bioStyle,
     required this.followerStyle,
     required this.onShowMore,
     required this.actionButtons,
+    this.onFollowersTap,
+    this.onFollowingTap,
   });
 
 Widget buildName() => Padding(
@@ -71,7 +75,7 @@ Widget buildLocation() => Padding(
       child: Row(
         children: [
           GestureDetector(
-            onTap: () {
+            onTap: onFollowersTap ?? () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -86,7 +90,7 @@ Widget buildLocation() => Padding(
           ),
           Text('  ·  ', style: followerStyle),
           GestureDetector(
-            onTap: () {
+            onTap: onFollowingTap ?? () {
               Navigator.push(
                 context,
                 MaterialPageRoute(

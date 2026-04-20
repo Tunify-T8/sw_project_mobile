@@ -10,6 +10,8 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_info.dart';
 import '../widgets/profile_share_sheet.dart';
 import '../widgets/user_options_sheet.dart';
+import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
+import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
@@ -236,6 +238,26 @@ class _OtherUserProfileScreenState
                           bioStyle: bioStyle,
                         ).showInfoSheet(),
                         actionButtons: _buildActionButtons(),
+                        onFollowersTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => NetworkListsScreen(
+                              userId: widget.userId,
+                              isMyProfile: false,
+                              listType: NetworkListType.followers,
+                            ),
+                          ),
+                        ),
+                        onFollowingTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => NetworkListsScreen(
+                              userId: widget.userId,
+                              isMyProfile: false,
+                              listType: NetworkListType.following,
+                            ),
+                          ),
+                        ),
                       ),
                       ProfileRepostsSection(userId: widget.userId),
                     ],
