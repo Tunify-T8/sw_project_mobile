@@ -20,9 +20,6 @@ import '../../../followers_and_social_graph/presentation/screens/network_lists_s
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
-import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
-import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
-import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
