@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/dio_client.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/profile/presentation/providers/profile_provider.dart';
+import '../../data/api/real_engagement_api.dart';
 import '../../data/repository/engagement_repository_impl.dart';
+import '../../data/repository/real_engagement_repository_impl.dart';
 import '../../data/services/mock_engagement_store.dart';
 import '../../domain/repositories/engagement_repository.dart';
 import '../../domain/usecases/get_track_engagement_usecase.dart';
@@ -23,20 +26,27 @@ import '../../domain/usecases/get_user_reposts_usecase.dart';
 import '../../domain/entities/track_engagement_entity.dart';
 import 'engagement_state.dart';
 
-// ── Infrastructure ────────────────────────────────────────────────────────────
+//Infrastructure
+
+// Set to false to use the real backend
+const bool _useMockEngagement = false;
 
 final mockEngagementStoreProvider = Provider<MockEngagementStore>((ref) {
   return MockEngagementStore();
 });
 
-// set useMock to false and return RealEngagementRepositoryImpl when BE is ready
-final engagementRepositoryProvider = Provider<EngagementRepository>((ref) {
-  return EngagementRepositoryImpl(
-    store: ref.watch(mockEngagementStoreProvider),
-  );
+final _realEngagementApiProvider = Provider<RealEngagementApi>((ref) {
+  return RealEngagementApi(dio: ref.watch(dioProvider));
 });
 
-// ── Use Cases ─────────────────────────────────────────────────────────────────
+final engagementRepositoryProvider = Provider<EngagementRepository>((ref) {
+  if (_useMockEngagement) {
+    return EngagementRepositoryImpl(store: ref.watch(mockEngagementStoreProvider));
+  }
+  return RealEngagementRepositoryImpl(api: ref.watch(_realEngagementApiProvider));
+});
+
+//Use Cases
 
 final getTrackEngagementUsecaseProvider = Provider((ref) =>
     GetTrackEngagementUsecase(ref.watch(engagementRepositoryProvider)));
@@ -218,9 +228,13 @@ class EngagementNotifier extends Notifier<EngagementState> {
       final page = await ref
           .read(getCommentsUsecaseProvider)
           .call(trackId: _trackId);
+      final syncedEngagement = state.engagement?.copyWith(
+        commentCount: page.meta.totalCount,
+      );
       state = state.copyWith(
         commentsStatus: EngagementStatus.success,
         commentsPage: page,
+        engagement: syncedEngagement ?? state.engagement,
       );
     } catch (e) {
       state = state.copyWith(
@@ -232,6 +246,14 @@ class EngagementNotifier extends Notifier<EngagementState> {
 
   Future<void> addComment({int? timestamp, required String text}) async {
     _ensureCurrentUserSeeded();
+    final previousEngagement = state.engagement;
+    if (previousEngagement != null) {
+      state = state.copyWith(
+        engagement: previousEngagement.copyWith(
+          commentCount: previousEngagement.commentCount + 1,
+        ),
+      );
+    }
     state = state.copyWith(commentsStatus: EngagementStatus.loading);
     try {
       await ref.read(addCommentUsecaseProvider).call(
@@ -241,9 +263,9 @@ class EngagementNotifier extends Notifier<EngagementState> {
             text: text,
           );
       await loadComments();
-      await loadEngagement();
     } catch (e) {
       state = state.copyWith(
+        engagement: previousEngagement,
         commentsStatus: EngagementStatus.error,
         error: e.toString(),
       );
@@ -251,15 +273,23 @@ class EngagementNotifier extends Notifier<EngagementState> {
   }
 
   Future<void> deleteComment(String commentId) async {
+    final previousEngagement = state.engagement;
+    if (previousEngagement != null) {
+      state = state.copyWith(
+        engagement: previousEngagement.copyWith(
+          commentCount: (previousEngagement.commentCount - 1).clamp(0, 999999),
+        ),
+      );
+    }
     try {
       await ref.read(deleteCommentUsecaseProvider).call(
             trackId: _trackId,
             commentId: commentId,
           );
       await loadComments();
-      await loadEngagement();
     } catch (e) {
       state = state.copyWith(
+        engagement: previousEngagement,
         commentsStatus: EngagementStatus.error,
         error: e.toString(),
       );

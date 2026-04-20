@@ -5,6 +5,7 @@ import '../../domain/entities/reply_entity.dart';
 import '../provider/enagement_providers.dart';
 import '../utils/engagement_formatters.dart';
 import 'comment_options_sheet.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 
 class ReplyTile extends ConsumerStatefulWidget { // engagement modification — was StatefulWidget, converted to ConsumerStatefulWidget to call toggleReplyLike use case
   const ReplyTile({
@@ -57,7 +58,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
       await ref.read(toggleReplyLikeUsecaseProvider).call(
             commentId: widget.reply.commentId,
             replyId: widget.reply.id,
-            viewerId: 'user_current_1', // swap with real auth later
+            viewerId: ref.read(authControllerProvider).value?.id ?? '',
           );
     } catch (_) {
       // revert on failure
@@ -143,7 +144,8 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                         context,
                         username: reply.user.username,
                         timestamp: widget.parentTimestamp,
-                        isOwner: reply.user.id == 'user_current_1',
+                        isOwner: reply.user.id ==
+                            (ref.read(authControllerProvider).value?.id ?? ''),
                         onDelete: widget.onDelete,
                       ),
                       child: const Icon(

@@ -77,12 +77,12 @@ class EngagementMapper {
     return dtos.map(toCommentEntity).toList();
   }
 
-  static CommentsPageEntity toCommentsPageEntity(List<CommentDto> dtos) {
+  static CommentsPageEntity toCommentsPageEntity(List<CommentDto> dtos, {int? total}) {
     final comments = toCommentEntityList(dtos);
     return CommentsPageEntity(
       comments: comments,
       meta: CommentsPageMetaEntity(
-        totalCount: comments.length,
+        totalCount: total ?? comments.length,
         page: 1,
         totalPages: 1,
         hasNextPage: false,

@@ -11,16 +11,20 @@ class CommentDto {
     this.likesCount = 0,
     this.repliesCount = 0,
     required this.createdAt,
+    this.parentId,
   });
 
   final String id;
   final String trackId;
   final EngagementUserDto user;
-  final int? timestamp; // nullable — BE field is coming later
+  final int? timestamp;
   final String text;
   final int likesCount;
   final int repliesCount;
   final DateTime createdAt;
+  final String? parentId; // non-null means this is a reply, not a top-level comment
+
+  bool get isReply => parentId != null && parentId!.isNotEmpty;
 
   factory CommentDto.fromJson(Map<String, dynamic> json) {
     return CommentDto(
@@ -36,6 +40,7 @@ class CommentDto {
       createdAt:
           DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      parentId: json['parentId'] as String? ?? json['parentCommentId'] as String?,
     );
   }
 

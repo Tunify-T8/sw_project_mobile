@@ -26,12 +26,10 @@ class ProfileDto {
   final String userType;
   final bool? isCertified;
 
-  // Computed property to determine if this is a public profile
   bool get isPublic => tracksCount != null && followersCount != null && followingCount != null && likesReceived != null;
 
   ProfileDto({
-    // Server-controlled->edit_screen doesn't need them
-    // real values always carried from provider in profile_action_buttons
+  
     this.id = '',
     this.email,
     this.role = 'USER',

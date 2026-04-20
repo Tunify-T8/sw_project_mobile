@@ -103,6 +103,9 @@ class _UserTile extends StatelessWidget {
         user.username,
         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
       ),
+      onTap: () {
+        // Handle tap on user tile
+      },
     );
   }
 }

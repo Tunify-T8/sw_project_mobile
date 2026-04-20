@@ -8,6 +8,7 @@ import '../utils/engagement_formatters.dart';
 import 'comment_like_button.dart';
 import 'comment_options_sheet.dart';
 import 'reply_tile.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
   const CommentTile({
@@ -123,7 +124,8 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                         onPlayFromTimestamp: timestamp != null && widget.onTapTimestamp != null
                             ? () => widget.onTapTimestamp!(timestamp)
                             : null,
-                        isOwner: comment.user.id == 'user_current_1',
+                        isOwner: comment.user.id ==
+                            (ref.read(authControllerProvider).value?.id ?? ''),
                         onDelete: () => ref
                             .read(engagementProvider(widget.trackId).notifier)
                             .deleteComment(comment.id),

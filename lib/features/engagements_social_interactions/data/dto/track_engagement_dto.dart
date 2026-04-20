@@ -18,9 +18,9 @@ class TrackEngagementDto {
   factory TrackEngagementDto.fromJson(Map<String, dynamic> json) {
     return TrackEngagementDto(
       trackId: (json['trackId'] as String?) ?? '',
-      likeCount: (json['likeCount'] as int?) ?? 0,
-      repostCount: (json['repostCount'] as int?) ?? 0,
-      commentCount: (json['commentCount'] as int?) ?? 0,
+      likeCount: (json['likesCount'] as int?) ?? (json['likeCount'] as int?) ?? 0,
+      repostCount: (json['repostsCount'] as int?) ?? (json['repostCount'] as int?) ?? 0,
+      commentCount: (json['commentsCount'] as int?) ?? (json['commentCount'] as int?) ?? 0,
       isLiked: (json['isLiked'] as bool?) ?? false,
       isReposted: (json['isReposted'] as bool?) ?? false,
     );
