@@ -20,6 +20,9 @@ import '../../../followers_and_social_graph/presentation/screens/network_lists_s
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
+import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
+import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -62,9 +65,6 @@ class _OtherUserProfileScreenState
     });
   }
 
-  /// Opens an existing or new chat with this user.
-  /// Uses [OpenConversationUseCase] which calls createOrGetConversation,
-  /// then navigates to the ChatScreen.
   Future<void> _openChat(String displayName, String? avatarUrl) async {
     if (_openingChat) return;
     setState(() => _openingChat = true);
@@ -115,7 +115,6 @@ class _OtherUserProfileScreenState
             icon: const Icon(Icons.notifications_none, color: Colors.white),
             onPressed: () {},
           ),
-          // FIX: Wire the mail icon to open/create a chat conversation.
           IconButton(
             icon: _openingChat
                 ? const SizedBox(
@@ -298,9 +297,6 @@ class _OtherUserTracksSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(publicUserUploadsProvider(userId));
 
-    // Mirror my-profile behaviour: while loading or on error, show the same
-    // ProfileTracksSection with an empty list so the "No uploaded tracks yet."
-    // placeholder matches exactly. No new UI is introduced here.
     final items = tracksAsync.asData?.value ?? const [];
 
     return ProfileTracksSection(
