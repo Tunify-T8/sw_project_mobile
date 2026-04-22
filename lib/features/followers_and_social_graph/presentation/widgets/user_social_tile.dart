@@ -25,6 +25,7 @@ class UserSocialTile extends StatelessWidget {
         : false;
 
     return GestureDetector(
+      key: Key('user_tile_${user.id}'),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -104,6 +105,7 @@ class UserSocialTile extends StatelessWidget {
 
             if (listType == NetworkListType.following)
               IconButton(
+                key: Key('notification_button_${user.id}'),
                 onPressed: onToggleNotifications,
                 icon: Icon(
                   user.isNotificationEnabled

@@ -54,25 +54,36 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
         users.isEmpty && !isLoading && error == null && hasLoadedOnce;
 
     if (showInitialLoading) {
-      return const SizedBox(
+      return SizedBox(
+        key: Key('${widget.listType.name}_loading'),
         height: 200,
-        child: Center(child: CircularProgressIndicator()),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (showInitialError) {
       return SizedBox(
+        key: Key('${widget.listType.name}_error'),
         height: 200,
-        child: Center(
-          child: Text(error, style: const TextStyle(color: Colors.red)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Something went wrong', style: TextStyle(color: Colors.white)),
+            TextButton(
+              key: Key('${widget.listType.name}_retry_button'),
+              onPressed: _loadSuggestedUsers,
+              child: const Text('Try Again'),
+            ),
+          ],
         ),
       );
     }
 
     if (showEmpty) {
-      return const SizedBox(
+      return SizedBox(
+        key: Key('${widget.listType.name}_empty'),
         height: 200,
-        child: Center(
+        child: const Center(
           child: Text(
             'No suggestions available',
             style: TextStyle(color: Colors.white),
@@ -82,14 +93,17 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
     }
 
     return SizedBox(
+      key: Key('${widget.listType.name}_section'),
       height: 200,
       child: ListView.builder(
+        key: Key('${widget.listType.name}_list'),
         scrollDirection: Axis.horizontal,
         itemCount: users.length,
         itemBuilder: (context, index) {
           final user = users[index];
 
           return SuggestedUserItem(
+            key: ValueKey('${widget.listType.name}_suggested_item_${user.id}'),
             user: user,
             onTap: () {
               Navigator.push(

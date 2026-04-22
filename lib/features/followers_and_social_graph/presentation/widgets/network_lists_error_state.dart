@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 class NetworkListsErrorState extends StatelessWidget {
-  final String error;
   final VoidCallback onRetry;
 
   const NetworkListsErrorState({
     super.key,
-    required this.error,
     required this.onRetry,
   });
 
@@ -25,14 +23,8 @@ class NetworkListsErrorState extends StatelessWidget {
               'Something went wrong',
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
-            ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Try Again')),
+            ElevatedButton(key: const Key('retry_button'), onPressed: onRetry, child: const Text('Try Again')),
           ],
         ),
       ),
