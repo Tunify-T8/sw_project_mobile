@@ -69,11 +69,13 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
     );
 
     return Scaffold(
+      key: Key('network_lists_screen_${widget.listType.name}'),
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
         foregroundColor: Colors.white,
         leading: IconButton(
+          key: const Key('back_button'),
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
         ),
@@ -81,20 +83,23 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
       ),
       body: SafeArea(
         child: showInitialLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(key: Key('loading_indicator'), child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(onRetry: _loadInitialData)
+            ? NetworkListsErrorState(key: const Key('error_state'), onRetry: _loadInitialData)
             : showEmpty
-            ? const NetworkListsEmptyState()
+            ? const NetworkListsEmptyState(key: Key('empty_state'))
             : RefreshIndicator(
+                key: Key('${widget.listType.name}_refresh'),
                 onRefresh: () async {
                   await _loadInitialData();
                 },
                 child: ListView.builder(
+                  key: Key('${widget.listType.name}_list'),
                   itemCount: showTrueFriends ? users.length + 1 : users.length,
                   itemBuilder: (context, index) {
                     if (showTrueFriends && index == 0) {
                       return NetworkListsTrueFriendsTile(
+                        key: const Key('true_friends_tile'),
                         onTap: () {
                           Navigator.push(
                             context,
@@ -114,6 +119,7 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                         : users[index];
 
                     return UserSocialTile(
+                      key: ValueKey('${widget.listType.name}_user_tile_${user.id}'),
                       user: user,
                       listType: widget.listType,
                       onTap: () {

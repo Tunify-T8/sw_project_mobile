@@ -24,7 +24,7 @@ class NetworkListsErrorState extends StatelessWidget {
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Try Again')),
+            ElevatedButton(key: const Key('retry_button'), onPressed: onRetry, child: const Text('Try Again')),
           ],
         ),
       ),
