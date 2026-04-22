@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 
 class EditProfileScreen extends StatefulWidget {
   final String userName;
+  final String displayName;
   final String bio;
   final String city;
   final String country;
@@ -32,6 +33,7 @@ class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
     super.key,
     required this.userName,
+    this.displayName = '',
     required this.bio,
     required this.city,
     required this.country,
@@ -91,7 +93,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.userName);
+    _nameController = TextEditingController(text: widget.displayName);
     _cityController = TextEditingController(text: widget.city);
     _countryController = TextEditingController(text: widget.country);
     _bioController = TextEditingController(text: widget.bio);
@@ -229,7 +231,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           Navigator.of(context).pop(
             ProfileDto(
-              userName: _nameController.text,
+              // userName: _nameController.text, // was editing username which rejects spaces
+              userName: widget.userName,
+              displayName: _nameController.text,
               city: _cityController.text,
               country: _countryController.text,
               bio: _bioController.text,

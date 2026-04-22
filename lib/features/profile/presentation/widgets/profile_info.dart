@@ -3,7 +3,8 @@ import '../../../followers_and_social_graph/domain/entities/network_list_type.da
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 
 class ProfileInfo extends StatelessWidget {
-  final String userName;
+  // final String userName; // replaced by displayName
+  final String displayName;
   final String city;
   final String country;
   final String bio;
@@ -20,7 +21,8 @@ class ProfileInfo extends StatelessWidget {
 
   const ProfileInfo({
     super.key,
-    required this.userName,
+    // required this.userName,
+    required this.displayName,
     required this.city,
     required this.country,
     required this.bio,
@@ -40,7 +42,7 @@ Widget buildName() => Padding(
   padding: const EdgeInsets.only(left: 25),
   child: Row(
     children: [
-      Text(userName, style: nameStyle),
+      Text(displayName, style: nameStyle),
       if (isCertified) ...[
         const SizedBox(width: 6),
         const Icon(

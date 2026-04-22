@@ -18,6 +18,7 @@ import '../widgets/user_options_sheet.dart';
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 
@@ -224,7 +225,7 @@ class _OtherUserProfileScreenState
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
-                    userName: profile?.userName ?? '',
+                    displayName: profile?.displayName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
                     bio: profile?.bio ?? '',
@@ -276,6 +277,7 @@ class _OtherUserProfileScreenState
                       ),
                     ),
                   ),
+                  // ProfileLikesSection(userId: widget.userId), // no BE endpoint for other users' likes yet
                   ProfileRepostsSection(userId: widget.userId),
                   _OtherUserTracksSection(userId: widget.userId),
                 ],

@@ -146,16 +146,38 @@ class RealEngagementApi {
     final list = data['data'] as List<dynamic>? ?? [];
     return list.map((e) {
       final map = e as Map<String, dynamic>;
+      // Track data may be nested under 'track' (like reposts) or flat
+      final track = map['track'] is Map<String, dynamic>
+          ? map['track'] as Map<String, dynamic>
+          : map;
+      // Artist may arrive as a nested object or a plain string
+      String artistId = '';
+      String artistName = '';
+      String? artistAvatar;
+      final rawArtist = track['artist'];
+      if (rawArtist is Map<String, dynamic>) {
+        artistId = rawArtist['id'] as String? ?? '';
+        artistName = rawArtist['displayName'] as String?
+            ?? rawArtist['username'] as String?
+            ?? rawArtist['name'] as String?
+            ?? '';
+        artistAvatar = rawArtist['avatarUrl'] as String?;
+      } else if (rawArtist is String) {
+        artistName = rawArtist;
+      }
       return LikedTrackEntity(
-        trackId: map['id'] as String? ?? '',
-        title: map['title'] as String? ?? '',
-        artistId: '',
-        artistName: '',
-        coverUrl: map['coverUrl'] as String?,
-        duration: map['duration'] as int? ?? 0,
-        likesCount: map['likesCount'] as int? ?? 0,
-        commentsCount: map['commentsCount'] as int? ?? 0,
-        likedAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ?? DateTime.now(),
+        trackId: (track['id'] ?? track['trackId'] ?? '').toString(),
+        title: track['title'] as String? ?? '',
+        artistId: artistId,
+        artistName: artistName,
+        artistAvatar: artistAvatar,
+        coverUrl: track['coverUrl'] as String?,
+        duration: (track['durationSeconds'] as num?)?.toInt()
+            ?? (track['duration'] as num?)?.toInt()
+            ?? 0,
+        likesCount: track['likesCount'] as int? ?? 0,
+        commentsCount: track['commentsCount'] as int? ?? 0,
+        likedAt: DateTime.tryParse(map['likedAt'] as String? ?? map['createdAt'] as String? ?? '') ?? DateTime.now(),
       );
     }).toList();
   }
@@ -169,15 +191,32 @@ class RealEngagementApi {
     final list = data['data'] as List<dynamic>? ?? [];
     return list.map((e) {
       final map = e as Map<String, dynamic>;
-      final track = map['track'] as Map<String, dynamic>? ?? {};
+      final track = map['track'] as Map<String, dynamic>? ?? map;
+      String rArtistId = '';
+      String rArtistName = '';
+      String? rArtistAvatar;
+      final rawArtist = track['artist'];
+      if (rawArtist is Map<String, dynamic>) {
+        rArtistId = rawArtist['id'] as String? ?? '';
+        rArtistName = rawArtist['displayName'] as String?
+            ?? rawArtist['username'] as String?
+            ?? rawArtist['name'] as String?
+            ?? '';
+        rArtistAvatar = rawArtist['avatarUrl'] as String?;
+      } else if (rawArtist is String) {
+        rArtistName = rawArtist;
+      }
       return RepostedTrackEntity(
-        trackId: track['id'] as String? ?? '',
+        trackId: (track['id'] ?? track['trackId'] ?? '').toString(),
         title: track['title'] as String? ?? '',
-        artistId: '',
-        artistName: '',
+        artistId: rArtistId,
+        artistName: rArtistName,
+        artistAvatar: rArtistAvatar,
         coverUrl: track['coverUrl'] as String?,
-        duration: track['duration'] as int? ?? 0,
-        repostCount: track['repostsCount'] as int? ?? 0,
+        duration: (track['durationSeconds'] as num?)?.toInt()
+            ?? (track['duration'] as num?)?.toInt()
+            ?? 0,
+        repostCount: track['repostsCount'] as int? ?? track['repostCount'] as int? ?? 0,
         repostedAt: DateTime.tryParse(map['repostedAt'] as String? ?? '') ?? DateTime.now(),
       );
     }).toList();

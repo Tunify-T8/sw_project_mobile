@@ -31,6 +31,7 @@ class ProfileActionButtons extends ConsumerWidget {
                 context,
                 MaterialPageRoute(builder: (_) => EditProfileScreen(
                 userName: profile?.userName ?? '',
+                displayName: profile?.displayName ?? '',
                 bio: profile?.bio ?? '',
                 city: profile?.city ?? '',
                 country: profile?.country ?? '',
@@ -61,6 +62,7 @@ class ProfileActionButtons extends ConsumerWidget {
                 followingCount: profile.followingCount, 
                 // user-editable
                 userName: result.userName,
+                displayName: result.displayName,
                 bio: result.bio,
                 city: result.city,
                 country: result.country,
