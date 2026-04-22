@@ -76,7 +76,9 @@ Widget buildLocation() => Padding(
       padding: const EdgeInsets.only(left: 25),
       child: Row(
         children: [
+          // Key: ProfileKeys.followersCount
           GestureDetector(
+            key: const Key('profile_followers_count'),
             onTap: onFollowersTap ?? () {
               Navigator.push(
                 context,
@@ -91,7 +93,9 @@ Widget buildLocation() => Padding(
             child: Text('$followersCount Followers', style: followerStyle),
           ),
           Text('  ·  ', style: followerStyle),
+          // Key: ProfileKeys.followingCount
           GestureDetector(
+            key: const Key('profile_following_count'),
             onTap: onFollowingTap ?? () {
               Navigator.push(
                 context,

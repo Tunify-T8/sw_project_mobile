@@ -87,7 +87,9 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            // Key: EngagementKeys.likedTracksSearchField
             child: TextField(
+              key: const Key('liked_tracks_search_field'),
               controller: _searchController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(

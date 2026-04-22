@@ -25,6 +25,8 @@ class ProfileActionButtons extends ConsumerWidget {
       child: Row(
         children: [
           IconButton(
+            // Key: ProfileKeys.editButton
+            key: const Key('profile_edit_button'),
             icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 28),
             onPressed: () async {
               final result = await Navigator.push<ProfileDto>(

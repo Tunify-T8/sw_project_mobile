@@ -69,7 +69,9 @@ class _LikersScreenState extends ConsumerState<LikersScreen> {
       );
     }
 
+    // Key: EngagementKeys.likersList
     return ListView.builder(
+      key: const Key('likers_list'),
       itemCount: state.likers.length,
       itemBuilder: (context, index) => _UserTile(user: state.likers[index]),
     );
@@ -83,7 +85,9 @@ class _UserTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Key: EngagementKeys.likerTile (ValueKey per user)
     return ListTile(
+      key: ValueKey('liker_tile_${user.id}'),
       leading: CircleAvatar(
         radius: 22,
         backgroundColor: Colors.white24,
@@ -91,7 +95,7 @@ class _UserTile extends StatelessWidget {
             user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
         child: user.avatarUrl == null
             ? Text(
-                EngagementFormatters.initials(user.username),
+                EngagementFormatters.initials(user.displayName),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -100,7 +104,7 @@ class _UserTile extends StatelessWidget {
             : null,
       ),
       title: Text(
-        user.username,
+        user.displayName,
         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
       ),
       onTap: () {

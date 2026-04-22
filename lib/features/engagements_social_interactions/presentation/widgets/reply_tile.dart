@@ -88,8 +88,8 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                 : null,
             child: reply.user.avatarUrl == null
                 ? Text(
-                    reply.user.username.isNotEmpty
-                        ? reply.user.username[0].toUpperCase()
+                    reply.user.displayName.isNotEmpty
+                        ? reply.user.displayName[0].toUpperCase()
                         : '?',
                     style: const TextStyle(
                       color: Colors.white,
@@ -107,7 +107,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                 Row(
                   children: [
                     Text(
-                      reply.user.username,
+                      reply.user.displayName,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -131,7 +131,9 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
+                    // Key: EngagementKeys.replyTileReplyButton
                     GestureDetector(
+                      key: const Key('reply_tile_reply_button'),
                       onTap: widget.onReply,
                       child: const Text(
                         'Reply',
@@ -139,10 +141,12 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                       ),
                     ),
                     const SizedBox(width: 16),
+                    // Key: EngagementKeys.replyOptionsButton
                     GestureDetector(
+                      key: const Key('reply_options_button'),
                       onTap: () => CommentOptionsSheet.show(
                         context,
-                        username: reply.user.username,
+                        username: reply.user.displayName,
                         timestamp: widget.parentTimestamp,
                         isOwner: reply.user.id ==
                             (ref.read(authControllerProvider).value?.id ?? ''),
@@ -160,7 +164,9 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
             ),
           ),
           const SizedBox(width: 8),
+          // Key: EngagementKeys.replyTileLikeButton (ValueKey per reply)
           GestureDetector(
+            key: ValueKey('reply_tile_like_button_${widget.reply.id}'),
             onTap: _toggleLike, // engagement modification — was local setState, now persists via use case
             child: Column(
               mainAxisSize: MainAxisSize.min,

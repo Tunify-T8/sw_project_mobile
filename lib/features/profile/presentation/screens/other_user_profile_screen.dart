@@ -109,11 +109,15 @@ class _OtherUserProfileScreenState
           else
             RelationshipButton(userId: widget.userId),
           const SizedBox(width: 12),
+          // Key: ProfileKeys.notificationsButton
           IconButton(
+            key: const Key('other_profile_notifications_button'),
             icon: const Icon(Icons.notifications_none, color: Colors.white),
             onPressed: () {},
           ),
+          // Key: ProfileKeys.messageButton
           IconButton(
+            key: const Key('other_profile_message_button'),
             icon: _openingChat
                 ? const SizedBox(
                     width: 20,
@@ -129,7 +133,9 @@ class _OtherUserProfileScreenState
                 : () => _openChat(displayName, avatarUrl),
           ),
           const Spacer(),
+          // Key: ProfileKeys.shuffleButton
           IconButton(
+            key: const Key('other_profile_shuffle_button'),
             icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
             onPressed: () {},
           ),
@@ -138,7 +144,9 @@ class _OtherUserProfileScreenState
               color: Colors.white,
               shape: BoxShape.circle,
             ),
+            // Key: ProfileKeys.playButton
             child: IconButton(
+              key: const Key('other_profile_play_button'),
               icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
               onPressed: () {},
             ),
@@ -162,12 +170,16 @@ class _OtherUserProfileScreenState
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         leading: IconButton(
+          // Key: ProfileKeys.backButton
+          key: const Key('other_profile_back_button'),
           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(icon: const Icon(Icons.cast), onPressed: () {}),
+          // Key: ProfileKeys.moreOptionsButton
           IconButton(
+            key: const Key('other_profile_more_options_button'),
             icon: const Icon(Icons.more_vert),
             onPressed: profile == null
                 ? null

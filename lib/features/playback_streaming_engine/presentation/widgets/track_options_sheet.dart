@@ -252,7 +252,9 @@ class _TrackOptionsSheetContent extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Like
+                    // Key: TrackOptionsKeys.likeRow
                     YourUploadsOptionRow(
+                      key: const Key('track_options_like_row'),
                       icon: isLiked ? Icons.favorite : Icons.favorite_border,
                       label: isLiked ? 'Unlike' : 'Like',
                       color: isLiked ? Colors.orange : Colors.white,
@@ -290,13 +292,17 @@ class _TrackOptionsSheetContent extends StatelessWidget {
                         },
                       ),
                     // View comments
+                    // Key: TrackOptionsKeys.commentsRow
                     YourUploadsOptionRow(
+                      key: const Key('track_options_comments_row'),
                       icon: Icons.comment_outlined,
                       label: 'View comments',
                       onTap: () => Navigator.pop(context),
                     ),
                     // Repost
+                    // Key: TrackOptionsKeys.repostRow
                     YourUploadsOptionRow(
+                      key: const Key('track_options_repost_row'),
                       icon: isReposted ? Icons.repeat_on : Icons.repeat,
                       label: isReposted ? 'Undo Repost' : 'Repost',
                       color: isReposted ? Colors.orange : Colors.white,

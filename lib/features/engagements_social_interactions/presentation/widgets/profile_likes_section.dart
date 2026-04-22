@@ -75,7 +75,9 @@ class _ProfileLikesSectionState extends ConsumerState<ProfileLikesSection> {
                   ),
                 ),
               ),
+              // Key: EngagementKeys.likesSeeAllButton
               TextButton(
+                key: const Key('likes_see_all_button'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const LikedTracksScreen(),

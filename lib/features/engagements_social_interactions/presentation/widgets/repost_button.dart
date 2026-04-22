@@ -16,7 +16,9 @@ class RepostButton extends ConsumerWidget {
 
     return Column(
       children: [
+        // Key: EngagementKeys.repostButton
         IconButton(
+          key: const Key('repost_button'),
           onPressed: () {
             final notifier = ref.read(engagementProvider(trackId).notifier);
             if (isReposted) {

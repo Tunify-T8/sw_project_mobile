@@ -15,7 +15,9 @@ class CommentButton extends ConsumerWidget {
 
     return Column(
       children: [
+        // Key: EngagementKeys.commentButton
         IconButton(
+          key: const Key('comment_button'),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(

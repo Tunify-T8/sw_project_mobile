@@ -132,7 +132,9 @@ class _CommentInputBarState extends ConsumerState<CommentInputBar> {
       child: Row(
         children: [
           Expanded(
+            // Key: EngagementKeys.commentInputField
             child: TextField(
+              key: const Key('comment_input_field'),
               controller: _controller,
               focusNode: _focusNode,
               style: const TextStyle(color: Colors.white),
@@ -169,7 +171,9 @@ class _CommentInputBarState extends ConsumerState<CommentInputBar> {
             _EmojiButton(emoji: '😢', onTap: () => _sendEmoji('😢')),
           ] else ...[
             const SizedBox(width: 8),
+            // Key: EngagementKeys.commentSendButton
             IconButton(
+              key: const Key('comment_send_button'),
               onPressed: _submit,
               icon: const Icon(Icons.send_rounded, color: Colors.orangeAccent),
             ),

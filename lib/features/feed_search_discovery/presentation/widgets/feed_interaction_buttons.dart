@@ -6,6 +6,7 @@ import '../../../engagements_social_interactions/presentation/provider/enagement
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 
 class FeedInteractionButtons extends ConsumerStatefulWidget {
   final String trackId;
@@ -59,7 +60,9 @@ class _FeedInteractionButtonsState
 
     return Column(
       children: [
+        // Key: FeedKeys.likeButton
         IconButton(
+          key: const Key('feed_like_button'),
           onPressed: () => ref
               .read(engagementProvider(widget.trackId).notifier)
               .toggleLike(),
@@ -71,7 +74,9 @@ class _FeedInteractionButtonsState
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
+        // Key: FeedKeys.likesCount
         GestureDetector(
+          key: const Key('feed_likes_count'),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => LikersScreen(trackId: widget.trackId),
@@ -82,7 +87,9 @@ class _FeedInteractionButtonsState
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
         ),
+        // Key: FeedKeys.commentButton
         IconButton(
+          key: const Key('feed_comment_button'),
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => CommentsScreen(
@@ -102,7 +109,9 @@ class _FeedInteractionButtonsState
           commentsCount.toString(),
           style: const TextStyle(color: Colors.white, fontSize: 15),
         ),
+        // Key: FeedKeys.playlistAddButton
         IconButton(
+          key: const Key('feed_playlist_add_button'),
           onPressed: () {},
           icon: const Icon(Icons.playlist_add, color: Colors.white),
           padding: EdgeInsets.zero,

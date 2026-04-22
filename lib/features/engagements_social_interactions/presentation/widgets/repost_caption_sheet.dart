@@ -131,7 +131,9 @@ class _RepostCaptionSheetState extends ConsumerState<RepostCaptionSheet> {
                           const Icon(Icons.repeat, color: Colors.white54, size: 16),
                         ],
                       ),
+                      // Key: EngagementKeys.repostCaptionField
                       TextField(
+                        key: const Key('repost_caption_field'),
                         controller: _captionController,
                         style: const TextStyle(color: Colors.white),
                         maxLines: 3,
@@ -222,7 +224,9 @@ class _RepostCaptionSheetState extends ConsumerState<RepostCaptionSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SizedBox(
               width: double.infinity,
+              // Key: EngagementKeys.repostConfirmButton
               child: OutlinedButton(
+                key: const Key('repost_confirm_button'),
                 onPressed: _repost,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.white54),

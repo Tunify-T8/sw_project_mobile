@@ -195,7 +195,9 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
       itemCount: state.comments.length,
       itemBuilder: (context, index) {
         final comment = state.comments[index];
+        // Key: EngagementKeys.commentTile (ValueKey per comment)
         return CommentTile(
+          key: ValueKey('comment_tile_${comment.id}'),
           comment: comment,
           trackId: widget.trackId,
           onTapTimestamp: (seconds) {

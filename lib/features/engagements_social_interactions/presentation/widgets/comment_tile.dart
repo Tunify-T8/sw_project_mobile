@@ -88,14 +88,14 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Avatar(username: comment.user.username, avatarUrl: comment.user.avatarUrl),
+              _Avatar(username: comment.user.displayName, avatarUrl: comment.user.avatarUrl),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _CommentHeader(
-                      username: comment.user.username,
+                      username: comment.user.displayName,
                       timestamp: timestamp,
                       createdAt: comment.createdAt,
                       onTapTimestamp: widget.onTapTimestamp,
@@ -114,12 +114,12 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       repliesCount: comment.repliesCount,
                       loadingReplies: _loadingReplies,
                       onReply: () {
-                        widget.onReply?.call(comment.user.username);
+                        widget.onReply?.call(comment.user.displayName);
                         if (comment.repliesCount > 0) _toggleReplies();
                       },
                       onOptions: () => CommentOptionsSheet.show(
                         context,
-                        username: comment.user.username,
+                        username: comment.user.displayName,
                         timestamp: timestamp,
                         onPlayFromTimestamp: timestamp != null && widget.onTapTimestamp != null
                             ? () => widget.onTapTimestamp!(timestamp)
@@ -151,7 +151,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                   .map((reply) => ReplyTile(
                         reply: reply,
                         parentTimestamp: comment.timestamp,
-                        onReply: () => widget.onReply?.call(reply.user.username),
+                        onReply: () => widget.onReply?.call(reply.user.displayName),
                         onDelete: () async {
                           await ref.read(deleteReplyUsecaseProvider).call(
                                 commentId: comment.id,
@@ -272,7 +272,9 @@ class _CommentActions extends StatelessWidget {
       children: [
         Row(
           children: [
+            // Key: EngagementKeys.commentReplyButton
             GestureDetector(
+              key: const Key('comment_reply_button'),
               onTap: onReply,
               child: const Text(
                 'Reply',
@@ -280,7 +282,9 @@ class _CommentActions extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
+            // Key: EngagementKeys.commentOptionsButton
             GestureDetector(
+              key: const Key('comment_options_button'),
               onTap: onOptions,
               child: const Icon(Icons.more_vert, color: Colors.white54, size: 18),
             ),

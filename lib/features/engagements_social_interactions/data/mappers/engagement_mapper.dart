@@ -40,7 +40,7 @@ class EngagementMapper {
   static EngagementUserEntity toUserEntity(EngagementUserDto dto) {
     return EngagementUserEntity(
       id: dto.id,
-      username: dto.username,
+      displayName: dto.displayName,
       avatarUrl: dto.avatarUrl,
     );
   }

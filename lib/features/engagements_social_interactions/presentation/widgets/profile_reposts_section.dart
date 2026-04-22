@@ -65,7 +65,9 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
                   ),
                 ),
               ),
+              // Key: EngagementKeys.repostsSeeAllButton
               TextButton(
+                key: const Key('reposts_see_all_button'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => UserRepostsScreen(userId: widget.userId),

@@ -191,8 +191,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget buildSaveButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+      // Key: ProfileKeys.saveButton
       child: ElevatedButton(
+        key: const Key('edit_profile_save_button'),
         onPressed: () async {
+          if (_nameController.text.trim().isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Display name cannot be empty')),
+            );
+            return;
+          }
+
           String? profileUrl;
           String? coverUrl;
 
@@ -308,6 +317,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       picked = await _picker.pickImage(
         source: source,
+        imageQuality: 70,   // compress to ~70% to keep file size small
+        maxWidth: 1080,
+        maxHeight: 1080,
       ); //source 3lshan ya2ma camera ya2ma gallery
     } on PlatformException {
       if (!mounted) return;
@@ -433,7 +445,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ],
           ),
+          // Key: ProfileKeys.accountTypeSwitch
           Switch(
+            key: const Key('edit_profile_account_type_switch'),
             value: _isArtist,
             activeThumbColor: const Color(0xFF3A5F8A),
             onChanged: (val) {

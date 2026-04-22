@@ -35,7 +35,9 @@ class _LikeButtonState extends ConsumerState<LikeButton> {
 
     return Column(
       children: [
+        // Key: EngagementKeys.likeButton
         IconButton(
+          key: const Key('like_button'),
           onPressed: () => ref
               .read(engagementProvider(widget.trackId).notifier)
               .toggleLike(),
