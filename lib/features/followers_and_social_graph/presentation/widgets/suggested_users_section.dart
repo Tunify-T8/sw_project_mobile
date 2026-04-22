@@ -63,8 +63,12 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
     if (showInitialError) {
       return SizedBox(
         height: 200,
-        child: Center(
-          child: Text(error, style: const TextStyle(color: Colors.red)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Something went wrong', style: TextStyle(color: Colors.white)),
+            TextButton(onPressed: _loadSuggestedUsers, child: const Text('Try Again')),
+          ],
         ),
       );
     }

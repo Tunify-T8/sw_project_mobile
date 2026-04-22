@@ -63,7 +63,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
         child: showInitialLoading
             ? const Center(child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(error: error, onRetry: _loadBlockedUsers)
+            ? NetworkListsErrorState(onRetry: _loadBlockedUsers)
             : showEmpty
             ? const NetworkListsEmptyState()
             : RefreshIndicator(

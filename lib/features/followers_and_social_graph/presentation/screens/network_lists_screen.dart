@@ -83,7 +83,7 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
         child: showInitialLoading
             ? const Center(child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(error: error, onRetry: _loadInitialData)
+            ? NetworkListsErrorState(onRetry: _loadInitialData)
             : showEmpty
             ? const NetworkListsEmptyState()
             : RefreshIndicator(
