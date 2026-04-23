@@ -1,3 +1,9 @@
+// Search Feature Guide:
+// Purpose: Tab-based results view shown when user submits a search query.
+//          Hosts All / Tracks / Profiles / Playlists / Albums tabs.
+// Used by: search_screen.dart
+// Concerns: Module 8 search results display; profile navigation; recently played.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +26,10 @@ import 'search_section_header.dart';
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
+/// Tab controller that hosts All / Tracks / Profiles / Playlists / Albums.
+///
+/// Passed [state] from [searchProvider] — rebuilds whenever the provider
+/// emits a new state. Tab bar index stays in sync with [state.activeTab].
 class SearchResultsTabs extends ConsumerStatefulWidget {
   const SearchResultsTabs({
     super.key,
@@ -76,6 +86,7 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
     super.dispose();
   }
 
+  /// Navigates to the public profile screen for [profile].
   void _openProfile(ProfileResultEntity profile) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -88,6 +99,7 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // ── Tab bar ────────────────────────────────────────────────────────
         TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -101,6 +113,8 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
           ),
           tabs: _labels.map((l) => Tab(text: l)).toList(),
         ),
+
+        // ── Tab body ───────────────────────────────────────────────────────
         Expanded(
           child: widget.state.isLoading
               ? const Center(
@@ -180,12 +194,14 @@ class _AllTab extends StatelessWidget {
       return _SearchEmptyState(query: state.query);
     }
 
+    // Tracks shown in the Tracks section (exclude top result + second inline).
     final visibleTracks = result.tracks
         .where((t) => t.id != result.topResult?.id)
         .skip(1)
         .take(4)
         .toList();
 
+    // Overflow items shown in "More Results".
     final moreItems = <_MixedResultItem>[];
     for (final t in result.tracks.skip(4)) {
       moreItems.add(_MixedResultItem.track(t));
@@ -203,6 +219,7 @@ class _AllTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        // ── Top Result ─────────────────────────────────────────────────────
         if (result.topResult != null) ...[
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -220,25 +237,22 @@ class _AllTab extends StatelessWidget {
             topResult: result.topResult!,
             onTrackTap: onTrackTap,
             onProfileTap: onProfileTap,
-            onTap: () {
-              final top = result.topResult!;
-              onResultTapped(
-                RecentResultItem(
-                  kind: _kindFromTopResultType(top.type),
-                  id: top.id,
-                  title: top.title,
-                  subtitle: top.subtitle,
-                  artworkUrl: top.artworkUrl,
-                  isVerified: top.type == TopResultType.profile,
-                ),
-              );
-            },
+            onTap: () => onResultTapped(
+              RecentResultItem(
+                kind: _kindFrom(result.topResult!.type),
+                id: result.topResult!.id,
+                title: result.topResult!.title,
+                subtitle: result.topResult!.subtitle,
+                artworkUrl: result.topResult!.artworkUrl,
+                isVerified: result.topResult!.type == TopResultType.profile,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
         ],
 
-        // Recently Played — FIX (M8-019): only from recordTrackPlayed()
-        // Shows ALL recently played items in a horizontal scroll list.
+        // ── Recently Played ────────────────────────────────────────────────
+        // Only populated via recordTrackPlayed() — never auto-added on search.
         Builder(
           builder: (context) {
             final played = state.recentResults
@@ -249,14 +263,14 @@ class _AllTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SearchSectionHeader(title: 'Recently Played'),
+                // Horizontal scroll — shows all played items, no arbitrary limit.
                 SizedBox(
                   height: 196,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: played.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(width: 12),
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, i) => _RecentlyPlayedCard(
                       item: played[i],
                       onTap: played[i].track != null
@@ -271,6 +285,7 @@ class _AllTab extends StatelessWidget {
           },
         ),
 
+        // ── Tracks ─────────────────────────────────────────────────────────
         if (visibleTracks.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Tracks',
@@ -287,6 +302,7 @@ class _AllTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
+        // ── Playlists ───────────────────────────────────────────────────────
         if (result.playlists.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Playlists',
@@ -305,6 +321,7 @@ class _AllTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
+        // ── Profiles ────────────────────────────────────────────────────────
         if (result.profiles.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Profiles',
@@ -328,6 +345,7 @@ class _AllTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
+        // ── Albums ──────────────────────────────────────────────────────────
         if (result.albums.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Albums',
@@ -342,6 +360,7 @@ class _AllTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
+        // ── More Results ────────────────────────────────────────────────────
         if (moreItems.isNotEmpty) ...[
           const SearchSectionHeader(title: 'More Results'),
           ...moreItems.map(
@@ -357,7 +376,7 @@ class _AllTab extends StatelessWidget {
     );
   }
 
-  static RecentResultKind _kindFromTopResultType(TopResultType type) {
+  static RecentResultKind _kindFrom(TopResultType type) {
     switch (type) {
       case TopResultType.profile:
         return RecentResultKind.profile;
@@ -485,6 +504,8 @@ class _AlbumTab extends StatelessWidget {
 
 // ── Top result card ───────────────────────────────────────────────────────────
 
+/// Shows the single best result for the query with artwork, title, subtitle,
+/// and — for profiles — a working [RelationshipButton].
 class _TopResultCard extends StatelessWidget {
   const _TopResultCard({
     required this.state,
@@ -515,6 +536,7 @@ class _TopResultCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Top result row
         if (topTrack != null)
           SearchResultTileTrack(
             track: topTrack,
@@ -535,6 +557,7 @@ class _TopResultCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
+                  // Artwork
                   ClipRRect(
                     borderRadius: BorderRadius.circular(
                       topResult.type == TopResultType.profile ? 36 : 8,
@@ -545,7 +568,7 @@ class _TopResultCard extends StatelessWidget {
                             width: 72,
                             height: 72,
                             fit: BoxFit.cover,
-                            errorBuilder: (c, e, s) =>
+                            errorBuilder: (_, __, ___) =>
                                 SearchArtworkPlaceholder(size: 72),
                           )
                         : SearchArtworkPlaceholder(
@@ -554,6 +577,7 @@ class _TopResultCard extends StatelessWidget {
                           ),
                   ),
                   const SizedBox(width: 14),
+                  // Title / subtitle
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,6 +605,7 @@ class _TopResultCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  // Profile: RelationshipButton instead of dead OutlinedButton
                   if (topResult.type == TopResultType.profile) ...[
                     const SizedBox(width: 8),
                     RelationshipButton(
@@ -595,6 +620,8 @@ class _TopResultCard extends StatelessWidget {
               ),
             ),
           ),
+
+        // Second inline result
         if (secondTrack != null)
           SearchResultTileTrack(
             track: secondTrack,
@@ -607,7 +634,7 @@ class _TopResultCard extends StatelessWidget {
   }
 }
 
-// ── Mixed result tile ─────────────────────────────────────────────────────────
+// ── Mixed result tile (More Results) ─────────────────────────────────────────
 
 class _MixedResultItem {
   const _MixedResultItem._({
@@ -671,6 +698,7 @@ class _RecentlyPlayedCard extends StatelessWidget {
 
   final RecentResultItem item;
   final VoidCallback? onTap;
+
   static const double _cardSize = 140.0;
 
   @override
@@ -691,7 +719,7 @@ class _RecentlyPlayedCard extends StatelessWidget {
                       width: _cardSize,
                       height: _cardSize,
                       fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) =>
+                      errorBuilder: (_, __, ___) =>
                           SearchArtworkPlaceholder(size: _cardSize),
                     )
                   : SearchArtworkPlaceholder(size: _cardSize),

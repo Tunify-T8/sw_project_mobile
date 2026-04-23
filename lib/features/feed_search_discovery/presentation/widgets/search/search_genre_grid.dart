@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/search_genre_entity.dart';
 import '../../screens/genre_detail_screen.dart';
 
+// ─── DATA MODEL ───────────────────────────────────────────────────────────────
+// Unchanged from original — same IDs, labels, colors, heights.
+
 class _GenreItem {
   const _GenreItem(this.id, this.label, this.color, this.height);
 

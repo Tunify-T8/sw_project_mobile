@@ -72,7 +72,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
           ProfileResultEntity(
             id: u.id,
             username: u.username,
-            avatarUrl: u.avatarUrl, // FIX: was hardcoded null
+            avatarUrl: u.avatarUrl,
             location: u.location,
             followersCount: u.followersCount,
             isVerified: u.isCertified,

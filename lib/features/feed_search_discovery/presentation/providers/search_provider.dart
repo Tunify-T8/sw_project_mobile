@@ -268,17 +268,18 @@ class SearchNotifier extends Notifier<SearchState> {
 
   Timer? _debounce;
 
-  // FIX (M8-001 / M8-003): was calling _computeSuggestions(query) after
-  // fetching which read state.tracks/profiles — always empty in typing mode.
-  // Now passes the fetched result directly to _computeSuggestionsFromResult.
   void _debouncedSuggestionsSearch(String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       try {
         final result = await ref.read(searchAllUseCaseProvider).call(query);
+        // Only update if user is still typing the same query
         if (state.query == query && state.mode == SearchScreenMode.typing) {
           state = state.copyWith(
             allResult: result,
+            // FIX (M8-001 / M8-003): read from the freshly-fetched result,
+            // NOT from _computeSuggestions(query) which reads state.tracks /
+            // state.profiles — those are always empty in typing mode.
             typingSuggestions: _computeSuggestionsFromResult(query, result),
           );
         }
@@ -286,6 +287,8 @@ class SearchNotifier extends Notifier<SearchState> {
     });
   }
 
+  /// Builds suggestions from a freshly-fetched [SearchAllResultEntity].
+  /// Used by [_debouncedSuggestionsSearch] — does NOT read from state lists.
   List<String> _computeSuggestionsFromResult(
     String query,
     SearchAllResultEntity result,
@@ -544,7 +547,6 @@ class SearchNotifier extends Notifier<SearchState> {
     recentResults: state.recentResults.where((r) => r.id != item.id).toList(),
   );
 
-  // FIX (M8-019): cleared on sign-out so recently played never leaks to next account.
   void clearRecentResults() => state = state.copyWith(recentResults: []);
 
   void recordResultTapped(RecentResultItem item) {
@@ -555,8 +557,14 @@ class SearchNotifier extends Notifier<SearchState> {
     state = state.copyWith(recentResults: updated);
   }
 
-  // FIX (M8-019): ONLY entry point for adding tracks to Recently Played.
-  // Called from playSearchTrack() after openUploadItemPlayer() starts.
+  /// Records that a track was actually played by the current user.
+  ///
+  /// This is the only entry point for marking a track as "Recently Played"
+  /// via actual playback. It is called from [playSearchTrack] (and the genre
+  /// detail equivalent) after [openUploadItemPlayer] successfully starts.
+  ///
+  /// The [RecentResultItem] is created with [track] attached so that tapping
+  /// a recently-played card can replay the track without a new search.
   void recordTrackPlayed(TrackResultEntity track) {
     final item = RecentResultItem(
       kind: RecentResultKind.track,
@@ -573,7 +581,11 @@ class SearchNotifier extends Notifier<SearchState> {
     state = state.copyWith(recentResults: updated);
   }
 
-  // FIX (M8-015B / M8-017): called when track deleted or made private.
+  /// Removes a specific track from the recently played list.
+  ///
+  /// Called by [LibraryUploadsNotifier] when a track is deleted (M8-015B) or
+  /// made private (M8-017) so the stale entry is immediately removed from the
+  /// "Recently Played" row on the search All tab.
   void invalidateTrackFromRecents(String trackId) {
     state = state.copyWith(
       recentResults: state.recentResults.where((r) => r.id != trackId).toList(),
