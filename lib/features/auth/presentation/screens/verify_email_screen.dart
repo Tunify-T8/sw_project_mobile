@@ -12,7 +12,6 @@ import 'package:software_project/features/auth/presentation/widgets/auth_form_fi
 ///
 /// The user enters the 6-character uppercase token sent to their inbox.
 /// On success, tokens are stored and the user is navigated to home.
-/// Also shown when an unverified user tries to log in.
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   final String email;
   const VerifyEmailScreen({super.key, required this.email});
@@ -54,7 +53,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
       return;
     }
 
-    // Delegate verification to the controller; UI reacts to state changes.
     await ref
         .read(authControllerProvider.notifier)
         .verifyEmail(widget.email, _token);
@@ -78,7 +76,6 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
 
-    // Listen for auth state changes to navigate on success or show errors.
     ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (user) {
@@ -124,8 +121,16 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.base),
-              Text('Verify your email', style: AppTextStyles.screenTitle),
+
+              // Key lets tests assert M1-007: "verify email screen appeared"
+              // after an unverified login attempt.
+              Text(
+                key: const Key('verify_email_title'),
+                'Verify your email',
+                style: AppTextStyles.screenTitle,
+              ),
               const SizedBox(height: AppSpacing.md),
+
               RichText(
                 text: TextSpan(
                   style: AppTextStyles.bodyMuted,
@@ -143,11 +148,15 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
 
+              // ── 6-digit token entry row ───────────────────────────────
+              // Keys follow pattern 'token_digit_0' … 'token_digit_5' so
+              // tests can fill each box: find(Key('token_digit_0')).
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
                   6,
                   (i) => TokenDigitField(
+                    key: Key('token_digit_$i'),
                     controller: _digitControllers[i],
                     focusNode: _focusNodes[i],
                     onChanged: (value) {
@@ -166,7 +175,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
 
+              // ── Verify button ─────────────────────────────────────────
+              // Key lets tests tap verify: find(Key('verify_button')).
               AppButton(
+                key: const Key('verify_button'),
                 label: 'Verify',
                 onPressed: _token.length == 6 ? _onVerify : null,
                 style: AppButtonStyle.primary,
@@ -175,17 +187,26 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
+              // ── Resend link ───────────────────────────────────────────
+              // Key lets tests tap resend: find(Key('resend_code_button')).
               Center(
                 child: _isResending
                     ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.onBackgroundMuted,
+                          color: AppColors.primary,
                         ),
                       )
-                    : AuthLink(label: 'Resend code', onTap: _onResend),
+                    : GestureDetector(
+                        key: const Key('resend_code_button'),
+                        onTap: _onResend,
+                        child: const Text(
+                          "Didn't get an email? Resend",
+                          style: TextStyle(fontSize: 14, color: AppColors.link),
+                        ),
+                      ),
               ),
               const SizedBox(height: AppSpacing.xxl),
             ],

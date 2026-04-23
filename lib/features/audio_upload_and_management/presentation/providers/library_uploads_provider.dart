@@ -19,6 +19,7 @@ import '../../shared/upload_error_helpers.dart';
 import 'library_uploads_filter.dart';
 import 'library_uploads_repository_provider.dart';
 import 'library_uploads_state.dart';
+import '../../../feed_search_discovery/presentation/providers/search_provider.dart';
 
 final libraryUploadsProvider =
     NotifierProvider<LibraryUploadsNotifier, LibraryUploadsState>(
@@ -152,6 +153,8 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       // safe to call unconditionally.
       await ref.read(playerProvider.notifier).stopIfPlaying(trackId);
       await ref.read(listeningHistoryProvider.notifier).removeTrack(trackId);
+      // so the deleted track stops appearing in the Recently Played section.
+      ref.read(searchProvider.notifier).invalidateTrackFromRecents(trackId);
 
       state = state.copyWith(
         items: updated,
@@ -207,6 +210,9 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
             privacy: privacy,
             localArtworkPath: localArtworkPath,
           );
+      if (privacy == 'private') {
+        ref.read(searchProvider.notifier).invalidateTrackFromRecents(trackId);
+      }
       await refresh();
       state = state.copyWith(clearBusyTrackId: true);
     } catch (error, stackTrace) {

@@ -415,17 +415,20 @@ void main() {
   // ── loginWithGoogle ────────────────────────────────────────────────────────
 
   group('loginWithGoogle', () {
-    test('returns false and does not change state when user cancels', () async {
-      when(mockGoogle.signIn()).thenAnswer((_) async => null);
+    test(
+      'returns cancelled and does not change state when user dismisses',
+      () async {
+        when(mockGoogle.signIn()).thenAnswer((_) async => null);
 
-      final result = await ctrl.loginWithGoogle();
+        final result = await ctrl.loginWithGoogle();
 
-      expect(result, isFalse);
-      expect(
-        container.read(authControllerProvider),
-        equals(const AsyncValue<AuthUserEntity?>.data(null)),
-      );
-    });
+        expect(result, equals(GoogleSignInOutcome.cancelled));
+        expect(
+          container.read(authControllerProvider),
+          equals(const AsyncValue<AuthUserEntity?>.data(null)),
+        );
+      },
+    );
   });
 
   group('syncProfileIdentity', () {
