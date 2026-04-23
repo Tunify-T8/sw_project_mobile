@@ -49,11 +49,13 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
     final showEmpty = users.isEmpty && !isLoading && error == null && hasLoaded;
 
     return Scaffold(
+      key: const Key('blocked_users_screen'),
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
         foregroundColor: Colors.white,
         leading: IconButton(
+          key: const Key('back_button'),
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
         ),
@@ -61,19 +63,22 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
       ),
       body: SafeArea(
         child: showInitialLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(key: Key('loading_indicator'), child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(error: error, onRetry: _loadBlockedUsers)
+            ? NetworkListsErrorState(key: const Key('error_state'), onRetry: _loadBlockedUsers)
             : showEmpty
-            ? const NetworkListsEmptyState()
+            ? const NetworkListsEmptyState(key: Key('empty_state'))
             : RefreshIndicator(
+                key: const Key('blocked_users_refresh'),
                 onRefresh: _loadBlockedUsers,
                 child: ListView.builder(
+                  key: const Key('blocked_users_list'),
                   itemCount: users.length,
                   itemBuilder: (context, index) {
                     final user = users[index];
 
                     return UserSocialTile(
+                      key: ValueKey('blocked_user_tile_${user.id}'),
                       onTap: () {
                         Navigator.push(
                           context,

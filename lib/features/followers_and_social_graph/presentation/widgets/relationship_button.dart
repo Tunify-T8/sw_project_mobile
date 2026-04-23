@@ -31,16 +31,18 @@ class RelationshipButton extends ConsumerWidget {
         return SizedBox(
           height: 36,
           child: TextButton(
+            key: Key('relationship_retry_$userId'),
             onPressed: notifier.loadStatus,
             child: const Text('Retry', style: TextStyle(fontSize: 15)),
           ),
         );
       }
 
-      return const SizedBox(
+      return SizedBox(
+        key: Key('relationship_loading_$userId'),
         width: 80,
         height: 36,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
@@ -49,6 +51,7 @@ class RelationshipButton extends ConsumerWidget {
         : (isSelected ? 'Following' : 'Follow');
 
     return TextButton(
+      key: Key('${isBlockMode ? 'block' : 'follow'}_button_$userId'),
       onPressed: isBlockMode
           ? notifier.toggleBlock
           : notifier.toggleFollow,
