@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/shared/ui/patterns/error_retry_view.dart';
 
 import '../providers/feed_notifier.dart';
 import '../widgets/feed_tab_bar.dart';
@@ -25,9 +26,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     _tabController.addListener(_handleTabChange);
 
     Future.microtask(() {
-      ref
-          .read(feedNotifierProvider.notifier)
-          .loadFeed(tab: FeedType.discover);
+      ref.read(feedNotifierProvider.notifier).loadFeed(tab: FeedType.discover);
     });
   }
 
@@ -55,26 +54,25 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     required String? error,
     required List<FeedItemEntity> items,
     required String emptyMessage,
-   required FeedType tabType, 
+    required FeedType tabType,
   }) {
     if (isLoading || !hasLoaded) {
       return Center(child: CircularProgressIndicator());
     } else if (error != null) {
-      return Center(
-        child: Text(error, style: TextStyle(color: Colors.white)),
+      return ErrorRetryView(
+        onRetry: () =>
+            ref.read(feedNotifierProvider.notifier).loadFeed(tab: tabType),
       );
     } else if (items.isEmpty) {
       return Center(
-        child: Text(
-          emptyMessage,
-          style: TextStyle(color: Colors.white54),
-        ),
+        child: Text(emptyMessage, style: TextStyle(color: Colors.white54)),
       );
     } else {
       return PageView.builder(
         scrollDirection: Axis.vertical,
         itemCount: items.length,
-        itemBuilder: (context, index) => FeedTrackCard(item: items[index], tabType: tabType,),
+        itemBuilder: (context, index) =>
+            FeedTrackCard(item: items[index], tabType: tabType),
       );
     }
   }
@@ -105,7 +103,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       error: state.followingError,
       items: state.followingItems,
       emptyMessage: 'Follow artists to see their tracks',
-      tabType: FeedType.following
+      tabType: FeedType.following,
     );
 
     return Scaffold(
