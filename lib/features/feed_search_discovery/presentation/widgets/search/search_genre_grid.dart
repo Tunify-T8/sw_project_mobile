@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/search_genre_entity.dart';
 import '../../screens/genre_detail_screen.dart';
 
-// ─── DATA MODEL ───────────────────────────────────────────────────────────────
-
 class _GenreItem {
   const _GenreItem(this.id, this.label, this.color, this.height);
 
@@ -53,7 +51,6 @@ class SearchGenreGrid extends ConsumerWidget {
   final bool isLoading;
   final ValueChanged<SearchGenreEntity>? onGenreTap;
 
-  // Build lookup from backend
   Map<String, SearchGenreEntity> _buildLookup() {
     return {for (final g in genres) g.id: g};
   }
@@ -92,6 +89,9 @@ class SearchGenreGrid extends ConsumerWidget {
                       genreId: entity.id,
                       genreLabel: entity.label,
                       genreColor: Color(entity.colorValue),
+                      // Pass the local asset path so the detail header can
+                      // show the image if it exists.
+                      genreImageAsset: entity.imageAsset,
                     ),
                   ),
                 );
@@ -114,7 +114,6 @@ class SearchGenreGrid extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -153,37 +152,50 @@ class _GenreTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Artwork (bottom-right rotated)
-              if (genre.artworkUrl != null)
-                Positioned(
-                  right: -12,
-                  bottom: -12,
-                  child: Transform.rotate(
-                    angle: 0.3,
-                    child: Image.network(
-                      genre.artworkUrl!,
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stack) =>
-                          const SizedBox.shrink(),
-                    ),
-                  ),
+              // ── Background image ─────────────────────────────────────────
+              // Priority: local asset (imageAsset) → remote URL (artworkUrl).
+              // Falls back to the solid colorValue if both are null or fail.
+              if (genre.imageAsset != null)
+                Image.asset(
+                  genre.imageAsset!,
+                  fit: BoxFit.cover,
+                  // Silent fallback to solid color — no error widget shown.
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                )
+              else if (genre.artworkUrl != null)
+                Image.network(
+                  genre.artworkUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
 
-              // Label
-              Positioned(
-                left: 12,
-                top: 12,
-                right: 60,
-                child: Text(
-                  genre.label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              // ── Dark gradient so label is always readable ─────────────────
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Color(0x99000000)],
+                    stops: [0.35, 1.0],
+                  ),
+                ),
+              ),
+
+              // ── Label ─────────────────────────────────────────────────────
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    genre.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

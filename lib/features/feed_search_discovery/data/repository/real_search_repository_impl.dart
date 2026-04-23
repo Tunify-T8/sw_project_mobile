@@ -72,7 +72,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
           ProfileResultEntity(
             id: u.id,
             username: u.username,
-            avatarUrl: null,
+            avatarUrl: u.avatarUrl, // FIX: was hardcoded null
             location: u.location,
             followersCount: u.followersCount,
             isVerified: u.isCertified,
@@ -200,6 +200,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
         .toList();
   }
 
+  // ── Genre list ─────────────────────────────────────────────────────────────
   @override
   Future<List<SearchGenreEntity>> getGenres() async {
     return const [
@@ -207,56 +208,127 @@ class RealSearchRepositoryImpl implements SearchRepository {
         id: 'hip_hop_rap',
         label: 'Hip Hop & Rap',
         colorValue: 0xFFA259FF,
+        imageAsset: 'assets/genres/hip_hop_rap.jpg',
       ),
-      SearchGenreEntity(id: 'pop', label: 'Pop', colorValue: 0xFFFFD60A),
-      SearchGenreEntity(id: 'chill', label: 'Chill', colorValue: 0xFF0FA3B1),
+      SearchGenreEntity(
+        id: 'pop',
+        label: 'Pop',
+        colorValue: 0xFFFFD60A,
+        imageAsset: 'assets/genres/pop.jpg',
+      ),
+      SearchGenreEntity(
+        id: 'chill',
+        label: 'Chill',
+        colorValue: 0xFF0FA3B1,
+        imageAsset: 'assets/genres/chill.jpg',
+      ),
       SearchGenreEntity(
         id: 'workout',
         label: 'Workout',
         colorValue: 0xFF10A674,
+        imageAsset: 'assets/genres/workout.jpg',
       ),
-      SearchGenreEntity(id: 'house', label: 'House', colorValue: 0xFFFF4FA3),
-      SearchGenreEntity(id: 'indie', label: 'Indie', colorValue: 0xFF2D6CDF),
+      SearchGenreEntity(
+        id: 'house',
+        label: 'House',
+        colorValue: 0xFFFF4FA3,
+        imageAsset: 'assets/genres/house.jpg',
+      ),
+      SearchGenreEntity(
+        id: 'indie',
+        label: 'Indie',
+        colorValue: 0xFF2D6CDF,
+        imageAsset: 'assets/genres/indie.jpg',
+      ),
       SearchGenreEntity(
         id: 'electronic',
         label: 'Electronic',
         colorValue: 0xFFFF4FA3,
+        imageAsset: 'assets/genres/electronic.jpg',
       ),
-      SearchGenreEntity(id: 'rnb', label: 'R&B', colorValue: 0xFF0FA3B1),
-      SearchGenreEntity(id: 'party', label: 'Party', colorValue: 0xFFFF8C42),
-      SearchGenreEntity(id: 'techno', label: 'Techno', colorValue: 0xFFFF4FA3),
-      SearchGenreEntity(id: 'folk', label: 'Folk', colorValue: 0xFFFF8C42),
-      SearchGenreEntity(id: 'soul', label: 'Soul', colorValue: 0xFF0FA3B1),
+      SearchGenreEntity(
+        id: 'rnb',
+        label: 'R&B',
+        colorValue: 0xFF0FA3B1,
+        imageAsset: 'assets/genres/rnb.jpg',
+      ),
+      SearchGenreEntity(
+        id: 'party',
+        label: 'Party',
+        colorValue: 0xFFFF8C42,
+        imageAsset: 'assets/genres/party.jpg',
+      ),
+      SearchGenreEntity(
+        id: 'techno',
+        label: 'Techno',
+        colorValue: 0xFFFF4FA3,
+        imageAsset: 'assets/genres/techno.jpg',
+      ),
+      SearchGenreEntity(
+        id: 'folk',
+        label: 'Folk',
+        colorValue: 0xFFFF8C42,
+        imageAsset: 'assets/genres/folk.jpg',
+      ),
+      SearchGenreEntity(
+        id: 'soul',
+        label: 'Soul',
+        colorValue: 0xFF0FA3B1,
+        imageAsset: 'assets/genres/soul.jpg',
+      ),
       SearchGenreEntity(
         id: 'at_home',
         label: 'At Home',
         colorValue: 0xFFA259FF,
+        imageAsset: 'assets/genres/at_home.jpg',
       ),
-      SearchGenreEntity(id: 'study', label: 'Study', colorValue: 0xFFFF4FA3),
+      SearchGenreEntity(
+        id: 'study',
+        label: 'Study',
+        colorValue: 0xFFFF4FA3,
+        imageAsset: 'assets/genres/study.jpg',
+      ),
       SearchGenreEntity(
         id: 'country',
         label: 'Country',
         colorValue: 0xFFFF8C42,
+        imageAsset: 'assets/genres/country.jpg',
       ),
-      SearchGenreEntity(id: 'rock', label: 'Rock', colorValue: 0xFFFF3D2E),
+      SearchGenreEntity(
+        id: 'rock',
+        label: 'Rock',
+        colorValue: 0xFFFF3D2E,
+        imageAsset: 'assets/genres/rock.jpg',
+      ),
       SearchGenreEntity(
         id: 'feel_good',
         label: 'Feel Good',
         colorValue: 0xFFFFD60A,
+        imageAsset: 'assets/genres/feel_good.jpg',
       ),
       SearchGenreEntity(
         id: 'healing_era',
         label: 'Healing Era',
         colorValue: 0xFF2D6CDF,
+        imageAsset: 'assets/genres/healing_era.jpg',
       ),
-      SearchGenreEntity(id: 'latin', label: 'Latin', colorValue: 0xFFD94FFF),
+      SearchGenreEntity(
+        id: 'latin',
+        label: 'Latin',
+        colorValue: 0xFFD94FFF,
+        imageAsset: 'assets/genres/latin.jpg',
+      ),
     ];
   }
 
+  // ── Genre detail ───────────────────────────────────────────────────────────
+  //
+  // FIX: Now calls getTrending WITH genreId so the correct genre's trending
+  // tracks are returned. Previously genreId was omitted, returning global trending.
   @override
   Future<GenreDetailEntity> getGenreDetail(String genreId) async {
     final results = await Future.wait([
-      _api.getTrending(type: 'track', period: 'week'),
+      _api.getTrending(type: 'track', period: 'week', genreId: genreId),
       _api.searchCollections(q: genreId, tag: genreId, limit: 10),
       _api.searchPeople(q: genreId, limit: 6),
     ]);
@@ -272,13 +344,13 @@ class RealSearchRepositoryImpl implements SearchRepository {
             title: i.name,
             artistName: i.artist,
             artworkUrl: i.coverUrl,
-            durationSeconds: 0,
+            durationSeconds: 0, // backend does not return duration on trending
             playCount: _formatCount(i.score),
           ),
         )
         .toList();
 
-    // First half goes to trending, second half to introducing/discover more
+    // First half → trending section; second half → introducing / discover more
     final half = (allTracks.length / 2).ceil();
     final trendingTracks = allTracks.take(half).toList();
     final introducingTracks = allTracks.skip(half).toList();
@@ -305,6 +377,8 @@ class RealSearchRepositoryImpl implements SearchRepository {
       profiles: profiles,
     );
   }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   PlaylistResultEntity _collectionDtoToPlaylist(CollectionDto c) {
     return PlaylistResultEntity(
@@ -339,22 +413,15 @@ class RealSearchRepositoryImpl implements SearchRepository {
   }
 
   String _formatCount(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M';
-    }
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K';
-    }
+    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
     return count.toString();
   }
 
   String _formatFollowers(int count) {
-    if (count >= 1000000) {
+    if (count >= 1000000)
       return '${(count / 1000000).toStringAsFixed(1)}M followers';
-    }
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K followers';
-    }
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K followers';
     return '$count followers';
   }
 }

@@ -26,6 +26,7 @@ import 'package:software_project/features/playback_streaming_engine/presentation
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/player_provider.dart';
 import 'auth_infrastructure_providers.dart';
 import 'auth_use_case_providers.dart';
+import '../../../feed_search_discovery/presentation/providers/search_provider.dart';
 
 // Re-export split files so callers that import only `auth_provider.dart`
 // still have access to every provider they need.
@@ -309,6 +310,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
     ref.invalidate(playerProvider);
+    ref.read(searchProvider.notifier).clearRecentResults();
     state = const AsyncData<AuthUserEntity?>(null);
   }
 
@@ -321,6 +323,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
     ref.invalidate(playerProvider);
+    ref.read(searchProvider.notifier).clearRecentResults();
     state = const AsyncData<AuthUserEntity?>(null);
   }
 
