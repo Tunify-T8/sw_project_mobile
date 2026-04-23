@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/shared/ui/patterns/error_retry_view.dart';
+import 'package:software_project/shared/ui/widgets/empty_state.dart';
 
 import '../../domain/entities/feed_tab_type.dart';
 import '../../domain/entities/feed_item_entity.dart';
@@ -37,8 +39,10 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
     }
 
     if (error != null) {
-      return Center(
-        child: Text(error, style: const TextStyle(color: Colors.white)),
+      return ErrorRetryView(
+        onRetry: () => ref
+            .read(feedNotifierProvider.notifier)
+            .loadFeed(tab: FeedType.classic),
       );
     }
 
