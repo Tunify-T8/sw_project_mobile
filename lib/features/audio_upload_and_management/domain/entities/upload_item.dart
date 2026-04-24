@@ -40,7 +40,6 @@ class UploadItem {
   final String licensing;
   final String? privateToken;
   final DateTime createdAt;
-  final String? privateToken;
 
   const UploadItem({
     required this.id,
@@ -76,7 +75,6 @@ class UploadItem {
     this.licensing = 'all_rights_reserved',
     this.privateToken,
     required this.createdAt,
-    this.privateToken,
   });
 
   bool get isPlayable => status == UploadProcessingStatus.finished;
@@ -127,7 +125,6 @@ class UploadItem {
     String? licensing,
     String? privateToken,
     DateTime? createdAt,
-    String? privateToken,
   }) {
     return UploadItem(
       id: id ?? this.id,
@@ -163,7 +160,6 @@ class UploadItem {
       licensing: licensing ?? this.licensing,
       privateToken: privateToken ?? this.privateToken,
       createdAt: createdAt ?? this.createdAt,
-      privateToken: privateToken ?? this.privateToken,
     );
   }
 }

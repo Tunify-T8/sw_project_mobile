@@ -36,7 +36,6 @@ class TrackResponseDto {
   final String? privateToken;
   final String? errorCode;
   final String? errorMessage;
-  final String? privateToken;
   final Map<String, dynamic>? rawJson;
 
   TrackResponseDto({
@@ -69,7 +68,6 @@ class TrackResponseDto {
     this.privateToken,
     this.errorCode,
     this.errorMessage,
-    this.privateToken,
     this.rawJson,
   });
 
@@ -163,7 +161,6 @@ class TrackResponseDto {
       errorMessage: error is Map<String, dynamic>
           ? error['message'] as String?
           : null,
-      privateToken: json['privateToken'] as String?,
       rawJson: json,
     );
   }

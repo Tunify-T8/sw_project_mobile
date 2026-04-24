@@ -29,7 +29,6 @@ class PlayerState {
   final DateTime? streamExpiresAt;
   final String? localFilePath;
   final double? mediaDurationSeconds;
-  final String? privateToken;
 
   /// Kept so stream-URL refreshes for private tracks still authorize after
   /// the initial signed URL expires.
@@ -72,7 +71,8 @@ class PlayerState {
     final activeBundle = bundle;
     if (activeBundle == null) return positionSeconds;
 
-    if (!activeBundle.playability.isPreviewOnly || !activeBundle.preview.enabled) {
+    if (!activeBundle.playability.isPreviewOnly ||
+        !activeBundle.preview.enabled) {
       return positionSeconds;
     }
 
@@ -85,7 +85,8 @@ class PlayerState {
     final activeBundle = bundle;
     if (activeBundle == null) return 0;
 
-    if (activeBundle.playability.isPreviewOnly && activeBundle.preview.enabled) {
+    if (activeBundle.playability.isPreviewOnly &&
+        activeBundle.preview.enabled) {
       return effectiveDurationSeconds;
     }
 

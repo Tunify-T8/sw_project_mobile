@@ -35,7 +35,6 @@ class UploadedTrack {
   final String? privateToken;
   final String? errorCode;
   final String? errorMessage;
-  final String? privateToken;
 
   const UploadedTrack({
     required this.trackId,
@@ -68,7 +67,6 @@ class UploadedTrack {
     this.privateToken,
     this.errorCode,
     this.errorMessage,
-    this.privateToken,
   });
 
   UploadedTrack copyWith({
@@ -102,7 +100,6 @@ class UploadedTrack {
     String? privateToken,
     String? errorCode,
     String? errorMessage,
-    String? privateToken,
   }) {
     return UploadedTrack(
       trackId: trackId ?? this.trackId,
@@ -135,7 +132,6 @@ class UploadedTrack {
       privateToken: privateToken ?? this.privateToken,
       errorCode: errorCode ?? this.errorCode,
       errorMessage: errorMessage ?? this.errorMessage,
-      privateToken: privateToken ?? this.privateToken,
     );
   }
 }

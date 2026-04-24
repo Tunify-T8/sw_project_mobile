@@ -52,7 +52,7 @@ class StreamingApi {
 
     final fallbackResponse = await _dio.post(
       ApiEndpoints.trackStream(trackId),
-      queryParameters: query.isEmpty ? null : query,
+      queryParameters: queryParams,
       data: {
         'quality': quality,
         ...?(privateToken != null ? {'privateToken': privateToken} : null),

@@ -38,7 +38,6 @@ extension UploadItemDtoCopyWith on UploadItemDto {
     String? licensing,
     String? privateToken,
     String? createdAt,
-    String? privateToken,
   }) {
     return UploadItemDto(
       id: id ?? this.id,
@@ -73,7 +72,6 @@ extension UploadItemDtoCopyWith on UploadItemDto {
       licensing: licensing ?? this.licensing,
       privateToken: privateToken ?? this.privateToken,
       createdAt: createdAt ?? this.createdAt,
-      privateToken: privateToken ?? this.privateToken,
     );
   }
 }

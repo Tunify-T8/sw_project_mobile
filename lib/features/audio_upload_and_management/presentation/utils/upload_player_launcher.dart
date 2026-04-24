@@ -114,11 +114,7 @@ Future<void> openHistorySourcedPlayer(
     );
   } else {
     unawaited(
-      notifier.loadTrack(
-        preparedItem.id,
-        autoPlay: true,
-        seedTrack: seedTrack,
-      ),
+      notifier.loadTrack(preparedItem.id, autoPlay: true, seedTrack: seedTrack),
     );
   }
 
@@ -499,7 +495,6 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     licensing: dto.licensing,
     privateToken: dto.privateToken,
     createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
-    privateToken: dto.privateToken,
   );
 }
 

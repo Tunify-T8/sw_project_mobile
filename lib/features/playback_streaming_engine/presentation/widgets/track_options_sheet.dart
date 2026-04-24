@@ -10,7 +10,6 @@ import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_info_screen.dart';
-import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -51,7 +50,6 @@ class TrackOptionInfo {
   /// checks this against the signed-in user too, so callers can pass false
   /// and still get the owner layout if the identities match.
   final bool isOwned;
-  final String? privateToken;
 
   /// The uploader's user id, when known. Required for the non-owner sheet
   /// so "Go to profile" can navigate to the correct profile.
@@ -237,130 +235,17 @@ class _TrackOptionsSheetContent extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  const YourUploadsShareButton(
-                    icon: Icons.send_outlined,
-                    label: 'Message',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.copy_outlined,
-                    label: 'Copy link',
-                    onTap: () async {
-                      final url = await _buildTrackOptionShareUrl(
-                        context,
-                        info,
-                        ref,
-                      );
-                      if (url == null) return;
-                      await Clipboard.setData(ClipboardData(text: url));
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Link copied to clipboard'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-                  const YourUploadsShareButton(
-                    icon: Icons.qr_code_2,
-                    label: 'QR code',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.chat_outlined,
-                    label: 'WhatsApp',
-                    onTap: () async {
-                      final url = await _buildTrackOptionShareUrl(
-                        context,
-                        info,
-                        ref,
-                      );
-                      if (url == null) return;
-                      final msg = Uri.encodeComponent(
-                        'Check out "${info.title}" on Tunify: $url',
-                      );
-                      await launchUrl(
-                        Uri.parse('https://wa.me/?text=$msg'),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
-                  const YourUploadsShareButton(
-                    icon: Icons.sms_outlined,
-                    label: 'SMS',
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: Colors.white12, height: 1),
-            YourUploadsOptionRow(
-              icon: Icons.favorite_border,
-              label: 'Like',
-              onTap: () => Navigator.pop(context),
-            ),
-            if (info.isOwned)
-              YourUploadsOptionRow(
-                icon: Icons.edit_outlined,
-                label: 'Edit track',
-                onTap: () {
-                  Navigator.pop(context);
-                  _navigateToEditTrack(context);
-                },
-              ),
-            const Divider(color: Colors.white12, height: 1),
-            YourUploadsOptionRow(
-              icon: Icons.queue_play_next,
-              label: 'Play next',
-              onTap: () {
-                ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
-                Navigator.pop(context);
-              },
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.playlist_play,
-              label: 'Play last',
-              onTap: () {
-                ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
-                Navigator.pop(context);
-              },
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.playlist_add,
-              label: 'Add to playlist',
-              onTap: () => Navigator.pop(context),
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.radio,
-              label: 'Start station',
-              onTap: () => Navigator.pop(context),
-            ),
-            const Divider(color: Colors.white12, height: 1),
-            YourUploadsOptionRow(
-              icon: Icons.graphic_eq,
-              label: 'Behind this track',
-              onTap: () => Navigator.pop(context),
-            ),
-            YourUploadsOptionRow(
-              icon: Icons.comment_outlined,
-              label: 'View comments',
-              onTap: () => Navigator.pop(context),
-            ),
-            if (info.isOwned)
-              YourUploadsOptionRow(
-                icon: Icons.delete_outline,
-                label: 'Delete track',
-                color: Colors.redAccent,
-                onTap: () => Navigator.pop(context),
-              ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 16),
+              _TrackHeader(info: info),
+              const _ShareLabel(),
+              _ShareRow(info: info, ref: ref),
+              const Divider(color: Colors.white12, height: 1),
+              ...(isOwned
+                  ? _buildOwnerRows(context)
+                  : _buildNonOwnerRows(context)),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -680,15 +565,16 @@ class _ShareLabel extends StatelessWidget {
 }
 
 class _ShareRow extends StatelessWidget {
-  const _ShareRow({required this.info});
+  const _ShareRow({required this.info, required this.ref});
 
   final TrackOptionInfo info;
+  final WidgetRef ref;
 
   @override
   Widget build(BuildContext context) {
     final hasToken =
         info.privateToken != null && info.privateToken!.trim().isNotEmpty;
-    final useTokenInLink = info.isPrivate && hasToken;
+    final usePrivateLabel = info.isPrivate || hasToken;
 
     return SizedBox(
       height: 80,
@@ -702,19 +588,49 @@ class _ShareRow extends StatelessWidget {
           ),
           YourUploadsShareButton(
             icon: Icons.copy_outlined,
-            label: useTokenInLink ? 'Copy private link' : 'Copy link',
+            label: usePrivateLabel ? 'Copy private link' : 'Copy link',
             onTap: () async {
-              await TrackLinkHelper.copyTrackLink(
+              final url = await _buildTrackOptionShareUrl(
                 context,
-                trackId: info.trackId,
-                privateToken: useTokenInLink ? info.privateToken : null,
+                info,
+                ref,
               );
-              if (context.mounted) Navigator.pop(context);
+              if (url == null) return;
+
+              await Clipboard.setData(ClipboardData(text: url));
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    usePrivateLabel
+                        ? 'Private link copied to clipboard'
+                        : 'Link copied to clipboard',
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
             },
           ),
           const YourUploadsShareButton(
             icon: Icons.qr_code_2,
             label: 'QR code',
+          ),
+          YourUploadsShareButton(
+            icon: Icons.chat_outlined,
+            label: 'WhatsApp',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+
+              final msg = Uri.encodeComponent(
+                'Check out "${info.title}" on Tunify: $url',
+              );
+              await launchUrl(
+                Uri.parse('https://wa.me/?text=$msg'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
           ),
           const YourUploadsShareButton(
             icon: Icons.sms_outlined,
