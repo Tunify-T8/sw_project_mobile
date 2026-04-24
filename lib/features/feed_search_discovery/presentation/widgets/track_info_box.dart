@@ -14,6 +14,8 @@ class TrackInfoBox extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // Tapping the info box opens the full playback surface for the track.
+      // It also stops any active feed preview before launching the player.
       onTap: () => playFeedTrack(context, ref, track),
       child: Container(
         padding: const EdgeInsets.all(5.0),

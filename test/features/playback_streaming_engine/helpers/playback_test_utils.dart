@@ -495,6 +495,7 @@ class FakeStreamingApi extends StreamingApi {
   Future<StreamResponseDto> Function(
     String trackId, {
     String quality,
+    String? privateToken,
   })? requestStreamUrlHandler;
   Future<void> Function({
     required String trackId,
@@ -533,10 +534,11 @@ class FakeStreamingApi extends StreamingApi {
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
     final handler = requestStreamUrlHandler;
     if (handler != null) {
-      return handler(trackId, quality: quality);
+      return handler(trackId, quality: quality, privateToken: privateToken);
     }
     return StreamResponseDto.fromJson(
       sampleStreamResponseJson(trackId: trackId),
@@ -635,6 +637,7 @@ class FakePlayerRepository implements PlayerRepository {
   Future<StreamUrl> Function(
     String trackId, {
     String quality,
+    String? privateToken,
   })? requestStreamUrlHandler;
   Future<void> Function(PlaybackEvent event)? reportPlaybackEventHandler;
   Future<PlaybackQueue> Function(PlaybackContextRequest request)?
@@ -666,10 +669,11 @@ class FakePlayerRepository implements PlayerRepository {
   Future<StreamUrl> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
     final handler = requestStreamUrlHandler;
     if (handler != null) {
-      return handler(trackId, quality: quality);
+      return handler(trackId, quality: quality, privateToken: privateToken);
     }
     return sampleStreamUrl(trackId: trackId);
   }

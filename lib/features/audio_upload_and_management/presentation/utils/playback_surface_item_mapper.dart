@@ -27,10 +27,13 @@ UploadItem uploadItemFromPlayerState(
     artworkUrl: bundle.coverUrl.isEmpty ? null : bundle.coverUrl,
     localFilePath: state.localFilePath,
     description: '',
-    visibility: UploadVisibility.public,
+    visibility: state.privateToken == null
+        ? UploadVisibility.public
+        : UploadVisibility.private,
     status: UploadProcessingStatus.finished,
     isExplicit: false,
     createdAt: DateTime.now(),
+    privateToken: state.privateToken,
   );
 }
 

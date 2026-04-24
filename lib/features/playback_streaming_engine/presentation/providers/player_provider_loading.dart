@@ -17,6 +17,16 @@ extension PlayerNotifierLoading on PlayerNotifier {
     _progressReportTimer?.cancel();
     await _audioPlayer.stop();
 
+    // FIX: always clear the loaded-source cache so _prepareAudioSource
+    // unconditionally sets a fresh audio source on every loadTrack call.
+    // Without this, if Account B loads the same trackId that Account A had
+    // loaded (the cache survived the account switch), the source-key equality
+    // check inside _prepareAudioSource skips setAudioSource entirely — leaving
+    // just_audio in a stopped state with no playable source, which causes the
+    // player screen to hang at paused indefinitely.
+    _loadedTrackId = null;
+    _loadedSourceKey = null;
+
     final provisionalBundle = seedTrack?.toPlaybackBundle();
     if (provisionalBundle != null) {
       _setPlayerState(
@@ -29,11 +39,17 @@ extension PlayerNotifierLoading on PlayerNotifier {
           volume: previous?.volume ?? 1.0,
           isBuffering: true,
           localFilePath: seedTrack?.localFilePath,
+          privateToken: privateToken,
         ),
       );
     } else if (previous != null) {
       _setPlayerState(
-        previous.copyWith(isPlaying: false, isBuffering: true, queue: queue),
+        previous.copyWith(
+          isPlaying: false,
+          isBuffering: true,
+          queue: queue,
+          privateToken: privateToken,
+        ),
       );
     } else {
       _setAsyncState(const AsyncLoading());
@@ -50,6 +66,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
         final source = await _resolvePlaybackSource(
           trackId,
           seedTrack: seedTrack,
+          privateToken: privateToken,
         );
 
         final initialPosition = _initialPositionFor(bundle).toDouble();
@@ -66,6 +83,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
           volume: previous?.volume ?? 1.0,
           isBuffering: false,
           mediaDurationSeconds: bundle.durationSeconds.toDouble(),
+          privateToken: privateToken,
         );
 
         await _prepareAudioSource(nextState, force: true);
@@ -80,6 +98,10 @@ extension PlayerNotifierLoading on PlayerNotifier {
         return nextState;
       }),
     );
+
+    if (state.hasError) {
+      debugPrint('loadTrack failed for $trackId: ${state.error}');
+    }
 
     if (state.asData?.value != null) {
       await _persistCurrentSession(

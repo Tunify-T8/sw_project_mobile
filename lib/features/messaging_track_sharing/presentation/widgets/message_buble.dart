@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
+import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../domain/entities/message_attachment.dart';
@@ -229,21 +230,20 @@ class _AttachmentCard extends ConsumerWidget {
       return;
     }
 
-    final store = ref.read(globalTrackStoreProvider);
-    final uploadItem = store.find(attachment.id);
+    final trackId = attachment.id.trim();
+    if (trackId.isEmpty) return;
 
-    if (uploadItem == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This shared track will open once track lookup is connected.'),
-          backgroundColor: Color(0xFF2A2A2A),
-          duration: Duration(seconds: 2),
-        ),
-      );
+    final store = ref.read(globalTrackStoreProvider);
+    final uploadItem = store.find(trackId);
+
+    if (uploadItem != null) {
+      await openUploadItemPlayer(context, ref, uploadItem);
       return;
     }
 
-    await openUploadItemPlayer(context, ref, uploadItem);
+    // Fallback: open the track by id using the existing track link helper.
+    // TrackDetailScreen + ensureUploadItemPlayback will fetch the real bundle.
+    await TrackLinkHelper.openTrackByIdAndToken(context, ref, trackId);
   }
 
   String? _localArtworkPath(String? artwork) {

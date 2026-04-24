@@ -84,6 +84,7 @@ UploadItem mergeTrackDetailItem({
       details.licensing,
       fallback: base.licensing,
     ),
+    privateToken: details.privateToken ?? base.privateToken,
   );
 }
 
@@ -115,7 +116,7 @@ UploadVisibility _resolveVisibility(
   String? privacy, {
   required UploadVisibility fallback,
 }) {
-  switch (privacy) {
+  switch (privacy?.trim().toLowerCase()) {
     case 'public':
       return UploadVisibility.public;
     case 'private':

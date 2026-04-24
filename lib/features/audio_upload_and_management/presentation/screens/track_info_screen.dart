@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/router.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
+import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../providers/track_detail_item_provider.dart';
 import '../utils/upload_player_launcher.dart';

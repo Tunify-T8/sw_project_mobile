@@ -47,6 +47,12 @@ class TunifyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final platformRoute =
+        WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+    final initialRoute = platformRoute.startsWith('/tracks/')
+        ? platformRoute
+        : AppRoutes.authGate;
+
     return MaterialApp(
       title: 'Tunify',
       debugShowCheckedModeBanner: false,
@@ -57,7 +63,7 @@ class TunifyApp extends StatelessWidget {
       // home + onGenerateRoute conflict because home bypasses the route
       // generator entirely for the first screen, making pushReplacementNamed
       // from initState unreliable before the navigator is ready.
-      initialRoute: AppRoutes.authGate,
+      initialRoute: initialRoute,
     );
   }
 

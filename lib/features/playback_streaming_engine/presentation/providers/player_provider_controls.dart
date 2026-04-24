@@ -25,7 +25,11 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     // just_audio.play() completes when playback finishes or is interrupted,
     // not when playback STARTS. So awaiting it blocks navigation/history/queue.
-    unawaited(_audioPlayer.play());
+    unawaited(
+      _audioPlayer.play().catchError((Object error, StackTrace stackTrace) {
+        debugPrint('just_audio play failed: $error');
+      }),
+    );
 
     final playingState = preparedState.copyWith(
       isPlaying: true,
@@ -221,6 +225,25 @@ extension PlayerNotifierControls on PlayerNotifier {
     _setPlayerState(cleared);
 
     await _persistCurrentSession(playerState: cleared, force: true);
+  }
+
+  Future<void> clearPlaybackSession() async {
+    _progressReportTimer?.cancel();
+    _pendingHistoryTrackId = null;
+    _completedTrackIds.clear();
+
+    try {
+      await _audioPlayer.stop();
+    } catch (_) {}
+
+    _loadedTrackId = null;
+    _loadedSourceKey = null;
+    _lastKnownState = const PlayerState();
+    _setAsyncState(const AsyncData(PlayerState()));
+
+    await PlayerNotifier._storage.delete(
+      key: StorageKeys.cachedPlayerSession,
+    );
   }
 
   void toggleRepeat() {

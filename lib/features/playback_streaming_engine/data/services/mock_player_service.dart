@@ -70,6 +70,7 @@ class MockPlayerService {
   Future<Map<String, dynamic>> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
     await _delay(200);
     return {

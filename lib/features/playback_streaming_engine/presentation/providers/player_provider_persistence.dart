@@ -46,6 +46,17 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
 
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final cachedUserId = decoded['authUserId'] as String?;
+      final currentUserId = await _currentAuthUserId();
+      if (cachedUserId == null ||
+          currentUserId == null ||
+          cachedUserId != currentUserId) {
+        await PlayerNotifier._storage.delete(
+          key: StorageKeys.cachedPlayerSession,
+        );
+        return const PlayerState();
+      }
+
       final bundleJson = decoded['bundle'] as Map<String, dynamic>?;
       if (bundleJson == null) {
         return const PlayerState();
@@ -122,8 +133,16 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       return;
     }
     _lastSessionPersistAt = now;
+    final authUserId = await _currentAuthUserId();
+    if (authUserId == null || authUserId.isEmpty) {
+      await PlayerNotifier._storage.delete(
+        key: StorageKeys.cachedPlayerSession,
+      );
+      return;
+    }
 
     final payload = <String, dynamic>{
+      'authUserId': authUserId,
       'bundle': _bundleToJson(current.bundle!),
       'streamUrl': current.streamUrl == null
           ? null
@@ -141,6 +160,19 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       key: StorageKeys.cachedPlayerSession,
       value: jsonEncode(payload),
     );
+  }
+
+  Future<String?> _currentAuthUserId() async {
+    final raw = await PlayerNotifier._storage.read(key: StorageKeys.user);
+    if (raw == null || raw.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final id = decoded['id']?.toString().trim();
+      return id == null || id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
+    }
   }
 
   Map<String, dynamic> _bundleToJson(TrackPlaybackBundle bundle) {
@@ -266,6 +298,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       'currentIndex': queue.currentIndex,
       'shuffle': queue.shuffle,
       'repeat': _repeatModeToString(queue.repeat),
+      'source': queue.source.name,
       // Pre-shuffle snapshot so unshuffling after an app restart still works.
       if (queue.originalTrackIds != null)
         'originalTrackIds': queue.originalTrackIds,
@@ -275,6 +308,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
   PlaybackQueue _queueFromJson(Map<String, dynamic> json) {
     final rawTrackIds = json['trackIds'] as List<dynamic>? ?? const <dynamic>[];
     final rawOriginal = json['originalTrackIds'] as List<dynamic>?;
+    final rawSource = json['source']?.toString();
     return PlaybackQueue(
       trackIds: rawTrackIds
           .map((value) => value.toString())
@@ -285,7 +319,24 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       originalTrackIds: rawOriginal
           ?.map((value) => value.toString())
           .toList(growable: false),
+      source: _queueSourceFromString(rawSource),
     );
+  }
+
+  QueueSource _queueSourceFromString(String? raw) {
+    switch (raw) {
+      case 'history':
+        return QueueSource.history;
+      case 'artistCatalog':
+        return QueueSource.artistCatalog;
+      case 'playlist':
+        return QueueSource.playlist;
+      case 'explicit':
+        return QueueSource.explicit;
+      case 'singleTrack':
+      default:
+        return QueueSource.singleTrack;
+    }
   }
 
   String _playbackStatusToString(PlaybackStatus status) {

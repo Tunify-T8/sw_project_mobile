@@ -5,6 +5,8 @@ class FeedPreviewOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Visual prompt shown before preview audio starts. FeedTrackCard removes
+    // this overlay when isPreviewing becomes true.
     return Positioned(
       left: 12.0,
       top: 55.0,

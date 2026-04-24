@@ -15,6 +15,8 @@ Future<void> playFeedTrack(
   // user jumps straight from the preview overlay to the full-track tile.
   await ref.read(feedPreviewPlaybackControllerProvider).stop();
 
+  // Convert the feed track preview model into the UploadItem shape expected by
+  // the shared player/detail launcher.
   final stub = _trackPreviewToUploadItem(track);
 
   // Feed entities don't carry a waveformUrl, so the stub has no way to fetch
@@ -32,6 +34,8 @@ Future<void> playFeedTrack(
   await openUploadItemPlayer(context, ref, enrichedItem);
 }
 
+// Feed cards only have TrackPreviewEntity data, while the shared playback
+// launcher expects an UploadItem. This adapter bridges those two modules.
 UploadItem _trackPreviewToUploadItem(TrackPreviewEntity t) {
   return UploadItem(
     id: t.trackId,
