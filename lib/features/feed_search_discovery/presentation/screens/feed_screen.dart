@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/shared/ui/patterns/error_retry_view.dart';
 
 import '../providers/feed_notifier.dart';
+import '../providers/feed_preview_playback_controller.dart';
 import '../widgets/feed_tab_bar.dart';
 import '../widgets/feed_track_card.dart';
 import '../../domain/entities/feed_tab_type.dart';
@@ -71,6 +72,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       return PageView.builder(
         scrollDirection: Axis.vertical,
         itemCount: items.length,
+        onPageChanged: (index) {
+          final isPreviewing = ref.read(feedNotifierProvider).isPreviewing;
+          if (!isPreviewing) return;
+          ref
+              .read(feedPreviewPlaybackControllerProvider)
+              .start(items[index].track.trackId, items[index].track.duration);
+        },
         itemBuilder: (context, index) =>
             FeedTrackCard(item: items[index], tabType: tabType),
       );

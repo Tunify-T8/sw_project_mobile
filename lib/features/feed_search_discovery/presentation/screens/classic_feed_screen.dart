@@ -5,7 +5,9 @@ import 'package:software_project/shared/ui/widgets/empty_state.dart';
 
 import '../../domain/entities/feed_tab_type.dart';
 import '../../domain/entities/feed_item_entity.dart';
+import '../../domain/entities/feed_view_mode.dart';
 import '../providers/feed_notifier.dart';
+import '../providers/feed_view_provider.dart';
 import '../widgets/classic_feed_card.dart';
 
 class ClassicFeedScreen extends ConsumerStatefulWidget {
@@ -23,7 +25,7 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
     Future.microtask(() {
       final state = ref.read(feedNotifierProvider);
       if (!state.hasLoadedFollowing && !state.isFollowingLoading) {
-        ref.read(feedNotifierProvider.notifier).loadFeed(tab: FeedType.classic);
+        ref.read(feedNotifierProvider.notifier).loadFeed(tab: FeedType.following);
       }
     });
   }
@@ -42,7 +44,7 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
       return ErrorRetryView(
         onRetry: () => ref
             .read(feedNotifierProvider.notifier)
-            .loadFeed(tab: FeedType.classic),
+            .loadFeed(tab: FeedType.following),
       );
     }
 
@@ -50,7 +52,7 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
       onRefresh: () {
         return ref
             .read(feedNotifierProvider.notifier)
-            .refreshFeed(tab: FeedType.classic);
+            .refreshFeed(tab: FeedType.following);
       },
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(0, 24, 0, 24),
@@ -60,7 +62,7 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
               child: GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () => ref.read(feedViewModeProvider.notifier).setMode(FeedViewMode.discover),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 18,
