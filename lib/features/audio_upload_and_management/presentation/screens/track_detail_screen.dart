@@ -10,9 +10,9 @@ import '../providers/track_detail_item_provider.dart';
 import '../providers/track_detail_waveform_provider.dart';
 import '../utils/playback_surface_item_mapper.dart';
 import '../utils/upload_player_launcher.dart';
+import '../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../widgets/track_detail/track_detail_background.dart';
 import '../widgets/track_detail/track_detail_header.dart';
-import '../widgets/track_detail/track_detail_more_sheet.dart';
 import '../widgets/track_detail/track_detail_waveform_panel.dart';
 import 'track_info_screen.dart';
 
@@ -120,8 +120,28 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
           TrackDetailWaveformPanel(
             item: resolvedItem,
             state: waveformState,
-            onMoreTap: () =>
-                showTrackDetailMoreSheet(context, ref, resolvedItem),
+            onMoreTap: () {
+              final bundle =
+                  ref.read(playerProvider).asData?.value.bundle;
+              final artistId =
+                  (bundle?.trackId == resolvedItem.id &&
+                          bundle!.artist.id.trim().isNotEmpty)
+                      ? bundle.artist.id
+                      : null;
+              showTrackOptionsSheet(
+                context,
+                info: TrackOptionInfo.fromTrackId(
+                  resolvedItem.id,
+                  ref,
+                  fallbackTitle: resolvedItem.title,
+                  fallbackArtist: resolvedItem.artistDisplay,
+                  fallbackCoverUrl: resolvedItem.artworkUrl,
+                  fallbackLocalArtworkPath: resolvedItem.localArtworkPath,
+                  fallbackArtistId: artistId,
+                ),
+                ref: ref,
+              );
+            },
             onQueueTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const QueueScreen()),
             ),

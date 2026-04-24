@@ -4,16 +4,41 @@
 // Concerns: Metadata engine.
 import 'package:flutter/material.dart';
 
-InputDecoration buildMetadataInputDecoration(String label, {String? hintText}) {
+InputDecoration buildMetadataInputDecoration(
+  String label, {
+  String? hintText,
+  bool requiredField = false,
+}) {
+  const labelStyle = TextStyle(
+    color: Color(0xFFD0D0D0),
+    fontSize: 17,
+    fontWeight: FontWeight.w500,
+  );
+
+  final Widget? customLabel = requiredField
+      ? RichText(
+          text: TextSpan(
+            style: labelStyle,
+            children: [
+              TextSpan(text: label),
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(
+                  color: Color(0xFFE53935),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        )
+      : null;
+
   return InputDecoration(
-    labelText: label,
+    label: customLabel,
+    labelText: customLabel == null ? label : null,
     hintText: hintText,
     floatingLabelBehavior: FloatingLabelBehavior.always,
-    labelStyle: const TextStyle(
-      color: Color(0xFFD0D0D0),
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-    ),
+    labelStyle: labelStyle,
     hintStyle: const TextStyle(
       color: Color(0xFF666666),
       fontSize: 17,

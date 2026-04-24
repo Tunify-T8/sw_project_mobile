@@ -199,6 +199,7 @@ class UploadItemDto {
     'availabilityType': availabilityType,
     'availabilityRegions': availabilityRegions,
     'licensing': licensing,
+    //'privateToken': privateToken,
     'createdAt': createdAt,
     if (privateToken != null) 'privateToken': privateToken,
   };

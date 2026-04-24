@@ -101,21 +101,13 @@ class _LibraryHistoryTile extends ConsumerWidget {
                 final playableHistory = queueTracks
                     .where((item) => item.status != PlaybackStatus.blocked)
                     .toList(growable: false);
-                final queueItems = playableHistory
-                    .map(
-                      (item) => _historyTrackToUploadItem(
-                        item,
-                        storedUploadItemForTrack(store, item.trackId),
-                      ),
-                    )
-                    .toList(growable: false);
                 final selected = _historyTrackToUploadItem(track, stored);
 
-                await openUploadItemPlayer(
+                await openHistorySourcedPlayer(
                   context,
                   ref,
                   selected,
-                  queueItems: queueItems,
+                  historyTracks: playableHistory,
                   openScreen: true,
                 );
               },

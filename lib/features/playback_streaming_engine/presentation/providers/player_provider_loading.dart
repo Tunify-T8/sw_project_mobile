@@ -39,11 +39,17 @@ extension PlayerNotifierLoading on PlayerNotifier {
           volume: previous?.volume ?? 1.0,
           isBuffering: true,
           localFilePath: seedTrack?.localFilePath,
+          privateToken: privateToken,
         ),
       );
     } else if (previous != null) {
       _setPlayerState(
-        previous.copyWith(isPlaying: false, isBuffering: true, queue: queue),
+        previous.copyWith(
+          isPlaying: false,
+          isBuffering: true,
+          queue: queue,
+          privateToken: privateToken,
+        ),
       );
     } else {
       _setAsyncState(const AsyncLoading());

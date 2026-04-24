@@ -49,14 +49,17 @@ class TrackInfoFormSection extends StatelessWidget {
           controller: titleController,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w500,
           ),
-          decoration: buildMetadataInputDecoration('Title *'),
+          decoration: buildMetadataInputDecoration(
+            'Title',
+            requiredField: true,
+          ),
           onChanged: onTitleChanged,
         ),
         const SizedBox(height: 28),
-        const MetadataSectionTitle('Artists *'),
+        const MetadataSectionTitle('Artists', requiredField: true),
         const SizedBox(height: 14),
         MetadataArtistChips(artists: artists, onRemoveArtist: onRemoveArtist),
         const SizedBox(height: 14),
@@ -82,40 +85,42 @@ class TrackInfoFormSection extends StatelessWidget {
           },
         ),
         const SizedBox(height: 28),
-        InkWell(
-          onTap: onGenreTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const MetadataSectionTitle('Genre'),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      hasGenre
-                          ? selectedGenreLabel
-                          : 'Help fans discover your track',
-                      style: TextStyle(
-                        color: hasGenre
-                            ? Colors.white
-                            : const Color(0xFF666666),
-                        fontSize: 17,
+        const MetadataSectionTitle('Genre'),
+        const SizedBox(height: 14),
+        if (hasGenre)
+          _GenreChip(
+            label: selectedGenreLabel,
+            onTap: onGenreTap,
+          )
+        else
+          InkWell(
+            onTap: onGenreTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Expanded(
+                      child: Text(
+                        'Help fans discover your track',
+                        style: TextStyle(
+                          color: Color(0xFF666666),
+                          fontSize: 17,
+                        ),
                       ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.unfold_more,
-                    color: Color(0xFF7C7C7C),
-                    size: 28,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Container(height: 1, color: const Color(0xFF464646)),
-            ],
+                    Icon(
+                      Icons.unfold_more,
+                      color: Color(0xFF7C7C7C),
+                      size: 28,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(height: 1, color: const Color(0xFF464646)),
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: 28),
         TextField(
           controller: descriptionController,
@@ -137,6 +142,52 @@ class TrackInfoFormSection extends StatelessWidget {
           onChanged: onCaptionChanged,
         ),
       ],
+    );
+  }
+}
+
+class _GenreChip extends StatelessWidget {
+  const _GenreChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(26),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A2A),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0xFF4A4A4A)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  color: Color(0xFFDADADA),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Icon(
+                Icons.unfold_more,
+                size: 18,
+                color: Color(0xFFBBBBBB),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

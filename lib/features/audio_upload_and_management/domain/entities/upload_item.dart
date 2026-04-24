@@ -38,6 +38,7 @@ class UploadItem {
   final String availabilityType;
   final List<String> availabilityRegions;
   final String licensing;
+  final String? privateToken;
   final DateTime createdAt;
   final String? privateToken;
 
@@ -73,6 +74,7 @@ class UploadItem {
     this.availabilityType = 'worldwide',
     this.availabilityRegions = const [],
     this.licensing = 'all_rights_reserved',
+    this.privateToken,
     required this.createdAt,
     this.privateToken,
   });
@@ -123,6 +125,7 @@ class UploadItem {
     String? availabilityType,
     List<String>? availabilityRegions,
     String? licensing,
+    String? privateToken,
     DateTime? createdAt,
     String? privateToken,
   }) {
@@ -158,6 +161,7 @@ class UploadItem {
       availabilityType: availabilityType ?? this.availabilityType,
       availabilityRegions: availabilityRegions ?? this.availabilityRegions,
       licensing: licensing ?? this.licensing,
+      privateToken: privateToken ?? this.privateToken,
       createdAt: createdAt ?? this.createdAt,
       privateToken: privateToken ?? this.privateToken,
     );

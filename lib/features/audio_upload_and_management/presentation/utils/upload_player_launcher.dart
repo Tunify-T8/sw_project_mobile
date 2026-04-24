@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
+import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/domain/entities/track_artist_summary.dart';
@@ -41,6 +42,87 @@ Future<void> openUploadItemPlayer(
     queueItems: queueItems,
     autoPlay: true,
   );
+
+  if (!openScreen || !context.mounted) return;
+  await Navigator.of(context).push(
+    PageRouteBuilder(
+      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 340),
+    ),
+  );
+}
+
+/// Variant of [openUploadItemPlayer] used when the track is being played
+/// from the user's listening history. Builds the queue from the supplied
+/// history tracks and tags it with [QueueSource.history] so the "next up"
+/// list tracks the history, not "more by this artist".
+Future<void> openHistorySourcedPlayer(
+  BuildContext context,
+  WidgetRef ref,
+  UploadItem item, {
+  required List<HistoryTrack> historyTracks,
+  bool openScreen = true,
+}) async {
+  if (!item.isPlayable) return;
+
+  await _ensureCachedUploadsHydrated(ref);
+
+  final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
+
+  _optimisticallyPromoteHistory(ref, preparedItem);
+
+  final queueTrackIds = historyTracks
+      .where((h) => h.status != PlaybackStatus.blocked)
+      .map((h) => h.trackId)
+      .toList(growable: false);
+  final startIndex = queueTrackIds.indexOf(preparedItem.id);
+
+  final seedTrack = PlayerSeedTrack(
+    trackId: preparedItem.id,
+    title: preparedItem.title,
+    artistName: preparedItem.artistDisplay,
+    durationSeconds: preparedItem.durationSeconds,
+    coverUrl: preparedItem.artworkUrl,
+    waveformUrl: preparedItem.waveformUrl,
+    directAudioUrl: preparedItem.audioUrl,
+    localFilePath: preparedItem.localFilePath,
+  );
+
+  final notifier = ref.read(playerProvider.notifier);
+
+  if (startIndex >= 0 && queueTrackIds.length > 1) {
+    unawaited(
+      notifier.loadTrack(
+        preparedItem.id,
+        autoPlay: true,
+        seedTrack: seedTrack,
+        queue: PlaybackQueue(
+          trackIds: queueTrackIds,
+          currentIndex: startIndex,
+          shuffle: false,
+          repeat: RepeatMode.none,
+          source: QueueSource.history,
+        ),
+      ),
+    );
+  } else {
+    unawaited(
+      notifier.loadTrack(
+        preparedItem.id,
+        autoPlay: true,
+        seedTrack: seedTrack,
+      ),
+    );
+  }
+
+  await _waitForTrackToBecomeCurrent(ref, preparedItem.id);
 
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
@@ -415,6 +497,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     availabilityType: dto.availabilityType,
     availabilityRegions: dto.availabilityRegions,
     licensing: dto.licensing,
+    privateToken: dto.privateToken,
     createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
     privateToken: dto.privateToken,
   );

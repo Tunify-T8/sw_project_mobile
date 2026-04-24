@@ -30,6 +30,8 @@ class StreamingApi {
   /// Current backend contract:
   /// GET /tracks/{trackId}/stream
   ///
+  /// For private tracks the backend requires the privateToken query param,
+  /// otherwise it responds with 403 `private_no_token`.
   /// Older drafts used POST, so we still keep the GET -> POST fallback.
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
@@ -50,6 +52,7 @@ class StreamingApi {
 
     final fallbackResponse = await _dio.post(
       ApiEndpoints.trackStream(trackId),
+      queryParameters: query.isEmpty ? null : query,
       data: {
         'quality': quality,
         ...?(privateToken != null ? {'privateToken': privateToken} : null),

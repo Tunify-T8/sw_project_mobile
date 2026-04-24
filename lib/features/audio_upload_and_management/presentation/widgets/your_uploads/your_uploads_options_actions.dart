@@ -10,18 +10,21 @@ class YourUploadsShareButton extends StatelessWidget {
     required this.icon,
     required this.label,
     this.onTap,
+    this.iconColor,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(right: 16),
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -32,7 +35,7 @@ class YourUploadsShareButton extends StatelessWidget {
                 color: Color(0xFF2A2A2A),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: Colors.white, size: 22),
+              child: Icon(icon, color: iconColor ?? Colors.white, size: 22),
             ),
             const SizedBox(height: 4),
             Text(

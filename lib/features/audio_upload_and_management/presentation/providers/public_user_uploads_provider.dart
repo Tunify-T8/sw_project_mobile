@@ -35,9 +35,16 @@ final publicUserUploadsProvider = FutureProvider.autoDispose
             ? body
             : const <dynamic>[];
 
+    final now = DateTime.now();
     return rawList
         .whereType<Map<String, dynamic>>()
         .map(_publicTrackJsonToUploadItem)
+        .where(
+          (track) =>
+              track.visibility == UploadVisibility.public &&
+              (track.scheduledReleaseDate == null ||
+                  !track.scheduledReleaseDate!.isAfter(now)),
+        )
         .toList(growable: false);
   } catch (_) {
     // Empty list keeps the profile screen's "No uploaded tracks yet." state

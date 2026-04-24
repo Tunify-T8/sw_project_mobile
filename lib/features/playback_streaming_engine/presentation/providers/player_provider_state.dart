@@ -31,6 +31,10 @@ class PlayerState {
   final double? mediaDurationSeconds;
   final String? privateToken;
 
+  /// Kept so stream-URL refreshes for private tracks still authorize after
+  /// the initial signed URL expires.
+  final String? privateToken;
+
   bool get hasTrack => bundle != null;
 
   bool get canPlay =>
