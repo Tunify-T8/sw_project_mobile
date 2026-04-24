@@ -1,7 +1,28 @@
-part of 'your_uploads_options_sheet.dart';
+// Upload Feature Guide:
+// Purpose: Legacy body widget for the Your Uploads track options sheet.
+// Used by: internal — the shared track_options_sheet now drives this UI.
+// Concerns: Multi-format support; Track visibility.
+//
+// This file was originally a `part of 'your_uploads_options_sheet.dart'` body.
+// The parent was refactored to delegate to the shared track options sheet, so
+// this file is kept as a self-contained standalone widget that preserves the
+// exact same logic (header + share row + option rows + copy/WhatsApp actions)
+// in case any surface wants to mount the old, upload-specific sheet directly.
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class _TrackOptionsSheet extends ConsumerWidget {
-  const _TrackOptionsSheet({
+import '../../../../../core/network/api_endpoints.dart';
+import '../../../domain/entities/upload_item.dart';
+import '../../providers/track_detail_item_provider.dart';
+import '../../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../upload_artwork_view.dart';
+import 'your_uploads_options_actions.dart';
+
+class YourUploadsTrackOptionsSheet extends ConsumerWidget {
+  const YourUploadsTrackOptionsSheet({
+    super.key,
     required this.item,
     required this.onEditTap,
     required this.onDeleteTap,
