@@ -1,9 +1,13 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/routing/routes.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
@@ -13,19 +17,15 @@ import '../../../audio_upload_and_management/presentation/screens/track_info_scr
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../messaging_track_sharing/domain/entities/conversation_entity.dart';
+import '../../../messaging_track_sharing/domain/entities/message_attachment.dart';
+import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/history_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
 
 /// Lightweight data model used by the shared song options sheet.
-///
-/// The goal of this object is simple:
-/// different screens in the app may know different amounts of information
-/// about a song. Some screens know the full [UploadItem], some only know a
-/// history item, and some only know a track id plus a title.
-///
-/// This class gives the bottom sheet one consistent shape to render.
 class TrackOptionInfo {
   const TrackOptionInfo({
     required this.trackId,
@@ -44,23 +44,9 @@ class TrackOptionInfo {
   final String artist;
   final String? coverUrl;
   final String? localArtworkPath;
-
-  /// Signal from the caller that this track is locally known to belong to
-  /// the current user (e.g. it's in the uploads store). The sheet cross-
-  /// checks this against the signed-in user too, so callers can pass false
-  /// and still get the owner layout if the identities match.
   final bool isOwned;
-
-  /// The uploader's user id, when known. Required for the non-owner sheet
-  /// so "Go to profile" can navigate to the correct profile.
   final String? artistId;
-
-  /// Whether the track's visibility is private. Drives which "Copy link"
-  /// label to show and whether a private token is needed for the link.
   final bool isPrivate;
-
-  /// Token for building a shareable private-track link. Only meaningful for
-  /// owners (or anyone who already has access).
   final String? privateToken;
 
   factory TrackOptionInfo.fromUploadItem(UploadItem item, {String? artistId}) {
@@ -87,14 +73,6 @@ class TrackOptionInfo {
     );
   }
 
-  /// Resolve a track from local app stores first.
-  ///
-  /// Why this matters:
-  /// - if the song is one of the user's uploaded tracks, we want `isOwned=true`
-  ///   so the sheet shows "Edit track"
-  /// - if the uploaded track has local artwork, we want to show that too
-  /// - if nothing is found locally, we still use the fallback values supplied
-  ///   by the caller so the sheet can render correctly from discovery/history
   factory TrackOptionInfo.fromTrackId(
     String trackId,
     WidgetRef ref, {
@@ -108,10 +86,7 @@ class TrackOptionInfo {
   }) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
     if (stored != null) {
-      return TrackOptionInfo.fromUploadItem(
-        stored,
-        artistId: fallbackArtistId,
-      );
+      return TrackOptionInfo.fromUploadItem(stored, artistId: fallbackArtistId);
     }
 
     final historyTracks =
@@ -122,8 +97,6 @@ class TrackOptionInfo {
       }
     }
 
-    // Playing bundle is a last-resort lookup for tracks we don't know about
-    // locally — e.g. opened from search then we reopen the sheet elsewhere.
     final playingBundle = ref.read(playerProvider).asData?.value.bundle;
     if (playingBundle != null && playingBundle.trackId == trackId) {
       return TrackOptionInfo(
@@ -145,18 +118,13 @@ class TrackOptionInfo {
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
       artistId: fallbackArtistId,
-      isPrivate: fallbackPrivateToken != null &&
-          fallbackPrivateToken.trim().isNotEmpty,
+      isPrivate:
+          fallbackPrivateToken != null && fallbackPrivateToken.trim().isNotEmpty,
       privateToken: fallbackPrivateToken,
     );
   }
 }
 
-/// Shared bottom sheet used by Artist Home, Your Uploads, Track Detail, etc.
-///
-/// [onEditTap] / [onDeleteTap] are optional hooks used by the Your Uploads
-/// surface so the sheet can wire the existing edit/delete flow without
-/// duplicating the UI.
 Future<void> showTrackOptionsSheet(
   BuildContext context, {
   required TrackOptionInfo info,
@@ -177,7 +145,7 @@ Future<void> showTrackOptionsSheet(
   );
 }
 
-class _TrackOptionsSheetContent extends StatelessWidget {
+class _TrackOptionsSheetContent extends ConsumerWidget {
   const _TrackOptionsSheetContent({
     required this.info,
     required this.ref,
@@ -190,30 +158,24 @@ class _TrackOptionsSheetContent extends StatelessWidget {
   final VoidCallback? onEditTap;
   final VoidCallback? onDeleteTap;
 
-  /// Combine the caller's hint with the current authenticated user id.
-  /// If the signed-in user IS the uploader, the sheet always shows the
-  /// owner layout — even if the caller didn't know (e.g. opened from a
-  /// discovery feed where the track isn't in the local store yet).
   bool _resolveIsOwned() {
     if (info.isOwned) return true;
 
     final uploaderId = info.artistId?.trim();
     if (uploaderId == null || uploaderId.isEmpty) return false;
 
-    final currentUserId = ref
-        .read(authControllerProvider)
-        .asData
-        ?.value
-        ?.id
-        .trim();
+    final currentUserId =
+        ref.read(authControllerProvider).asData?.value?.id.trim();
     if (currentUserId == null || currentUserId.isEmpty) return false;
 
     return currentUserId == uploaderId;
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef watchRef) {
     final isOwned = _resolveIsOwned();
+    final conversations =
+        watchRef.watch(conversationsControllerProvider).items;
 
     return Container(
       decoration: const BoxDecoration(
@@ -226,6 +188,7 @@ class _TrackOptionsSheetContent extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ── Drag handle ──────────────────────────────────────────
               const SizedBox(height: 8),
               Container(
                 width: 40,
@@ -235,14 +198,32 @@ class _TrackOptionsSheetContent extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 16),
-              _TrackHeader(info: info),
-              const _ShareLabel(),
+              const SizedBox(height: 12),
+
+              // ── Frosted track header ─────────────────────────────────
+              _FrostedTrackHeader(info: info),
+              const SizedBox(height: 4),
+
+              // ── Send To ──────────────────────────────────────────────
+              if (conversations.isNotEmpty) ...[
+                _SectionLabel(label: 'SEND TO'),
+                _SendToRow(
+                  info: info,
+                  conversations: conversations,
+                ),
+              ],
+
+              // ── Share ────────────────────────────────────────────────
+              _SectionLabel(label: 'SHARE'),
               _ShareRow(info: info, ref: ref),
+
               const Divider(color: Colors.white12, height: 1),
+
+              // ── Action rows (owner vs non-owner) ─────────────────────
               ...(isOwned
                   ? _buildOwnerRows(context)
                   : _buildNonOwnerRows(context)),
+
               const SizedBox(height: 8),
             ],
           ),
@@ -397,21 +378,13 @@ class _TrackOptionsSheetContent extends StatelessWidget {
 
   void _navigateToEditTrack(BuildContext context) {
     final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-    if (stored == null) {
-      return;
-    }
-
+    if (stored == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TrackDetailScreen(item: stored),
-      ),
+      MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
     );
   }
 
   void _navigateToUploaderProfile(BuildContext context) {
-    // Prefer the id the caller supplied; otherwise try to resolve it from
-    // the currently playing bundle (same track), and finally from the
-    // local store's owner mapping.
     String? userId = info.artistId?.trim();
 
     if (userId == null || userId.isEmpty) {
@@ -434,8 +407,6 @@ class _TrackOptionsSheetContent extends StatelessWidget {
     }
 
     if (userId == null || userId.isEmpty) {
-      // Without an id we cannot open the profile — surface a hint instead
-      // of navigating to a broken screen.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Uploader profile is not available for this track'),
@@ -477,82 +448,144 @@ class _TrackOptionsSheetContent extends StatelessWidget {
         );
 
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TrackInfoScreen(item: item),
-      ),
+      MaterialPageRoute(builder: (_) => TrackInfoScreen(item: item)),
     );
   }
 }
 
-class _TrackHeader extends StatelessWidget {
-  const _TrackHeader({required this.info});
+// ── Frosted track header ────────────────────────────────────────────────────
+
+class _FrostedTrackHeader extends StatelessWidget {
+  const _FrostedTrackHeader({required this.info});
 
   final TrackOptionInfo info;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          UploadArtworkView(
-            localPath: info.localArtworkPath,
-            remoteUrl: info.coverUrl,
-            width: 56,
-            height: 56,
-            backgroundColor: const Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.circular(4),
-            placeholder: const Icon(
-              Icons.music_note,
-              color: Colors.white24,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  info.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Blurred artwork backdrop
+            if (info.coverUrl != null || info.localArtworkPath != null)
+              Positioned.fill(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  child: UploadArtworkView(
+                    localPath: info.localArtworkPath,
+                    remoteUrl: info.coverUrl,
+                    width: double.infinity,
+                    height: double.infinity,
+                    backgroundColor: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.zero,
+                    placeholder: const SizedBox.shrink(),
                   ),
                 ),
-                Text(
-                  info.artist,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+              )
+            else
+              Positioned.fill(
+                child: Container(color: const Color(0xFF2A2A2A)),
+              ),
+
+            // Dark overlay so text is always readable
+            Positioned.fill(
+              child: Container(color: Colors.black.withValues(alpha: 0.55)),
             ),
-          ),
-        ],
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  UploadArtworkView(
+                    localPath: info.localArtworkPath,
+                    remoteUrl: info.coverUrl,
+                    width: 56,
+                    height: 56,
+                    backgroundColor: const Color(0xFF3A4A6A),
+                    borderRadius: BorderRadius.circular(6),
+                    placeholder: const Icon(
+                      Icons.music_note,
+                      color: Colors.white24,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          info.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Text(
+                              info.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (info.isPrivate) ...[
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.lock_outline,
+                                color: Colors.white54,
+                                size: 13,
+                              ),
+                              const SizedBox(width: 2),
+                              const Text(
+                                'Private',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ShareLabel extends StatelessWidget {
-  const _ShareLabel();
+// ── Section label ───────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          'SHARE',
-          style: TextStyle(
+          label,
+          style: const TextStyle(
             color: Colors.white54,
             fontSize: 12,
             letterSpacing: 1.2,
@@ -563,6 +596,100 @@ class _ShareLabel extends StatelessWidget {
     );
   }
 }
+
+// ── Send To row (recent conversations) ─────────────────────────────────────
+
+class _SendToRow extends StatelessWidget {
+  const _SendToRow({required this.info, required this.conversations});
+
+  final TrackOptionInfo info;
+  final List<ConversationEntity> conversations;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = conversations.take(5).toList();
+
+    return SizedBox(
+      height: 90,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: visible.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final conv = visible[index];
+          return _SendToAvatar(info: info, conversation: conv);
+        },
+      ),
+    );
+  }
+}
+
+class _SendToAvatar extends StatelessWidget {
+  const _SendToAvatar({required this.info, required this.conversation});
+
+  final TrackOptionInfo info;
+  final ConversationEntity conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = conversation.otherUser;
+    final name = user.displayName;
+    final shortName = name.length > 8 ? '${name.substring(0, 7)}…' : name;
+
+    return GestureDetector(
+      onTap: () => _sendTrackToConversation(context),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: const Color(0xFF2A2A2A),
+            backgroundImage: user.avatarUrl != null
+                ? NetworkImage(user.avatarUrl!)
+                : null,
+            child: user.avatarUrl == null
+                ? Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            shortName,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sendTrackToConversation(BuildContext context) {
+    Navigator.pop(context);
+    Navigator.of(context).pushNamed(
+      Routes.chat,
+      arguments: {
+        'conversationId': conversation.conversationId,
+        'otherUserName': conversation.otherUser.displayName,
+        'otherUserAvatar': conversation.otherUser.avatarUrl,
+        'pendingAttachment': MessageAttachment(
+          id: info.trackId,
+          type: MessageAttachmentType.track,
+          title: info.title,
+          subtitle: info.artist,
+          artworkUrl: info.coverUrl,
+        ),
+      },
+    );
+  }
+}
+
+// ── Share row (social + copy link) ─────────────────────────────────────────
 
 class _ShareRow extends StatelessWidget {
   const _ShareRow({required this.info, required this.ref});
@@ -577,26 +704,34 @@ class _ShareRow extends StatelessWidget {
     final usePrivateLabel = info.isPrivate || hasToken;
 
     return SizedBox(
-      height: 80,
+      height: 88,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          const YourUploadsShareButton(
+          // Message — opens native share sheet
+          YourUploadsShareButton(
             icon: Icons.send_outlined,
             label: 'Message',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              final text = Uri.encodeComponent(
+                  'Check out "${info.title}" on Tunify: $url');
+              await launchUrl(
+                Uri.parse('sms:?body=$text'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
           ),
+
+          // Copy link
           YourUploadsShareButton(
             icon: Icons.copy_outlined,
             label: usePrivateLabel ? 'Copy private link' : 'Copy link',
             onTap: () async {
-              final url = await _buildTrackOptionShareUrl(
-                context,
-                info,
-                ref,
-              );
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
-
               await Clipboard.setData(ClipboardData(text: url));
               if (!context.mounted) return;
               Navigator.pop(context);
@@ -612,35 +747,191 @@ class _ShareRow extends StatelessWidget {
               );
             },
           ),
+
+          // QR code (placeholder)
           const YourUploadsShareButton(
             icon: Icons.qr_code_2,
             label: 'QR code',
           ),
-          YourUploadsShareButton(
-            icon: Icons.chat_outlined,
+
+          // WhatsApp
+          _SocialShareButton(
+            faIcon: FontAwesomeIcons.whatsapp,
+            iconColor: const Color(0xFF25D366),
             label: 'WhatsApp',
             onTap: () async {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
-
               final msg = Uri.encodeComponent(
-                'Check out "${info.title}" on Tunify: $url',
-              );
+                  'Check out "${info.title}" on Tunify: $url');
               await launchUrl(
                 Uri.parse('https://wa.me/?text=$msg'),
                 mode: LaunchMode.externalApplication,
               );
             },
           ),
-          const YourUploadsShareButton(
+
+          // SMS
+          YourUploadsShareButton(
             icon: Icons.sms_outlined,
             label: 'SMS',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              final text = Uri.encodeComponent(
+                  'Check out "${info.title}" on Tunify: $url');
+              await launchUrl(
+                Uri.parse('sms:?body=$text'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+
+          // Instagram Stories
+          _SocialShareButton(
+            faIcon: FontAwesomeIcons.instagram,
+            iconColor: const Color(0xFFE1306C),
+            label: 'Stories',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              // Instagram deep-link: opens the app
+              await launchUrl(
+                Uri.parse('instagram://sharesheet?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+
+          // Snapchat
+          _SocialShareButton(
+            faIcon: FontAwesomeIcons.snapchat,
+            iconColor: const Color(0xFFFFFC00),
+            label: 'Snapchat',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              await launchUrl(
+                Uri.parse('snapchat://send?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+
+          // Facebook
+          _SocialShareButton(
+            faIcon: FontAwesomeIcons.facebook,
+            iconColor: const Color(0xFF1877F2),
+            label: 'Facebook',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              await launchUrl(
+                Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(url)}'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+
+          // X (Twitter)
+          _SocialShareButton(
+            faIcon: FontAwesomeIcons.xTwitter,
+            iconColor: Colors.white,
+            label: 'X',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              final text = Uri.encodeComponent(
+                  'Check out "${info.title}" on Tunify: $url');
+              await launchUrl(
+                Uri.parse('https://twitter.com/intent/tweet?text=$text'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+
+          // Messenger
+          _SocialShareButton(
+            faIcon: FontAwesomeIcons.facebookMessenger,
+            iconColor: const Color(0xFF0084FF),
+            label: 'Messenger',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              await launchUrl(
+                Uri.parse('fb-messenger://share?link=${Uri.encodeComponent(url)}'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+
+          // More (opens generic share intent via browser fallback)
+          YourUploadsShareButton(
+            icon: Icons.more_horiz,
+            label: 'More',
+            onTap: () async {
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null) return;
+              await launchUrl(
+                Uri.parse(url),
+                mode: LaunchMode.externalApplication,
+              );
+            },
           ),
         ],
       ),
     );
   }
 }
+
+/// A share button that renders a FontAwesome brand icon inside a colored circle.
+class _SocialShareButton extends StatelessWidget {
+  const _SocialShareButton({
+    required this.faIcon,
+    required this.iconColor,
+    required this.label,
+    this.onTap,
+  });
+
+  final IconData faIcon;
+  final Color iconColor;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2A2A2A),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: FaIcon(faIcon, color: iconColor, size: 22),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Share URL builder ───────────────────────────────────────────────────────
 
 Future<String?> _buildTrackOptionShareUrl(
   BuildContext context,
@@ -673,22 +964,11 @@ Future<String?> _buildTrackOptionShareUrl(
   }
 
   final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-  final shouldUsePrivateLink =
-      detailPrivacy == 'private' ||
+  final shouldUsePrivateLink = detailPrivacy == 'private' ||
       stored?.visibility == UploadVisibility.private ||
       (privateToken != null && privateToken.isNotEmpty);
 
-  debugPrint(
-    'shareTrackUrl trackId=${info.trackId} '
-    'isOwned=${info.isOwned} '
-    'detailPrivacy=$detailPrivacy '
-    'storedVisibility=${stored?.visibility.name} '
-    'requiresPrivate=$shouldUsePrivateLink '
-    'hasPrivateToken=${privateToken != null && privateToken.isNotEmpty}',
-  );
-
-  if (shouldUsePrivateLink &&
-      (privateToken == null || privateToken.isEmpty)) {
+  if (shouldUsePrivateLink && (privateToken == null || privateToken.isEmpty)) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
