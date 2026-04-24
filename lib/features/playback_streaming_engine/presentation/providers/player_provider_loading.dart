@@ -17,6 +17,16 @@ extension PlayerNotifierLoading on PlayerNotifier {
     _progressReportTimer?.cancel();
     await _audioPlayer.stop();
 
+    // FIX: always clear the loaded-source cache so _prepareAudioSource
+    // unconditionally sets a fresh audio source on every loadTrack call.
+    // Without this, if Account B loads the same trackId that Account A had
+    // loaded (the cache survived the account switch), the source-key equality
+    // check inside _prepareAudioSource skips setAudioSource entirely — leaving
+    // just_audio in a stopped state with no playable source, which causes the
+    // player screen to hang at paused indefinitely.
+    _loadedTrackId = null;
+    _loadedSourceKey = null;
+
     final provisionalBundle = seedTrack?.toPlaybackBundle();
     if (provisionalBundle != null) {
       _setPlayerState(
@@ -82,6 +92,10 @@ extension PlayerNotifierLoading on PlayerNotifier {
         return nextState;
       }),
     );
+
+    if (state.hasError) {
+      debugPrint('loadTrack failed for $trackId: ${state.error}');
+    }
 
     if (state.asData?.value != null) {
       await _persistCurrentSession(

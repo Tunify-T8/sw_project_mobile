@@ -88,10 +88,12 @@ class UploadItemDto {
 
     final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
     final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
-    final privacyRaw =
+    final privacyRaw = (
         _asString(json['privacy']) ??
         _asString(json['visibility']) ??
-        'private';
+        'private')
+        .trim()
+        .toLowerCase();
     final statusRaw =
         _asString(json['status']) ??
         _asString(json['transcodingStatus']) ??

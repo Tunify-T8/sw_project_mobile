@@ -36,6 +36,7 @@ class TrackResponseDto {
   final String? errorCode;
   final String? errorMessage;
   final String? privateToken;
+  final Map<String, dynamic>? rawJson;
 
   TrackResponseDto({
     required this.trackId,
@@ -67,6 +68,7 @@ class TrackResponseDto {
     this.errorCode,
     this.errorMessage,
     this.privateToken,
+    this.rawJson,
   });
 
   factory TrackResponseDto.fromJson(Map<String, dynamic> json) {
@@ -159,6 +161,7 @@ class TrackResponseDto {
           ? error['message'] as String?
           : null,
       privateToken: json['privateToken'] as String?,
+      rawJson: json,
     );
   }
 }

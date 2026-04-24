@@ -40,7 +40,11 @@ extension _LibraryScreenActions on _LibraryScreenState {
     }
 
     if (label == 'Open shared link') {
-      showOpenSharedTrackLinkDialog(context, ref);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const OpenSharedTrackLinkScreen(),
+        ),
+      );
       return;
     }
 

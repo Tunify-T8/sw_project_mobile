@@ -83,14 +83,20 @@ extension TrackResponseDtoMapper on TrackResponseDto {
 }
 
 String? _readPrivateToken(TrackResponseDto dto) {
+  final rawToken = dto.rawJson?['privateToken'];
+  if (rawToken is String && rawToken.trim().isNotEmpty) {
+    return rawToken.trim();
+  }
+
   try {
     final dynamic dynamicDto = dto;
     final token = dynamicDto.privateToken;
     if (token is String && token.trim().isNotEmpty) {
-      return token;
+      return token.trim();
     }
   } catch (_) {
-    return null;
+    // Older generated/test DTO shapes may not expose privateToken directly.
   }
+
   return null;
 }

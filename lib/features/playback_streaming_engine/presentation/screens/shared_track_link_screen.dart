@@ -33,6 +33,7 @@ class _SharedTrackLinkScreenState extends ConsumerState<SharedTrackLinkScreen> {
         ref,
         trackId: widget.trackId,
         privateToken: widget.privateToken,
+        replaceCurrentRoute: true,
       );
       if (!mounted) return;
       if (!opened || Navigator.of(context).canPop()) {

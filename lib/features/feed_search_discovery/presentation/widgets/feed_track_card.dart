@@ -21,11 +21,17 @@ class FeedTrackCard extends ConsumerWidget {
     
     final feedState = ref.watch(feedNotifierProvider);
 
+    // Feed preview entry point: tapping anywhere on the card, including the
+    // artwork below, toggles the 30-second preview playback for this track.
     return GestureDetector(
       onTap: () {
+        // Capture the previous UI state before toggling it so the audio action
+        // matches the user's intent: preview was on -> stop, preview was off -> start.
         final wasPreviewing = ref.read(feedNotifierProvider).isPreviewing;
         ref.read(feedNotifierProvider.notifier).togglePreview();
 
+        // This controller owns a separate just_audio player used only for feed
+        // previews, so the main app player and mini-player state stay untouched.
         final previewController =
             ref.read(feedPreviewPlaybackControllerProvider);
         if (wasPreviewing) {
@@ -87,6 +93,8 @@ class FeedTrackCard extends ConsumerWidget {
             ),
           ),
 
+          // The overlay invites the user to start preview playback. Once the
+          // preview starts, it is hidden so the artwork is visible.
           if (!feedState.isPreviewing) FeedPreviewOverlay(),
 
 

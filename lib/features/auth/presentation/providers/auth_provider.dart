@@ -209,6 +209,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   Future<void> verifyEmail(String email, String token) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _verifyEmail(email, token);
       state = AsyncData<AuthUserEntity?>(user);
     } catch (e, s) {
@@ -236,6 +237,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   Future<void> login(String email, String password) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _login(email, password);
       state = AsyncData<AuthUserEntity?>(user);
     } catch (e, s) {
@@ -261,6 +263,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
 
       state = const AsyncLoading<AuthUserEntity?>();
 
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _oauthGoogleSignIn(
         authorizationCode: result.authorizationCode,
       );
@@ -290,6 +293,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   }) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _linkGoogleAccount(
         linkingToken: linkingToken,
         password: password,
@@ -306,6 +310,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   /// invalidates the player and listening history, and resets state to
   /// `AsyncData(null)`.
   Future<void> logout() async {
+    await _clearPlaybackBeforeAccountSwitch();
     await _logout();
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
@@ -319,12 +324,19 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   /// Same as [logout] but revokes every refresh token for the account, not
   /// just the current one.
   Future<void> logoutAll() async {
+    await _clearPlaybackBeforeAccountSwitch();
     await _logoutAll();
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
     ref.invalidate(playerProvider);
     ref.read(searchProvider.notifier).clearRecentResults();
     state = const AsyncData<AuthUserEntity?>(null);
+  }
+
+  Future<void> _clearPlaybackBeforeAccountSwitch() async {
+    try {
+      await ref.read(playerProvider.notifier).clearPlaybackSession();
+    } catch (_) {}
   }
 
   /// Sends a password reset code to [email].

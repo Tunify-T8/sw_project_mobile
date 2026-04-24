@@ -358,7 +358,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       tags: dto.tags,
       genreCategory: dto.genreCategory,
       genreSubGenre: dto.genreSubGenre,
-      visibility: dto.privacy == 'public'
+      visibility: dto.privacy.trim().toLowerCase() == 'public'
           ? UploadVisibility.public
           : UploadVisibility.private,
       status: _dtoStatusToEntityStatus(dto.status),

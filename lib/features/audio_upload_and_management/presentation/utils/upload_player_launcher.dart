@@ -35,16 +35,12 @@ Future<void> openUploadItemPlayer(
 
   _optimisticallyPromoteHistory(ref, preparedItem);
 
-  unawaited(
-    ensureUploadItemPlayback(
-      ref,
-      preparedItem,
-      queueItems: queueItems,
-      autoPlay: true,
-    ),
+  await ensureUploadItemPlayback(
+    ref,
+    preparedItem,
+    queueItems: queueItems,
+    autoPlay: true,
   );
-
-  await _waitForTrackToBecomeCurrent(ref, preparedItem.id);
 
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
@@ -104,12 +100,19 @@ Future<void> ensureUploadItemPlayback(
   UploadItem resolvedItem = item;
   if (item.visibility == UploadVisibility.private &&
       item.privateToken == null) {
+    ref.invalidate(trackDetailItemProvider(item));
     try {
       resolvedItem = await ref
           .read(trackDetailItemProvider(item).future)
           .timeout(const Duration(seconds: 5));
-    } catch (_) {
+    } catch (error) {
+      debugPrint('Private track detail fetch failed for ${item.id}: $error');
       resolvedItem = item;
+    }
+
+    if (resolvedItem.privateToken == null ||
+        resolvedItem.privateToken!.trim().isEmpty) {
+      debugPrint('Private track ${item.id} has no privateToken after details.');
     }
   }
 
@@ -142,7 +145,7 @@ Future<void> ensureUploadItemPlayback(
     localFilePath: item.localFilePath,
   );
 
-  if (isSameTrack) {
+  if (isSameTrack && current?.isBuffering != true) {
     final hasUsefulQueue = (current?.queue?.trackIds.length ?? 0) > 1;
     if (!hasUsefulQueue && currentIndex >= 0 && queueIds.length > 1) {
       await notifier.loadTrackWithQueue(
@@ -176,7 +179,12 @@ Future<void> ensureUploadItemPlayback(
     return;
   }
 
-  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack, privateToken: item.privateToken);
+  await notifier.loadTrack(
+    item.id,
+    autoPlay: autoPlay,
+    seedTrack: seedTrack,
+    privateToken: item.privateToken,
+  );
 }
 
 // Fire-and-forget background fetch: pull the playing artist's full track
@@ -387,7 +395,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     tags: dto.tags,
     genreCategory: dto.genreCategory,
     genreSubGenre: dto.genreSubGenre,
-    visibility: dto.privacy == 'public'
+    visibility: dto.privacy.trim().toLowerCase() == 'public'
         ? UploadVisibility.public
         : UploadVisibility.private,
     status: _dtoStatusToEntityStatus(dto.status),

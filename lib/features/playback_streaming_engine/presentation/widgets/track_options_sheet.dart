@@ -7,6 +7,7 @@ import '../../../../core/network/api_endpoints.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
+import '../../../audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
@@ -222,12 +223,15 @@ class _TrackOptionsSheetContent extends StatelessWidget {
                   YourUploadsShareButton(
                     icon: Icons.copy_outlined,
                     label: 'Copy link',
-                    onTap: () {
-                      final url = ApiEndpoints.shareTrackUrl(
-                        info.trackId,
-                        privateToken: info.isOwned ? info.privateToken : null,
+                    onTap: () async {
+                      final url = await _buildTrackOptionShareUrl(
+                        context,
+                        info,
+                        ref,
                       );
-                      Clipboard.setData(ClipboardData(text: url));
+                      if (url == null) return;
+                      await Clipboard.setData(ClipboardData(text: url));
+                      if (!context.mounted) return;
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -245,10 +249,12 @@ class _TrackOptionsSheetContent extends StatelessWidget {
                     icon: Icons.chat_outlined,
                     label: 'WhatsApp',
                     onTap: () async {
-                      final url = ApiEndpoints.shareTrackUrl(
-                        info.trackId,
-                        privateToken: info.isOwned ? info.privateToken : null,
+                      final url = await _buildTrackOptionShareUrl(
+                        context,
+                        info,
+                        ref,
                       );
+                      if (url == null) return;
                       final msg = Uri.encodeComponent(
                         'Check out "${info.title}" on Tunify: $url',
                       );
@@ -344,4 +350,68 @@ class _TrackOptionsSheetContent extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<String?> _buildTrackOptionShareUrl(
+  BuildContext context,
+  TrackOptionInfo info,
+  WidgetRef ref,
+) async {
+  var privateToken = info.privateToken?.trim();
+  var detailPrivacy = '';
+
+  try {
+    final details = await ref
+        .read(uploadRepositoryProvider)
+        .getTrackDetails(info.trackId)
+        .timeout(const Duration(seconds: 5));
+    detailPrivacy = details.privacy?.trim().toLowerCase() ?? '';
+    final detailToken = details.privateToken?.trim();
+    if (detailToken != null && detailToken.isNotEmpty) {
+      privateToken = detailToken;
+    }
+  } catch (error) {
+    debugPrint('shareTrackUrl detail fetch failed for ${info.trackId}: $error');
+  }
+
+  final current = ref.read(playerProvider).asData?.value;
+  if (current?.bundle?.trackId == info.trackId) {
+    final currentToken = current?.privateToken?.trim();
+    if (currentToken != null && currentToken.isNotEmpty) {
+      privateToken = currentToken;
+    }
+  }
+
+  final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
+  final shouldUsePrivateLink =
+      detailPrivacy == 'private' ||
+      stored?.visibility == UploadVisibility.private ||
+      (privateToken != null && privateToken.isNotEmpty);
+
+  debugPrint(
+    'shareTrackUrl trackId=${info.trackId} '
+    'isOwned=${info.isOwned} '
+    'detailPrivacy=$detailPrivacy '
+    'storedVisibility=${stored?.visibility.name} '
+    'requiresPrivate=$shouldUsePrivateLink '
+    'hasPrivateToken=${privateToken != null && privateToken.isNotEmpty}',
+  );
+
+  if (shouldUsePrivateLink &&
+      (privateToken == null || privateToken.isEmpty)) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not create private link. Token is missing.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+    return null;
+  }
+
+  return ApiEndpoints.shareTrackUrl(
+    info.trackId,
+    privateToken: shouldUsePrivateLink ? privateToken : null,
+  );
 }

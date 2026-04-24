@@ -17,7 +17,10 @@ import '../widgets/track_detail/track_detail_waveform_panel.dart';
 import 'track_info_screen.dart';
 
 class TrackDetailScreen extends ConsumerStatefulWidget {
-  const TrackDetailScreen({super.key, required this.item});
+  const TrackDetailScreen({
+    super.key,
+    required this.item,
+  });
 
   final UploadItem item;
 
@@ -27,24 +30,12 @@ class TrackDetailScreen extends ConsumerStatefulWidget {
 
 class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
   late UploadItem _surfaceItem;
-  bool _initializedPlayback = false;
+  bool _allowPlayerTrackSwitchSync = false;
 
   @override
   void initState() {
     super.initState();
     _surfaceItem = widget.item;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted || _initializedPlayback) return;
-      _initializedPlayback = true;
-
-      final playerState = ref.read(playerProvider).asData?.value;
-      final alreadyHandlingThisTrack =
-          playerState?.bundle?.trackId == _surfaceItem.id;
-
-      if (!alreadyHandlingThisTrack) {
-        await ensureUploadItemPlayback(ref, _surfaceItem, autoPlay: true);
-      }
-    });
   }
 
   @override
@@ -52,7 +43,7 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.item.id != widget.item.id) {
       _surfaceItem = widget.item;
-      _initializedPlayback = false;
+      _allowPlayerTrackSwitchSync = false;
     }
   }
 
@@ -67,6 +58,7 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
         if (!mounted) return;
         setState(() {
           _surfaceItem = syncedItem;
+          _allowPlayerTrackSwitchSync = false;
         });
       });
     }
@@ -97,8 +89,10 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
               onHorizontalDragEnd: (details) async {
                 final velocity = details.primaryVelocity ?? 0;
                 if (velocity < -220) {
+                  _allowPlayerTrackSwitchSync = true;
                   await ref.read(playerProvider.notifier).next();
                 } else if (velocity > 220) {
+                  _allowPlayerTrackSwitchSync = true;
                   await ref.read(playerProvider.notifier).previous();
                 }
               },
@@ -145,7 +139,12 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
   ) {
     if (playerState?.bundle == null) return null;
 
-    return uploadItemFromPlayerState(playerState!, store);
+    final currentTrackId = playerState!.bundle!.trackId;
+    if (currentTrackId != _surfaceItem.id && !_allowPlayerTrackSwitchSync) {
+      return null;
+    }
+
+    return uploadItemFromPlayerState(playerState, store);
   }
 
   Future<void> _seekToFraction(UploadItem item, double fraction) async {
@@ -157,4 +156,5 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final seconds = (duration * fraction.clamp(0.0, 1.0)).round();
     await ref.read(playerProvider.notifier).seek(seconds);
   }
+
 }
