@@ -32,15 +32,14 @@ class NotificationsState {
     bool clearError = false,
     NotificationFilter? filter,
     int? unreadCount,
-  }) =>
-      NotificationsState(
-        isLoading: isLoading ?? this.isLoading,
-        isRefreshing: isRefreshing ?? this.isRefreshing,
-        items: items ?? this.items,
-        error: clearError ? null : (error ?? this.error),
-        filter: filter ?? this.filter,
-        unreadCount: unreadCount ?? this.unreadCount,
-      );
+  }) => NotificationsState(
+    isLoading: isLoading ?? this.isLoading,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    items: items ?? this.items,
+    error: clearError ? null : (error ?? this.error),
+    filter: filter ?? this.filter,
+    unreadCount: unreadCount ?? this.unreadCount,
+  );
 }
 
 class NotificationsController extends Notifier<NotificationsState> {
@@ -70,9 +69,9 @@ class NotificationsController extends Notifier<NotificationsState> {
         ref.read(mockNotificationSimulatorProvider);
       }
 
-      final page = await ref.read(getNotificationsUseCaseProvider).call(
-            type: state.filter.apiType,
-          );
+      final page = await ref
+          .read(getNotificationsUseCaseProvider)
+          .call(type: state.filter.apiType);
       state = state.copyWith(
         isLoading: false,
         items: page.items,
@@ -86,9 +85,9 @@ class NotificationsController extends Notifier<NotificationsState> {
   Future<void> refresh() async {
     state = state.copyWith(isRefreshing: true, clearError: true);
     try {
-      final page = await ref.read(getNotificationsUseCaseProvider).call(
-            type: state.filter.apiType,
-          );
+      final page = await ref
+          .read(getNotificationsUseCaseProvider)
+          .call(type: state.filter.apiType);
       state = state.copyWith(
         isRefreshing: false,
         items: page.items,
@@ -106,14 +105,20 @@ class NotificationsController extends Notifier<NotificationsState> {
   }
 
   Future<void> markAsRead(String notificationId) async {
+    final wasUnread = state.items.any(
+      (n) => n.id == notificationId && !n.isRead,
+    );
+
     await ref.read(markNotificationReadUseCaseProvider).call(notificationId);
     state = state.copyWith(
       items: state.items
-          .map((n) => n.id == notificationId
-              ? n.copyWith(isRead: true, readAt: DateTime.now())
-              : n)
+          .map(
+            (n) => n.id == notificationId
+                ? n.copyWith(isRead: true, readAt: DateTime.now())
+                : n,
+          )
           .toList(),
-      unreadCount: (state.unreadCount - 1).clamp(0, 999),
+      unreadCount: wasUnread ? (state.unreadCount - 1).clamp(0, 999) : null,
     );
   }
 
@@ -138,10 +143,20 @@ class NotificationsController extends Notifier<NotificationsState> {
   }
 
   void _onRealtimeNotification(NotificationEntity notification) {
-    // Prepend to list and bump unread counter.
+    final withoutDuplicate = state.items
+        .where((n) => n.id != notification.id)
+        .toList();
+    final wasAlreadyUnread = state.items.any(
+      (n) => n.id == notification.id && !n.isRead,
+    );
+    final shouldCountAsUnread = !notification.isRead && !wasAlreadyUnread;
+
+    // Prepend to list and bump unread counter only for new unread items.
     state = state.copyWith(
-      items: [notification, ...state.items],
-      unreadCount: state.unreadCount + 1,
+      items: [notification, ...withoutDuplicate],
+      unreadCount: shouldCountAsUnread
+          ? state.unreadCount + 1
+          : state.unreadCount,
     );
 
     // Fire device-level push so it appears in the system notification tray.
@@ -163,5 +178,5 @@ class NotificationsController extends Notifier<NotificationsState> {
 
 final notificationsControllerProvider =
     NotifierProvider<NotificationsController, NotificationsState>(
-  NotificationsController.new,
-);
+      NotificationsController.new,
+    );

@@ -36,7 +36,10 @@ class NotificationApi {
   /// GET /notifications/unread-count — returns { unreadCount: N }
   Future<int> getUnreadCount() async {
     final res = await _dio.get(NotificationEndpoints.unreadCount);
-    return (_toMap(res.data)['unreadCount'] as int?) ?? 0;
+    final body = _toMap(res.data);
+    final data = body['data'];
+    final payload = data is Map ? _toMap(data) : body;
+    return _int(payload['unreadCount'] ?? payload['count']) ?? 0;
   }
 
   /// PATCH /notifications/:id — returns { message: '...' }
@@ -75,6 +78,14 @@ class NotificationApi {
     if (raw is Map) {
       return raw.map((k, v) => MapEntry(k.toString(), v));
     }
-    throw StateError('Unexpected notification API response type: ${raw.runtimeType}');
+    throw StateError(
+      'Unexpected notification API response type: ${raw.runtimeType}',
+    );
+  }
+
+  static int? _int(Object? raw) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    return int.tryParse(raw?.toString() ?? '');
   }
 }

@@ -53,7 +53,7 @@ class MockNotificationSimulator {
           'commented love this on Summer Waves',
           'commented amazing beat on Deep Focus',
         ],
-        referenceType: 'comment',
+        referenceType: 'track',
       ),
       _Template(
         type: 'user_followed',
