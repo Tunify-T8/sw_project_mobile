@@ -56,6 +56,7 @@ extension TrackResponseDtoMapper on TrackResponseDto {
           ? null
           : List<String>.from(availability!.regions),
       licensing: licensing?.type,
+      privateToken: privateToken,
       errorCode: errorCode,
       errorMessage: errorMessage,
     );

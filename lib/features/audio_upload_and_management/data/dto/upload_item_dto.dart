@@ -40,6 +40,7 @@ class UploadItemDto {
     this.availabilityType = 'worldwide',
     this.availabilityRegions = const [],
     this.licensing = 'all_rights_reserved',
+    this.privateToken,
   });
 
   final String id;
@@ -73,6 +74,7 @@ class UploadItemDto {
   final bool includeInRss;
   final bool displayEmbedCode;
   final bool appPlaybackEnabled;
+  final String? privateToken;
 
   factory UploadItemDto.fromJson(Map<String, dynamic> json) {
     final availability = _asMap(json['availability']);
@@ -159,6 +161,8 @@ class UploadItemDto {
           'all_rights_reserved',
       createdAt:
           (json['createdAt'] as String?) ?? DateTime.now().toIso8601String(),
+      privateToken:
+          (json['privateToken'] ?? json['private_token']) as String?,
     );
   }
 
@@ -194,6 +198,7 @@ class UploadItemDto {
     'availabilityType': availabilityType,
     'availabilityRegions': availabilityRegions,
     'licensing': licensing,
+    'privateToken': privateToken,
     'createdAt': createdAt,
   };
 }

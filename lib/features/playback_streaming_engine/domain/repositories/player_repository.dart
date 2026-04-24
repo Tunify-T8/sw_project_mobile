@@ -17,10 +17,16 @@ abstract class PlayerRepository {
     String? privateToken,
   });
 
-  /// POST /tracks/{trackId}/stream
+  /// GET /tracks/{trackId}/stream
   /// Issues a signed, time-limited streaming URL.
   /// [quality]: 'auto' | '128' | '320'
-  Future<StreamUrl> requestStreamUrl(String trackId, {String quality = 'auto'});
+  /// [privateToken] is required for private tracks; the backend otherwise
+  /// responds 403 `private_no_token`.
+  Future<StreamUrl> requestStreamUrl(
+    String trackId, {
+    String quality = 'auto',
+    String? privateToken,
+  });
 
   /// Playback event reporting.
   ///

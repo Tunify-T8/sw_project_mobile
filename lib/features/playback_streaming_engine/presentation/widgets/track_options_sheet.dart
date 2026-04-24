@@ -5,6 +5,7 @@ import '../../../audio_upload_and_management/data/services/global_track_store.da
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_info_screen.dart';
+import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -30,6 +31,8 @@ class TrackOptionInfo {
     this.localArtworkPath,
     this.isOwned = false,
     this.artistId,
+    this.isPrivate = false,
+    this.privateToken,
   });
 
   final String trackId;
@@ -48,6 +51,14 @@ class TrackOptionInfo {
   /// so "Go to profile" can navigate to the correct profile.
   final String? artistId;
 
+  /// Whether the track's visibility is private. Drives which "Copy link"
+  /// label to show and whether a private token is needed for the link.
+  final bool isPrivate;
+
+  /// Token for building a shareable private-track link. Only meaningful for
+  /// owners (or anyone who already has access).
+  final String? privateToken;
+
   factory TrackOptionInfo.fromUploadItem(UploadItem item, {String? artistId}) {
     return TrackOptionInfo(
       trackId: item.id,
@@ -57,6 +68,8 @@ class TrackOptionInfo {
       localArtworkPath: item.localArtworkPath,
       isOwned: true,
       artistId: artistId,
+      isPrivate: item.visibility == UploadVisibility.private,
+      privateToken: item.privateToken,
     );
   }
 
@@ -87,6 +100,7 @@ class TrackOptionInfo {
     String? fallbackLocalArtworkPath,
     bool fallbackIsOwned = false,
     String? fallbackArtistId,
+    String? fallbackPrivateToken,
   }) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
     if (stored != null) {
@@ -127,20 +141,35 @@ class TrackOptionInfo {
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
       artistId: fallbackArtistId,
+      isPrivate: fallbackPrivateToken != null &&
+          fallbackPrivateToken.trim().isNotEmpty,
+      privateToken: fallbackPrivateToken,
     );
   }
 }
 
+/// Shared bottom sheet used by Artist Home, Your Uploads, Track Detail, etc.
+///
+/// [onEditTap] / [onDeleteTap] are optional hooks used by the Your Uploads
+/// surface so the sheet can wire the existing edit/delete flow without
+/// duplicating the UI.
 Future<void> showTrackOptionsSheet(
   BuildContext context, {
   required TrackOptionInfo info,
   required WidgetRef ref,
+  VoidCallback? onEditTap,
+  VoidCallback? onDeleteTap,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (_) => _TrackOptionsSheetContent(info: info, ref: ref),
+    builder: (_) => _TrackOptionsSheetContent(
+      info: info,
+      ref: ref,
+      onEditTap: onEditTap,
+      onDeleteTap: onDeleteTap,
+    ),
   );
 }
 
@@ -148,10 +177,14 @@ class _TrackOptionsSheetContent extends StatelessWidget {
   const _TrackOptionsSheetContent({
     required this.info,
     required this.ref,
+    this.onEditTap,
+    this.onDeleteTap,
   });
 
   final TrackOptionInfo info;
   final WidgetRef ref;
+  final VoidCallback? onEditTap;
+  final VoidCallback? onDeleteTap;
 
   /// Combine the caller's hint with the current authenticated user id.
   /// If the signed-in user IS the uploader, the sheet always shows the
@@ -201,7 +234,7 @@ class _TrackOptionsSheetContent extends StatelessWidget {
               const SizedBox(height: 16),
               _TrackHeader(info: info),
               const _ShareLabel(),
-              const _ShareRow(),
+              _ShareRow(info: info),
               const Divider(color: Colors.white12, height: 1),
               if (isOwned)
                 ..._buildOwnerRows(context)
@@ -226,8 +259,12 @@ class _TrackOptionsSheetContent extends StatelessWidget {
         icon: Icons.edit_outlined,
         label: 'Edit track',
         onTap: () {
-          Navigator.pop(context);
-          _navigateToEditTrack(context);
+          if (onEditTap != null) {
+            onEditTap!();
+          } else {
+            Navigator.pop(context);
+            _navigateToEditTrack(context);
+          }
         },
       ),
       const Divider(color: Colors.white12, height: 1),
@@ -275,7 +312,13 @@ class _TrackOptionsSheetContent extends StatelessWidget {
         icon: Icons.delete_outline,
         label: 'Delete track',
         color: Colors.redAccent,
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          if (onDeleteTap != null) {
+            onDeleteTap!();
+          } else {
+            Navigator.pop(context);
+          }
+        },
       ),
     ];
   }
@@ -421,9 +464,12 @@ class _TrackOptionsSheetContent extends StatelessWidget {
           localArtworkPath: info.localArtworkPath,
           localFilePath: null,
           description: '',
-          visibility: UploadVisibility.public,
+          visibility: info.isPrivate
+              ? UploadVisibility.private
+              : UploadVisibility.public,
           status: UploadProcessingStatus.finished,
           isExplicit: false,
+          privateToken: info.privateToken,
           createdAt: DateTime.now(),
         );
 
@@ -516,29 +562,43 @@ class _ShareLabel extends StatelessWidget {
 }
 
 class _ShareRow extends StatelessWidget {
-  const _ShareRow();
+  const _ShareRow({required this.info});
+
+  final TrackOptionInfo info;
 
   @override
   Widget build(BuildContext context) {
+    final hasToken =
+        info.privateToken != null && info.privateToken!.trim().isNotEmpty;
+    final useTokenInLink = info.isPrivate && hasToken;
+
     return SizedBox(
       height: 80,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: const [
-          YourUploadsShareButton(
+        children: [
+          const YourUploadsShareButton(
             icon: Icons.send_outlined,
             label: 'Message',
           ),
           YourUploadsShareButton(
             icon: Icons.copy_outlined,
-            label: 'Copy link',
+            label: useTokenInLink ? 'Copy private link' : 'Copy link',
+            onTap: () async {
+              await TrackLinkHelper.copyTrackLink(
+                context,
+                trackId: info.trackId,
+                privateToken: useTokenInLink ? info.privateToken : null,
+              );
+              if (context.mounted) Navigator.pop(context);
+            },
           ),
-          YourUploadsShareButton(
+          const YourUploadsShareButton(
             icon: Icons.qr_code_2,
             label: 'QR code',
           ),
-          YourUploadsShareButton(
+          const YourUploadsShareButton(
             icon: Icons.sms_outlined,
             label: 'SMS',
           ),

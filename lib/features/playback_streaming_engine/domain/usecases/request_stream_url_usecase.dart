@@ -6,7 +6,15 @@ class RequestStreamUrlUsecase {
 
   final PlayerRepository _repository;
 
-  Future<StreamUrl> call(String trackId, {String quality = 'auto'}) {
-    return _repository.requestStreamUrl(trackId, quality: quality);
+  Future<StreamUrl> call(
+    String trackId, {
+    String quality = 'auto',
+    String? privateToken,
+  }) {
+    return _repository.requestStreamUrl(
+      trackId,
+      quality: quality,
+      privateToken: privateToken,
+    );
   }
 }

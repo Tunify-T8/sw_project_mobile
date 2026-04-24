@@ -27,6 +27,7 @@ class PermissionsMetadataSection extends StatelessWidget {
     required this.onAvailabilityTypeChanged,
     required this.onAvailabilityRegionsChanged,
     required this.onLicensingChanged,
+    this.isPro = false,
   });
 
   final bool allowDownloads;
@@ -45,6 +46,7 @@ class PermissionsMetadataSection extends StatelessWidget {
   final ValueChanged<String> onAvailabilityTypeChanged;
   final ValueChanged<String> onAvailabilityRegionsChanged;
   final ValueChanged<String> onLicensingChanged;
+  final bool isPro;
 
   @override
   Widget build(BuildContext context) {
@@ -86,27 +88,41 @@ class PermissionsMetadataSection extends StatelessWidget {
           onChanged: onAppPlaybackEnabledChanged,
         ),
         const SizedBox(height: 26),
-        const MetadataSectionTitle('Availability'),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const MetadataSectionTitle('Availability'),
+            const Spacer(),
+            if (!isPro) const _ArtistProBadge(),
+          ],
+        ),
         const SizedBox(height: 10),
         MetadataPermissionRadioRow(
           title: 'Worldwide',
           subtitle: 'Track is available in all regions.',
           selected: availabilityType == 'worldwide',
-          onTap: () => onAvailabilityTypeChanged('worldwide'),
+          onTap: isPro ? () => onAvailabilityTypeChanged('worldwide') : null,
+          disabled: !isPro,
         ),
         MetadataPermissionRadioRow(
           title: 'Exclusive regions',
           subtitle: 'Only selected regions can access this track.',
           selected: availabilityType == 'exclusive_regions',
-          onTap: () => onAvailabilityTypeChanged('exclusive_regions'),
+          onTap: isPro
+              ? () => onAvailabilityTypeChanged('exclusive_regions')
+              : null,
+          disabled: !isPro,
         ),
         MetadataPermissionRadioRow(
           title: 'Blocked regions',
           subtitle: 'Selected regions are blocked.',
           selected: availabilityType == 'excluded_regions',
-          onTap: () => onAvailabilityTypeChanged('excluded_regions'),
+          onTap: isPro
+              ? () => onAvailabilityTypeChanged('excluded_regions')
+              : null,
+          disabled: !isPro,
         ),
-        if (showRegionsField) ...[
+        if (showRegionsField && isPro) ...[
           const SizedBox(height: 12),
           TextField(
             controller: availabilityRegionsController,
@@ -134,6 +150,38 @@ class PermissionsMetadataSection extends StatelessWidget {
           onTap: () => onLicensingChanged('creative_commons'),
         ),
       ],
+    );
+  }
+}
+
+class _ArtistProBadge extends StatelessWidget {
+  const _ArtistProBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB88746), Color(0xFFD9B36A)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.workspace_premium, color: Colors.black, size: 14),
+          SizedBox(width: 6),
+          Text(
+            'Unlock with Artist Pro',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

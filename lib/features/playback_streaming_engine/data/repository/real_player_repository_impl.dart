@@ -50,8 +50,13 @@ class RealPlayerRepository implements PlayerRepository {
   Future<StreamUrl> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
-    final dto = await _api.requestStreamUrl(trackId, quality: quality);
+    final dto = await _api.requestStreamUrl(
+      trackId,
+      quality: quality,
+      privateToken: privateToken,
+    );
     return dto.toEntity();
   }
 

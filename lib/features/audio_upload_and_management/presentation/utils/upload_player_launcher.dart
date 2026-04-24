@@ -215,6 +215,7 @@ Future<void> ensureUploadItemPlayback(
         repeat: RepeatMode.all,
         autoPlay: autoPlay || current?.isPlaying == true,
         seedTrack: seedTrack,
+        privateToken: item.privateToken,
       );
       return;
     }
@@ -233,11 +234,17 @@ Future<void> ensureUploadItemPlayback(
       repeat: RepeatMode.all,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
+      privateToken: item.privateToken,
     );
     return;
   }
 
-  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
+  await notifier.loadTrack(
+    item.id,
+    autoPlay: autoPlay,
+    seedTrack: seedTrack,
+    privateToken: item.privateToken,
+  );
 }
 
 // Fire-and-forget background fetch: pull the playing artist's full track
@@ -468,6 +475,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     availabilityType: dto.availabilityType,
     availabilityRegions: dto.availabilityRegions,
     licensing: dto.licensing,
+    privateToken: dto.privateToken,
     createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
   );
 }

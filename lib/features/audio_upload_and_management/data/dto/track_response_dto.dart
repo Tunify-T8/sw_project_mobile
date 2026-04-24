@@ -33,6 +33,7 @@ class TrackResponseDto {
   final String? createdAt;
   final String? updatedAt;
   final AudioMetadataDto? audioMetadata;
+  final String? privateToken;
   final String? errorCode;
   final String? errorMessage;
 
@@ -63,6 +64,7 @@ class TrackResponseDto {
     this.createdAt,
     this.updatedAt,
     this.audioMetadata,
+    this.privateToken,
     this.errorCode,
     this.errorMessage,
   });
@@ -150,6 +152,7 @@ class TrackResponseDto {
       audioMetadata: audioMetadataJson is Map<String, dynamic>
           ? AudioMetadataDto.fromJson(audioMetadataJson)
           : null,
+      privateToken: (json['privateToken'] ?? json['private_token']) as String?,
       errorCode: error is Map<String, dynamic>
           ? error['code'] as String?
           : null,
