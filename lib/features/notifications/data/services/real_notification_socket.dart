@@ -31,14 +31,23 @@ class RealNotificationSocket implements NotificationSocket {
   Timer? _manualReconnectTimer;
   Timer? _tokenRefreshTimer;
 
-  /// Returns e.g. "https://tunify.duckdns.org" with an explicit port so that
-  /// socket_io_client v2 does not resolve to port 0.
-  static String get _wsBaseUrl {
+  static const String _configuredWsUrl = String.fromEnvironment(
+    'NOTIFICATION_WS_URL',
+    defaultValue: '',
+  );
+
+  /// Full Socket.IO namespace URL.
+  ///
+  /// Backend runs behind a reverse proxy that terminates TLS on 443 and
+  /// routes `/notifications` to the realtime service — no explicit port.
+  /// Example that the backend team verified:
+  ///   `io('https://tunify.duckdns.org/notifications', { query: { token } })`
+  static String get _socketUrl {
+    final configured = _configuredWsUrl.trim();
+    if (configured.isNotEmpty) return _stripTrailingSlash(configured);
+
     final uri = Uri.parse(ApiEndpoints.baseUrl);
-    final port = (uri.hasPort && uri.port != 0)
-        ? uri.port
-        : (uri.scheme == 'https' ? 443 : 80);
-    return '${uri.scheme}://${uri.host}:$port';
+    return '${uri.scheme}://${uri.host}/notifications';
   }
 
   @override
@@ -92,12 +101,13 @@ class RealNotificationSocket implements NotificationSocket {
     // Port must be explicit (443 for https) — socket_io_client v2 resolves to
     // port 0 when the port is omitted from the URL.
     //
-    // Transports start with polling so Engine.IO can complete its HTTP
-    // handshake first; it then upgrades to websocket automatically.
+    // The app uses websocket transport directly; polling against the wrong
+    // REST endpoint was the source of HTTP 200 upgrade failures.
+    debugPrint('[NotificationSocket] connecting to $_socketUrl');
     _socket = io.io(
-      '$_wsBaseUrl/notifications',
+      _socketUrl,
       io.OptionBuilder()
-          .setTransports(['polling', 'websocket'])
+          .setTransports(['websocket'])
           .setPath('/socket.io')
           .enableReconnection()
           .setReconnectionAttempts(20)
@@ -284,5 +294,13 @@ class RealNotificationSocket implements NotificationSocket {
         ? data['message'].toString()
         : error.message;
     return 'status=${status ?? 'none'}, message=$message';
+  }
+
+  static String _stripTrailingSlash(String value) {
+    var result = value;
+    while (result.endsWith('/')) {
+      result = result.substring(0, result.length - 1);
+    }
+    return result;
   }
 }

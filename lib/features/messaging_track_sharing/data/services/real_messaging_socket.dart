@@ -46,14 +46,23 @@ class RealMessagingSocket implements MessagingSocket {
   final Set<String> _pendingJoins = <String>{};
   final Set<String> _joinedRooms = <String>{};
 
-  /// Returns a base URL like `https://tunify.duckdns.org:443` — Socket.IO v2+
-  /// resolves to port 0 when the port is omitted so we pin it explicitly.
-  static String get _wsBaseUrl {
+  static const String _configuredWsUrl = String.fromEnvironment(
+    'MESSAGING_WS_URL',
+    defaultValue: '',
+  );
+
+  /// Full Socket.IO namespace URL.
+  ///
+  /// Backend runs behind a reverse proxy that terminates TLS on 443 and
+  /// routes `/conversations` to the realtime service — no explicit port.
+  /// Example that the backend team verified:
+  ///   `io('https://tunify.duckdns.org/conversations', { query: { token } })`
+  static String get _socketUrl {
+    final configured = _configuredWsUrl.trim();
+    if (configured.isNotEmpty) return _stripTrailingSlash(configured);
+
     final uri = Uri.parse(ApiEndpoints.baseUrl);
-    final port = (uri.hasPort && uri.port != 0)
-        ? uri.port
-        : (uri.scheme == 'https' ? 443 : 80);
-    return '${uri.scheme}://${uri.host}:$port';
+    return '${uri.scheme}://${uri.host}/conversations';
   }
 
   @override
@@ -197,10 +206,11 @@ class RealMessagingSocket implements MessagingSocket {
     _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
+    debugPrint('[MessagingSocket] connecting to $_socketUrl');
     _socket = io.io(
-      '$_wsBaseUrl/conversations',
+      _socketUrl,
       io.OptionBuilder()
-          .setTransports(['polling', 'websocket'])
+          .setTransports(['websocket'])
           .setPath('/socket.io')
           .enableReconnection()
           .setReconnectionAttempts(20)
@@ -274,12 +284,8 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.on('message:received', (data) {
       try {
         final m = _safeMap(data);
-        final msgJson = m['message'] is Map
-            ? _safeMap(m['message'])
-            : m;
-        final convoId = (m['conversationId'] ??
-                msgJson['conversationId'] ??
-                '')
+        final msgJson = m['message'] is Map ? _safeMap(m['message']) : m;
+        final convoId = (m['conversationId'] ?? msgJson['conversationId'] ?? '')
             .toString();
         final dto = MessageDto.fromJson(
           msgJson,
@@ -309,8 +315,9 @@ class RealMessagingSocket implements MessagingSocket {
         MessageReadEvent(
           conversationId: convoId,
           readerUserId: readerId,
-          messageId:
-              (messageId == null || messageId.isEmpty) ? null : messageId,
+          messageId: (messageId == null || messageId.isEmpty)
+              ? null
+              : messageId,
         ),
       );
     });
@@ -320,11 +327,9 @@ class RealMessagingSocket implements MessagingSocket {
       final convoId = (m['conversationId'] ?? '').toString();
       final userId = (m['userId'] ?? '').toString();
       if (convoId.isEmpty || userId.isEmpty) return;
-      _controller.add(TypingEvent(
-        conversationId: convoId,
-        userId: userId,
-        isTyping: true,
-      ));
+      _controller.add(
+        TypingEvent(conversationId: convoId, userId: userId, isTyping: true),
+      );
     });
 
     _socket!.on('typing:inactive', (data) {
@@ -332,11 +337,9 @@ class RealMessagingSocket implements MessagingSocket {
       final convoId = (m['conversationId'] ?? '').toString();
       final userId = (m['userId'] ?? '').toString();
       if (convoId.isEmpty || userId.isEmpty) return;
-      _controller.add(TypingEvent(
-        conversationId: convoId,
-        userId: userId,
-        isTyping: false,
-      ));
+      _controller.add(
+        TypingEvent(conversationId: convoId, userId: userId, isTyping: false),
+      );
     });
 
     _socket!.on('error', (data) {
@@ -384,33 +387,34 @@ class RealMessagingSocket implements MessagingSocket {
   }
 
   MessageDto _optimisticDtoFromPayload(
-      Map<String, dynamic> payload, String serverId) {
+    Map<String, dynamic> payload,
+    String serverId,
+  ) {
     final convoId = (payload['conversationId'] ?? '').toString();
     final type = (payload['type'] ?? 'TEXT').toString().toUpperCase();
     final content = payload['content'] as String?;
 
-    return MessageDto.fromJson(
-      {
-        'id': serverId.isEmpty ? payload['tempId'] : serverId,
-        'conversationId': convoId,
-        'senderId': '',
-        'type': type,
-        if (content != null) 'content': content,
-        'createdAt': DateTime.now().toUtc().toIso8601String(),
-        'read': true,
-        if (payload['trackId'] != null || payload['collectionId'] != null ||
-            payload['userId'] != null)
-          'attachment': {
-            'id': (payload['trackId'] ??
-                    payload['collectionId'] ??
-                    payload['userId'] ??
-                    '')
-                .toString(),
-            'type': type,
-          },
-      },
-      fallbackConversationId: convoId,
-    );
+    return MessageDto.fromJson({
+      'id': serverId.isEmpty ? payload['tempId'] : serverId,
+      'conversationId': convoId,
+      'senderId': '',
+      'type': type,
+      if (content != null) 'content': content,
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
+      'read': true,
+      if (payload['trackId'] != null ||
+          payload['collectionId'] != null ||
+          payload['userId'] != null)
+        'attachment': {
+          'id':
+              (payload['trackId'] ??
+                      payload['collectionId'] ??
+                      payload['userId'] ??
+                      '')
+                  .toString(),
+          'type': type,
+        },
+    }, fallbackConversationId: convoId);
   }
 
   Future<void> _reconnect({bool forceRefresh = false}) async {
@@ -487,8 +491,7 @@ class RealMessagingSocket implements MessagingSocket {
       );
       return newAccess;
     } on DioException catch (e) {
-      debugPrint(
-          '[MessagingSocket] token refresh failed: ${_safeDioError(e)}');
+      debugPrint('[MessagingSocket] token refresh failed: ${_safeDioError(e)}');
       return _isExpired(access) ? null : access;
     } catch (e) {
       debugPrint('[MessagingSocket] token refresh failed: ${e.runtimeType}');
@@ -545,6 +548,14 @@ class RealMessagingSocket implements MessagingSocket {
         ? data['message'].toString()
         : error.message;
     return 'status=${status ?? 'none'}, message=$message';
+  }
+
+  static String _stripTrailingSlash(String value) {
+    var result = value;
+    while (result.endsWith('/')) {
+      result = result.substring(0, result.length - 1);
+    }
+    return result;
   }
 }
 
