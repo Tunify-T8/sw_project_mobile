@@ -29,6 +29,8 @@ import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/listening_history_screen.dart';
+import '../features/playback_streaming_engine/presentation/screens/shared_track_link_screen.dart';
+import '../features/playback_streaming_engine/presentation/utils/shared_track_link_opener.dart';
 import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
@@ -64,6 +66,20 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = _readArgs(settings.arguments);
+    final sharedTrackLink = settings.name == null
+        ? null
+        : parseTrackShareLink(settings.name!);
+    if (sharedTrackLink != null) {
+      return _slideUp(
+        AuthProtectedScreen(
+          child: SharedTrackLinkScreen(
+            trackId: sharedTrackLink.trackId,
+            privateToken: sharedTrackLink.privateToken,
+          ),
+        ),
+        settings,
+      );
+    }
 
     switch (settings.name) {
       case AppRoutes.authGate:

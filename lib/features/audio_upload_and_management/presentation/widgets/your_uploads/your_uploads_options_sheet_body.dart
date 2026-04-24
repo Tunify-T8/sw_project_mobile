@@ -103,20 +103,55 @@ class _TrackOptionsSheet extends ConsumerWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  YourUploadsShareButton(
+                children: [
+                  const YourUploadsShareButton(
                     icon: Icons.send_outlined,
                     label: 'Message',
                   ),
                   YourUploadsShareButton(
                     icon: Icons.copy_outlined,
                     label: 'Copy link',
+                    onTap: () {
+                      final url = ApiEndpoints.shareTrackUrl(
+                        resolvedItem.id,
+                        privateToken: resolvedItem.visibility == UploadVisibility.private
+                            ? resolvedItem.privateToken
+                            : null,
+                      );
+                      Clipboard.setData(ClipboardData(text: url));
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Link copied to clipboard'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
-                  YourUploadsShareButton(
+                  const YourUploadsShareButton(
                     icon: Icons.qr_code_2,
                     label: 'QR code',
                   ),
                   YourUploadsShareButton(
+                    icon: Icons.chat_outlined,
+                    label: 'WhatsApp',
+                    onTap: () async {
+                      final url = ApiEndpoints.shareTrackUrl(
+                        resolvedItem.id,
+                        privateToken: resolvedItem.visibility == UploadVisibility.private
+                            ? resolvedItem.privateToken
+                            : null,
+                      );
+                      final msg = Uri.encodeComponent(
+                        'Check out "${resolvedItem.title}" on Tunify: $url',
+                      );
+                      await launchUrl(
+                        Uri.parse('https://wa.me/?text=$msg'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
+                  const YourUploadsShareButton(
                     icon: Icons.sms_outlined,
                     label: 'SMS',
                   ),

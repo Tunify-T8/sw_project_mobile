@@ -39,6 +39,7 @@ class UploadItem {
   final List<String> availabilityRegions;
   final String licensing;
   final DateTime createdAt;
+  final String? privateToken;
 
   const UploadItem({
     required this.id,
@@ -73,6 +74,7 @@ class UploadItem {
     this.availabilityRegions = const [],
     this.licensing = 'all_rights_reserved',
     required this.createdAt,
+    this.privateToken,
   });
 
   bool get isPlayable => status == UploadProcessingStatus.finished;
@@ -122,6 +124,7 @@ class UploadItem {
     List<String>? availabilityRegions,
     String? licensing,
     DateTime? createdAt,
+    String? privateToken,
   }) {
     return UploadItem(
       id: id ?? this.id,
@@ -156,6 +159,7 @@ class UploadItem {
       availabilityRegions: availabilityRegions ?? this.availabilityRegions,
       licensing: licensing ?? this.licensing,
       createdAt: createdAt ?? this.createdAt,
+      privateToken: privateToken ?? this.privateToken,
     );
   }
 }

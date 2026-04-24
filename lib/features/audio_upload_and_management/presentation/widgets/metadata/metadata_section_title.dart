@@ -15,7 +15,7 @@ class MetadataSectionTitle extends StatelessWidget {
       title,
       style: const TextStyle(
         color: Color(0xFFD0D0D0),
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: FontWeight.w500,
       ),
     );

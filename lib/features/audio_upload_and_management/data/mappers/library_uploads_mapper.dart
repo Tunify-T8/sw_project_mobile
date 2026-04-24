@@ -46,6 +46,7 @@ extension UploadItemDtoMapper on UploadItemDto {
       availabilityRegions: availabilityRegions,
       licensing: licensing,
       createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
+      privateToken: privateToken,
     );
   }
 

@@ -34,9 +34,15 @@ class StreamingApi {
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
+    final queryParams =
+        privateToken != null ? {'privateToken': privateToken} : null;
     try {
-      final response = await _dio.get(ApiEndpoints.trackStream(trackId));
+      final response = await _dio.get(
+        ApiEndpoints.trackStream(trackId),
+        queryParameters: queryParams,
+      );
       return StreamResponseDto.fromJson(_unwrapMap(response.data), trackId);
     } on DioException catch (error) {
       if (!_isMethodOrRouteMismatch(error)) rethrow;
@@ -46,6 +52,7 @@ class StreamingApi {
       ApiEndpoints.trackStream(trackId),
       data: {
         'quality': quality,
+        ...?(privateToken != null ? {'privateToken': privateToken} : null),
       },
     );
 

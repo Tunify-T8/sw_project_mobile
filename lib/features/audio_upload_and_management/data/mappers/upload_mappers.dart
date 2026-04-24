@@ -58,6 +58,7 @@ extension TrackResponseDtoMapper on TrackResponseDto {
       licensing: licensing?.type,
       errorCode: errorCode,
       errorMessage: errorMessage,
+      privateToken: _readPrivateToken(this),
     );
   }
 
@@ -79,4 +80,17 @@ extension TrackResponseDtoMapper on TrackResponseDto {
         return UploadStatus.failed;
     }
   }
+}
+
+String? _readPrivateToken(TrackResponseDto dto) {
+  try {
+    final dynamic dynamicDto = dto;
+    final token = dynamicDto.privateToken;
+    if (token is String && token.trim().isNotEmpty) {
+      return token;
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
 }

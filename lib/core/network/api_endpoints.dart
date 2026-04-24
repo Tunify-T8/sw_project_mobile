@@ -4,6 +4,27 @@ class ApiEndpoints {
   //static const String baseUrl = 'http://10.0.2.2:3000/api';
   static const String baseUrl = 'https://tunify.duckdns.org/api';
 
+  /// Base URL used for shareable links (no /api suffix).
+  static const String shareBaseUrl = 'https://tunify.duckdns.org';
+
+  /// Builds a shareable track URL.
+  /// Private tracks include [privateToken] as a query parameter.
+  static String shareTrackUrl(String trackId, {String? privateToken}) {
+    final base = Uri.parse(shareBaseUrl).replace(
+      pathSegments: ['tracks', trackId],
+    );
+    if (privateToken == null || privateToken.trim().isEmpty) {
+      return base.toString();
+    }
+    return base.replace(
+      queryParameters: {'privateToken': privateToken},
+    ).toString();
+  }
+
+  /// Builds a shareable profile URL.
+  static String shareProfileUrl(String username) =>
+      '$shareBaseUrl/users/$username';
+
   // Auth
   static const String checkEmail = '/auth/check-email';
   static const String register = '/auth/register';

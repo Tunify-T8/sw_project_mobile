@@ -15,6 +15,7 @@ class PlayerState {
     this.streamExpiresAt,
     this.localFilePath,
     this.mediaDurationSeconds,
+    this.privateToken,
   });
 
   final TrackPlaybackBundle? bundle;
@@ -28,6 +29,7 @@ class PlayerState {
   final DateTime? streamExpiresAt;
   final String? localFilePath;
   final double? mediaDurationSeconds;
+  final String? privateToken;
 
   bool get hasTrack => bundle != null;
 
@@ -111,6 +113,7 @@ class PlayerState {
     Object? streamExpiresAt = _sentinel,
     Object? localFilePath = _sentinel,
     Object? mediaDurationSeconds = _sentinel,
+    Object? privateToken = _sentinel,
   }) {
     return PlayerState(
       bundle: identical(bundle, _sentinel)
@@ -134,6 +137,9 @@ class PlayerState {
       mediaDurationSeconds: identical(mediaDurationSeconds, _sentinel)
           ? this.mediaDurationSeconds
           : mediaDurationSeconds as double?,
+      privateToken: identical(privateToken, _sentinel)
+          ? this.privateToken
+          : privateToken as String?,
     );
   }
 }

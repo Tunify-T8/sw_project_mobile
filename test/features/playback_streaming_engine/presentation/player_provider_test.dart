@@ -263,7 +263,11 @@ void main() {
         durationSeconds: 180,
       );
     };
-    repository.requestStreamUrlHandler = (trackId, {String quality = 'auto'}) async {
+    repository.requestStreamUrlHandler = (
+      trackId, {
+      String quality = 'auto',
+      String? privateToken,
+    }) async {
       return sampleStreamUrl(trackId: trackId);
     };
     final container = buildContainer();
@@ -318,7 +322,11 @@ void main() {
     repository.getPlaybackBundleHandler = (trackId, {String? privateToken}) async {
       throw StateError('bundle failed');
     };
-    repository.requestStreamUrlHandler = (trackId, {String quality = 'auto'}) async {
+    repository.requestStreamUrlHandler = (
+      trackId, {
+      String quality = 'auto',
+      String? privateToken,
+    }) async {
       return sampleStreamUrl(trackId: trackId);
     };
     final container = buildContainer();
@@ -338,5 +346,37 @@ void main() {
     final state = container.read(playerProvider).requireValue;
     expect(state.bundle!.title, 'Seed Fallback');
     expect(state.bundle!.artist.name, 'Seed Artist');
+  });
+
+  test('loadTrack forwards private token to bundle and stream requests', () async {
+    final seenBundleTokens = <String?>[];
+    final seenStreamTokens = <String?>[];
+
+    repository.getPlaybackBundleHandler = (trackId, {String? privateToken}) async {
+      seenBundleTokens.add(privateToken);
+      return sampleBundle(trackId: trackId);
+    };
+    repository.requestStreamUrlHandler = (
+      trackId, {
+      String quality = 'auto',
+      String? privateToken,
+    }) async {
+      seenStreamTokens.add(privateToken);
+      return sampleStreamUrl(trackId: trackId);
+    };
+
+    final container = buildContainer();
+    addTearDown(container.dispose);
+    await container.read(playerProvider.future);
+
+    await container.read(playerProvider.notifier).loadTrack(
+      'private-track',
+      privateToken: 'abc123',
+    );
+
+    final state = container.read(playerProvider).requireValue;
+    expect(state.privateToken, 'abc123');
+    expect(seenBundleTokens, ['abc123']);
+    expect(seenStreamTokens, ['abc123']);
   });
 }

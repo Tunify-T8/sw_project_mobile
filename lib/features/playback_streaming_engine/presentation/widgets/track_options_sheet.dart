@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../../core/network/api_endpoints.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
@@ -26,6 +30,7 @@ class TrackOptionInfo {
     this.coverUrl,
     this.localArtworkPath,
     this.isOwned = false,
+    this.privateToken,
   });
 
   final String trackId;
@@ -34,6 +39,7 @@ class TrackOptionInfo {
   final String? coverUrl;
   final String? localArtworkPath;
   final bool isOwned;
+  final String? privateToken;
 
   factory TrackOptionInfo.fromUploadItem(UploadItem item) {
     return TrackOptionInfo(
@@ -43,6 +49,7 @@ class TrackOptionInfo {
       coverUrl: item.artworkUrl,
       localArtworkPath: item.localArtworkPath,
       isOwned: true,
+      privateToken: item.privateToken,
     );
   }
 
@@ -207,20 +214,51 @@ class _TrackOptionsSheetContent extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  YourUploadsShareButton(
+                children: [
+                  const YourUploadsShareButton(
                     icon: Icons.send_outlined,
                     label: 'Message',
                   ),
                   YourUploadsShareButton(
                     icon: Icons.copy_outlined,
                     label: 'Copy link',
+                    onTap: () {
+                      final url = ApiEndpoints.shareTrackUrl(
+                        info.trackId,
+                        privateToken: info.isOwned ? info.privateToken : null,
+                      );
+                      Clipboard.setData(ClipboardData(text: url));
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Link copied to clipboard'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
-                  YourUploadsShareButton(
+                  const YourUploadsShareButton(
                     icon: Icons.qr_code_2,
                     label: 'QR code',
                   ),
                   YourUploadsShareButton(
+                    icon: Icons.chat_outlined,
+                    label: 'WhatsApp',
+                    onTap: () async {
+                      final url = ApiEndpoints.shareTrackUrl(
+                        info.trackId,
+                        privateToken: info.isOwned ? info.privateToken : null,
+                      );
+                      final msg = Uri.encodeComponent(
+                        'Check out "${info.title}" on Tunify: $url',
+                      );
+                      await launchUrl(
+                        Uri.parse('https://wa.me/?text=$msg'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
+                  const YourUploadsShareButton(
                     icon: Icons.sms_outlined,
                     label: 'SMS',
                   ),

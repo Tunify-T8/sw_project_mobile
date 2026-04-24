@@ -54,7 +54,7 @@ class _MainTrackCard extends ConsumerWidget {
                         '${stats.playCountText} plays  ${item.durationLabel}  ${stats.releaseDateText}',
                         style: const TextStyle(
                           color: Colors.white54,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

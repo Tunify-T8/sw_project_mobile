@@ -50,6 +50,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
         final source = await _resolvePlaybackSource(
           trackId,
           seedTrack: seedTrack,
+          privateToken: privateToken,
         );
 
         final initialPosition = _initialPositionFor(bundle).toDouble();
@@ -66,6 +67,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
           volume: previous?.volume ?? 1.0,
           isBuffering: false,
           mediaDurationSeconds: bundle.durationSeconds.toDouble(),
+          privateToken: privateToken,
         );
 
         await _prepareAudioSource(nextState, force: true);

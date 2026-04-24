@@ -84,6 +84,7 @@ UploadItem mergeTrackDetailItem({
       details.licensing,
       fallback: base.licensing,
     ),
+    privateToken: details.privateToken ?? base.privateToken,
   );
 }
 

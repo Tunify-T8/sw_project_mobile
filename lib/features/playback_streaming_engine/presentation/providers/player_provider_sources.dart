@@ -60,6 +60,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
   Future<_ResolvedPlaybackSource> _resolvePlaybackSource(
     String trackId, {
     PlayerSeedTrack? seedTrack,
+    String? privateToken,
   }) async {
     final mode = ref.read(playerBackendModeProvider);
 
@@ -97,7 +98,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
     // Request a signed streaming URL from the server (the only correct way
     // to play a track online — never use the raw upload audioUrl directly).
-    final streamUrl = await _requestStream(trackId);
+    final streamUrl = await _requestStream(trackId, privateToken: privateToken);
 
     return _ResolvedPlaybackSource(
       streamUrl: streamUrl,
@@ -125,7 +126,10 @@ extension _PlayerNotifierSources on PlayerNotifier {
       return current;
     }
 
-    final resolved = await _resolvePlaybackSource(current.bundle!.trackId);
+    final resolved = await _resolvePlaybackSource(
+      current.bundle!.trackId,
+      privateToken: current.privateToken,
+    );
 
     final updated = current.copyWith(
       streamUrl: resolved.streamUrl,

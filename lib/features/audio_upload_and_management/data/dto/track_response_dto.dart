@@ -35,6 +35,7 @@ class TrackResponseDto {
   final AudioMetadataDto? audioMetadata;
   final String? errorCode;
   final String? errorMessage;
+  final String? privateToken;
 
   TrackResponseDto({
     required this.trackId,
@@ -65,6 +66,7 @@ class TrackResponseDto {
     this.audioMetadata,
     this.errorCode,
     this.errorMessage,
+    this.privateToken,
   });
 
   factory TrackResponseDto.fromJson(Map<String, dynamic> json) {
@@ -156,6 +158,7 @@ class TrackResponseDto {
       errorMessage: error is Map<String, dynamic>
           ? error['message'] as String?
           : null,
+      privateToken: json['privateToken'] as String?,
     );
   }
 }

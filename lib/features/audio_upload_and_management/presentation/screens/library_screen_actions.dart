@@ -39,6 +39,11 @@ extension _LibraryScreenActions on _LibraryScreenState {
       return;
     }
 
+    if (label == 'Open shared link') {
+      showOpenSharedTrackLinkDialog(context, ref);
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF1C1C1E),

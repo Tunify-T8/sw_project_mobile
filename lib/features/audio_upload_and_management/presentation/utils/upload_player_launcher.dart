@@ -98,6 +98,25 @@ Future<void> ensureUploadItemPlayback(
 
   await _ensureCachedUploadsHydrated(ref);
 
+  // Private tracks from the library list never include privateToken (the list
+  // endpoint omits it). Fetch the full track detail here so we have the token
+  // before we attempt the stream request. Without it the backend returns 403.
+  UploadItem resolvedItem = item;
+  if (item.visibility == UploadVisibility.private &&
+      item.privateToken == null) {
+    try {
+      resolvedItem = await ref
+          .read(trackDetailItemProvider(item).future)
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      resolvedItem = item;
+    }
+  }
+
+  // Rebind item to the resolved copy (may have privateToken now).
+  // ignore: parameter_assignments
+  item = resolvedItem;
+
   final notifier = ref.read(playerProvider.notifier);
   final current = ref.read(playerProvider).asData?.value;
   final isSameTrack = current?.bundle?.trackId == item.id;
@@ -133,6 +152,7 @@ Future<void> ensureUploadItemPlayback(
         repeat: RepeatMode.all,
         autoPlay: autoPlay || current?.isPlaying == true,
         seedTrack: seedTrack,
+        privateToken: item.privateToken,
       );
       return;
     }
@@ -151,11 +171,12 @@ Future<void> ensureUploadItemPlayback(
       repeat: RepeatMode.all,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
+      privateToken: item.privateToken,
     );
     return;
   }
 
-  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
+  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack, privateToken: item.privateToken);
 }
 
 // Fire-and-forget background fetch: pull the playing artist's full track
@@ -387,6 +408,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     availabilityRegions: dto.availabilityRegions,
     licensing: dto.licensing,
     createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
+    privateToken: dto.privateToken,
   );
 }
 

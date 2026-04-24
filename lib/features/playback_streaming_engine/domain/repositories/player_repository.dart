@@ -20,7 +20,8 @@ abstract class PlayerRepository {
   /// POST /tracks/{trackId}/stream
   /// Issues a signed, time-limited streaming URL.
   /// [quality]: 'auto' | '128' | '320'
-  Future<StreamUrl> requestStreamUrl(String trackId, {String quality = 'auto'});
+  /// Pass [privateToken] for private tracks shared via link.
+  Future<StreamUrl> requestStreamUrl(String trackId, {String quality = 'auto', String? privateToken});
 
   /// Playback event reporting.
   ///
