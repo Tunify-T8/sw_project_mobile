@@ -84,12 +84,13 @@ class RealNotificationSocket implements NotificationSocket {
     _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
-    // /notifications is the namespace. Keep the Engine.IO path on the default
-    // /socket.io path used by NestJS Socket.IO gateways.
+    // The deployed realtime endpoint is mounted as the Socket.IO engine path:
+    // https://tunify.duckdns.org/notifications
     _socket = io.io(
-      '$_wsBaseUrl/notifications',
+      _wsBaseUrl,
       io.OptionBuilder()
-          .setTransports(['websocket', 'polling'])
+          .setTransports(['polling', 'websocket'])
+          .setPath('/notifications')
           .enableReconnection()
           .setReconnectionAttempts(20)
           .setReconnectionDelay(1000)
