@@ -20,11 +20,16 @@ class ChatScreen extends ConsumerStatefulWidget {
     required this.conversationId,
     required this.otherUserName,
     this.otherUserAvatar,
+    this.pendingAttachment,
   });
 
   final String conversationId;
   final String otherUserName;
   final String? otherUserAvatar;
+
+  /// If set, the screen immediately sends this attachment once the history
+  /// has loaded — used by the "Send to" row in the track options sheet.
+  final MessageAttachment? pendingAttachment;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -33,6 +38,34 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _optionsKey = GlobalKey();
+  bool _pendingAttachmentSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pendingAttachment != null) {
+      Future.microtask(_sendPendingAttachmentWhenReady);
+    }
+  }
+
+  Future<void> _sendPendingAttachmentWhenReady() async {
+    if (_pendingAttachmentSent || widget.pendingAttachment == null) return;
+
+    // Wait up to ~3s for the chat to finish loading before sending so the
+    // attachment lands on top of the existing history in the UI.
+    for (var i = 0; i < 30; i++) {
+      if (!mounted) return;
+      final state = ref.read(chatControllerProvider(widget.conversationId));
+      if (!state.isLoading) break;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (!mounted || _pendingAttachmentSent) return;
+    _pendingAttachmentSent = true;
+    ref
+        .read(chatControllerProvider(widget.conversationId).notifier)
+        .sendAttachments([widget.pendingAttachment!]);
+  }
 
   @override
   void dispose() {

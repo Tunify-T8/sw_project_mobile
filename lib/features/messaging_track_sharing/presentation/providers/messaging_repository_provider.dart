@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/repository/mock_messaging_repository_impl.dart';
 import '../../data/repository/real_messaging_repository_impl.dart';
-import '../../data/services/mock_messaging_socket.dart';
 import '../../domain/repositories/messaging_repository.dart';
 import 'messaging_backend_mode_provider.dart';
 import 'messaging_dependencies_provider.dart';
@@ -19,6 +18,7 @@ final messagingRepositoryProvider = Provider<MessagingRepository>((ref) {
     return RealMessagingRepository(
       ref.watch(messagingApiProvider),
       ref.watch(messagingSocketProvider),
+      currentUserId: () => ref.read(authControllerProvider).asData?.value?.id,
     );
   }
 
@@ -32,6 +32,6 @@ final messagingRepositoryProvider = Provider<MessagingRepository>((ref) {
 
   return MockMessagingRepository(
     store,
-    ref.watch(messagingSocketProvider) as MockMessagingSocket,
+    ref.watch(mockMessagingSocketProvider),
   );
 });

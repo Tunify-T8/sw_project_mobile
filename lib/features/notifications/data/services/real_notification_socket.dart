@@ -35,7 +35,7 @@ class RealNotificationSocket implements NotificationSocket {
   /// socket_io_client v2 does not resolve to port 0.
   static String get _wsBaseUrl {
     final uri = Uri.parse(ApiEndpoints.baseUrl);
-    final port = uri.hasPort
+    final port = (uri.hasPort && uri.port != 0)
         ? uri.port
         : (uri.scheme == 'https' ? 443 : 80);
     return '${uri.scheme}://${uri.host}:$port';

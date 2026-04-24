@@ -218,6 +218,12 @@ class MockMessagingRepository implements MessagingRepository {
   @override
   Future<void> disconnectRealtime() => _socket.disconnect();
 
+  @override
+  Future<void> joinConversation(String conversationId) async {}
+
+  @override
+  Future<void> leaveConversation(String conversationId) async {}
+
   String _previewFor(MessageDto dto) {
     if (dto.type == 'ATTACHMENT' || dto.attachments.isNotEmpty) {
       final firstTitle = dto.attachments.isNotEmpty

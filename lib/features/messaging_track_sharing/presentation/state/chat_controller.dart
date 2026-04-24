@@ -47,20 +47,36 @@ class ChatController extends Notifier<ChatState> {
 
   @override
   ChatState build() {
-    ref.onDispose(() => _eventsSub?.cancel());
+    ref.onDispose(() async {
+      await _eventsSub?.cancel();
+      try {
+        await ref
+            .read(messagingRepositoryProvider)
+            .leaveConversation(_conversationId);
+      } catch (_) {}
+    });
     Future.microtask(_bootstrap);
     return const ChatState(isLoading: true);
   }
 
   Future<void> _bootstrap() async {
     try {
-      await ref.read(messagingRepositoryProvider).connectRealtime();
+      final repo = ref.read(messagingRepositoryProvider);
+      await repo.connectRealtime();
+      await repo.joinConversation(_conversationId);
       _bindRealtime();
 
-      final page = await ref.read(getMessagesUseCaseProvider).call(_conversationId);
+      final page = await ref
+          .read(getMessagesUseCaseProvider)
+          .call(_conversationId);
+
+      // Backend returns most-recent-first — chat is rendered oldest → newest.
+      final chronological = [...page.items]
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
       state = state.copyWith(
         isLoading: false,
-        messages: page.items,
+        messages: chronological,
       );
 
       await ref.read(markConversationReadUseCaseProvider).call(_conversationId);
@@ -83,6 +99,8 @@ class ChatController extends Notifier<ChatState> {
           ref.read(markConversationReadUseCaseProvider).call(_conversationId);
         case MessageReadEvent():
         case ConversationBlockedEvent():
+        case TypingEvent():
+          break;
       }
     });
   }
@@ -124,8 +142,20 @@ class ChatController extends Notifier<ChatState> {
   Future<void> _send(SendMessageDraft draft) async {
     state = state.copyWith(isSending: true, clearError: true);
     try {
-      await ref.read(sendMessageUseCaseProvider).call(_conversationId, draft);
-      state = state.copyWith(isSending: false);
+      final message = await ref
+          .read(sendMessageUseCaseProvider)
+          .call(_conversationId, draft);
+
+      // Real mode: broadcast event might arrive before or after this point.
+      // Add the message optimistically here — the duplicate check in the
+      // realtime listener makes this idempotent.
+      final alreadyInList = state.messages.any((m) => m.id == message.id);
+      state = state.copyWith(
+        isSending: false,
+        messages: alreadyInList
+            ? state.messages
+            : [...state.messages, message],
+      );
     } catch (e) {
       state = state.copyWith(isSending: false, error: e.toString());
     }

@@ -148,6 +148,8 @@ class ConversationsController extends Notifier<ConversationsState> {
         case MessageReadEvent():
         case ConversationBlockedEvent():
           refresh();
+        case TypingEvent():
+          break;
       }
     });
   }
