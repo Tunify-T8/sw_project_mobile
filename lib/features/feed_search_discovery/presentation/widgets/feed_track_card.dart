@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 import '../../domain/entities/feed_tab_type.dart';
 import '../../domain/entities/feed_item_entity.dart';
 import 'feed_menu_sheet.dart';
@@ -76,7 +77,7 @@ class FeedTrackCard extends ConsumerWidget {
                     avatarUrl: item.actor.avatarUrl,
                     timeAgo: item.timeAgo,
                     createdAt: item.track.createdAt,
-                    feedType: tabType,
+                    feedViewMode: FeedViewMode.discover,
                     source: item.source,
                     actorName: item.actor.username,
                     trackName: item.track.title,
@@ -109,7 +110,7 @@ class FeedTrackCard extends ConsumerWidget {
                   showDragHandle: true,
                   useSafeArea: true,
                   builder: (_) =>
-                      FeedMenuSheet(track: item.track, tabType: tabType),
+                      FeedMenuSheet(track: item.track, feedViewMode: FeedViewMode.discover),
                 );
               },
               icon: const Icon(Icons.more_horiz),
@@ -125,7 +126,7 @@ class FeedTrackCard extends ConsumerWidget {
               trackId: item.track.trackId,
               fallbackLikesCount: item.track.likesCount,
               fallbackCommentsCount: item.track.commentsCount,
-              feedType: tabType,
+              feedViewMode: FeedViewMode.discover,
               coverUrl: item.track.coverUrl,
               trackTitle: item.track.title,
               artistName: item.track.artistName,
