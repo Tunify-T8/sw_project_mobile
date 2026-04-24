@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/services/push_notification_service.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../providers/notification_providers.dart';
 import 'notification_filter.dart';
 
-/// State for the Activity > Notifications tab.
 class NotificationsState {
   final bool isLoading;
   final bool isRefreshing;
@@ -44,11 +44,11 @@ class NotificationsState {
 }
 
 class NotificationsController extends Notifier<NotificationsState> {
-  StreamSubscription<dynamic>? _pushSub;
+  StreamSubscription<NotificationEntity>? _realtimeSub;
 
   @override
   NotificationsState build() {
-    ref.onDispose(() => _pushSub?.cancel());
+    ref.onDispose(_cleanup);
     Future.microtask(load);
     return const NotificationsState(isLoading: true);
   }
@@ -56,6 +56,20 @@ class NotificationsController extends Notifier<NotificationsState> {
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final repo = ref.read(notificationRepositoryProvider);
+
+      // Connect realtime socket (idempotent).
+      await repo.connectRealtime();
+
+      // Bind the realtime stream — new server-pushed notifications arrive here.
+      _bindRealtimeStream();
+
+      // In mock mode also start the simulator.
+      final mode = ref.read(notificationBackendModeProvider);
+      if (mode == NotificationBackendMode.mock) {
+        ref.read(mockNotificationSimulatorProvider);
+      }
+
       final page = await ref.read(getNotificationsUseCaseProvider).call(
             type: state.filter.apiType,
           );
@@ -64,11 +78,6 @@ class NotificationsController extends Notifier<NotificationsState> {
         items: page.items,
         unreadCount: page.unreadCount,
       );
-
-      _bindPushStream();
-
-      // Ensure the simulator is running (provider is kept alive by the read).
-      ref.read(mockNotificationSimulatorProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -118,10 +127,37 @@ class NotificationsController extends Notifier<NotificationsState> {
     );
   }
 
-  void _bindPushStream() {
-    _pushSub?.cancel();
-    final store = ref.read(mockNotificationStoreProvider);
-    _pushSub = store.onNewNotification.listen((_) => refresh());
+  // ── Realtime ──────────────────────────────────────────────────────────────
+
+  void _bindRealtimeStream() {
+    _realtimeSub?.cancel();
+    _realtimeSub = ref
+        .read(notificationRepositoryProvider)
+        .realtimeNotifications()
+        .listen(_onRealtimeNotification);
+  }
+
+  void _onRealtimeNotification(NotificationEntity notification) {
+    // Prepend to list and bump unread counter.
+    state = state.copyWith(
+      items: [notification, ...state.items],
+      unreadCount: state.unreadCount + 1,
+    );
+
+    // Fire device-level push so it appears in the system notification tray.
+    PushNotificationService.instance.show(
+      id: notification.id.hashCode,
+      title: notification.actor?.username ?? 'Tunify',
+      body: notification.message,
+      payload: notification.id,
+    );
+  }
+
+  void _cleanup() {
+    _realtimeSub?.cancel();
+    _realtimeSub = null;
+    // Disconnect socket on controller dispose.
+    ref.read(notificationRepositoryProvider).disconnectRealtime();
   }
 }
 
