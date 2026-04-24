@@ -4,7 +4,8 @@ import '../../domain/entities/track_preview_entity.dart';
 import '../../domain/entities/feed_tab_type.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
-import '../screens/classic_feed_screen.dart';
+import '../../domain/entities/feed_view_mode.dart';
+import '../providers/feed_view_provider.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
@@ -226,12 +227,7 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
           label: 'Switch to Classic feed',
           onTap: () {
             Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ClassicFeedScreen(),
-              ),
-            );
+            ref.read(feedViewModeProvider.notifier).setMode(FeedViewMode.classic);
           },
         ),
 

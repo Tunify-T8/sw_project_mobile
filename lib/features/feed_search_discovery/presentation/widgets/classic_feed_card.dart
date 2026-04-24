@@ -22,7 +22,7 @@ class ClassicFeedCard extends ConsumerWidget {
           FeedActivityRow(
             avatarUrl: item.actor.avatarUrl,
             timeAgo: item.timeAgo,
-            feedType: FeedType.classic,
+            feedType: FeedType.following,
             source: item.source,
             actorName: item.actor.username,
             trackName: item.track.title,
@@ -122,7 +122,7 @@ class ClassicFeedCard extends ConsumerWidget {
                 trackId: item.track.trackId,
                 fallbackLikesCount: item.track.likesCount,
                 fallbackCommentsCount: item.track.commentsCount,
-                feedType: FeedType.classic,
+                feedType: FeedType.following,
                 coverUrl: item.track.coverUrl,
                 trackTitle: item.track.title,
                 artistName: item.track.artistName,
