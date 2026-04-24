@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/feed_tab_type.dart';
+import '../../domain/entities/feed_view_mode.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
@@ -11,7 +11,7 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
   final String trackId;
   final int fallbackLikesCount;
   final int fallbackCommentsCount;
-  final FeedType feedType;
+  final FeedViewMode feedViewMode;
   final String? coverUrl;
   final String? trackTitle;
   final String? artistName;
@@ -21,7 +21,7 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
     required this.trackId,
     required this.fallbackLikesCount,
     required this.fallbackCommentsCount,
-    required this.feedType,
+    required this.feedViewMode,
     this.coverUrl,
     this.trackTitle,
     this.artistName,
@@ -52,64 +52,68 @@ class _FeedInteractionButtonsState
   Widget build(BuildContext context) {
     final state = ref.watch(engagementProvider(widget.trackId));
     final isLiked = state.engagement?.isLiked ?? false;
-    final likesCount =
-        state.engagement?.likeCount ?? widget.fallbackLikesCount;
+    final likesCount = state.engagement?.likeCount ?? widget.fallbackLikesCount;
     final commentsCount =
         state.engagement?.commentCount ?? widget.fallbackCommentsCount;
 
-    return Column(
-      children: [
-        IconButton(
-          onPressed: () => ref
-              .read(engagementProvider(widget.trackId).notifier)
-              .toggleLike(),
-          icon: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
-            color: isLiked ? Colors.red : Colors.white,
-          ),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
+    final children = [
+      IconButton(
+        onPressed: () =>
+            ref.read(engagementProvider(widget.trackId).notifier).toggleLike(),
+        icon: Icon(
+          isLiked ? Icons.favorite : Icons.favorite_border,
+          color: isLiked ? Colors.red : Colors.white,
         ),
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => LikersScreen(trackId: widget.trackId),
-            ),
-          ),
-          child: Text(
-            likesCount.toString(),
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+        padding: EdgeInsets.zero,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+
+      GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => LikersScreen(trackId: widget.trackId),
           ),
         ),
-        IconButton(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => CommentsScreen(
-                trackId: widget.trackId,
-                coverUrl: widget.coverUrl,
-                trackTitle: widget.trackTitle,
-                artistName: widget.artistName,
-              ),
-            ),
-          ),
-          icon: const Icon(Icons.comment, color: Colors.white),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        Text(
-          commentsCount.toString(),
+        child: Text(
+          likesCount.toString(),
           style: const TextStyle(color: Colors.white, fontSize: 15),
         ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.playlist_add, color: Colors.white),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
+      ),
+
+      IconButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CommentsScreen(
+              trackId: widget.trackId,
+              coverUrl: widget.coverUrl,
+              trackTitle: widget.trackTitle,
+              artistName: widget.artistName,
+            ),
+          ),
         ),
-      ],
-    );
+        icon: const Icon(Icons.comment, color: Colors.white),
+        padding: EdgeInsets.zero,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+
+      Text(
+        commentsCount.toString(),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
+      ),
+      
+      IconButton(
+        onPressed: () {},
+        icon: const Icon(Icons.playlist_add, color: Colors.white),
+        padding: EdgeInsets.zero,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+    ];
+
+    return (widget.feedViewMode == FeedViewMode.discover)
+        ? Column(children: children)
+        : Row(children: children);
   }
 }

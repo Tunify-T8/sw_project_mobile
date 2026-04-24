@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 import '../../domain/entities/feed_tab_type.dart';
 import '../../domain/entities/feed_item_entity.dart';
 import 'feed_menu_sheet.dart';
@@ -18,7 +19,6 @@ class FeedTrackCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
     final feedState = ref.watch(feedNotifierProvider);
 
     // Feed preview entry point: tapping anywhere on the card, including the
@@ -53,9 +53,7 @@ class FeedTrackCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 48),
-
-                  const SizedBox(height: 120),
+                  const Expanded(flex: 2, child: SizedBox()),
 
                   Center(
                     child: Container(
@@ -73,21 +71,19 @@ class FeedTrackCard extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 213),
+                  const Expanded(flex: 2, child: SizedBox()),
 
                   FeedActivityRow(
                     avatarUrl: item.actor.avatarUrl,
                     timeAgo: item.timeAgo,
                     createdAt: item.track.createdAt,
-                    feedType: tabType,
+                    feedViewMode: FeedViewMode.discover,
                     source: item.source,
                     actorName: item.actor.username,
                     trackName: item.track.title,
                   ),
 
-                  const SizedBox(height: 5.0),
-
-                  const SizedBox(height: 90),
+                  const Expanded(flex: 1, child: SizedBox()),
                 ],
               ),
             ),
@@ -96,7 +92,6 @@ class FeedTrackCard extends ConsumerWidget {
           // The overlay invites the user to start preview playback. Once the
           // preview starts, it is hidden so the artwork is visible.
           if (!feedState.isPreviewing) FeedPreviewOverlay(),
-
 
           Positioned(
             top: 63.0,
@@ -114,7 +109,8 @@ class FeedTrackCard extends ConsumerWidget {
                   ),
                   showDragHandle: true,
                   useSafeArea: true,
-                  builder: (_) => FeedMenuSheet(track: item.track, tabType: tabType,),
+                  builder: (_) =>
+                      FeedMenuSheet(track: item.track, feedViewMode: FeedViewMode.discover),
                 );
               },
               icon: const Icon(Icons.more_horiz),
@@ -124,13 +120,13 @@ class FeedTrackCard extends ConsumerWidget {
           ),
 
           Positioned(
-            top: 470.0,
+            bottom: 150.0,
             right: 20.0,
             child: FeedInteractionButtons(
               trackId: item.track.trackId,
               fallbackLikesCount: item.track.likesCount,
               fallbackCommentsCount: item.track.commentsCount,
-              feedType: tabType,
+              feedViewMode: FeedViewMode.discover,
               coverUrl: item.track.coverUrl,
               trackTitle: item.track.title,
               artistName: item.track.artistName,

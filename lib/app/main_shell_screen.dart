@@ -4,6 +4,9 @@ import 'package:software_project/core/routing/routes.dart';
 
 import '../features/audio_upload_and_management/presentation/screens/home_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/library_screen.dart';
+import '../features/feed_search_discovery/domain/entities/feed_view_mode.dart';
+import '../features/feed_search_discovery/presentation/providers/feed_view_provider.dart';
+import '../features/feed_search_discovery/presentation/screens/classic_feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/search_screen.dart';
 import '../features/playback_streaming_engine/presentation/widgets/mini_player.dart';
@@ -57,7 +60,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           index: _index,
           children: [
             const HomeScreen(),
-            const FeedScreen(),
+            ref.watch(feedViewModeProvider) == FeedViewMode.classic
+                ? const ClassicFeedScreen()
+                : const FeedScreen(),
             const SearchScreen(),
             LibraryScreen(
               onOpenSettings: () =>

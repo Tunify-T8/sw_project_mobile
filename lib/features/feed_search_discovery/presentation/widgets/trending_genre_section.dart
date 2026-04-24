@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/shared/ui/patterns/error_retry_view.dart';
 
 import '../providers/trending_notifier.dart';
 import '../widgets/trending_genre_bar.dart';
 import '../widgets/trending_track_tile.dart';
 import '../../domain/entities/trending_track_entity.dart';
+import '../../../../shared/ui/widgets/empty_state.dart';
 
 class TrendingGenreSection extends ConsumerStatefulWidget {
   final List<String> genres;
@@ -61,11 +63,10 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
         child: CircularProgressIndicator(),
       );
     } else if (error != null) {
-      return Center(
-        child: Text(
-          error,
-          style: const TextStyle(color: Colors.white),
-        ),
+      return ErrorRetryView(
+        onRetry: () => ref
+            .read(trendingNotifierProvider.notifier)
+            .loadTrending(genre: widget.genres[_tabController.index]),
       );
     } else if (tracks.isEmpty) {
       return const Center(
