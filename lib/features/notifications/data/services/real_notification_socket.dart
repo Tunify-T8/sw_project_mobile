@@ -31,12 +31,14 @@ class RealNotificationSocket implements NotificationSocket {
   Timer? _manualReconnectTimer;
   Timer? _tokenRefreshTimer;
 
+  /// Returns e.g. "https://tunify.duckdns.org" with an explicit port so that
+  /// socket_io_client v2 does not resolve to port 0.
   static String get _wsBaseUrl {
-    final base = ApiEndpoints.baseUrl;
-    if (base.endsWith('/api')) {
-      return base.substring(0, base.length - 4);
-    }
-    return base;
+    final uri = Uri.parse(ApiEndpoints.baseUrl);
+    final port = uri.hasPort
+        ? uri.port
+        : (uri.scheme == 'https' ? 443 : 80);
+    return '${uri.scheme}://${uri.host}:$port';
   }
 
   @override
@@ -84,14 +86,19 @@ class RealNotificationSocket implements NotificationSocket {
     _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
-    // /notifications is the Socket.IO namespace declared by NestJS:
-    // @WebSocketGateway({ namespace: '/notifications' }).
-    // Do not use setPath('/notifications') because that points Engine.IO at
-    // the REST controller route GET /notifications and receives HTTP 200 JSON.
+    // URL  : https://host:443/notifications  — Socket.IO namespace
+    // Path : /socket.io                      — Engine.IO handshake path (NestJS default)
+    //
+    // Port must be explicit (443 for https) — socket_io_client v2 resolves to
+    // port 0 when the port is omitted from the URL.
+    //
+    // Transports start with polling so Engine.IO can complete its HTTP
+    // handshake first; it then upgrades to websocket automatically.
     _socket = io.io(
       '$_wsBaseUrl/notifications',
       io.OptionBuilder()
-          .setTransports(['websocket'])
+          .setTransports(['polling', 'websocket'])
+          .setPath('/socket.io')
           .enableReconnection()
           .setReconnectionAttempts(20)
           .setReconnectionDelay(1000)
