@@ -65,6 +65,7 @@ class EngagementMapper {
       text: dto.text,
       likesCount: dto.likesCount,
       repliesCount: dto.repliesCount,
+      isLiked: dto.isLiked,
       createdAt: dto.createdAt,
     );
   }

@@ -96,6 +96,11 @@ class EngagementRepositoryImpl implements EngagementRepository {
   }
 
   @override
+  Future<void> toggleCommentLike({required String commentId, required bool isCurrentlyLiked}) async {
+    await Future<void>.delayed(_delay);
+  }
+
+  @override
   Future<ReplyEntity> toggleReplyLike({ // engagement addition — persists like toggle in store
     required String commentId,
     required String replyId,

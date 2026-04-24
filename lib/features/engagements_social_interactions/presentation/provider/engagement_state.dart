@@ -11,6 +11,7 @@ class EngagementState {
   final List<EngagementUserEntity> likers;
   final List<EngagementUserEntity> reposters;
   final Set<String> likedCommentIds;
+  final Set<String> likedReplyIds;
   final EngagementStatus engagementStatus;
   final EngagementStatus commentsStatus;
   final EngagementStatus likersStatus;
@@ -23,6 +24,7 @@ class EngagementState {
     this.likers = const [],
     this.reposters = const [],
     this.likedCommentIds = const {},
+    this.likedReplyIds = const {},
     this.engagementStatus = EngagementStatus.initial,
     this.commentsStatus = EngagementStatus.initial,
     this.likersStatus = EngagementStatus.initial,
@@ -35,6 +37,7 @@ class EngagementState {
   int get totalCommentsCount => commentsPage?.meta.totalCount ?? 0;
 
   bool isCommentLiked(String commentId) => likedCommentIds.contains(commentId);
+  bool isReplyLiked(String replyId) => likedReplyIds.contains(replyId);
 
   EngagementState copyWith({
     TrackEngagementEntity? engagement,
@@ -42,6 +45,7 @@ class EngagementState {
     List<EngagementUserEntity>? likers,
     List<EngagementUserEntity>? reposters,
     Set<String>? likedCommentIds,
+    Set<String>? likedReplyIds,
     EngagementStatus? engagementStatus,
     EngagementStatus? commentsStatus,
     EngagementStatus? likersStatus,
@@ -54,6 +58,7 @@ class EngagementState {
       likers: likers ?? this.likers,
       reposters: reposters ?? this.reposters,
       likedCommentIds: likedCommentIds ?? this.likedCommentIds,
+      likedReplyIds: likedReplyIds ?? this.likedReplyIds,
       engagementStatus: engagementStatus ?? this.engagementStatus,
       commentsStatus: commentsStatus ?? this.commentsStatus,
       likersStatus: likersStatus ?? this.likersStatus,

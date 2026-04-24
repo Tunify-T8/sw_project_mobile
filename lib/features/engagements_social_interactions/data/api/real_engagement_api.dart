@@ -46,6 +46,8 @@ class RealEngagementApi {
     );
     final data = res.data as Map<String, dynamic>;
     final list = data['comments'] as List<dynamic>? ?? [];
+    // ignore: avoid_print
+    if (list.isNotEmpty) print('[getComments] first comment raw: ${list.first}');
     final comments = list
         .map((e) => CommentDto.fromJson(e as Map<String, dynamic>))
         .where((comment) => !comment.isReply)

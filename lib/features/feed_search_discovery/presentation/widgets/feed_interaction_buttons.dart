@@ -5,13 +5,16 @@ import '../../domain/entities/feed_tab_type.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
-import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
+import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
 
 class FeedInteractionButtons extends ConsumerStatefulWidget {
   final String trackId;
   final int fallbackLikesCount;
   final int fallbackCommentsCount;
+  final bool fallbackIsLiked;
+  final bool fallbackIsReposted;
+  final int fallbackRepostsCount;
   final FeedType feedType;
   final String? coverUrl;
   final String? trackTitle;
@@ -22,6 +25,9 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
     required this.trackId,
     required this.fallbackLikesCount,
     required this.fallbackCommentsCount,
+    required this.fallbackIsLiked,
+    required this.fallbackIsReposted,
+    required this.fallbackRepostsCount,
     required this.feedType,
     this.coverUrl,
     this.trackTitle,
@@ -42,9 +48,13 @@ class _FeedInteractionButtonsState
       if (!mounted) return;
       final state = ref.read(engagementProvider(widget.trackId));
       if (state.engagementStatus == EngagementStatus.initial) {
-        ref
-            .read(engagementProvider(widget.trackId).notifier)
-            .loadEngagement(); // engagement addition — fetch engagement data when card first appears
+        ref.read(engagementProvider(widget.trackId).notifier).seedFromFeed(
+          likeCount: widget.fallbackLikesCount,
+          commentCount: widget.fallbackCommentsCount,
+          isLiked: widget.fallbackIsLiked,
+          isReposted: widget.fallbackIsReposted,
+          repostCount: widget.fallbackRepostsCount,
+        );
       }
     });
   }
@@ -52,7 +62,7 @@ class _FeedInteractionButtonsState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(engagementProvider(widget.trackId));
-    final isLiked = state.engagement?.isLiked ?? false;
+    final isLiked = state.engagement?.isLiked ?? widget.fallbackIsLiked;
     final likesCount =
         state.engagement?.likeCount ?? widget.fallbackLikesCount;
     final commentsCount =
@@ -60,7 +70,6 @@ class _FeedInteractionButtonsState
 
     return Column(
       children: [
-        // Key: FeedKeys.likeButton
         IconButton(
           key: const Key('feed_like_button'),
           onPressed: () => ref
@@ -74,7 +83,6 @@ class _FeedInteractionButtonsState
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
-        // Key: FeedKeys.likesCount
         GestureDetector(
           key: const Key('feed_likes_count'),
           onTap: () => Navigator.of(context).push(
@@ -87,7 +95,6 @@ class _FeedInteractionButtonsState
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
         ),
-        // Key: FeedKeys.commentButton
         IconButton(
           key: const Key('feed_comment_button'),
           onPressed: () => Navigator.of(context).push(
@@ -109,7 +116,6 @@ class _FeedInteractionButtonsState
           commentsCount.toString(),
           style: const TextStyle(color: Colors.white, fontSize: 15),
         ),
-        // Key: FeedKeys.playlistAddButton
         IconButton(
           key: const Key('feed_playlist_add_button'),
           onPressed: () {},
@@ -118,7 +124,78 @@ class _FeedInteractionButtonsState
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
         ),
+        if (widget.feedType == FeedType.classic) ...[
+          _RepostButton(
+            trackId: widget.trackId,
+            trackTitle: widget.trackTitle ?? '',
+            artistName: widget.artistName ?? '',
+            coverUrl: widget.coverUrl,
+            state: state,
+          ),
+        ],
       ],
+    );
+  }
+}
+
+class _RepostButton extends ConsumerWidget {
+  const _RepostButton({
+    required this.trackId,
+    required this.trackTitle,
+    required this.artistName,
+    this.coverUrl,
+    required this.state,
+  });
+
+  final String trackId;
+  final String trackTitle;
+  final String artistName;
+  final String? coverUrl;
+  final EngagementState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isReposted = state.engagement?.isReposted ?? false;
+    final repostCount = state.engagement?.repostCount ?? 0;
+
+    return GestureDetector(
+      onTap: () {
+        if (isReposted) {
+          ref.read(engagementProvider(trackId).notifier).removeRepost();
+        } else {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: const Color(0xFF121212),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (_) => RepostCaptionSheet(
+              trackId: trackId,
+              trackTitle: trackTitle,
+              artistName: artistName,
+              coverUrl: coverUrl,
+            ),
+          );
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isReposted ? Icons.repeat_on : Icons.repeat,
+            color: isReposted ? Colors.orange : Colors.white,
+            size: 28,
+          ),
+          Text(
+            repostCount.toString(),
+            style: TextStyle(
+              color: isReposted ? Colors.orange : Colors.white,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

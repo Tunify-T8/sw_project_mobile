@@ -84,6 +84,11 @@ class RealEngagementRepositoryImpl implements EngagementRepository {
   }
 
   @override
+  Future<void> toggleCommentLike({required String commentId, required bool isCurrentlyLiked}) async {
+    await _api.toggleCommentLike(commentId, isCurrentlyLiked: isCurrentlyLiked);
+  }
+
+  @override
   Future<List<ReplyEntity>> getReplies({required String commentId}) async {
     final dtos = await _api.getReplies(commentId);
     return EngagementMapper.toReplyEntityList(dtos);

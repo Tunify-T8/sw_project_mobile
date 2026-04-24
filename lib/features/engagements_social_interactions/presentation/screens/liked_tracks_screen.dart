@@ -14,7 +14,7 @@ class LikedTracksScreen extends ConsumerStatefulWidget {
 }
 
 class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
-  static const String _viewerId = 'user_current_1'; // swap with real auth later
+  static const String _viewerId = 'user_current_1';
 
   List<LikedTrackEntity> _tracks = [];
   List<LikedTrackEntity> _filtered = [];
@@ -52,7 +52,6 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
           .read(getLikedTracksUsecaseProvider)
           .call(viewerId: _viewerId);
       if (mounted) {
-        // Seed each track's engagement state as liked so the options sheet shows it correctly
         for (final t in tracks) {
           ref.read(engagementProvider(t.trackId).notifier).seedFromFeed(
             likeCount: t.likesCount,
@@ -69,25 +68,34 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
     }
   }
 
+  // Returns only tracks that are still liked according to live engagement state.
+  // ref.watch calls here mean this screen rebuilds whenever any track is unliked
+  // from anywhere in the app.
+  List<LikedTrackEntity> _visibleTracks() {
+    return _filtered.where((t) {
+      final engagement = ref.watch(engagementProvider(t.trackId)).engagement;
+      return engagement?.isLiked != false;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final visible = _visibleTracks();
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          '${_tracks.length} Likes',
+          '${visible.length} Likes',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
-          // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            // Key: EngagementKeys.likedTracksSearchField
             child: TextField(
               key: const Key('liked_tracks_search_field'),
               controller: _searchController,
@@ -106,7 +114,6 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
               ),
             ),
           ),
-          // Shuffle / play row
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
@@ -127,13 +134,13 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
               ],
             ),
           ),
-          Expanded(child: _buildBody()),
+          Expanded(child: _buildBody(visible)),
         ],
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(List<LikedTrackEntity> visible) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: Colors.orangeAccent));
     }
@@ -150,16 +157,16 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
         ),
       );
     }
-    if (_filtered.isEmpty) {
+    if (visible.isEmpty) {
       return const Center(
         child: Text('No results', style: TextStyle(color: Colors.white54, fontSize: 16)),
       );
     }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _filtered.length,
+      itemCount: visible.length,
       separatorBuilder: (_, __) => const Divider(color: Colors.white10, height: 1),
-      itemBuilder: (context, index) => _LikedTrackTile(track: _filtered[index]),
+      itemBuilder: (context, index) => _LikedTrackTile(track: visible[index]),
     );
   }
 }
@@ -174,13 +181,11 @@ class _LikedTrackTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          // cover art → fallback to artist avatar → fallback to placeholder
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: _buildCover(),
           ),
           const SizedBox(width: 12),
-          // title + artist + duration
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +215,6 @@ class _LikedTrackTile extends ConsumerWidget {
               ],
             ),
           ),
-          // three-dot menu
           IconButton(
             icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
             padding: EdgeInsets.zero,
@@ -233,7 +237,6 @@ class _LikedTrackTile extends ConsumerWidget {
   }
 
   Widget _buildCover() {
-    // prefer track cover, fall back to artist avatar, then placeholder
     final url = track.coverUrl ?? track.artistAvatar;
     if (url != null) {
       return Image.network(

@@ -36,7 +36,7 @@ class ReplyDto {
       text: (json['text'] as String?) ?? '',
       likesCount: (json['likesCount'] as int?) ?? 0,
       repliesCount: (json['repliesCount'] as int?) ?? 0,
-      isLikedByViewer: (json['isLikedByViewer'] as bool?) ?? false, // engagement addition
+      isLikedByViewer: (json['isLiked'] as bool?) ?? (json['isLikedByViewer'] as bool?) ?? false,
       createdAt:
           DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),

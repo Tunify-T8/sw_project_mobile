@@ -167,8 +167,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   }
 
   Widget _buildList(EngagementState state) {
-    if (state.commentsStatus == EngagementStatus.loading &&
-        state.comments.isEmpty) {
+    if (state.commentsStatus == EngagementStatus.loading) {
       return const Center(child: CircularProgressIndicator());
     }
 

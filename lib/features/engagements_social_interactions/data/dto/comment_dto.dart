@@ -10,6 +10,7 @@ class CommentDto {
     required this.text,
     this.likesCount = 0,
     this.repliesCount = 0,
+    this.isLiked = false,
     required this.createdAt,
     this.parentId,
   });
@@ -21,6 +22,7 @@ class CommentDto {
   final String text;
   final int likesCount;
   final int repliesCount;
+  final bool isLiked;
   final DateTime createdAt;
   final String? parentId; // non-null means this is a reply, not a top-level comment
 
@@ -37,11 +39,19 @@ class CommentDto {
       text: (json['text'] as String?) ?? '',
       likesCount: (json['likesCount'] as int?) ?? 0,
       repliesCount: (json['repliesCount'] as int?) ?? 0,
+      isLiked: (json['isLiked'] as bool?) ?? false,
       createdAt:
           DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
-      parentId: json['parentId'] as String? ?? json['parentCommentId'] as String?,
+      parentId: _parseParentId(json),
     );
+  }
+
+  static String? _parseParentId(Map<String, dynamic> json) {
+    final raw = json['parentId'] ?? json['parentCommentId'] ?? json['replyToId'] ?? json['parent_id'];
+    if (raw == null) return null;
+    final s = raw.toString();
+    return s.isEmpty ? null : s;
   }
 
   Map<String, dynamic> toJson() {

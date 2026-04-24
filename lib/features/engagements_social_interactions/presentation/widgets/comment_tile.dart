@@ -58,6 +58,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         .read(getRepliesUsecaseProvider)
         .call(commentId: widget.comment.id);
     if (mounted) {
+      ref.read(engagementProvider(widget.trackId).notifier).seedReplyLikes(replies);
       setState(() {
         _replies = replies;
         _showReplies = replies.isNotEmpty;
@@ -126,9 +127,11 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                             : null,
                         isOwner: comment.user.id ==
                             (ref.read(authControllerProvider).value?.id ?? ''),
-                        onDelete: () => ref
-                            .read(engagementProvider(widget.trackId).notifier)
-                            .deleteComment(comment.id),
+                        onDelete: () async {
+                          await ref
+                              .read(engagementProvider(widget.trackId).notifier)
+                              .deleteComment(comment.id);
+                        },
                       ),
                     ),
                   ],
@@ -138,7 +141,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
               CommentLikeButton(
                 trackId: widget.trackId,
                 commentId: comment.id,
-                baseLikesCount: comment.likesCount,
+                baseLikesCount: comment.likesCount - (comment.isLiked ? 1 : 0),
               ),
             ],
           ),
@@ -150,6 +153,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
               children: _replies
                   .map((reply) => ReplyTile(
                         reply: reply,
+                        trackId: widget.trackId,
                         parentTimestamp: comment.timestamp,
                         onReply: () => widget.onReply?.call(reply.user.displayName),
                         onDelete: () async {

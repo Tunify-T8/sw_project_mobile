@@ -7,17 +7,19 @@ import '../utils/engagement_formatters.dart';
 import 'comment_options_sheet.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 
-class ReplyTile extends ConsumerStatefulWidget { // engagement modification — was StatefulWidget, converted to ConsumerStatefulWidget to call toggleReplyLike use case
+class ReplyTile extends ConsumerStatefulWidget {
   const ReplyTile({
     super.key,
     required this.reply,
+    required this.trackId,
     this.parentTimestamp,
     this.onReply,
     this.onDelete,
   });
 
   final ReplyEntity reply;
-  final int? parentTimestamp;   // timestamp of the parent comment passed for "Play from X:XX" in options
+  final String trackId;
+  final int? parentTimestamp;
   final VoidCallback? onReply;
   final VoidCallback? onDelete;
 
@@ -26,54 +28,38 @@ class ReplyTile extends ConsumerStatefulWidget { // engagement modification — 
 }
 
 class _ReplyTileState extends ConsumerState<ReplyTile> {
-  late bool _isLiked;
   late int _likesCount;
 
   @override
   void initState() {
     super.initState();
-    // engagement addition — initialize from entity so like state survives navigation
-    _isLiked = widget.reply.isLikedByViewer;
     _likesCount = widget.reply.likesCount;
   }
 
   @override
   void didUpdateWidget(ReplyTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // engagement addition — sync if the entity is replaced (e.g. parent reloads replies)
-    if (widget.reply.id == oldWidget.reply.id &&
-        widget.reply.isLikedByViewer != oldWidget.reply.isLikedByViewer) {
-      _isLiked = widget.reply.isLikedByViewer;
+    if (widget.reply.id != oldWidget.reply.id) {
       _likesCount = widget.reply.likesCount;
     }
   }
 
   Future<void> _toggleLike() async {
-    // engagement addition — optimistic update first, then persist in store via use case
+    final wasLiked = ref.read(engagementProvider(widget.trackId)).isReplyLiked(widget.reply.id);
     setState(() {
-      _isLiked = !_isLiked;
-      _likesCount = _isLiked ? _likesCount + 1 : (_likesCount - 1).clamp(0, 999999);
+      _likesCount = wasLiked
+          ? (_likesCount - 1).clamp(0, 999999)
+          : _likesCount + 1;
     });
-    try {
-      await ref.read(toggleReplyLikeUsecaseProvider).call(
-            commentId: widget.reply.commentId,
-            replyId: widget.reply.id,
-            viewerId: ref.read(authControllerProvider).value?.id ?? '',
-          );
-    } catch (_) {
-      // revert on failure
-      if (mounted) {
-        setState(() {
-          _isLiked = !_isLiked;
-          _likesCount = _isLiked ? _likesCount + 1 : (_likesCount - 1).clamp(0, 999999);
-        });
-      }
-    }
+    await ref
+        .read(engagementProvider(widget.trackId).notifier)
+        .toggleReplyLike(commentId: widget.reply.commentId, replyId: widget.reply.id);
   }
 
   @override
   Widget build(BuildContext context) {
     final reply = widget.reply;
+    final _isLiked = ref.watch(engagementProvider(widget.trackId)).isReplyLiked(reply.id);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
