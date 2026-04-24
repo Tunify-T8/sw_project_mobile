@@ -84,13 +84,14 @@ class RealNotificationSocket implements NotificationSocket {
     _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
-    // The deployed realtime endpoint is mounted as the Socket.IO engine path:
-    // https://tunify.duckdns.org/notifications
+    // /notifications is the Socket.IO namespace declared by NestJS:
+    // @WebSocketGateway({ namespace: '/notifications' }).
+    // Do not use setPath('/notifications') because that points Engine.IO at
+    // the REST controller route GET /notifications and receives HTTP 200 JSON.
     _socket = io.io(
-      _wsBaseUrl,
+      '$_wsBaseUrl/notifications',
       io.OptionBuilder()
-          .setTransports(['polling', 'websocket'])
-          .setPath('/notifications')
+          .setTransports(['websocket'])
           .enableReconnection()
           .setReconnectionAttempts(20)
           .setReconnectionDelay(1000)
@@ -115,7 +116,7 @@ class RealNotificationSocket implements NotificationSocket {
     _socket!.onConnectError((err) {
       _connected = false;
       debugPrint('[NotificationSocket] connect error: ${_safeError(err)}');
-      _scheduleManualReconnect(forceRefresh: true);
+      _scheduleManualReconnect();
     });
 
     _socket!.on('notification', (data) {
@@ -208,9 +209,14 @@ class RealNotificationSocket implements NotificationSocket {
         refreshToken: newRefreshToken,
       );
       return newAccessToken;
+    } on DioException catch (e) {
+      debugPrint(
+        '[NotificationSocket] token refresh failed: ${_safeDioError(e)}',
+      );
+      return _isExpired(accessToken) ? null : accessToken;
     } catch (e) {
       debugPrint('[NotificationSocket] token refresh failed: ${e.runtimeType}');
-      return accessToken;
+      return _isExpired(accessToken) ? null : accessToken;
     }
   }
 
@@ -218,6 +224,12 @@ class RealNotificationSocket implements NotificationSocket {
     final expiresAt = _jwtExpiry(token);
     if (expiresAt == null) return token == null || token.isEmpty;
     return expiresAt.difference(DateTime.now()) < const Duration(minutes: 2);
+  }
+
+  bool _isExpired(String? token) {
+    final expiresAt = _jwtExpiry(token);
+    if (expiresAt == null) return token == null || token.isEmpty;
+    return !expiresAt.isAfter(DateTime.now());
   }
 
   DateTime? _jwtExpiry(String? token) {
@@ -256,5 +268,14 @@ class RealNotificationSocket implements NotificationSocket {
   String _safeError(Object? error) {
     final text = error?.toString() ?? 'unknown';
     return text.replaceAll(RegExp(r'token=[^&\s#]+'), 'token=<redacted>');
+  }
+
+  String _safeDioError(DioException error) {
+    final status = error.response?.statusCode;
+    final data = error.response?.data;
+    final message = data is Map && data['message'] != null
+        ? data['message'].toString()
+        : error.message;
+    return 'status=${status ?? 'none'}, message=$message';
   }
 }
