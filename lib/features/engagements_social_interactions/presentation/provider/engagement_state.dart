@@ -34,7 +34,7 @@ class EngagementState {
 
   List<CommentEntity> get comments => commentsPage?.comments ?? const [];
   bool get hasNextCommentsPage => commentsPage?.meta.hasNextPage ?? false;
-  int get totalCommentsCount => commentsPage?.meta.totalCount ?? 0;
+  int get totalCommentsCount => commentsPage?.meta.totalCount ?? engagement?.commentCount ?? 0;
 
   bool isCommentLiked(String commentId) => likedCommentIds.contains(commentId);
   bool isReplyLiked(String replyId) => likedReplyIds.contains(replyId);

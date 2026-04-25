@@ -38,6 +38,7 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
   Widget build(BuildContext context) {
     final reply = widget.reply;
     final _isLiked = ref.watch(engagementProvider(widget.trackId)).isReplyLiked(reply.id);
+    final likeCount = reply.likesCount + (_isLiked ? 1 : 0) - (reply.isLikedByViewer ? 1 : 0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -140,10 +141,10 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                   color: _isLiked ? Colors.orangeAccent : Colors.white54,
                   size: 18,
                 ),
-                if (widget.reply.likesCount > 0) ...[
+                if (likeCount > 0) ...[
                   const SizedBox(height: 2),
                   Text(
-                    widget.reply.likesCount.toString(),
+                    likeCount.toString(),
                     style: const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                 ],

@@ -7,6 +7,7 @@ import '../../../engagements_social_interactions/presentation/provider/engagemen
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
+import '../../../engagements_social_interactions/presentation/screens/reposters_screen.dart';
 
 class FeedInteractionButtons extends ConsumerStatefulWidget {
   final String trackId;
@@ -44,7 +45,7 @@ class _FeedInteractionButtonsState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final state = ref.read(engagementProvider(widget.trackId));
       if (state.engagementStatus == EngagementStatus.initial) {
@@ -55,6 +56,7 @@ class _FeedInteractionButtonsState
           isReposted: widget.fallbackIsReposted,
           repostCount: widget.fallbackRepostsCount,
         );
+        await ref.read(engagementProvider(widget.trackId).notifier).loadEngagement();
       }
     });
   }
@@ -94,16 +96,22 @@ class _FeedInteractionButtonsState
       ),
       IconButton(
         key: const Key('feed_comment_button'),
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => CommentsScreen(
-              trackId: widget.trackId,
-              coverUrl: widget.coverUrl,
-              trackTitle: widget.trackTitle,
-              artistName: widget.artistName,
+        onPressed: () {
+          final currentCommentsCount =
+              state.engagement?.commentCount ?? widget.fallbackCommentsCount;
+          // ignore: avoid_print
+          print('[FeedInteractionButtons] navigating to comments: trackId=${widget.trackId}, commentsCount=$currentCommentsCount');
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => CommentsScreen(
+                trackId: widget.trackId,
+                coverUrl: widget.coverUrl,
+                trackTitle: widget.trackTitle,
+                artistName: widget.artistName,
+              ),
             ),
-          ),
-        ),
+          );
+        },
         icon: const Icon(Icons.comment, color: Colors.white),
         padding: EdgeInsets.zero,
         splashColor: Colors.transparent,
@@ -157,44 +165,51 @@ class _RepostButton extends ConsumerWidget {
     final isReposted = state.engagement?.isReposted ?? false;
     final repostCount = state.engagement?.repostCount ?? 0;
 
-    return GestureDetector(
-      onTap: () {
-        if (isReposted) {
-          ref.read(engagementProvider(trackId).notifier).removeRepost();
-        } else {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: const Color(0xFF121212),
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            builder: (_) => RepostCaptionSheet(
-              trackId: trackId,
-              trackTitle: trackTitle,
-              artistName: artistName,
-              coverUrl: coverUrl,
-            ),
-          );
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () {
+            if (isReposted) {
+              ref.read(engagementProvider(trackId).notifier).removeRepost();
+            } else {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: const Color(0xFF121212),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) => RepostCaptionSheet(
+                  trackId: trackId,
+                  trackTitle: trackTitle,
+                  artistName: artistName,
+                  coverUrl: coverUrl,
+                ),
+              );
+            }
+          },
+          child: Icon(
             isReposted ? Icons.repeat_on : Icons.repeat,
             color: isReposted ? Colors.orange : Colors.white,
             size: 28,
           ),
-          Text(
+        ),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RepostersScreen(trackId: trackId),
+            ),
+          ),
+          child: Text(
             repostCount.toString(),
             style: TextStyle(
               color: isReposted ? Colors.orange : Colors.white,
               fontSize: 15,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

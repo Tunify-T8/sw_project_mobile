@@ -53,6 +53,9 @@ class RealEngagementApi {
         .where((comment) => !comment.isReply)
         .toList();
     final total = (data['total'] as int?) ?? comments.length;
+    // Debug: log backend total count for comments
+    // ignore: avoid_print
+    print('[getComments] total comments from BE: $total');
     return (comments: comments, total: total);
   }
 
@@ -120,13 +123,14 @@ class RealEngagementApi {
     );
     final data = res.data as Map<String, dynamic>;
     final list = data['reposts'] as List<dynamic>? ?? [];
-    // Repost schema is flat — reshape to match EngagementUserDto
+    // Repost schema may return either a flat record or a nested user object.
     return list.map((e) {
       final map = e as Map<String, dynamic>;
+      final user = map['user'] as Map<String, dynamic>? ?? map;
       return EngagementUserDto.fromJson({
-        'userId': map['userId'],
-        'username': map['username'],
-        'avatarUrl': map['avatarUrl'],
+        'id': user['id'] ?? user['userId'],
+        'displayName': user['displayName'] ?? user['username'] ?? user['name'],
+        'avatarUrl': user['avatarUrl'] ?? user['avatar'],
       });
     }).toList();
   }
