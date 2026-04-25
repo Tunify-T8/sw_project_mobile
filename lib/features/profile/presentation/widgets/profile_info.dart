@@ -3,46 +3,62 @@ import '../../../followers_and_social_graph/domain/entities/network_list_type.da
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 
 class ProfileInfo extends StatelessWidget {
+  final String displayName;
   final String userName;
   final String city;
   final String country;
   final String bio;
   final int followersCount;
   final int followingCount;
-   final bool isCertified; 
+  final bool isCertified; 
   final TextStyle nameStyle;
   final TextStyle bioStyle;
   final TextStyle followerStyle;
   final VoidCallback onShowMore;
   final Widget actionButtons; // 3lshan n7ot el actions fel nos
+  final VoidCallback? onFollowersTap;
+  final VoidCallback? onFollowingTap;
+  final String? userId;
 
   const ProfileInfo({
     super.key,
+    required this.displayName,
     required this.userName,
     required this.city,
     required this.country,
     required this.bio,
     required this.followersCount,
     required this.followingCount,
-    required this.isCertified, 
+    required this.isCertified,
     required this.nameStyle,
     required this.bioStyle,
     required this.followerStyle,
     required this.onShowMore,
     required this.actionButtons,
+    this.onFollowersTap,
+    this.onFollowingTap,
+    this.userId,
   });
 
 Widget buildName() => Padding(
   padding: const EdgeInsets.only(left: 25),
-  child: Row(
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(userName, style: nameStyle),
-      if (isCertified) ...[
-        const SizedBox(width: 6),
-        const Icon(
-          Icons.verified,
-          color: Colors.blue,
-          size: 22,
+      Row(
+        children: [
+          Text(displayName, style: nameStyle),
+          if (isCertified) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.verified, color: Colors.blue, size: 22),
+          ],
+        ],
+      ),
+      if (userName.isNotEmpty) ...[
+        const SizedBox(height: 2),
+        Text(
+          '@$userName',
+          style: const TextStyle(color: Colors.white54, fontSize: 13),
         ),
       ],
     ],
@@ -70,14 +86,16 @@ Widget buildLocation() => Padding(
       padding: const EdgeInsets.only(left: 25),
       child: Row(
         children: [
+          // Key: ProfileKeys.followersCount
           GestureDetector(
-            onTap: () {
+            key: const Key('profile_followers_count'),
+            onTap: onFollowersTap ?? () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const NetworkListsScreen(
-                    isMyProfile: true,
+                  builder: (context) => NetworkListsScreen(
                     listType: NetworkListType.followers,
+                    userId: userId,
                   ),
                 ),
               );
@@ -85,14 +103,16 @@ Widget buildLocation() => Padding(
             child: Text('$followersCount Followers', style: followerStyle),
           ),
           Text('  ·  ', style: followerStyle),
+          // Key: ProfileKeys.followingCount
           GestureDetector(
-            onTap: () {
+            key: const Key('profile_following_count'),
+            onTap: onFollowingTap ?? () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const NetworkListsScreen(
+                  builder: (context) => NetworkListsScreen(
                     listType: NetworkListType.following,
-                    isMyProfile: true,
+                    userId: userId,
                   ),
                 ),
               );

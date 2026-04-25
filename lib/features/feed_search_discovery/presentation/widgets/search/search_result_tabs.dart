@@ -8,7 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../features/followers_and_social_graph/presentation/widgets/relationship_button.dart';
-import '../../../../../features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../domain/entities/album_result_entity.dart';
 import '../../../domain/entities/playlist_result_entity.dart';
 import '../../../domain/entities/profile_result_entity.dart';
@@ -88,10 +89,10 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
 
   /// Navigates to the public profile screen for [profile].
   void _openProfile(ProfileResultEntity profile) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => OtherUserProfileScreen(userId: profile.id),
-      ),
+    navigateToProfile(
+      context,
+      profile.id,
+      currentUserId: ref.read(authControllerProvider).value?.id,
     );
   }
 
@@ -244,7 +245,7 @@ class _AllTab extends StatelessWidget {
                 title: result.topResult!.title,
                 subtitle: result.topResult!.subtitle,
                 artworkUrl: result.topResult!.artworkUrl,
-                isVerified: result.topResult!.type == TopResultType.profile,
+                isCertified: result.topResult!.type == TopResultType.profile,
               ),
             ),
           ),

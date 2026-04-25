@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/track_preview_entity.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../utils/feed_track_playback.dart';
 
@@ -42,12 +43,10 @@ class TrackInfoBox extends ConsumerWidget {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => Navigator.push(
+                      onTap: () => navigateToProfile(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              OtherUserProfileScreen(userId: track.artistId),
-                        ),
+                        track.artistId,
+                        currentUserId: ref.read(authControllerProvider).value?.id,
                       ),
                       child: CircleAvatar(
                         radius: 20.0,

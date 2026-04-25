@@ -5,7 +5,7 @@ class ProfileResultEntity {
   final String? avatarUrl;
   final String? location;
   final int followersCount;
-  final bool isVerified;
+  final bool isCertified;
   final bool isFollowing;
 
   const ProfileResultEntity({
@@ -14,7 +14,7 @@ class ProfileResultEntity {
     this.avatarUrl,
     this.location,
     required this.followersCount,
-    this.isVerified = false,
+    this.isCertified = false,
     this.isFollowing = false,
   });
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../features/auth/presentation/providers/auth_provider.dart';
-import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
-import '../../data/services/mock_engagement_store.dart';
 import '../provider/enagement_providers.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
 import '../provider/engagement_state.dart';
 import '../utils/engagement_formatters.dart';
+import '../widgets/comment_input_bar.dart';
 import '../widgets/comment_tile.dart';
+import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
 
 class CommentsScreen extends ConsumerStatefulWidget {
   const CommentsScreen({
@@ -28,9 +28,8 @@ class CommentsScreen extends ConsumerStatefulWidget {
 }
 
 class _CommentsScreenState extends ConsumerState<CommentsScreen> {
-  final _controller = TextEditingController();
-  final _focusNode = FocusNode();
-  String? _replyingToCommentId; // engagement addition — tracks which comment the user is replying to
+  String? _replyingToCommentId;
+  String? _prefillText;
 
   @override
   void initState() {
@@ -41,61 +40,16 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  int get _currentTimestampSeconds {
-    final playerState = ref.read(playerProvider).value;
-    return playerState?.positionSeconds.toInt() ?? 0;
-  }
-
-  Future<void> _submit() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    final replyTarget = _replyingToCommentId; // engagement addition — capture before clearing
-    _controller.clear();
-    _focusNode.unfocus();
-    setState(() => _replyingToCommentId = null);
-
-    if (replyTarget != null) {
-      // engagement addition — submit as a reply instead of a top-level comment
-      final authUser = ref.read(authControllerProvider).value;
-      final viewerId = authUser?.id ?? 'user_current_1';
-      if (authUser != null) {
-        ref.read(mockEngagementStoreProvider).seedUser(
-          id: authUser.id,
-          username: authUser.username,
-          avatarUrl: authUser.avatarUrl,
-        );
-      }
-      await ref.read(addReplyUsecaseProvider).call(
-            commentId: replyTarget,
-            viewerId: viewerId,
-            text: text,
-          );
-      await ref.read(engagementProvider(widget.trackId).notifier).loadComments();
-    } else {
-      final timestamp = _currentTimestampSeconds;
-      await ref.read(engagementProvider(widget.trackId).notifier).addComment(
-            timestamp: timestamp,
-            text: text,
-          );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final state = ref.watch(engagementProvider(widget.trackId));
     final totalCount = state.totalCommentsCount;
 
     return Scaffold(
+      key: const Key('comments_screen'),
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1A1A),
-        leading: const BackButton(color: Colors.white),
+        leading: const BackButton(key: Key('comments_back_button'), color: Colors.white),
         title: Text(
           '$totalCount comments',
           style: const TextStyle(color: Colors.white, fontSize: 18),
@@ -106,10 +60,18 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
         children: [
           _buildTrackHeader(),
           _buildReactionsStripe(totalCount),
-          Expanded(
-            child: _buildList(state),
+          Expanded(child: _buildList(state)),
+          CommentInputBar(
+            trackId: widget.trackId,
+            replyingToCommentId: _replyingToCommentId,
+            prefillText: _prefillText,
+            onReplyClear: () => setState(() {
+              _replyingToCommentId = null;
+              _prefillText = null;
+            }),
+            showEmojis: false,
+            useSafeArea: true,
           ),
-          _buildInputBar(),
         ],
       ),
     );
@@ -207,22 +169,20 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   }
 
   Widget _buildList(EngagementState state) {
-    if (state.commentsStatus == EngagementStatus.loading &&
-        state.comments.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+    if (state.commentsStatus == EngagementStatus.loading) {
+      return const Center(key: Key('comments_loading'), child: CircularProgressIndicator());
     }
 
     if (state.commentsStatus == EngagementStatus.error) {
-      return Center(
-        child: Text(
-          state.error ?? 'Something went wrong',
-          style: const TextStyle(color: Colors.white70),
-        ),
+      return ErrorRetryView(
+        key: const Key('comments_error'),
+        onRetry: () => ref.read(engagementProvider(widget.trackId).notifier).loadComments(),
       );
     }
 
     if (state.comments.isEmpty) {
       return const Center(
+        key: Key('comments_empty'),
         child: Text(
           'No comments yet. Be the first!',
           style: TextStyle(color: Colors.white54),
@@ -230,78 +190,39 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
       );
     }
 
-    return ListView.builder(
+    return RefreshIndicator(
+      key: const Key('comments_refresh'),
+      onRefresh: () => ref
+          .read(engagementProvider(widget.trackId).notifier)
+          .loadComments(),
+      child: ListView.builder(
+      key: const Key('comments_list'),
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       itemCount: state.comments.length,
       itemBuilder: (context, index) {
         final comment = state.comments[index];
+        // Key: EngagementKeys.commentTile (ValueKey per comment)
         return CommentTile(
+          key: ValueKey('comment_tile_${comment.id}'),
           comment: comment,
           trackId: widget.trackId,
           onTapTimestamp: (seconds) {
-            final currentTrackId = ref
-                .read(playerProvider)
-                .value
-                ?.bundle
-                ?.trackId;
+            final currentTrackId =
+                ref.read(playerProvider).value?.bundle?.trackId;
             if (currentTrackId == widget.trackId) {
               ref.read(playerProvider.notifier).seek(seconds.toDouble());
               Navigator.pop(context);
             }
           },
           onReply: (username) {
-            setState(() => _replyingToCommentId = comment.id); // engagement addition — mark which comment we're replying to
-            _controller.text = '@$username ';
-            _controller.selection = TextSelection.fromPosition(
-              TextPosition(offset: _controller.text.length),
-            );
-            _focusNode.requestFocus();
+            setState(() {
+              _replyingToCommentId = comment.id;
+              _prefillText = '@$username ';
+            });
           },
         );
       },
-    );
-  }
-
-  Widget _buildInputBar() {
-    final playerState = ref.watch(playerProvider).value;
-    final seconds = playerState?.positionSeconds.toInt() ?? 0;
-
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        color: const Color(0xFF242424),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Comment at ${EngagementFormatters.timestamp(seconds)}',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: Colors.white10,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onSubmitted: (_) => _submit(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: _submit,
-              icon: const Icon(Icons.send_rounded, color: Colors.orangeAccent),
-            ),
-          ],
-        ),
-      ),
+    ),
     );
   }
 }

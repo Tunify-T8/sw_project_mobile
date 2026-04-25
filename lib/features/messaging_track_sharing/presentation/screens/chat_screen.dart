@@ -20,11 +20,16 @@ class ChatScreen extends ConsumerStatefulWidget {
     required this.conversationId,
     required this.otherUserName,
     this.otherUserAvatar,
+    this.pendingAttachment,
   });
 
   final String conversationId;
   final String otherUserName;
   final String? otherUserAvatar;
+
+  /// If set, the screen immediately sends this attachment once the history
+  /// has loaded — used by the "Send to" row in the track options sheet.
+  final MessageAttachment? pendingAttachment;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -33,6 +38,34 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _optionsKey = GlobalKey();
+  bool _pendingAttachmentSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pendingAttachment != null) {
+      Future.microtask(_sendPendingAttachmentWhenReady);
+    }
+  }
+
+  Future<void> _sendPendingAttachmentWhenReady() async {
+    if (_pendingAttachmentSent || widget.pendingAttachment == null) return;
+
+    // Wait up to ~3s for the chat to finish loading before sending so the
+    // attachment lands on top of the existing history in the UI.
+    for (var i = 0; i < 30; i++) {
+      if (!mounted) return;
+      final state = ref.read(chatControllerProvider(widget.conversationId));
+      if (!state.isLoading) break;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (!mounted || _pendingAttachmentSent) return;
+    _pendingAttachmentSent = true;
+    ref
+        .read(chatControllerProvider(widget.conversationId).notifier)
+        .sendAttachments([widget.pendingAttachment!]);
+  }
 
   @override
   void dispose() {
@@ -55,10 +88,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatControllerProvider(widget.conversationId));
+    final conversation = ref.watch(
+      conversationsControllerProvider.select((state) {
+        for (final item in state.items) {
+          if (item.conversationId == widget.conversationId) return item;
+        }
+        return null;
+      }),
+    );
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     final authUserId = ref.watch(authControllerProvider).value?.id;
     final currentUserId = authUserId ?? 'me';
+    final appBarName = _bestName(
+      widget.otherUserName,
+      conversation?.otherUser.displayName,
+    );
+    final appBarAvatar = _bestAvatar(
+      widget.otherUserAvatar,
+      conversation?.otherUser.avatarUrl,
+    );
 
     ref.listen(chatControllerProvider(widget.conversationId), (previous, next) {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
@@ -78,8 +127,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Column(
             children: [
               _ChatAppBar(
-                name: widget.otherUserName,
-                avatarUrl: widget.otherUserAvatar,
+                name: appBarName,
+                avatarUrl: appBarAvatar,
                 onBack: () => Navigator.of(context).pop(),
                 optionsButtonKey: _optionsKey,
                 onOptionsPressed: _showOptionsPopup,
@@ -102,7 +151,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 isSending: chatState.isSending,
                 onSend: (text) {
                   ref
-                      .read(chatControllerProvider(widget.conversationId).notifier)
+                      .read(
+                        chatControllerProvider(widget.conversationId).notifier,
+                      )
                       .sendText(text);
                 },
                 onAttachTap: () => _showAttachSheet(context),
@@ -112,6 +163,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
       ),
     );
+  }
+
+  String _bestName(String routeName, String? hydratedName) {
+    final hydrated = hydratedName?.trim() ?? '';
+    if (hydrated.isNotEmpty && hydrated != 'Unknown User') return hydrated;
+    final route = routeName.trim();
+    if (route.isNotEmpty && route != 'Unknown User') return route;
+    return hydrated.isNotEmpty ? hydrated : 'Unknown User';
+  }
+
+  String? _bestAvatar(String? routeAvatar, String? hydratedAvatar) {
+    final hydrated = hydratedAvatar?.trim() ?? '';
+    if (hydrated.isNotEmpty) return hydrated;
+    final route = routeAvatar?.trim() ?? '';
+    return route.isEmpty ? null : route;
   }
 
   void _showAttachSheet(BuildContext context) {
@@ -205,10 +271,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         .read(chatControllerProvider(widget.conversationId).notifier)
         .deleteConversation()
         .then((_) {
-      if (!mounted) return;
-      ref.read(conversationsControllerProvider.notifier).refresh();
-      Navigator.of(context).pop();
-    });
+          if (!mounted) return;
+          ref.read(conversationsControllerProvider.notifier).refresh();
+          Navigator.of(context).pop();
+        });
   }
 
   void _showBlockConfirmation() {
@@ -219,10 +285,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text(
           'Block user?',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
         content: Text(
           'You won\'t receive messages from ${widget.otherUserName} anymore.',
@@ -255,10 +318,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           .read(chatControllerProvider(widget.conversationId).notifier)
           .blockConversation()
           .then((_) {
-        if (!mounted) return;
-        ref.read(conversationsControllerProvider.notifier).refresh();
-        Navigator.of(context).pop();
-      });
+            if (!mounted) return;
+            ref.read(conversationsControllerProvider.notifier).refresh();
+            Navigator.of(context).pop();
+          });
     });
   }
 
@@ -302,14 +365,12 @@ class _ChatAppBar extends StatelessWidget {
           const SizedBox(width: 4),
           CircleAvatar(
             radius: 18,
-            backgroundColor: Colors.blue.withOpacity(0.24),
-            backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+            backgroundColor: Colors.blue.withValues(alpha: 0.24),
+            backgroundImage: avatarUrl != null
+                ? NetworkImage(avatarUrl!)
+                : null,
             child: avatarUrl == null
-                ? const Icon(
-                    Icons.person,
-                    color: Color(0xFF64B5F6),
-                    size: 22,
-                  )
+                ? const Icon(Icons.person, color: Color(0xFF64B5F6), size: 22)
                 : null,
           ),
           const SizedBox(width: 10),
@@ -389,16 +450,12 @@ class _MessageList extends StatelessWidget {
 
       final isMine =
           message.senderId == currentUserId ||
+          message.senderId == kOptimisticSenderMarker ||
           message.senderId == 'me' ||
           message.senderId == 'mock-user-001' ||
           message.senderId == 'user_current_1';
 
-      widgets.add(
-        MessageBubble(
-          message: message,
-          isMine: isMine,
-        ),
-      );
+      widgets.add(MessageBubble(message: message, isMine: isMine));
     }
 
     return ListView(

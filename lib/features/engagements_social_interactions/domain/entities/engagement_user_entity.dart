@@ -1,11 +1,13 @@
 class EngagementUserEntity {
   final String id;
-  final String username;
+  final String displayName;
   final String? avatarUrl;
+  final bool isCertified;
   const EngagementUserEntity({
     required this.id,
-    required this.username,
+    required this.displayName,
     this.avatarUrl,
+    this.isCertified = false,
   });
 }
 

@@ -27,8 +27,7 @@ class _PlayerBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bundle = playerState.bundle!;
     final engagementState = ref.watch(engagementProvider(bundle.trackId)); // engagement addition — watch live engagement state for this track
-    final isLiked =
-        engagementState.engagement?.isLiked ?? bundle.engagement.isLiked; // engagement addition — prefer engagementProvider over stale bundle value
+    final isLiked = engagementState.engagement?.isLiked ?? false;
 
     return GestureDetector(
       // Swipe left → next track, swipe right → previous track
@@ -219,8 +218,8 @@ class _TrackContent extends ConsumerWidget { // engagement modification — was 
   Widget build(BuildContext context, WidgetRef ref) { // engagement modification — added WidgetRef ref
     final bundle = playerState.bundle!;
     final engagementState = ref.watch(engagementProvider(bundle.trackId)); // engagement modification — watch live engagement state
-    final isLiked = engagementState.engagement?.isLiked ?? bundle.engagement.isLiked; // engagement modification — prefer live state over stale bundle
-    final likeCount = engagementState.engagement?.likeCount ?? bundle.engagement.likeCount; // engagement modification — prefer live state over stale bundle
+    final isLiked = engagementState.engagement?.isLiked ?? false;
+    final likeCount = engagementState.engagement?.likeCount ?? 0;
     return Column(
       children: [
         const SizedBox(height: 12),

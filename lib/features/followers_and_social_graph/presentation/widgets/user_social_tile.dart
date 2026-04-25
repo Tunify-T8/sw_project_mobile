@@ -6,6 +6,7 @@ import 'relationship_button.dart';
 class UserSocialTile extends StatelessWidget {
   final SocialUserEntity user;
   final NetworkListType listType;
+  final String? myId;
   final VoidCallback? onTap;
   final VoidCallback? onToggleNotifications;
 
@@ -13,6 +14,7 @@ class UserSocialTile extends StatelessWidget {
     super.key,
     required this.user,
     required this.listType,
+    this.myId,
     this.onTap,
     this.onToggleNotifications,
   });
@@ -93,17 +95,18 @@ class UserSocialTile extends StatelessWidget {
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.only(left: 20.0),
-              child: RelationshipButton(
-                userId: user.id,
-                initialIsFollowing: user.isFollowing,
-                initialIsBlocked: user.isBlocked,
-                isBlockMode: blockedList,
+            if (user.id != myId)
+              Padding(
+                padding: const EdgeInsets.only(left: 20.0),
+                child: RelationshipButton(
+                  userId: user.id,
+                  initialIsFollowing: user.isFollowing,
+                  initialIsBlocked: user.isBlocked,
+                  isBlockMode: blockedList,
+                ),
               ),
-            ),
 
-            if (listType == NetworkListType.following)
+            if (listType == NetworkListType.following && user.id != myId)
               IconButton(
                 key: Key('notification_button_${user.id}'),
                 onPressed: onToggleNotifications,

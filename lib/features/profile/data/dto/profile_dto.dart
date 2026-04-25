@@ -26,12 +26,10 @@ class ProfileDto {
   final String userType;
   final bool? isCertified;
 
-  // Computed property to determine if this is a public profile
   bool get isPublic => tracksCount != null && followersCount != null && followingCount != null && likesReceived != null;
 
   ProfileDto({
-    // Server-controlled->edit_screen doesn't need them
-    // real values always carried from provider in profile_action_buttons
+  
     this.id = '',
     this.email,
     this.role = 'USER',
@@ -68,7 +66,7 @@ class ProfileDto {
       tracksCount: json['tracksCount'] as int?,
       likesReceived: json['likesReceived'] as int?,
       isActive: json['isActive'] as bool?,
-      isCertified: json['isVerified'] as bool?, // Note: API uses 'isVerified', we map to 'isCertified'
+      isCertified: (json['isCertified'] as bool?) ?? (json['isVerified'] as bool?),
       followersCount: json['followersCount'] as int?,
       followingCount: json['followingCount'] as int?,
       userName: json['username'] as String? ?? '',

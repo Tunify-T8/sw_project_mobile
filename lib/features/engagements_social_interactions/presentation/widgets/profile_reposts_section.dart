@@ -5,6 +5,7 @@ import '../../domain/entities/reposted_track_entity.dart';
 import '../provider/enagement_providers.dart';
 import '../screens/user_reposts_screen.dart';
 import '../utils/engagement_formatters.dart';
+import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 
 class ProfileRepostsSection extends ConsumerStatefulWidget {
   /// null → current user (GET /users/me/reposts)
@@ -64,7 +65,9 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
                   ),
                 ),
               ),
+              // Key: EngagementKeys.repostsSeeAllButton
               TextButton(
+                key: const Key('reposts_see_all_button'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => UserRepostsScreen(userId: widget.userId),
@@ -104,12 +107,12 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
   }
 }
 
-class _RepostPreviewTile extends StatelessWidget {
+class _RepostPreviewTile extends ConsumerWidget {
   const _RepostPreviewTile({required this.track});
   final RepostedTrackEntity track;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -168,7 +171,22 @@ class _RepostPreviewTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.more_vert, color: Colors.white38, size: 20),
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () => showTrackOptionsSheet(
+              context,
+              info: TrackOptionInfo(
+                trackId: track.trackId,
+                title: track.title,
+                artist: track.artistName,
+                artistId: track.artistId,
+                coverUrl: track.coverUrl,
+              ),
+              ref: ref,
+            ),
+          ),
         ],
       ),
     );

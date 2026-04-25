@@ -360,7 +360,7 @@ class MockSearchService {
       avatarUrl: null,
       location: 'United States',
       followersCount: 688000,
-      isVerified: true,
+      isCertified: true,
       isFollowing: false,
     ),
     ProfileResultEntity(

@@ -75,7 +75,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
             avatarUrl: u.avatarUrl,
             location: u.location,
             followersCount: u.followersCount,
-            isVerified: u.isCertified,
+            isCertified: u.isCertified,
             isFollowing: u.isFollowing ?? false,
           ),
         );
@@ -407,7 +407,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
       avatarUrl: u.avatarUrl,
       location: u.location,
       followersCount: u.followersCount,
-      isVerified: u.verified,
+      isCertified: u.isCertified,
       isFollowing: u.isFollowing,
     );
   }

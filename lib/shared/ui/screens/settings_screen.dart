@@ -5,6 +5,8 @@ import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/routing/routes.dart';
 import 'package:software_project/features/auth/presentation/widgets/signout_button.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/screens/blocked_users_screen.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
+import 'package:software_project/features/feed_search_discovery/presentation/providers/feed_view_provider.dart';
 import 'package:software_project/shared/providers/app_settings_provider.dart';
 
 import '../widgets/library_menu_tile.dart';
@@ -47,11 +49,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           LibraryMenuTile(
             label: 'Use Classic feed',
-            onTap: () =>
-                settingsNotifier.setUseClassicFeed(!settings.useClassicFeed),
+            onTap: () {
+              final isClassic = ref.read(feedViewModeProvider) == FeedViewMode.classic;
+              final next = !isClassic;
+              settingsNotifier.setUseClassicFeed(next);
+              ref.read(feedViewModeProvider.notifier).setMode(
+                next ? FeedViewMode.classic : FeedViewMode.discover,
+              );
+            },
             trailing: Switch(
-              value: settings.useClassicFeed,
-              onChanged: settingsNotifier.setUseClassicFeed,
+              value: ref.watch(feedViewModeProvider) == FeedViewMode.classic,
+              onChanged: (val) {
+                settingsNotifier.setUseClassicFeed(val);
+                ref.read(feedViewModeProvider.notifier).setMode(
+                  val ? FeedViewMode.classic : FeedViewMode.discover,
+                );
+              },
               activeThumbColor: _settingsToggleGreen,
               activeTrackColor: _settingsToggleGreen.withValues(alpha: 0.45),
             ),

@@ -8,6 +8,8 @@ import '../utils/engagement_formatters.dart';
 import 'comment_like_button.dart';
 import 'comment_options_sheet.dart';
 import 'reply_tile.dart';
+import '../../../../core/utils/navigation_utils.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
   const CommentTile({
@@ -57,6 +59,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
         .read(getRepliesUsecaseProvider)
         .call(commentId: widget.comment.id);
     if (mounted) {
+      ref.read(engagementProvider(widget.trackId).notifier).seedReplyLikes(replies);
       setState(() {
         _replies = replies;
         _showReplies = replies.isNotEmpty;
@@ -78,6 +81,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final theme = Theme.of(context);
     final comment = widget.comment;
     final timestamp = comment.timestamp;
+    final currentUserId = ref.read(authControllerProvider).value?.id;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,14 +91,22 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Avatar(username: comment.user.username, avatarUrl: comment.user.avatarUrl),
+              _Avatar(
+                username: comment.user.displayName,
+                avatarUrl: comment.user.avatarUrl,
+                userId: comment.user.id,
+                currentUserId: currentUserId,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _CommentHeader(
-                      username: comment.user.username,
+                      username: comment.user.displayName,
+                      isCertified: comment.user.isCertified,
+                      userId: comment.user.id,
+                      currentUserId: currentUserId,
                       timestamp: timestamp,
                       createdAt: comment.createdAt,
                       onTapTimestamp: widget.onTapTimestamp,
@@ -113,20 +125,23 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                       repliesCount: comment.repliesCount,
                       loadingReplies: _loadingReplies,
                       onReply: () {
-                        widget.onReply?.call(comment.user.username);
+                        widget.onReply?.call(comment.user.displayName);
                         if (comment.repliesCount > 0) _toggleReplies();
                       },
                       onOptions: () => CommentOptionsSheet.show(
                         context,
-                        username: comment.user.username,
+                        username: comment.user.displayName,
                         timestamp: timestamp,
                         onPlayFromTimestamp: timestamp != null && widget.onTapTimestamp != null
                             ? () => widget.onTapTimestamp!(timestamp)
                             : null,
-                        isOwner: comment.user.id == 'user_current_1',
-                        onDelete: () => ref
-                            .read(engagementProvider(widget.trackId).notifier)
-                            .deleteComment(comment.id),
+                        isOwner: comment.user.id ==
+                            (ref.read(authControllerProvider).value?.id ?? ''),
+                        onDelete: () async {
+                          await ref
+                              .read(engagementProvider(widget.trackId).notifier)
+                              .deleteComment(comment.id);
+                        },
                       ),
                     ),
                   ],
@@ -136,7 +151,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
               CommentLikeButton(
                 trackId: widget.trackId,
                 commentId: comment.id,
-                baseLikesCount: comment.likesCount,
+                baseLikesCount: comment.likesCount - (comment.isLiked ? 1 : 0),
               ),
             ],
           ),
@@ -148,8 +163,9 @@ class _CommentTileState extends ConsumerState<CommentTile> {
               children: _replies
                   .map((reply) => ReplyTile(
                         reply: reply,
+                        trackId: widget.trackId,
                         parentTimestamp: comment.timestamp,
-                        onReply: () => widget.onReply?.call(reply.user.username),
+                        onReply: () => widget.onReply?.call(reply.user.displayName),
                         onDelete: () async {
                           await ref.read(deleteReplyUsecaseProvider).call(
                                 commentId: comment.id,
@@ -169,25 +185,35 @@ class _CommentTileState extends ConsumerState<CommentTile> {
 // ── Private sub-widgets ───────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.username, this.avatarUrl});
+  const _Avatar({
+    required this.username,
+    this.avatarUrl,
+    required this.userId,
+    this.currentUserId,
+  });
   final String username;
   final String? avatarUrl;
+  final String userId;
+  final String? currentUserId;
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: Colors.white24,
-      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-      child: avatarUrl == null
-          ? Text(
-              EngagementFormatters.initials(username),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            )
-          : null,
+    return GestureDetector(
+      onTap: () => navigateToProfile(context, userId, currentUserId: currentUserId),
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: Colors.white24,
+        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+        child: avatarUrl == null
+            ? Text(
+                EngagementFormatters.initials(username),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
+      ),
     );
   }
 }
@@ -195,6 +221,9 @@ class _Avatar extends StatelessWidget {
 class _CommentHeader extends StatelessWidget {
   const _CommentHeader({
     required this.username,
+    required this.isCertified,
+    required this.userId,
+    required this.currentUserId,
     required this.timestamp,
     required this.createdAt,
     required this.theme,
@@ -202,6 +231,9 @@ class _CommentHeader extends StatelessWidget {
   });
 
   final String username;
+  final bool isCertified;
+  final String userId;
+  final String? currentUserId;
   final int? timestamp;
   final DateTime createdAt;
   final ThemeData theme;
@@ -214,13 +246,18 @@ class _CommentHeader extends StatelessWidget {
       spacing: 6,
       runSpacing: 4,
       children: [
-        Text(
-          username,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
+        GestureDetector(
+          onTap: () => navigateToProfile(context, userId, currentUserId: currentUserId),
+          child: Text(
+            username,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
+        if (isCertified)
+          const Icon(Icons.verified, color: Colors.blue, size: 14),
         if (timestamp != null)
           GestureDetector(
             onTap: onTapTimestamp == null
@@ -270,7 +307,9 @@ class _CommentActions extends StatelessWidget {
       children: [
         Row(
           children: [
+            // Key: EngagementKeys.commentReplyButton
             GestureDetector(
+              key: const Key('comment_reply_button'),
               onTap: onReply,
               child: const Text(
                 'Reply',
@@ -278,7 +317,9 @@ class _CommentActions extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
+            // Key: EngagementKeys.commentOptionsButton
             GestureDetector(
+              key: const Key('comment_options_button'),
               onTap: onOptions,
               child: const Icon(Icons.more_vert, color: Colors.white54, size: 18),
             ),

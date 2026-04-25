@@ -15,7 +15,7 @@ class FeedActionDto {
 
   factory FeedActionDto.fromJson(Map<String, dynamic> json) {
     return FeedActionDto(
-      actorId: json['actorId']?.toString() ?? '',
+      actorId: json['id']?.toString() ?? '',
       username: json['username']?.toString() ?? '',
       action: json['action']?.toString() ?? '',
       date: json['date']?.toString() ?? '',

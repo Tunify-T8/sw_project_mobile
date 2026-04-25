@@ -17,7 +17,8 @@ abstract class EngagementRepository {
   Future<ReplyEntity> addReply({required String commentId, required String viewerId, required String text, String? parentUsername});
   Future<void> deleteComment({required String trackId, required String commentId});
   Future<void> deleteReply({required String commentId, required String replyId});
-  Future<ReplyEntity> toggleReplyLike({required String commentId, required String replyId, required String viewerId}); // engagement addition
+  Future<void> toggleCommentLike({required String commentId, required bool isCurrentlyLiked});
+  Future<ReplyEntity> toggleReplyLike({required String commentId, required String replyId, required String viewerId});
   Future<List<EngagementUserEntity>> getLikers({required String trackId});
   Future<List<EngagementUserEntity>> getReposters({required String trackId});
   Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}); // engagement addition — maps to GET /users/me/likes

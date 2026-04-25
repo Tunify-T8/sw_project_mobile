@@ -1,0 +1,1 @@
+enum FeedViewMode {classic, discover}

@@ -1,3 +1,5 @@
+// Mock-backed repository disabled — RealEngagementRepositoryImpl is used exclusively.
+/*
 import '../../domain/entities/comment_entity.dart';
 import '../../domain/entities/comments_page_entity.dart';
 import '../../domain/entities/engagement_user_entity.dart';
@@ -96,7 +98,12 @@ class EngagementRepositoryImpl implements EngagementRepository {
   }
 
   @override
-  Future<ReplyEntity> toggleReplyLike({ // engagement addition — persists like toggle in store
+  Future<void> toggleCommentLike({required String commentId, required bool isCurrentlyLiked}) async {
+    await Future<void>.delayed(_delay);
+  }
+
+  @override
+  Future<ReplyEntity> toggleReplyLike({
     required String commentId,
     required String replyId,
     required String viewerId,
@@ -108,13 +115,13 @@ class EngagementRepositoryImpl implements EngagementRepository {
   }
 
   @override
-  Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}) async { // engagement addition — maps to GET /users/me/likes
+  Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}) async {
     await Future<void>.delayed(_delay);
     return _store.getLikedTracks(viewerId);
   }
 
   @override
-  Future<List<RepostedTrackEntity>> getUserReposts({String? userId}) async { // maps to GET /users/me/reposts or /users/{id}/reposts
+  Future<List<RepostedTrackEntity>> getUserReposts({String? userId}) async {
     await Future<void>.delayed(_delay);
     return _store.getRepostedTracks(userId);
   }
@@ -131,3 +138,4 @@ class EngagementRepositoryImpl implements EngagementRepository {
     return EngagementMapper.toUserEntityList(_store.getTrackReposters(trackId));
   }
 }
+*/

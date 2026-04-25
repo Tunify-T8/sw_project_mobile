@@ -29,12 +29,15 @@ class ProfileActionButtons extends ConsumerWidget {
       child: Row(
         children: [
           IconButton(
+            // Key: ProfileKeys.editButton
+            key: const Key('profile_edit_button'),
             icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 28),
             onPressed: () async {
               final result = await Navigator.push<ProfileDto>(
                 context,
                 MaterialPageRoute(builder: (_) => EditProfileScreen(
                 userName: profile?.userName ?? '',
+                displayName: profile?.displayName ?? '',
                 bio: profile?.bio ?? '',
                 city: profile?.city ?? '',
                 country: profile?.country ?? '',
@@ -63,6 +66,7 @@ class ProfileActionButtons extends ConsumerWidget {
                 followersCount: profile.followersCount,
                 followingCount: profile.followingCount,
                 userName: result.userName,
+                displayName: result.displayName,
                 bio: result.bio,
                 city: result.city,
                 country: result.country,

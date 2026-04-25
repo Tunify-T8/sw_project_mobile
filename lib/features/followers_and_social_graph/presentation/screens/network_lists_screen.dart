@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
 import '../providers/utils/network_list_view_mapper.dart';
@@ -14,13 +15,11 @@ import '../widgets/user_social_tile.dart';
 class NetworkListsScreen extends ConsumerStatefulWidget {
   final String? userId;
   final NetworkListType listType;
-  final bool isMyProfile;
 
   const NetworkListsScreen({
     super.key,
     this.userId,
     required this.listType,
-    required this.isMyProfile,
   });
 
   @override
@@ -28,10 +27,18 @@ class NetworkListsScreen extends ConsumerStatefulWidget {
 }
 
 class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
+  late final String? myId;
+  late final bool isMyProfile;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(_loadInitialData);
+    myId = ref.read(authControllerProvider).value?.id;
+    isMyProfile = widget.userId == null || widget.userId == myId;
+    Future.microtask(() {
+      ref.read(networkListsProvider.notifier).clearList(widget.listType);
+      return _loadInitialData();
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -41,7 +48,7 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
       listType: widget.listType,
       userId: widget.userId,
       notifier: notifier,
-      isMyProfile: widget.isMyProfile,
+      isMyProfile: isMyProfile,
     );
   }
 
@@ -65,7 +72,7 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
 
     final showTrueFriends = NetworkListViewMapper.shouldShowTrueFriends(
       listType: widget.listType,
-      isMyProfile: widget.isMyProfile,
+      isMyProfile: isMyProfile,
     );
 
     return Scaffold(
@@ -106,7 +113,6 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                             MaterialPageRoute(
                               builder: (context) => const NetworkListsScreen(
                                 listType: NetworkListType.trueFriends,
-                                isMyProfile: true,
                               ),
                             ),
                           );
@@ -122,14 +128,12 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                       key: ValueKey('${widget.listType.name}_user_tile_${user.id}'),
                       user: user,
                       listType: widget.listType,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OtherUserProfileScreen(userId: user.id),
-                          ),
-                        );
-                      },
+                      myId: myId,
+                      onTap: () => navigateToProfile(
+                        context,
+                        user.id,
+                        currentUserId: myId,
+                      ),
                       onToggleNotifications: null,
                     );
                   },

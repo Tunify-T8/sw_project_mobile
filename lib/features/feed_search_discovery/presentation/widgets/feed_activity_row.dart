@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-
+import 'package:marquee/marquee.dart';
 import '../../domain/entities/feed_item_source.dart';
-import '../../domain/entities/feed_tab_type.dart';
+import '../../domain/entities/feed_view_mode.dart';
 
 class FeedActivityRow extends StatelessWidget {
   final String? avatarUrl;
   final String timeAgo;
   final String? createdAt;
-  final FeedType feedType;
+  final FeedViewMode feedViewMode;
   final FeedItemSource source;
   final String actorName;
   final String trackName;
@@ -17,25 +17,33 @@ class FeedActivityRow extends StatelessWidget {
     required this.avatarUrl,
     required this.timeAgo,
     this.createdAt,
-    required this.feedType,
+    required this.feedViewMode,
     required this.source,
     required this.actorName,
     required this.trackName,
   });
 
   String _getActivityText() {
+    String activityText;
     switch (source) {
       case FeedItemSource.post:
-        return ' $actorName posted a track';
+        activityText = ' $actorName posted a track';
       case FeedItemSource.repost:
-        return '$actorName reposted a track';
+        activityText = '$actorName reposted a track';
       case FeedItemSource.newRelease:
-        return 'New release by $actorName';
+        activityText = 'New release by $actorName';
       case FeedItemSource.becauseYouLiked:
-        return 'Because you liked $trackName by $actorName';
+        activityText = 'Because you liked $trackName by $actorName';
       case FeedItemSource.becauseYouFollow:
-        return 'Because you follow $actorName';
+        activityText = 'Because you follow $actorName';
     }
+
+    if (feedViewMode == FeedViewMode.discover && createdAt != null) {
+      activityText += " • $createdAt";
+    }
+
+    activityText += " • $timeAgo";
+    return activityText;
   }
 
   @override
@@ -47,28 +55,40 @@ class FeedActivityRow extends StatelessWidget {
           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
         ),
         const SizedBox(width: 10.0),
+
         Expanded(
-          child: Text(
-            _getActivityText(),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (feedType != FeedType.classic && createdAt != null)
-          Text(
-            '· $createdAt ',
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
-          ),
-        Text(
-          '· $timeAgo',
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
+          child: SizedBox(
+            height: 22,
+            child:
+                (_getActivityText().length > 25 &&
+                    (feedViewMode == FeedViewMode.discover))
+                ? Marquee(
+                    text: _getActivityText(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    scrollAxis: Axis.horizontal,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    blankSpace: 80.0,
+                    velocity: 20.0,
+                    pauseAfterRound: Duration(seconds: 2),
+                    startPadding: 10.0,
+                    accelerationDuration: Duration(seconds: 2),
+                    accelerationCurve: Curves.linear,
+                    decelerationDuration: Duration(milliseconds: 500),
+                    decelerationCurve: Curves.easeOut,
+                  )
+                : Text(
+                    _getActivityText(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
           ),
         ),
       ],

@@ -11,6 +11,8 @@ import '../../../audio_upload_and_management/presentation/providers/library_uplo
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -54,7 +56,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
+      if (!mounted) return;
       await ref.read(profileProvider.notifier).loadProfile();
+      if (!mounted) return;
       await ref.read(libraryUploadsProvider.notifier).load();
     });
   }
@@ -114,7 +118,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: const TextStyle(color: Colors.white),
               ),
             )
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              color: Colors.orangeAccent,
+              onRefresh: () async {
+                await ref.read(profileProvider.notifier).loadProfile();
+                await ref.read(libraryUploadsProvider.notifier).load();
+              },
+              child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -127,6 +137,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
+                    displayName: profile?.displayName ?? '',
                     userName: profile?.userName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
@@ -137,6 +148,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     nameStyle: nameStyle,
                     bioStyle: bioStyle,
                     followerStyle: followerStyle,
+                    userId: null,
                     onShowMore: () => ProfileShareSheet(
                       context: context,
                       userName: profile?.userName ?? '',
@@ -191,10 +203,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       );
                     },
                   ),
+                  const ProfileLikesSection(),
                   const ProfileRepostsSection(),
                 ],
               ),
             ),
+          ),
     );
   }
 }

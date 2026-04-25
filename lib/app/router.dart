@@ -24,6 +24,7 @@ import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
 import '../features/auth/presentation/screens/google_account_linking_screen.dart';
 import '../features/messaging_track_sharing/presentation/screens/messaging_activity_screen.dart';
+import '../features/messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
 import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
@@ -295,6 +296,8 @@ class AppRouter {
               conversationId: args['conversationId'] as String? ?? '',
               otherUserName: args['otherUserName'] as String? ?? '',
               otherUserAvatar: args['otherUserAvatar'] as String?,
+              pendingAttachment: args['pendingAttachment']
+                  as MessageAttachment?,
             ),
           ),
           settings,

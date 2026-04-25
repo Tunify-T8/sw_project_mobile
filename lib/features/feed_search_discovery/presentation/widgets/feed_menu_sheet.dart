@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/track_preview_entity.dart';
-import '../../domain/entities/feed_tab_type.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
-import '../screens/classic_feed_screen.dart';
+import '../../domain/entities/feed_view_mode.dart';
+import '../providers/feed_view_provider.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 
-class FeedMenuSheet extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
+class FeedMenuSheet extends ConsumerWidget {
+  // engagement modification — was StatelessWidget, converted to ConsumerWidget
   final TrackPreviewEntity track;
-  final FeedType tabType;
+  final FeedViewMode feedViewMode;
 
   const FeedMenuSheet({
     super.key,
     required this.track,
-    required this.tabType,
+    required this.feedViewMode,
   });
 
   Widget _createMenuItem({
@@ -23,8 +25,10 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
     required String label,
     required VoidCallback onTap,
     Color color = Colors.white,
+    Key? key,
   }) {
     return ListTile(
+      key: key,
       leading: Icon(icon, color: color),
       title: Text(label, style: TextStyle(color: color)),
       onTap: onTap,
@@ -33,57 +37,74 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
 
   List<Widget> _trackActions(BuildContext context, WidgetRef ref) {
     final engagementState = ref.watch(engagementProvider(track.trackId));
-    final isLiked = engagementState.engagement?.isLiked ?? track.interaction.isLiked;
-    final isReposted = engagementState.engagement?.isReposted ?? track.interaction.isReposted;
+    final isLiked =
+        engagementState.engagement?.isLiked ?? track.interaction.isLiked;
+    final isReposted =
+        engagementState.engagement?.isReposted ?? track.interaction.isReposted;
     return [
-    _createMenuItem(
-      icon: isLiked ? Icons.favorite : Icons.favorite_border,
-      label: isLiked ? 'Liked' : 'Like',
-      color: isLiked ? Colors.orange : Colors.white,
-      onTap: () {
-        ref.read(engagementProvider(track.trackId).notifier).toggleLike();
-        Navigator.pop(context);
-      },
-    ),
-    _createMenuItem(
-      icon: Icons.queue_play_next,
-      label: 'Play next',
-      onTap: () {},
-    ),
-    _createMenuItem(icon: Icons.add_to_queue, label: 'Play last', onTap: () {}),
-    _createMenuItem(
-      icon: Icons.playlist_add,
-      label: 'Add to playlist',
-      onTap: () {},
-    ),
-  ];
+      _createMenuItem(
+        key: const Key('feed_menu_like_item'),
+        icon: isLiked ? Icons.favorite : Icons.favorite_border,
+        label: isLiked ? 'Liked' : 'Like',
+        color: isLiked ? Colors.orange : Colors.white,
+        onTap: () {
+          ref.read(engagementProvider(track.trackId).notifier).toggleLike();
+          Navigator.pop(context);
+        },
+      ),
+      _createMenuItem(
+        icon: Icons.queue_play_next,
+        label: 'Play next',
+        onTap: () {},
+      ),
+      _createMenuItem(
+        icon: Icons.add_to_queue,
+        label: 'Play last',
+        onTap: () {},
+      ),
+      _createMenuItem(
+        icon: Icons.playlist_add,
+        label: 'Add to playlist',
+        onTap: () {},
+      ),
+    ];
   }
 
-  List<Widget> _socialActions(BuildContext context, WidgetRef ref, bool isReposted) => [
+  List<Widget> _socialActions(
+    BuildContext context,
+    WidgetRef ref,
+    bool isReposted,
+  ) => [
     _createMenuItem(
       icon: Icons.person_outline,
       label: 'Go to profile',
       onTap: () {
         Navigator.pop(context);
-        Navigator.push(
+        navigateToProfile(
           context,
-          MaterialPageRoute(
-            builder: (_) => OtherUserProfileScreen(userId: track.artistId),
-          ),
+          track.artistId,
+          currentUserId: ref.read(authControllerProvider).value?.id,
         );
       },
     ),
+    // Key: FeedMenuKeys.commentItem
     _createMenuItem(
+      key: const Key('feed_menu_comment_item'),
       icon: Icons.comment_outlined,
       label: 'View comments',
       onTap: () {
         Navigator.pop(context);
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => CommentsScreen(trackId: track.trackId),
-        ));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CommentsScreen(trackId: track.trackId),
+          ),
+        );
       },
     ),
+    // Key: FeedMenuKeys.repostItem
     _createMenuItem(
+      key: const Key('feed_menu_repost_item'),
       icon: isReposted ? Icons.repeat_on : Icons.repeat,
       label: isReposted ? 'Reposted' : 'Repost',
       color: isReposted ? Colors.orange : Colors.white,
@@ -105,17 +126,13 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
   ];
 
   List<Widget> _moreOptions() => [
-        _createMenuItem(
-          icon: Icons.graphic_eq,
-          label: 'Behind this track',
-          onTap: () {},
-        ),
-        _createMenuItem(
-          icon: Icons.flag_outlined,
-          label: 'Report',
-          onTap: () {},
-        ),
-      ];
+    _createMenuItem(
+      icon: Icons.graphic_eq,
+      label: 'Behind this track',
+      onTap: () {},
+    ),
+    _createMenuItem(icon: Icons.flag_outlined, label: 'Report', onTap: () {}),
+  ];
 
   Widget _trackHeader() {
     return Padding(
@@ -187,10 +204,7 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
                 const SizedBox(height: 4),
                 Text(
                   track.artistName,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white54, fontSize: 16),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -204,7 +218,9 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isReposted = (ref.watch(engagementProvider(track.trackId)).engagement?.isReposted) ?? track.interaction.isReposted;
+    final isReposted =
+        (ref.watch(engagementProvider(track.trackId)).engagement?.isReposted) ??
+        track.interaction.isReposted;
     return ListView(
       children: [
         _trackHeader(),
@@ -212,28 +228,18 @@ class FeedMenuSheet extends ConsumerWidget { // engagement modification — was 
         ..._trackActions(context, ref),
         const Divider(color: Colors.white12),
         ..._socialActions(context, ref, isReposted),
-        const Divider(color: Colors.white12),
 
-        if (tabType == FeedType.discover)
+        if (feedViewMode == FeedViewMode.discover) ...[
+          const Divider(color: Colors.white12),
           _createMenuItem(
-            icon: Icons.thumb_down_outlined,
-            label: 'Show me fewer posts like this',
-            onTap: () {},
+            icon: Icons.swap_horiz,
+            label: 'Switch to Classic feed',
+            onTap: () {
+              Navigator.pop(context);
+              ref.read(feedViewModeProvider.notifier).setMode(FeedViewMode.classic);
+            },
           ),
-
-        _createMenuItem(
-          icon: Icons.swap_horiz,
-          label: 'Switch to Classic feed',
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ClassicFeedScreen(),
-              ),
-            );
-          },
-        ),
+        ],
 
         const Divider(color: Colors.white12),
         ..._moreOptions(),

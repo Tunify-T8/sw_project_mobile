@@ -32,19 +32,19 @@ void main() {
       );
 
       expect(dto.id, '');
-      expect(dto.email, '');
+      expect(dto.email, isNull);
       expect(dto.role, 'USER');
-      expect(dto.followersCount, 0);
-      expect(dto.followingCount, 0);
-      expect(dto.tracksCount, 0);
-      expect(dto.likesReceived, 0);
-      expect(dto.isActive, true);
-      expect(dto.isCertified, false);
-      expect(dto.displayName, null);
-      expect(dto.instagram, null);
-      expect(dto.twitter, null);
-      expect(dto.profileImagePath, null);
-      expect(dto.coverImagePath, null);
+      expect(dto.followersCount, isNull);
+      expect(dto.followingCount, isNull);
+      expect(dto.tracksCount, isNull);
+      expect(dto.likesReceived, isNull);
+      expect(dto.isActive, isNull);
+      expect(dto.isCertified, isNull);
+      expect(dto.displayName, isNull);
+      expect(dto.instagram, isNull);
+      expect(dto.twitter, isNull);
+      expect(dto.profileImagePath, isNull);
+      expect(dto.coverImagePath, isNull);
     });
 
     test('accepts all optional fields', () {

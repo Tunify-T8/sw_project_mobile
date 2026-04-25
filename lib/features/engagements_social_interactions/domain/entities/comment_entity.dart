@@ -8,6 +8,7 @@ class CommentEntity {
   final String text;
   final int likesCount;
   final int repliesCount;
+  final bool isLiked;
   final DateTime createdAt;
   const CommentEntity({
     required this.id,
@@ -17,6 +18,7 @@ class CommentEntity {
     required this.text,
     this.likesCount = 0,
     this.repliesCount = 0,
+    this.isLiked = false,
     required this.createdAt,
   });
 }
