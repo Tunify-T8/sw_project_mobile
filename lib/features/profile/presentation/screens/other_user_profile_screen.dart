@@ -8,6 +8,7 @@ import '../../../followers_and_social_graph/presentation/providers/network_lists
 import '../../../messaging_track_sharing/domain/usecases/open_conversation_usecase.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../providers/profile_provider.dart';
 import '../providers/user_profile_provider.dart';
 import '../widgets/profile_header.dart';
@@ -204,6 +205,7 @@ class _OtherUserProfileScreenState
           ),
         ],
       ),
+      bottomNavigationBar: const MiniPlayer(),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.isError

@@ -20,11 +20,13 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       unawaited(_persistCurrentSession(force: true));
 
       final current = _current;
-      if (current?.bundle != null) {
+      final bundle = current?.bundle;
+      if (current != null && bundle != null) {
+        _rememberCurrentHistoryPosition(current, force: true);
         unawaited(
           _safeReportEvent(
             PlaybackEvent(
-              trackId: current!.bundle!.trackId,
+              trackId: bundle.trackId,
               action: current.isPlaying
                   ? PlaybackAction.progress
                   : PlaybackAction.pause,

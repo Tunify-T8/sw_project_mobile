@@ -166,6 +166,7 @@ extension HistoryTrackDtoMapper on HistoryTrackDto {
       commentCount: commentCount,
       repostCount: repostCount,
       playCount: playCount,
+      lastPositionSeconds: lastPositionSeconds,
     );
   }
 

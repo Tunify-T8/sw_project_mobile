@@ -15,6 +15,7 @@ class HistoryTrackDto {
     this.commentCount = 0,
     this.repostCount = 0,
     this.playCount = 0,
+    this.lastPositionSeconds = 0,
   });
 
   final String trackId;
@@ -30,6 +31,7 @@ class HistoryTrackDto {
   final int commentCount;
   final int repostCount;
   final int playCount;
+  final int lastPositionSeconds;
 
   factory HistoryTrackDto.fromJson(Map<String, dynamic> json) {
     final artistJson = json['artist'];
@@ -78,6 +80,11 @@ class HistoryTrackDto {
       playCount: engagementJson is Map<String, dynamic>
           ? (engagementJson['playCount'] as int?) ?? 0
           : 0,
+      lastPositionSeconds:
+          (json['lastPositionSeconds'] as int?) ??
+          (json['positionSeconds'] as int?) ??
+          (json['position'] as int?) ??
+          0,
     );
   }
 }

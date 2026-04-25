@@ -250,6 +250,61 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
   }
 
+  Future<void> updateTrackProgress(
+    String trackId,
+    int positionSeconds, {
+    DateTime? playedAt,
+  }) async {
+    final current = state.asData?.value;
+    final timestamp = playedAt ?? DateTime.now();
+
+    HistoryTrack update(HistoryTrack track) {
+      var safePosition = positionSeconds < 0 ? 0 : positionSeconds;
+      if (track.durationSeconds > 0 && safePosition > track.durationSeconds) {
+        safePosition = track.durationSeconds;
+      }
+      return track.copyWith(
+        lastPositionSeconds: safePosition,
+        playedAt: timestamp.isAfter(track.playedAt) ? timestamp : track.playedAt,
+      );
+    }
+
+    var changed = false;
+
+    for (var i = 0; i < _optimisticTracks.length; i++) {
+      if (_optimisticTracks[i].trackId == trackId) {
+        _optimisticTracks[i] = update(_optimisticTracks[i]);
+        changed = true;
+      }
+    }
+
+    if (current != null) {
+      final nextTracks = current.tracks.map((track) {
+        if (track.trackId != trackId) return track;
+        changed = true;
+        return update(track);
+      }).toList(growable: false);
+
+      if (!changed) return;
+
+      final nextState = current.copyWith(tracks: nextTracks);
+      state = AsyncData(nextState);
+      await _persistLocalState(nextTracks, wasClearedLocally: false);
+      return;
+    }
+
+    final cachedTracks = await _readCachedTracks();
+    final nextTracks = cachedTracks.map((track) {
+      if (track.trackId != trackId) return track;
+      changed = true;
+      return update(track);
+    }).toList(growable: false);
+
+    if (changed) {
+      await _persistLocalState(nextTracks, wasClearedLocally: false);
+    }
+  }
+
   // Called when a track has been deleted on the backend (soft-delete).
   // Scrubs it from the in-memory list, the optimistic buffer, and the cached
   // copy in secure storage — so the "recently played" view doesn't keep
@@ -478,6 +533,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       'commentCount': track.commentCount,
       'repostCount': track.repostCount,
       'playCount': track.playCount,
+      'lastPositionSeconds': track.lastPositionSeconds,
     };
   }
 
@@ -515,6 +571,11 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       commentCount: (json['commentCount'] as int?) ?? 0,
       repostCount: (json['repostCount'] as int?) ?? 0,
       playCount: (json['playCount'] as int?) ?? 0,
+      lastPositionSeconds:
+          (json['lastPositionSeconds'] as int?) ??
+          (json['positionSeconds'] as int?) ??
+          (json['position'] as int?) ??
+          0,
     );
   }
 

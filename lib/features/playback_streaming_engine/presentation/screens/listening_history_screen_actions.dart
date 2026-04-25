@@ -67,6 +67,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
             track.trackId,
             autoPlay: true,
             seedTrack: seedTrack,
+            initialPositionSeconds: track.lastPositionSeconds.toDouble(),
             queue: PlaybackQueue(
               trackIds: queueTrackIds,
               currentIndex: startIndex,
@@ -80,6 +81,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
             track.trackId,
             autoPlay: true,
             seedTrack: seedTrack,
+            initialPositionSeconds: track.lastPositionSeconds.toDouble(),
           );
     }
 

@@ -7,6 +7,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
     PlaybackQueue? queue,
     bool autoPlay = false,
     PlayerSeedTrack? seedTrack,
+    double? initialPositionSeconds,
   }) async {
     // Cancel any pending history notification for the previous track so it is
     // never recorded just because the user tapped a new song.
@@ -34,7 +35,9 @@ extension PlayerNotifierLoading on PlayerNotifier {
           bundle: provisionalBundle,
           queue: queue,
           isPlaying: false,
-          positionSeconds: _initialPositionFor(provisionalBundle).toDouble(),
+          positionSeconds: initialPositionSeconds == null
+              ? _initialPositionFor(provisionalBundle).toDouble()
+              : _clampPosition(provisionalBundle, initialPositionSeconds),
           isMuted: previous?.isMuted ?? false,
           volume: previous?.volume ?? 1.0,
           isBuffering: true,
@@ -69,7 +72,9 @@ extension PlayerNotifierLoading on PlayerNotifier {
           privateToken: privateToken,
         );
 
-        final initialPosition = _initialPositionFor(bundle).toDouble();
+        final initialPosition = initialPositionSeconds == null
+            ? _initialPositionFor(bundle).toDouble()
+            : _clampPosition(bundle, initialPositionSeconds);
 
         final nextState = PlayerState(
           bundle: bundle,
@@ -142,12 +147,14 @@ extension PlayerNotifierLoading on PlayerNotifier {
     bool autoPlay = true,
     RepeatMode repeat = RepeatMode.none,
     PlayerSeedTrack? seedTrack,
+    double? initialPositionSeconds,
   }) {
     return loadTrack(
       trackId,
       privateToken: privateToken,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
+      initialPositionSeconds: initialPositionSeconds,
       queue: PlaybackQueue(
         trackIds: trackIds,
         currentIndex: currentIndex,

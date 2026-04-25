@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/widgets.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,6 +81,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   bool _isManualSeeking = false;
   bool _isDisposed = false;
   DateTime? _lastSessionPersistAt;
+  DateTime? _lastHistoryProgressPersistAt;
   PlayerState? _lastKnownState;
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -111,6 +113,58 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
     return ref
         .read(listeningHistoryProvider.notifier)
         .trackPlayed(historyTrack, needsBackendSync: needsBackendSync);
+  }
+
+  Future<void> _safeReportEvent(PlaybackEvent event) async {
+    try {
+      await _reportEvent(event);
+    } catch (_) {
+      // Keep playback working even if reporting is unsupported or fails.
+    }
+  }
+
+  Future<void> _safeReportTrackCompleted(String trackId) async {
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      final isOnline = connectivity.any(
+        (result) => result != ConnectivityResult.none,
+      );
+
+      if (isOnline) {
+        await _reportTrackCompleted(trackId);
+        return;
+      }
+
+      await _repository.markOfflinePlayCompleted(trackId);
+    } catch (_) {
+      // Playback should never crash because completion reporting failed.
+    }
+  }
+
+  void _rememberCurrentHistoryPosition(
+    PlayerState playerState, {
+    bool force = false,
+  }) {
+    final bundle = playerState.bundle;
+    if (bundle == null) return;
+
+    final now = DateTime.now();
+    if (!force &&
+        _lastHistoryProgressPersistAt != null &&
+        now.difference(_lastHistoryProgressPersistAt!) <
+            const Duration(seconds: 2)) {
+      return;
+    }
+    _lastHistoryProgressPersistAt = now;
+
+    unawaited(
+      ref
+          .read(listeningHistoryProvider.notifier)
+          .updateTrackProgress(
+            bundle.trackId,
+            playerState.positionSeconds.round(),
+          ),
+    );
   }
 
   @override

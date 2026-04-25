@@ -70,6 +70,7 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     _setPlayerState(pausedState);
     await _persistCurrentSession(playerState: pausedState, force: true);
+    _rememberCurrentHistoryPosition(pausedState, force: true);
 
     await _safeReportEvent(
       PlaybackEvent(
@@ -100,6 +101,7 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     _setPlayerState(soughtState);
     await _persistCurrentSession(playerState: soughtState, force: true);
+    _rememberCurrentHistoryPosition(soughtState, force: true);
 
     await _safeReportEvent(
       PlaybackEvent(
