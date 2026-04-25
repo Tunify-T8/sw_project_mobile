@@ -38,7 +38,6 @@ class TrackOptionInfo {
     this.coverUrl,
     this.localArtworkPath,
     this.isOwned = false,
-    this.artistId,
     this.isPrivate = false,
     this.privateToken,
   });
@@ -50,7 +49,6 @@ class TrackOptionInfo {
   final String? coverUrl;
   final String? localArtworkPath;
   final bool isOwned;
-  final String? artistId;
   final bool isPrivate;
   final String? privateToken;
 
@@ -73,9 +71,8 @@ class TrackOptionInfo {
       trackId: track.trackId,
       title: track.title,
       artist: track.artist.name,
-      artistId: track.artist.id,
-      coverUrl: track.coverUrl,
       artistId: track.artist.id.isNotEmpty ? track.artist.id : null,
+      coverUrl: track.coverUrl,
     );
   }
 
@@ -88,7 +85,6 @@ class TrackOptionInfo {
     String? fallbackCoverUrl,
     String? fallbackLocalArtworkPath,
     bool fallbackIsOwned = false,
-    String? fallbackArtistId,
     String? fallbackPrivateToken,
   }) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
@@ -125,7 +121,6 @@ class TrackOptionInfo {
       coverUrl: fallbackCoverUrl,
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
-      artistId: fallbackArtistId,
       isPrivate:
           fallbackPrivateToken != null && fallbackPrivateToken.trim().isNotEmpty,
       privateToken: fallbackPrivateToken,
@@ -696,7 +691,7 @@ class _FrostedTrackHeader extends StatelessWidget {
                       icon: Icons.queue_play_next,
                       label: 'Play next',
                       onTap: () {
-                        ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
+                        watchRef.read(playerProvider.notifier).addToQueueNext(info.trackId);
                         Navigator.pop(context);
                       },
                     ),
@@ -704,7 +699,7 @@ class _FrostedTrackHeader extends StatelessWidget {
                       icon: Icons.playlist_play,
                       label: 'Play last',
                       onTap: () {
-                        ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
+                        watchRef.read(playerProvider.notifier).addToQueueLast(info.trackId);
                         Navigator.pop(context);
                       },
                     ),
@@ -714,7 +709,12 @@ class _FrostedTrackHeader extends StatelessWidget {
                         label: 'Edit track',
                         onTap: () {
                           Navigator.pop(context);
-                          _navigateToEditTrack(context);
+                          final stored = watchRef.read(globalTrackStoreProvider).find(info.trackId);
+                          if (stored != null) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
+                            );
+                          }
                         },
                       ),
                     if (info.isOwned)

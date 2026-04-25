@@ -228,6 +228,7 @@ class _OtherUserProfileScreenState
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
+                    displayName: profile?.displayName ?? profile?.userName ?? '',
                     userName: profile?.userName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
