@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/engagement_user_entity.dart';
 import '../provider/enagement_providers.dart';
 import '../provider/engagement_state.dart';
@@ -108,7 +109,12 @@ class _UserTile extends StatelessWidget {
         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
       ),
       onTap: () {
-        // Handle tap on user tile
+        if (user.id.isEmpty) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OtherUserProfileScreen(userId: user.id),
+          ),
+        );
       },
     );
   }
