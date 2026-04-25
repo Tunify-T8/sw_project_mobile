@@ -1,5 +1,11 @@
 part of 'queue_screen.dart';
 
+class _VisibleQueueEntry {
+  const _VisibleQueueEntry({required this.trackId, required this.absoluteIndex});
+  final String trackId;
+  final int absoluteIndex;
+}
+
 // ── Body ─────────────────────────────────────────────────────────────────────
 
 class _QueueBody extends ConsumerWidget {
@@ -22,12 +28,18 @@ class _QueueBody extends ConsumerWidget {
         .take(3)
         .toList();
 
-    // Playing next: queue tracks after current index
-    final queueNextIds = <String>[];
-    if (queue != null && queue.trackIds.isNotEmpty) {
-      final start = queue.currentIndex + 1;
-      if (start < queue.trackIds.length) {
-        queueNextIds.addAll(queue.trackIds.sublist(start));
+    // Playing next: show the rest of the queue in circular order.
+    // This keeps Next Up useful even when the current track is the last item.
+    final queueNextEntries = <_VisibleQueueEntry>[];
+    if (queue != null && queue.trackIds.length > 1) {
+      for (var offset = 1; offset < queue.trackIds.length; offset++) {
+        final absoluteIndex = (queue.currentIndex + offset) % queue.trackIds.length;
+        queueNextEntries.add(
+          _VisibleQueueEntry(
+            trackId: queue.trackIds[absoluteIndex],
+            absoluteIndex: absoluteIndex,
+          ),
+        );
       }
     }
 
@@ -41,7 +53,7 @@ class _QueueBody extends ConsumerWidget {
             onAction: () => _confirmClearHistory(context, ref),
           ),
           for (final track in historyItems)
-            _HistoryTile(track: track, historyTracks: historyTracks),
+            _HistoryTile(track: track, allHistoryTracks: historyTracks),
         ],
 
         // ── Currently playing ─────────────────────────────────────────────
@@ -53,7 +65,7 @@ class _QueueBody extends ConsumerWidget {
         // ── Playing next (hidden in repeat-one mode) ──────────────────────
         if (!isRepeatOne) ...[
           _SectionLabel('Playing next'),
-          if (queueNextIds.isNotEmpty)
+          if (queueNextEntries.isNotEmpty)
             ReorderableListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -65,17 +77,17 @@ class _QueueBody extends ConsumerWidget {
                     .reorderQueue(oldIndex, newIndex);
               },
               children: [
-                for (int i = 0; i < queueNextIds.length; i++)
+                for (int i = 0; i < queueNextEntries.length; i++)
                   _QueueTrackTile(
-                    key: ValueKey(queueNextIds[i]),
+                    key: ValueKey("${queueNextEntries[i].trackId}-${queueNextEntries[i].absoluteIndex}"),
                     index: i,
-                    trackId: queueNextIds[i],
+                    trackId: queueNextEntries[i].trackId,
                     onTap: () => ref
                         .read(playerProvider.notifier)
-                        .jumpToQueueIndex((queue?.currentIndex ?? 0) + 1 + i),
+                        .jumpToQueueIndex(queueNextEntries[i].absoluteIndex),
                     onRemove: () => ref
                         .read(playerProvider.notifier)
-                        .removeFromQueue((queue?.currentIndex ?? 0) + 1 + i),
+                        .removeFromQueue(queueNextEntries[i].absoluteIndex),
                   ),
               ],
             )
@@ -192,58 +204,16 @@ class _SectionLabelWithAction extends StatelessWidget {
 // ── History tile ──────────────────────────────────────────────────────────────
 
 class _HistoryTile extends ConsumerWidget {
-  const _HistoryTile({required this.track, required this.historyTracks});
+  const _HistoryTile({required this.track, required this.allHistoryTracks});
 
   final HistoryTrack track;
-  final List<HistoryTrack> historyTracks;
-
-  Future<void> _playFromHistory(WidgetRef ref) async {
-    final playableHistory = historyTracks
-        .where((item) => item.status != PlaybackStatus.blocked)
-        .toList(growable: false);
-    final queueTrackIds = playableHistory
-        .map((item) => item.trackId)
-        .toList(growable: false);
-    final startIndex = queueTrackIds.indexOf(track.trackId);
-
-    final seedTrack = PlayerSeedTrack(
-      trackId: track.trackId,
-      title: track.title,
-      artistName: track.artist.name,
-      durationSeconds: track.durationSeconds,
-      coverUrl: track.coverUrl,
-    );
-
-    final notifier = ref.read(playerProvider.notifier);
-    if (startIndex >= 0 && queueTrackIds.length > 1) {
-      await notifier.loadTrack(
-        track.trackId,
-        autoPlay: true,
-        seedTrack: seedTrack,
-        queue: PlaybackQueue(
-          trackIds: queueTrackIds,
-          currentIndex: startIndex,
-          shuffle: false,
-          repeat: RepeatMode.none,
-          source: QueueSource.history,
-        ),
-      );
-      return;
-    }
-
-    await notifier.loadTrack(
-      track.trackId,
-      autoPlay: true,
-      seedTrack: seedTrack,
-    );
-  }
-
+  final List<HistoryTrack> allHistoryTracks;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
-      onTap: () => _playFromHistory(ref),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      onTap: () => _playHistoryTrack(ref),
       leading: _Cover(url: track.coverUrl, size: 48),
       title: Text(
         track.title,
@@ -270,6 +240,50 @@ class _HistoryTile extends ConsumerWidget {
           child: Icon(Icons.more_horiz, color: Colors.white54, size: 20),
         ),
       ),
+    );
+  }
+
+  Future<void> _playHistoryTrack(WidgetRef ref) async {
+    if (track.status == PlaybackStatus.blocked) return;
+
+    final playableHistory = allHistoryTracks
+        .where((item) => item.status != PlaybackStatus.blocked)
+        .toList(growable: false);
+
+    final queueTrackIds = playableHistory
+        .map((item) => item.trackId)
+        .toList(growable: false);
+
+    final startIndex = queueTrackIds.indexOf(track.trackId);
+
+    await ref.read(playerProvider.notifier).loadTrack(
+          track.trackId,
+          autoPlay: true,
+          seedTrack: _seedTrackFromHistory(track),
+          initialPositionSeconds: track.lastPositionSeconds.toDouble(),
+          queue: startIndex >= 0
+              ? PlaybackQueue(
+                  trackIds: queueTrackIds,
+                  currentIndex: startIndex,
+                  shuffle: false,
+                  repeat: RepeatMode.none,
+                  source: QueueSource.history,
+                )
+              : null,
+        );
+  }
+
+  PlayerSeedTrack _seedTrackFromHistory(HistoryTrack track) {
+    return PlayerSeedTrack(
+      trackId: track.trackId,
+      title: track.title,
+      artistName: track.artist.name,
+      durationSeconds: track.durationSeconds,
+      coverUrl: track.coverUrl,
+      waveformUrl: null,
+      directAudioUrl: null,
+      resumePositionSeconds: track.lastPositionSeconds,
+      localFilePath: null,
     );
   }
 }

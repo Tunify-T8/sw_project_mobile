@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/widgets.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,8 +79,9 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   bool _handlingPreviewStop = false;
   bool _isManualSeeking = false;
   bool _isDisposed = false;
+  bool _isLoadingTrack = false;
+  bool _isTransportBusy = false;
   DateTime? _lastSessionPersistAt;
-  DateTime? _lastHistoryProgressPersistAt;
   PlayerState? _lastKnownState;
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -115,14 +115,65 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
         .trackPlayed(historyTrack, needsBackendSync: needsBackendSync);
   }
 
+
+  /// Saves the current playback position into the local Listening History store.
+  ///
+  /// This is intentionally local-first. The backend does not need a progress
+  /// endpoint for this to work. We call it from the position stream, lifecycle
+  /// events, pause, and seek so Recently Played/History can resume from the last
+  /// known second.
+  void _rememberCurrentHistoryPosition(
+    PlayerState playerState, {
+    bool force = false,
+  }) {
+    if (_isDisposed || !ref.mounted) return;
+
+    final bundle = playerState.bundle;
+    if (bundle == null) return;
+
+    final durationSeconds = playerState.visualDurationSeconds > 0
+        ? playerState.visualDurationSeconds
+        : bundle.durationSeconds;
+
+    var positionSeconds = playerState.positionSeconds.round();
+    if (positionSeconds < 0) {
+      positionSeconds = 0;
+    }
+
+    // If the track has a known duration, never persist a value past the end.
+    if (durationSeconds > 0 && positionSeconds > durationSeconds) {
+      positionSeconds = durationSeconds;
+    }
+
+    // Avoid rewriting history too aggressively while the position stream fires.
+    // Force is used for lifecycle/pause paths where we want the latest value now.
+    if (!force && positionSeconds <= 0) return;
+
+    try {
+      unawaited(
+        ref
+            .read(listeningHistoryProvider.notifier)
+            .updateTrackProgress(bundle.trackId, positionSeconds),
+      );
+    } catch (_) {
+      // Local history is best-effort. Playback must never crash because the
+      // history cache could not be updated.
+    }
+  }
+
+  /// Sends a playback event without ever allowing reporting failures to break
+  /// the audio player. Some backend builds currently no-op these events, and
+  /// offline mode may fail network calls, so this must stay safe.
   Future<void> _safeReportEvent(PlaybackEvent event) async {
     try {
       await _reportEvent(event);
     } catch (_) {
-      // Keep playback working even if reporting is unsupported or fails.
+      // Reporting is best-effort only.
     }
   }
 
+  /// Reports a 90% completed play safely. If the device is offline, the play is
+  /// queued locally through the repository fallback when available.
   Future<void> _safeReportTrackCompleted(String trackId) async {
     try {
       final connectivity = await Connectivity().checkConnectivity();
@@ -137,34 +188,8 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
 
       await _repository.markOfflinePlayCompleted(trackId);
     } catch (_) {
-      // Playback should never crash because completion reporting failed.
+      // Completion reporting is best-effort only.
     }
-  }
-
-  void _rememberCurrentHistoryPosition(
-    PlayerState playerState, {
-    bool force = false,
-  }) {
-    final bundle = playerState.bundle;
-    if (bundle == null) return;
-
-    final now = DateTime.now();
-    if (!force &&
-        _lastHistoryProgressPersistAt != null &&
-        now.difference(_lastHistoryProgressPersistAt!) <
-            const Duration(seconds: 2)) {
-      return;
-    }
-    _lastHistoryProgressPersistAt = now;
-
-    unawaited(
-      ref
-          .read(listeningHistoryProvider.notifier)
-          .updateTrackProgress(
-            bundle.trackId,
-            playerState.positionSeconds.round(),
-          ),
-    );
   }
 
   @override

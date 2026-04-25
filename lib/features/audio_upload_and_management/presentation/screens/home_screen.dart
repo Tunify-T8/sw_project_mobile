@@ -9,7 +9,6 @@ import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
 import '../utils/upload_error_snackbar.dart';
-import '../../domain/entities/upload_item.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
@@ -129,15 +128,6 @@ class HomeScreen extends ConsumerWidget {
             HomeRecentSection(
               latestTrack: latestTrack,
               historyTracks: historyTracks,
-              onOpenHistoryTrack: (historyTrack) async {
-                await openHistorySourcedPlayer(
-                  context,
-                  ref,
-                  _uploadItemFromHistoryTrack(historyTrack),
-                  historyTracks: historyTracks,
-                  openScreen: true,
-                );
-              },
               onOpenTrack: (item) async {
                 // Open the track playing — not just navigating to the screen.
                 await openUploadItemPlayer(context, ref, item);
@@ -149,24 +139,4 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-
-UploadItem _uploadItemFromHistoryTrack(dynamic historyTrack) {
-  final totalSeconds = historyTrack.durationSeconds as int? ?? 0;
-  final minutes = totalSeconds ~/ 60;
-  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
-
-  return UploadItem(
-    id: historyTrack.trackId as String,
-    title: historyTrack.title as String,
-    artistDisplay: historyTrack.artist.name as String,
-    durationLabel: '$minutes:$seconds',
-    durationSeconds: totalSeconds,
-    artworkUrl: historyTrack.coverUrl as String?,
-    visibility: UploadVisibility.public,
-    status: UploadProcessingStatus.finished,
-    isExplicit: false,
-    createdAt: historyTrack.playedAt as DateTime,
-  );
 }

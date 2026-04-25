@@ -8,6 +8,7 @@ import '../widgets/profile_share_sheet.dart';
 import '../widgets/profile_tracks_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
@@ -77,6 +78,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     print('CONSOLE: profile.isCertified = ${profile?.isCertified ?? false}');
 //to check bs mzboot or not
     return Scaffold(
+      bottomNavigationBar: const MiniPlayer(),
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -155,17 +157,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       profileImage: profileImage,
                       coverImage: coverImage,
                       userType: profile?.userType ?? 'ARTIST',
+                      onPlay: uploadedTracks.isEmpty
+                          ? null
+                          : () => openUploadItemPlayer(
+                                context,
+                                ref,
+                                uploadedTracks.first,
+                                queueItems: uploadedTracks,
+                                openScreen: false,
+                              ),
+                      onShuffle: uploadedTracks.isEmpty
+                          ? null
+                          : () {
+                              final shuffled = List.of(uploadedTracks)..shuffle();
+                              openUploadItemPlayer(
+                                context,
+                                ref,
+                                shuffled.first,
+                                queueItems: shuffled,
+                                openScreen: false,
+                              );
+                            },
                     ),
                   ),
                   ProfileTracksSection(
                     items: uploadedTracks,
-                    onTrackTap: (item) async {
-                      await openUploadItemPlayer(
+                    onTrackTap: (item) {
+                      openUploadItemPlayer(
                         context,
                         ref,
                         item,
                         queueItems: uploadedTracks,
-                        openScreen: true,
                       );
                     },
                   ),

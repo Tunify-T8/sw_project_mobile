@@ -2,10 +2,12 @@ part of 'player_provider.dart';
 
 extension PlayerNotifierQueue on PlayerNotifier {
   Future<void> next() async {
-    if (_shouldIgnoreM5RapidTransportTap()) return;
-
     final current = _current;
-    if (current?.queue == null || current!.isBuffering) return;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] next ignored while player is busy");
+      return;
+    }
+    if (current?.queue == null) return;
 
     final queue = current!.queue!;
     if (queue.trackIds.length <= 1) return;
@@ -14,19 +16,21 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     if (nextIndex >= queue.trackIds.length) {
       if (queue.repeat == RepeatMode.all) {
-        await _jumpToIndex(0, queue, autoPlay: true);
+        await _jumpToIndex(0, queue, autoPlay: current.isPlaying);
       }
       return;
     }
 
-    await _jumpToIndex(nextIndex, queue, autoPlay: true);
+    await _jumpToIndex(nextIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> previous() async {
-    if (_shouldIgnoreM5RapidTransportTap()) return;
-
     final current = _current;
-    if (current?.queue == null || current!.isBuffering) return;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] previous ignored while player is busy");
+      return;
+    }
+    if (current?.queue == null) return;
 
     final queue = current!.queue!;
     if (queue.trackIds.length <= 1) return;
@@ -38,20 +42,22 @@ extension PlayerNotifierQueue on PlayerNotifier {
         await _jumpToIndex(
           queue.trackIds.length - 1,
           queue,
-          autoPlay: true,
+          autoPlay: current.isPlaying,
         );
       }
       return;
     }
 
-    await _jumpToIndex(previousIndex, queue, autoPlay: true);
+    await _jumpToIndex(previousIndex, queue, autoPlay: current.isPlaying);
   }
 
   Future<void> jumpToQueueIndex(int index) async {
-    if (_shouldIgnoreM5RapidTransportTap()) return;
-
     final current = _current;
-    if (current?.queue == null || current!.isBuffering) return;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] queue jump ignored while player is busy");
+      return;
+    }
+    if (current?.queue == null) return;
 
     final queue = current!.queue!;
     if (index < 0 || index >= queue.trackIds.length) return;
@@ -105,13 +111,24 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   void removeFromQueue(int index) {
     final current = _current;
-    if (current?.queue == null || current!.isBuffering) return;
+    if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
+    if (index < 0 || index >= queue.trackIds.length) return;
+    if (index == queue.currentIndex) return;
 
     final newIds = List<String>.from(queue.trackIds)..removeAt(index);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    var newCurrentIndex = queue.currentIndex;
+    if (index < queue.currentIndex) {
+      newCurrentIndex -= 1;
+    }
+    if (newCurrentIndex >= newIds.length) {
+      newCurrentIndex = newIds.isEmpty ? 0 : newIds.length - 1;
+    }
+
+    final next = current.copyWith(
+      queue: queue.copyWith(trackIds: newIds, currentIndex: newCurrentIndex),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -207,7 +224,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
   /// not the full underlying queue. So we offset them by the current track.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
-    if (current?.queue == null || current!.isBuffering) return;
+    if (current?.queue == null) return;
 
     final queue = current!.queue!;
     final offset = queue.currentIndex + 1;
@@ -246,12 +263,11 @@ extension PlayerNotifierQueue on PlayerNotifier {
   }) async {
     if (artistUserId.trim().isEmpty) return;
 
-    // Context queues are sacred: if the user opened the track from history,
-    // home recently played, a profile, or an explicit queue, next/previous
-    // must stay inside that exact context. Only enrich single-track playback.
+    // History-sourced queues are sacred: the user opened the track from
+    // Listening history and expects "next" to mean "next in history",
+    // NOT "more by this artist". Skip enrichment entirely.
     final currentBeforeFetch = _current;
-    final source = currentBeforeFetch?.queue?.source;
-    if (source != null && source != QueueSource.singleTrack) {
+    if (currentBeforeFetch?.queue?.source == QueueSource.history) {
       return;
     }
 
@@ -264,9 +280,8 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (after == null || after.bundle?.trackId != anchorTrackId) return;
 
     // Double-check source after the async gap — the user may have tapped
-    // another context while the fetch was in flight.
-    final afterSource = after.queue?.source;
-    if (afterSource != null && afterSource != QueueSource.singleTrack) return;
+    // a history track while the fetch was in flight.
+    if (after.queue?.source == QueueSource.history) return;
 
     final existingQueue = after.queue;
     final existingIds = existingQueue?.trackIds ?? <String>[];

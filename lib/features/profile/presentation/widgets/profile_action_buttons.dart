@@ -9,12 +9,16 @@ class ProfileActionButtons extends ConsumerWidget {
   final File? profileImage;
   final File? coverImage;
   final String userType;
+  final VoidCallback? onPlay;
+  final VoidCallback? onShuffle;
 
   const ProfileActionButtons({
     super.key,
     this.profileImage,
     this.coverImage,
     required this.userType,
+    this.onPlay,
+    this.onShuffle,
   });
 
   @override
@@ -43,23 +47,21 @@ class ProfileActionButtons extends ConsumerWidget {
                 tiktok: profile?.tiktok,
                 soundcloud: profile?.soundcloud,
                 userType: profile?.userType ?? 'ARTIST',
-                profileImageUrl: profile?.profileImagePath, 
-                coverImageUrl: profile?.coverImagePath,      
+                profileImageUrl: profile?.profileImagePath,
+                coverImageUrl: profile?.coverImagePath,
                 )),
               );
               if (result != null) {
                 final updated = ProfileDto(
-                // server-controlled
-                id: profile!.id,               
-                email: profile.email,          
-                role: profile.role,            
-                tracksCount: profile.tracksCount,    
-                likesReceived: profile.likesReceived, 
-                isActive: profile.isActive,           
-                isCertified: profile.isCertified,     
-                followersCount: profile.followersCount, 
-                followingCount: profile.followingCount, 
-                // user-editable
+                id: profile!.id,
+                email: profile.email,
+                role: profile.role,
+                tracksCount: profile.tracksCount,
+                likesReceived: profile.likesReceived,
+                isActive: profile.isActive,
+                isCertified: profile.isCertified,
+                followersCount: profile.followersCount,
+                followingCount: profile.followingCount,
                 userName: result.userName,
                 bio: result.bio,
                 city: result.city,
@@ -72,10 +74,10 @@ class ProfileActionButtons extends ConsumerWidget {
                 tiktok: result.tiktok,
                 soundcloud: result.soundcloud,
                 userType: result.userType,
-                profileImagePath: result.profileImagePath == ''  // ← HERE
+                profileImagePath: result.profileImagePath == ''
                     ? null
                     : (result.profileImagePath ?? profile.profileImagePath),
-                coverImagePath: result.coverImagePath == ''      
+                coverImagePath: result.coverImagePath == ''
                     ? null
                     : (result.coverImagePath ?? profile.coverImagePath),
                 );
@@ -86,7 +88,7 @@ class ProfileActionButtons extends ConsumerWidget {
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
-            onPressed: () {},
+            onPressed: onShuffle,
           ),
           Container(
             decoration: const BoxDecoration(
@@ -95,7 +97,7 @@ class ProfileActionButtons extends ConsumerWidget {
             ),
             child: IconButton(
               icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
-              onPressed: () {},
+              onPressed: onPlay,
             ),
           ),
         ],

@@ -1,15 +1,7 @@
 part of 'home_recent_section.dart';
 
 class _PlaceholderCard extends StatelessWidget {
-  const _PlaceholderCard({
-    required this.label,
-    required this.sub,
-    required this.color,
-  });
-
-  final String label;
-  final String sub;
-  final Color color;
+  const _PlaceholderCard();
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +14,14 @@ class _PlaceholderCard extends StatelessWidget {
         children: [
           Container(
             width: 72,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: const BorderRadius.horizontal(
+            decoration: const BoxDecoration(
+              color: Color(0xFF242424),
+              borderRadius: BorderRadius.horizontal(
                 left: Radius.circular(18),
               ),
+            ),
+            child: const Center(
+              child: Icon(Icons.music_note, color: Colors.white24, size: 24),
             ),
           ),
           const SizedBox(width: 12),
@@ -35,26 +30,27 @@ class _PlaceholderCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                Container(
+                  height: 12,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  sub,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                const SizedBox(height: 8),
+                Container(
+                  height: 10,
+                  width: 72,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 12),
         ],
       ),
     );

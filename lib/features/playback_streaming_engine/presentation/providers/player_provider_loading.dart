@@ -9,127 +9,130 @@ extension PlayerNotifierLoading on PlayerNotifier {
     PlayerSeedTrack? seedTrack,
     double? initialPositionSeconds,
   }) async {
-    // Cancel any pending history notification for the previous track so it is
-    // never recorded just because the user tapped a new song.
-    _pendingHistoryTrackId = null;
+    if (_isLoadingTrack) {
+      debugPrint('[M5 Player] loadTrack ignored while another track is loading');
+      return;
+    }
 
-    final previous = _current;
+    _isLoadingTrack = true;
 
-    _progressReportTimer?.cancel();
     try {
-      await _audioPlayer.stop();
-    } on just_audio.PlayerInterruptedException catch (_) {
-      debugPrint('[M5 Player] stop interrupted safely while loading: ');
-    } catch (_) {
-      debugPrint('[M5 Player] stop failed safely while loading: ');
-    }
+      _pendingHistoryTrackId = null;
 
-    // FIX: always clear the loaded-source cache so _prepareAudioSource
-    // unconditionally sets a fresh audio source on every loadTrack call.
-    // Without this, if Account B loads the same trackId that Account A had
-    // loaded (the cache survived the account switch), the source-key equality
-    // check inside _prepareAudioSource skips setAudioSource entirely — leaving
-    // just_audio in a stopped state with no playable source, which causes the
-    // player screen to hang at paused indefinitely.
-    _loadedTrackId = null;
-    _loadedSourceKey = null;
+      final previous = _current;
 
-    final provisionalBundle = seedTrack?.toPlaybackBundle();
-    if (provisionalBundle != null) {
-      _setPlayerState(
-        PlayerState(
-          bundle: provisionalBundle,
-          queue: queue,
-          isPlaying: false,
-          positionSeconds: initialPositionSeconds == null
-              ? _initialPositionFor(provisionalBundle).toDouble()
-              : _clampPosition(provisionalBundle, initialPositionSeconds),
-          isMuted: previous?.isMuted ?? false,
-          volume: previous?.volume ?? 1.0,
-          isBuffering: true,
-          localFilePath: seedTrack?.localFilePath,
-          privateToken: privateToken,
-        ),
-      );
-    } else if (previous != null) {
-      _setPlayerState(
-        previous.copyWith(
-          isPlaying: false,
-          isBuffering: true,
-          queue: queue,
-          privateToken: privateToken,
-        ),
-      );
-    } else {
-      _setAsyncState(const AsyncLoading());
-    }
+      _progressReportTimer?.cancel();
+      try {
+        await _audioPlayer.stop();
+      } on just_audio.PlayerInterruptedException {
+        debugPrint('[M5 Player] stop ignored because loading was interrupted');
+      } catch (error) {
+        debugPrint('[M5 Player] stop failed safely: $error');
+      }
 
-    _setAsyncState(
-      await AsyncValue.guard(() async {
-        final bundle = await _resolveBundle(
-          trackId,
-          privateToken: privateToken,
-          seedTrack: seedTrack,
+      _loadedTrackId = null;
+      _loadedSourceKey = null;
+
+      final provisionalBundle = seedTrack?.toPlaybackBundle();
+      final provisionalPosition = initialPositionSeconds ??
+          (provisionalBundle == null
+              ? 0.0
+              : _initialPositionFor(provisionalBundle).toDouble());
+
+      if (provisionalBundle != null) {
+        _setPlayerState(
+          PlayerState(
+            bundle: provisionalBundle,
+            queue: queue,
+            isPlaying: false,
+            positionSeconds: provisionalPosition,
+            isMuted: previous?.isMuted ?? false,
+            volume: previous?.volume ?? 1.0,
+            isBuffering: true,
+            localFilePath: seedTrack?.localFilePath,
+            privateToken: privateToken,
+          ),
         );
-
-        final source = await _resolvePlaybackSource(
-          trackId,
-          seedTrack: seedTrack,
-          privateToken: privateToken,
+      } else if (previous != null) {
+        _setPlayerState(
+          previous.copyWith(
+            isPlaying: false,
+            isBuffering: true,
+            queue: queue,
+            privateToken: privateToken,
+          ),
         );
+      } else {
+        _setAsyncState(const AsyncLoading());
+      }
 
-        final initialPosition = initialPositionSeconds == null
-            ? _initialPositionFor(bundle).toDouble()
-            : _clampPosition(bundle, initialPositionSeconds);
-
-        final nextState = PlayerState(
-          bundle: bundle,
-          streamUrl: source.streamUrl,
-          streamExpiresAt: source.streamExpiresAt,
-          localFilePath: source.localFilePath,
-          queue: queue,
-          isPlaying: false,
-          positionSeconds: initialPosition,
-          isMuted: previous?.isMuted ?? false,
-          volume: previous?.volume ?? 1.0,
-          isBuffering: false,
-          mediaDurationSeconds: bundle.durationSeconds.toDouble(),
-          privateToken: privateToken,
-        );
-
-        await _prepareAudioSource(nextState, force: true);
-        await _applyVolume(nextState);
-
-        if (initialPosition > 0) {
-          await _audioPlayer.seek(
-            Duration(milliseconds: (initialPosition * 1000).round()),
+      _setAsyncState(
+        await AsyncValue.guard(() async {
+          final bundle = await _resolveBundle(
+            trackId,
+            privateToken: privateToken,
+            seedTrack: seedTrack,
           );
-        }
 
-        return nextState;
-      }),
-    );
+          final source = await _resolvePlaybackSource(
+            trackId,
+            seedTrack: seedTrack,
+            privateToken: privateToken,
+          );
 
-    if (state.hasError) {
-      debugPrint('loadTrack failed for $trackId: ${state.error}');
-    }
+          final initialPosition = initialPositionSeconds ??
+              _initialPositionFor(bundle).toDouble();
 
-    if (state.asData?.value != null) {
-      await _persistCurrentSession(
-        playerState: state.asData!.value,
-        force: true,
+          final nextState = PlayerState(
+            bundle: bundle,
+            streamUrl: source.streamUrl,
+            streamExpiresAt: source.streamExpiresAt,
+            localFilePath: source.localFilePath,
+            queue: queue,
+            isPlaying: false,
+            positionSeconds: initialPosition,
+            isMuted: previous?.isMuted ?? false,
+            volume: previous?.volume ?? 1.0,
+            isBuffering: false,
+            mediaDurationSeconds: bundle.durationSeconds.toDouble(),
+            privateToken: privateToken,
+          );
+
+          await _prepareAudioSource(nextState, force: true);
+          await _applyVolume(nextState);
+
+          if (initialPosition > 0) {
+            try {
+              await _audioPlayer.seek(
+                Duration(milliseconds: (initialPosition * 1000).round()),
+              );
+            } on just_audio.PlayerInterruptedException {
+              debugPrint('[M5 Player] initial seek ignored because loading was interrupted');
+            }
+          }
+
+          return nextState;
+        }),
       );
+
+      if (state.hasError) {
+        debugPrint('loadTrack failed for $trackId: ${state.error}');
+      }
+
+      if (state.asData?.value != null) {
+        await _persistCurrentSession(
+          playerState: state.asData!.value,
+          force: true,
+        );
+      }
+    } finally {
+      _isLoadingTrack = false;
     }
 
     if (autoPlay && state.asData?.value != null) {
       await play();
     }
 
-    // Kick off the "more by this artist" enrichment now that the real bundle
-    // is in state. Doing it here (instead of polling from the launcher) makes
-    // the trigger reliable: we only run it when artist.id is real, never on
-    // the seed bundle's empty placeholder. Fire-and-forget — audio start
-    // never waits on this.
     final landed = state.asData?.value;
     final landedArtistId = landed?.bundle?.artist.id;
     if (landed != null &&
@@ -152,8 +155,8 @@ extension PlayerNotifierLoading on PlayerNotifier {
     String? privateToken,
     bool autoPlay = true,
     RepeatMode repeat = RepeatMode.none,
-    QueueSource source = QueueSource.explicit,
     PlayerSeedTrack? seedTrack,
+    QueueSource source = QueueSource.artistCatalog,
     double? initialPositionSeconds,
   }) {
     return loadTrack(

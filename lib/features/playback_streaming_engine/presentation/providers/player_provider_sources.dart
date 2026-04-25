@@ -1,20 +1,5 @@
 part of 'player_provider.dart';
 
-DateTime? _m5LastTransportTapAt;
-
-/// Prevents rapid double-taps from starting overlapping just_audio commands.
-bool _shouldIgnoreM5RapidTransportTap({int milliseconds = 320}) {
-  final now = DateTime.now();
-  final previous = _m5LastTransportTapAt;
-  if (previous != null && now.difference(previous).inMilliseconds < milliseconds) {
-    debugPrint('[M5 Player] rapid transport tap ignored safely');
-    return true;
-  }
-  _m5LastTransportTapAt = now;
-  return false;
-}
-
-
 extension _PlayerNotifierSources on PlayerNotifier {
   Future<TrackPlaybackBundle> _resolveBundle(
     String trackId, {
@@ -195,6 +180,10 @@ extension _PlayerNotifierSources on PlayerNotifier {
         );
       }
     } on just_audio.PlayerInterruptedException {
+      debugPrint("[M5 Player] audio source load was interrupted by a newer command");
+      return;
+    } catch (error) {
+      debugPrint("[M5 Player] audio source failed safely: $error");
       return;
     }
 
@@ -226,19 +215,12 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
   Future<void> _applyVolume(PlayerState playerState) async {
     final targetVolume = playerState.isMuted ? 0.0 : playerState.volume;
-
     try {
       await _audioPlayer.setVolume(targetVolume.clamp(0.0, 1.0).toDouble());
-    } on just_audio.PlayerInterruptedException catch (error) {
-      // This can happen when the user taps next/previous/play very quickly
-      // while just_audio is still loading a previous source. It is not a real
-      // app error; it only means the older audio operation was interrupted by
-      // a newer one. Swallow it so rapid taps do not break the track screen.
-      debugPrint('[M5 Player] volume update interrupted safely: $error');
+    } on just_audio.PlayerInterruptedException {
+      debugPrint("[M5 Player] volume change ignored because loading was interrupted");
     } catch (error) {
-      // Volume should never crash playback. If another platform/audio-service
-      // error happens, log it and keep the player alive.
-      debugPrint('[M5 Player] volume update failed safely: $error');
+      debugPrint("[M5 Player] volume change failed safely: $error");
     }
   }
 
