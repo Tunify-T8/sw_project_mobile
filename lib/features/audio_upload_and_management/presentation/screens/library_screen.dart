@@ -12,7 +12,7 @@ import '../../../playback_streaming_engine/presentation/screens/open_shared_trac
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../../data/services/global_track_store.dart';
-import '../../../engagements_social_interactions/presentation/screens/liked_tracks_screen.dart'; // engagement addition
+import '../../../engagements_social_interactions/presentation/screens/liked_tracks_screen.dart';
 import '../../domain/entities/upload_item.dart';
 import '../utils/playback_surface_item_mapper.dart';
 import '../utils/upload_player_launcher.dart';
@@ -168,6 +168,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 18)),
             SliverToBoxAdapter(
+              child: _LibraryRecentlyPlayedPlaylistsSection(
+                onUnavailableTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Color(0xFF1C1C1E),
+                    content: Text('Playlists will appear here when Module 7 is plugged in'),
+                    duration: Duration(seconds: 1),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
                 child: Row(
@@ -239,6 +250,112 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 140)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryRecentlyPlayedPlaylistsSection extends StatelessWidget {
+  const _LibraryRecentlyPlayedPlaylistsSection({required this.onUnavailableTap});
+
+  final VoidCallback onUnavailableTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Recently played',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onUnavailableTap,
+                  child: const Text(
+                    'See all',
+                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 190,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              itemBuilder: (context, index) => _LibraryPlaylistPlaceholderCard(
+                onTap: onUnavailableTap,
+              ),
+              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              itemCount: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LibraryPlaylistPlaceholderCard extends StatelessWidget {
+  const _LibraryPlaylistPlaceholderCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 138,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 138,
+              height: 138,
+              decoration: BoxDecoration(
+                color: const Color(0xFF202020),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: const Center(
+                child: Icon(Icons.queue_music_rounded, color: Colors.white24, size: 32),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              height: 12,
+              width: 110,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              height: 10,
+              width: 74,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
           ],
         ),
       ),

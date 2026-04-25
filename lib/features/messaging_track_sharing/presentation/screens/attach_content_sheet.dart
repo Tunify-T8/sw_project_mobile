@@ -193,7 +193,9 @@ class _LikesTab extends ConsumerWidget {
             final attachment = MessageAttachment(
               id: track.trackId,
               type: MessageAttachmentType.track,
+              backendKind: MessageAttachmentBackendKind.trackLike,
               title: track.title,
+              subtitle: track.artistName,
               artworkUrl: track.coverUrl,
             );
 
@@ -236,7 +238,9 @@ class _PlaylistsTab extends StatelessWidget {
         final attachment = MessageAttachment(
           id: pl.id,
           type: MessageAttachmentType.collection,
+          backendKind: MessageAttachmentBackendKind.playlist,
           title: pl.title,
+          subtitle: pl.owner,
         );
 
         return _ContentTile(
@@ -297,7 +301,9 @@ class _UploadsTab extends ConsumerWidget {
         final attachment = MessageAttachment(
           id: item.id,
           type: MessageAttachmentType.track,
+          backendKind: MessageAttachmentBackendKind.trackUpload,
           title: item.title,
+          subtitle: item.artistDisplay,
           artworkUrl: item.artworkUrl,
         );
 

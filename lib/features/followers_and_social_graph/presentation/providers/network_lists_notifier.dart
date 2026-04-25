@@ -15,6 +15,10 @@ class NetworkListsNotifier extends Notifier<NetworkListsState> {
     return const NetworkListsState();
   }
 
+  void clearList(NetworkListType type) {
+    state = state.updateListState(type: type, users: []);
+  }
+
   Future<void> loadFollowingList({
     required String userId,
     int page = 1,

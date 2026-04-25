@@ -2,11 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../data/api/notification_api.dart';
 import '../../data/repository/mock_notification_repository_impl.dart';
 import '../../data/repository/real_notification_repository_impl.dart';
+import '../../data/services/mock_notification_socket.dart';
 import '../../data/services/mock_notification_simulator.dart';
 import '../../data/services/mock_notification_store.dart';
+import '../../data/services/notification_socket.dart';
+import '../../data/services/real_notification_socket.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../../domain/usecases/get_notification_preferences_usecase.dart';
 import '../../domain/usecases/get_notifications_usecase.dart';
@@ -16,44 +20,47 @@ import '../../domain/usecases/mark_notification_read_usecase.dart';
 import '../../domain/usecases/update_notification_preferences_usecase.dart';
 
 // ─── Backend mode ────────────────────────────────────────────────────────────
-// Change this to NotificationBackendMode.real when the backend is ready.
+// Switch to NotificationBackendMode.mock for offline development.
 enum NotificationBackendMode { mock, real }
 
-const NotificationBackendMode _activeBackend = NotificationBackendMode.mock;
+const NotificationBackendMode _activeBackend = NotificationBackendMode.real;
 
 final notificationBackendModeProvider =
     Provider<NotificationBackendMode>((ref) => _activeBackend);
 
 // ─── Infrastructure ──────────────────────────────────────────────────────────
 
-final notificationDioProvider = Provider<Dio>((ref) {
-  return ref.watch(dioProvider);
-});
+final notificationDioProvider = Provider<Dio>((ref) => ref.watch(dioProvider));
 
 final notificationApiProvider = Provider<NotificationApi>(
   (ref) => NotificationApi(ref.watch(notificationDioProvider)),
 );
 
-/// Shared mock store — kept alive for the app lifetime so multiple screens
-/// observe the same in-memory dataset.
-/// Shared mock store — kept alive for the app lifetime so multiple screens
-/// observe the same in-memory dataset.
-final mockNotificationStoreProvider =
-    Provider<MockNotificationStore>((ref) {
+final notificationSocketProvider = Provider<NotificationSocket>((ref) {
+  final mode = ref.watch(notificationBackendModeProvider);
+  if (mode == NotificationBackendMode.real) {
+    final socket = RealNotificationSocket(const TokenStorage());
+    ref.onDispose(socket.dispose);
+    return socket;
+  }
+  final socket = MockNotificationSocket();
+  ref.onDispose(socket.dispose);
+  return socket;
+});
+
+// Mock-only infrastructure (kept alive only when mode == mock).
+final mockNotificationStoreProvider = Provider<MockNotificationStore>((ref) {
   final store = MockNotificationStore();
   ref.onDispose(store.dispose);
   return store;
 });
 
-/// Periodically generates fake notifications + push in mock mode.
-final mockNotificationSimulatorProvider = Provider<MockNotificationSimulator>((ref) {
+final mockNotificationSimulatorProvider =
+    Provider<MockNotificationSimulator>((ref) {
   final mode = ref.watch(notificationBackendModeProvider);
   final store = ref.watch(mockNotificationStoreProvider);
   final simulator = MockNotificationSimulator(store);
-
-  if (mode == NotificationBackendMode.mock) {
-    simulator.start();
-  }
+  if (mode == NotificationBackendMode.mock) simulator.start();
   ref.onDispose(simulator.stop);
   return simulator;
 });
@@ -65,7 +72,10 @@ final notificationRepositoryProvider =
   final mode = ref.watch(notificationBackendModeProvider);
 
   if (mode == NotificationBackendMode.real) {
-    return RealNotificationRepository(ref.watch(notificationApiProvider));
+    return RealNotificationRepository(
+      ref.watch(notificationApiProvider),
+      ref.watch(notificationSocketProvider),
+    );
   }
 
   return MockNotificationRepository(ref.watch(mockNotificationStoreProvider));
@@ -83,8 +93,7 @@ final markNotificationReadUseCaseProvider = Provider((ref) =>
     MarkNotificationReadUseCase(ref.watch(notificationRepositoryProvider)));
 
 final markAllNotificationsReadUseCaseProvider = Provider((ref) =>
-    MarkAllNotificationsReadUseCase(
-        ref.watch(notificationRepositoryProvider)));
+    MarkAllNotificationsReadUseCase(ref.watch(notificationRepositoryProvider)));
 
 final getNotificationPreferencesUseCaseProvider = Provider((ref) =>
     GetNotificationPreferencesUseCase(

@@ -14,9 +14,19 @@ enum NotificationType {
   /// The snake_case value used by the REST API.
   final String value;
 
-  static NotificationType fromString(String raw) =>
-      NotificationType.values.firstWhere(
-        (t) => t.value == raw,
-        orElse: () => NotificationType.system,
-      );
+  static NotificationType fromString(String raw) {
+    final normalized = raw
+        .trim()
+        .replaceAll('-', '_')
+        .replaceAllMapped(
+          RegExp(r'(?<=[a-z0-9])[A-Z]'),
+          (match) => '_${match.group(0)}',
+        )
+        .toLowerCase();
+
+    return NotificationType.values.firstWhere(
+      (t) => t.value == normalized,
+      orElse: () => NotificationType.system,
+    );
+  }
 }

@@ -9,11 +9,7 @@ import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart
 /// Tapping any tab pops all routes above the main shell so the user lands
 /// back on the requested tab.
 class MessagingBottomShell extends StatelessWidget {
-  const MessagingBottomShell({
-    super.key,
-    this.selectedIndex = 0,
-    this.above,
-  });
+  const MessagingBottomShell({super.key, this.selectedIndex = 0, this.above});
 
   /// Which bottom-bar tab to highlight (0 = Home, etc.).
   final int selectedIndex;
@@ -31,7 +27,7 @@ class MessagingBottomShell extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (above != null) above!,
+          ?above,
           const MiniPlayer(),
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
@@ -89,11 +85,9 @@ class _BottomBar extends StatelessWidget {
                   Text(
                     item.label,
                     style: TextStyle(
-                      color:
-                          selected ? Colors.white : const Color(0xFF808080),
+                      color: selected ? Colors.white : const Color(0xFF808080),
                       fontSize: 11,
-                      fontWeight:
-                          selected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                 ],

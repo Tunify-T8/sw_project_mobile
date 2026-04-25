@@ -10,7 +10,7 @@ class ProfileInfo extends StatelessWidget {
   final String bio;
   final int followersCount;
   final int followingCount;
-   final bool isCertified; 
+  final bool isCertified; 
   final TextStyle nameStyle;
   final TextStyle bioStyle;
   final TextStyle followerStyle;
@@ -18,6 +18,7 @@ class ProfileInfo extends StatelessWidget {
   final Widget actionButtons; // 3lshan n7ot el actions fel nos
   final VoidCallback? onFollowersTap;
   final VoidCallback? onFollowingTap;
+  final String? userId;
 
   const ProfileInfo({
     super.key,
@@ -36,6 +37,7 @@ class ProfileInfo extends StatelessWidget {
     required this.actionButtons,
     this.onFollowersTap,
     this.onFollowingTap,
+    this.userId,
   });
 
 Widget buildName() => Padding(
@@ -91,9 +93,9 @@ Widget buildLocation() => Padding(
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const NetworkListsScreen(
-                    isMyProfile: true,
+                  builder: (context) => NetworkListsScreen(
                     listType: NetworkListType.followers,
+                    userId: userId,
                   ),
                 ),
               );
@@ -108,9 +110,9 @@ Widget buildLocation() => Padding(
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const NetworkListsScreen(
+                  builder: (context) => NetworkListsScreen(
                     listType: NetworkListType.following,
-                    isMyProfile: true,
+                    userId: userId,
                   ),
                 ),
               );

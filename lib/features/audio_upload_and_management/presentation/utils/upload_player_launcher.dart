@@ -33,6 +33,7 @@ Future<void> openUploadItemPlayer(
   await _ensureCachedUploadsHydrated(ref);
 
   final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
+  _cacheUploadItems(ref, [preparedItem, ...?queueItems]);
 
   _optimisticallyPromoteHistory(ref, preparedItem);
 
@@ -207,7 +208,10 @@ Future<void> ensureUploadItemPlayback(
   // are tracks the user already played, not "more by this artist", and
   // surfacing them as the queue was confusing.  The real artist catalog is
   // fetched from the backend by enrichQueueWithArtistTracks (called from
+
   // inside loadTrack once the real bundle lands).
+  _cacheUploadItems(ref, [item, ...?queueItems]);
+
   final queue = _resolveArtistQueue(item, queueItems, store);
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
@@ -516,4 +520,12 @@ String _formatDuration(int totalSeconds) {
   final minutes = totalSeconds ~/ 60;
   final seconds = totalSeconds % 60;
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
+}
+
+void _cacheUploadItems(WidgetRef ref, List<UploadItem> items) {
+  final store = ref.read(globalTrackStoreProvider);
+  for (final item in items) {
+    if (item.id.trim().isEmpty) continue;
+    store.update(item);
+  }
 }

@@ -10,17 +10,25 @@ class NotificationTile extends StatelessWidget {
     super.key,
     required this.notification,
     required this.onTap,
+    this.onActorTap,
+    this.onReferenceTap,
+    this.onActionTap,
   });
 
   final NotificationEntity notification;
   final VoidCallback onTap;
+  final VoidCallback? onActorTap;
+  final VoidCallback? onReferenceTap;
+  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: notification.isRead ? Colors.transparent : const Color(0xFF1A1A2E),
+        color: notification.isRead
+            ? Colors.transparent
+            : const Color(0xFF1A1A2E),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,18 +52,22 @@ class NotificationTile extends StatelessWidget {
 
   Widget _buildAvatar() {
     final actor = notification.actor;
-    if (actor != null && actor.avatarUrl != null) {
-      return CircleAvatar(
-        radius: 22,
-        backgroundImage: NetworkImage(actor.avatarUrl!),
-        backgroundColor: const Color(0xFF2A2A2A),
-      );
-    }
+    final avatar = actor != null && actor.avatarUrl != null
+        ? CircleAvatar(
+            radius: 22,
+            backgroundImage: NetworkImage(actor.avatarUrl!),
+            backgroundColor: const Color(0xFF2A2A2A),
+          )
+        : const CircleAvatar(
+            radius: 22,
+            backgroundColor: Color(0xFF3A3A5A),
+            child: Icon(Icons.person, color: Colors.white70, size: 22),
+          );
 
-    return const CircleAvatar(
-      radius: 22,
-      backgroundColor: Color(0xFF3A3A5A),
-      child: Icon(Icons.person, color: Colors.white70, size: 22),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onActorTap,
+      child: avatar,
     );
   }
 
@@ -75,31 +87,39 @@ class NotificationTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Username + time
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: actorName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onActorTap,
+          child: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: actorName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-              TextSpan(
-                text: '  $ago',
-                style: const TextStyle(
-                  color: Color(0xFF888888),
-                  fontSize: 13,
+                TextSpan(
+                  text: '  $ago',
+                  style: const TextStyle(
+                    color: Color(0xFF888888),
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 3),
 
         // Notification message with highlighted entity name
-        _buildMessageText(message),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onReferenceTap,
+          child: _buildMessageText(message),
+        ),
 
         // Like button for comment notifications
         if (notification.type == NotificationType.trackCommented)
@@ -130,10 +150,7 @@ class NotificationTile extends StatelessWidget {
 
   Widget _buildMessageText(String message) {
     // Try to find the track/entity name after keywords.
-    final patterns = [
-      'your track ',
-      ' on ',
-    ];
+    final patterns = ['your track ', ' on '];
 
     for (final pattern in patterns) {
       final idx = message.indexOf(pattern);
@@ -169,11 +186,7 @@ class NotificationTile extends StatelessWidget {
     // Fallback: plain text.
     return Text(
       message,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 13,
-        height: 1.3,
-      ),
+      style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.3),
     );
   }
 
@@ -182,14 +195,22 @@ class NotificationTile extends StatelessWidget {
     if (notification.type == NotificationType.userFollowed) {
       return Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: const BoxDecoration(
-            color: Color(0xFF3366FF),
-            shape: BoxShape.circle,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onActionTap ?? onActorTap,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFF3366FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_add_alt,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
-          child: const Icon(Icons.person, color: Colors.white, size: 20),
         ),
       );
     }
@@ -200,14 +221,18 @@ class NotificationTile extends StatelessWidget {
         notification.type == NotificationType.trackReposted) {
       return Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: const BoxDecoration(
-            color: Color(0xFF3366FF),
-            shape: BoxShape.circle,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onActionTap ?? onActorTap,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFF3366FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 20),
           ),
-          child: const Icon(Icons.person, color: Colors.white, size: 20),
         ),
       );
     }

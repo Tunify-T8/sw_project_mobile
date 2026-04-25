@@ -59,6 +59,8 @@ class _PausedSurface extends ConsumerWidget {
     required this.progress,
     required this.durationSeconds,
     required this.onPlayPauseTap,
+    required this.onPreviousTap,
+    required this.onNextTap,
     required this.onSeekFraction,
   });
 
@@ -66,6 +68,8 @@ class _PausedSurface extends ConsumerWidget {
   final double progress;
   final int durationSeconds;
   final VoidCallback onPlayPauseTap;
+  final VoidCallback onPreviousTap;
+  final VoidCallback onNextTap;
   final ValueChanged<double> onSeekFraction;
 
   @override
@@ -81,7 +85,7 @@ class _PausedSurface extends ConsumerWidget {
             children: [
               _PauseCircleButton(
                 icon: Icons.skip_previous_rounded,
-                onTap: () => ref.read(playerProvider.notifier).previous(),
+                onTap: onPreviousTap,
               ),
               _PauseCircleButton(
                 icon: Icons.play_arrow_rounded,
@@ -91,7 +95,7 @@ class _PausedSurface extends ConsumerWidget {
               ),
               _PauseCircleButton(
                 icon: Icons.skip_next_rounded,
-                onTap: () => ref.read(playerProvider.notifier).next(),
+                onTap: onNextTap,
               ),
             ],
           ),

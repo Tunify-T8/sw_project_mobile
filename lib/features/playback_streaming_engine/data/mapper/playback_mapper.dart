@@ -159,6 +159,7 @@ extension HistoryTrackDtoMapper on HistoryTrackDto {
           DateTime.tryParse(playedAt) ?? DateTime.fromMillisecondsSinceEpoch(0),
       durationSeconds: durationSeconds,
       status: _mapStatus(status),
+      lastPositionSeconds: lastPositionSeconds,
       coverUrl: coverUrl,
       genre: genre,
       releaseDate: releaseDate != null ? DateTime.tryParse(releaseDate!) : null,
