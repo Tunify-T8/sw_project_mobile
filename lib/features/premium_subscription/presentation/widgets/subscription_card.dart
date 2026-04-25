@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/subscription_period.dart';
+import 'subscription_restriction_menu.dart';
+import '../../domain/entities/subscription_plan.dart';
 
 class SubscriptionCard extends StatelessWidget {
   static const yearlyPrice = 'EGP 1,055.00/year';
@@ -110,7 +112,22 @@ class SubscriptionCard extends StatelessWidget {
                   minimumSize: Size.zero,
                   overlayColor: Colors.transparent,
                 ),
-                onPressed: () {},
+                onPressed: () {
+                  showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Color(0xFF121212),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                            constraints: BoxConstraints(maxHeight: 250),
+                            showDragHandle: true,
+                            builder: (_) => SubscriptionRestrictionMenu(
+                              subscriptionPlan: SubscriptionPlan.artistPro,
+                            ),
+                          );
+                },
                 child: const Text(
                   "Restrictions apply",
                   style: TextStyle(color: Color(0xFF4D70AC)),

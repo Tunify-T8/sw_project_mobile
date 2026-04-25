@@ -21,6 +21,19 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   int _index = 0;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const UpgradeScreen(popUp: true),
+        ),
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -46,7 +59,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               onOpenYourUploads: () =>
                   Navigator.of(context).pushNamed(Routes.yourUploads),
             ),
-            const UpgradeScreen(),
+            const UpgradeScreen(popUp: false,),
           ],
         ),
       ),
