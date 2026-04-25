@@ -81,7 +81,8 @@ class MessageDto {
     // optimistic payloads use the flat `attachments` list.
     final attachments = <MessageAttachmentDto>[];
     final singleAttachment = _map(j['attachment'] ?? j['sharedResource']);
-    if (singleAttachment != null) {
+    if (singleAttachment != null &&
+        _hasRealAttachment(singleAttachment, type)) {
       final att = singleAttachment;
       // Propagate outer type into the attachment so the mapper can route
       // the UI correctly even if `att.type` is absent.
@@ -135,5 +136,18 @@ class MessageDto {
       return value.map((key, val) => MapEntry(key.toString(), val));
     }
     return null;
+  }
+
+  static bool _hasRealAttachment(Map<String, dynamic> value, String type) {
+    if (type == 'TEXT') return false;
+    final id = _string(value['id']);
+    if (id.isNotEmpty && id.toLowerCase() != 'null') return true;
+
+    final preview = _map(value['preview']);
+    if (preview == null || preview.isEmpty) return false;
+    return preview.values.any((v) {
+      final text = _string(v);
+      return text.isNotEmpty && text.toLowerCase() != 'null';
+    });
   }
 }

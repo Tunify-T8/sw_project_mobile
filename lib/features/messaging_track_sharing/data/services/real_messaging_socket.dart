@@ -147,10 +147,13 @@ class RealMessagingSocket implements MessagingSocket {
     // Resolve optimistically — the chat UI shouldn't have to wait for the
     // server round-trip to render the bubble. The broadcast updates state
     // again via `message:received` if the server echoes it.
-    Timer.run(() {
+    Timer(const Duration(seconds: 12), () {
       final pending = _pending[tempId];
       if (pending != null && !pending.completer.isCompleted) {
-        pending.completer.complete(_optimisticDtoFromPayload(enriched, ''));
+        _pending.remove(tempId);
+        pending.completer.completeError(
+          TimeoutException('Messaging server did not confirm send.'),
+        );
       }
     });
 
@@ -244,20 +247,18 @@ class RealMessagingSocket implements MessagingSocket {
       final m = _safeMap(data);
       final tempId = (m['tempId'] ?? '').toString();
       final serverId = (m['messageId'] ?? m['id'] ?? '').toString();
-      if (tempId.isEmpty) return;
+      if (serverId.isEmpty) return;
 
-      final pending = _pending[tempId];
+      final pending = tempId.isNotEmpty
+          ? _pending.remove(tempId)
+          : _takeOldestPending();
       if (pending == null) return;
-      if (pending.completer.isCompleted) {
-        _pending.remove(tempId);
-        return;
-      }
+      if (pending.completer.isCompleted) return;
 
       // Replace the optimistic DTO with one that has the canonical id.
       pending.completer.complete(
         _optimisticDtoFromPayload(pending.payload, serverId),
       );
-      _pending.remove(tempId);
     });
 
     _socket!.on('message:received', (data) {
@@ -323,6 +324,12 @@ class RealMessagingSocket implements MessagingSocket {
     });
 
     _socket!.connect();
+  }
+
+  _PendingSend? _takeOldestPending() {
+    if (_pending.isEmpty) return null;
+    final key = _pending.keys.first;
+    return _pending.remove(key);
   }
 
   void _resolvePendingFrom(MessageDto dto, Map<String, dynamic> envelope) {
