@@ -231,15 +231,18 @@ class EngagementNotifier extends Notifier<EngagementState> {
       final syncedEngagement = state.engagement?.copyWith(
         commentCount: page.meta.totalCount,
       );
-      final likedIds = page.comments
+      final serverLikedIds = page.comments
           .where((c) => c.isLiked)
           .map((c) => c.id)
           .toSet();
+      // Merge with existing session state so optimistic likes survive a reload
+      // when the server doesn't return per-user isLiked for comments.
+      final mergedLikedIds = state.likedCommentIds.union(serverLikedIds);
       state = state.copyWith(
         commentsStatus: EngagementStatus.success,
         commentsPage: page,
         engagement: syncedEngagement ?? state.engagement,
-        likedCommentIds: likedIds,
+        likedCommentIds: mergedLikedIds,
       );
     } catch (e) {
       state = state.copyWith(

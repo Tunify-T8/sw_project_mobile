@@ -3,8 +3,8 @@ import '../../../followers_and_social_graph/domain/entities/network_list_type.da
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 
 class ProfileInfo extends StatelessWidget {
-  // final String userName; // replaced by displayName
   final String displayName;
+  final String userName;
   final String city;
   final String country;
   final String bio;
@@ -21,8 +21,8 @@ class ProfileInfo extends StatelessWidget {
 
   const ProfileInfo({
     super.key,
-    // required this.userName,
     required this.displayName,
+    required this.userName,
     required this.city,
     required this.country,
     required this.bio,
@@ -40,15 +40,23 @@ class ProfileInfo extends StatelessWidget {
 
 Widget buildName() => Padding(
   padding: const EdgeInsets.only(left: 25),
-  child: Row(
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(displayName, style: nameStyle),
-      if (isCertified) ...[
-        const SizedBox(width: 6),
-        const Icon(
-          Icons.verified,
-          color: Colors.blue,
-          size: 22,
+      Row(
+        children: [
+          Text(displayName, style: nameStyle),
+          if (isCertified) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.verified, color: Colors.blue, size: 22),
+          ],
+        ],
+      ),
+      if (userName.isNotEmpty) ...[
+        const SizedBox(height: 2),
+        Text(
+          '@$userName',
+          style: const TextStyle(color: Colors.white54, fontSize: 13),
         ),
       ],
     ],

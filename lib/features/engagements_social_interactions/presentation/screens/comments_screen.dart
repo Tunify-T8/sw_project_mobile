@@ -189,7 +189,11 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
       );
     }
 
-    return ListView.builder(
+    return RefreshIndicator(
+      onRefresh: () => ref
+          .read(engagementProvider(widget.trackId).notifier)
+          .loadComments(),
+      child: ListView.builder(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       itemCount: state.comments.length,
       itemBuilder: (context, index) {
@@ -215,6 +219,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
           },
         );
       },
+    ),
     );
   }
 }

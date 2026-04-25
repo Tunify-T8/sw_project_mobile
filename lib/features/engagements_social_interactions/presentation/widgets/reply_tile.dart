@@ -28,29 +28,7 @@ class ReplyTile extends ConsumerStatefulWidget {
 }
 
 class _ReplyTileState extends ConsumerState<ReplyTile> {
-  late int _likesCount;
-
-  @override
-  void initState() {
-    super.initState();
-    _likesCount = widget.reply.likesCount;
-  }
-
-  @override
-  void didUpdateWidget(ReplyTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.reply.id != oldWidget.reply.id) {
-      _likesCount = widget.reply.likesCount;
-    }
-  }
-
   Future<void> _toggleLike() async {
-    final wasLiked = ref.read(engagementProvider(widget.trackId)).isReplyLiked(widget.reply.id);
-    setState(() {
-      _likesCount = wasLiked
-          ? (_likesCount - 1).clamp(0, 999999)
-          : _likesCount + 1;
-    });
     await ref
         .read(engagementProvider(widget.trackId).notifier)
         .toggleReplyLike(commentId: widget.reply.commentId, replyId: widget.reply.id);
@@ -162,10 +140,10 @@ class _ReplyTileState extends ConsumerState<ReplyTile> {
                   color: _isLiked ? Colors.orangeAccent : Colors.white54,
                   size: 18,
                 ),
-                if (_likesCount > 0) ...[
+                if (widget.reply.likesCount > 0) ...[
                   const SizedBox(height: 2),
                   Text(
-                    _likesCount.toString(),
+                    widget.reply.likesCount.toString(),
                     style: const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                 ],
