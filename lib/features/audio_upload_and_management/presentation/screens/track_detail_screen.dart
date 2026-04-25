@@ -146,6 +146,14 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
               MaterialPageRoute(builder: (_) => const QueueScreen()),
             ),
             onPlayPauseTap: () => toggleUploadItemPlayback(ref, resolvedItem),
+            onPreviousTap: () async {
+              _allowPlayerTrackSwitchSync = true;
+              await ref.read(playerProvider.notifier).previous();
+            },
+            onNextTap: () async {
+              _allowPlayerTrackSwitchSync = true;
+              await ref.read(playerProvider.notifier).next();
+            },
             onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
           ),
         ],

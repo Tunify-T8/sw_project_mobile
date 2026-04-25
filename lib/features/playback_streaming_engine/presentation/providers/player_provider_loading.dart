@@ -146,6 +146,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
     String? privateToken,
     bool autoPlay = true,
     RepeatMode repeat = RepeatMode.none,
+    QueueSource source = QueueSource.explicit,
     PlayerSeedTrack? seedTrack,
     double? initialPositionSeconds,
   }) {
@@ -160,6 +161,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
         currentIndex: currentIndex,
         shuffle: false,
         repeat: repeat,
+        source: source,
       ),
     );
   }

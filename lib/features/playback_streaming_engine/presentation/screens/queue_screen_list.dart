@@ -40,7 +40,8 @@ class _QueueBody extends ConsumerWidget {
             actionLabel: 'Clear',
             onAction: () => _confirmClearHistory(context, ref),
           ),
-          for (final track in historyItems) _HistoryTile(track: track),
+          for (final track in historyItems)
+            _HistoryTile(track: track, historyTracks: historyTracks),
         ],
 
         // ── Currently playing ─────────────────────────────────────────────
@@ -191,13 +192,57 @@ class _SectionLabelWithAction extends StatelessWidget {
 // ── History tile ──────────────────────────────────────────────────────────────
 
 class _HistoryTile extends ConsumerWidget {
-  const _HistoryTile({required this.track});
+  const _HistoryTile({required this.track, required this.historyTracks});
 
   final HistoryTrack track;
+  final List<HistoryTrack> historyTracks;
+
+  Future<void> _playFromHistory(WidgetRef ref) async {
+    final playableHistory = historyTracks
+        .where((item) => item.status != PlaybackStatus.blocked)
+        .toList(growable: false);
+    final queueTrackIds = playableHistory
+        .map((item) => item.trackId)
+        .toList(growable: false);
+    final startIndex = queueTrackIds.indexOf(track.trackId);
+
+    final seedTrack = PlayerSeedTrack(
+      trackId: track.trackId,
+      title: track.title,
+      artistName: track.artist.name,
+      durationSeconds: track.durationSeconds,
+      coverUrl: track.coverUrl,
+    );
+
+    final notifier = ref.read(playerProvider.notifier);
+    if (startIndex >= 0 && queueTrackIds.length > 1) {
+      await notifier.loadTrack(
+        track.trackId,
+        autoPlay: true,
+        seedTrack: seedTrack,
+        queue: PlaybackQueue(
+          trackIds: queueTrackIds,
+          currentIndex: startIndex,
+          shuffle: false,
+          repeat: RepeatMode.none,
+          source: QueueSource.history,
+        ),
+      );
+      return;
+    }
+
+    await notifier.loadTrack(
+      track.trackId,
+      autoPlay: true,
+      seedTrack: seedTrack,
+    );
+  }
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
+      onTap: () => _playFromHistory(ref),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: _Cover(url: track.coverUrl, size: 48),
       title: Text(

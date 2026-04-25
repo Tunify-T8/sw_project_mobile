@@ -76,19 +76,6 @@ Future<void> openHistorySourcedPlayer(
 
   final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
 
-  final sourceHistory = historyTracks.firstWhere(
-    (h) => h.trackId == preparedItem.id,
-    orElse: () => HistoryTrack(
-      trackId: preparedItem.id,
-      title: preparedItem.title,
-      artist: TrackArtistSummary(id: '', name: preparedItem.artistDisplay),
-      playedAt: DateTime.now(),
-      durationSeconds: preparedItem.durationSeconds,
-      status: PlaybackStatus.playable,
-      coverUrl: preparedItem.artworkUrl,
-    ),
-  );
-
   _optimisticallyPromoteHistory(ref, preparedItem);
 
   final queueTrackIds = historyTracks
@@ -104,7 +91,6 @@ Future<void> openHistorySourcedPlayer(
     durationSeconds: preparedItem.durationSeconds,
     coverUrl: preparedItem.artworkUrl,
     waveformUrl: preparedItem.waveformUrl,
-    resumePositionSeconds: sourceHistory.lastPositionSeconds,
     directAudioUrl: preparedItem.audioUrl,
     localFilePath: preparedItem.localFilePath,
   );
@@ -117,7 +103,6 @@ Future<void> openHistorySourcedPlayer(
         preparedItem.id,
         autoPlay: true,
         seedTrack: seedTrack,
-        initialPositionSeconds: sourceHistory.lastPositionSeconds.toDouble(),
         queue: PlaybackQueue(
           trackIds: queueTrackIds,
           currentIndex: startIndex,
@@ -129,12 +114,7 @@ Future<void> openHistorySourcedPlayer(
     );
   } else {
     unawaited(
-      notifier.loadTrack(
-        preparedItem.id,
-        autoPlay: true,
-        seedTrack: seedTrack,
-        initialPositionSeconds: sourceHistory.lastPositionSeconds.toDouble(),
-      ),
+      notifier.loadTrack(preparedItem.id, autoPlay: true, seedTrack: seedTrack),
     );
   }
 
@@ -251,6 +231,7 @@ Future<void> ensureUploadItemPlayback(
         trackIds: queueIds,
         currentIndex: currentIndex,
         repeat: RepeatMode.all,
+        source: QueueSource.explicit,
         autoPlay: autoPlay || current?.isPlaying == true,
         seedTrack: seedTrack,
         privateToken: item.privateToken,
@@ -270,6 +251,7 @@ Future<void> ensureUploadItemPlayback(
       trackIds: queueIds,
       currentIndex: currentIndex,
       repeat: RepeatMode.all,
+      source: QueueSource.explicit,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
       privateToken: item.privateToken,

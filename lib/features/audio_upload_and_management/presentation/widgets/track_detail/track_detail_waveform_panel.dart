@@ -23,6 +23,8 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
     required this.onMoreTap,
     required this.onQueueTap,
     required this.onPlayPauseTap,
+    required this.onPreviousTap,
+    required this.onNextTap,
     required this.onSeekFraction,
   });
 
@@ -31,6 +33,8 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
   final VoidCallback onMoreTap;
   final VoidCallback onQueueTap;
   final VoidCallback onPlayPauseTap;
+  final VoidCallback onPreviousTap;
+  final VoidCallback onNextTap;
   final ValueChanged<double> onSeekFraction;
 
   @override
@@ -85,6 +89,8 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
                         progress: progress,
                         durationSeconds: durationSeconds,
                         onPlayPauseTap: onPlayPauseTap,
+                        onPreviousTap: onPreviousTap,
+                        onNextTap: onNextTap,
                         onSeekFraction: onSeekFraction,
                       ),
               ),

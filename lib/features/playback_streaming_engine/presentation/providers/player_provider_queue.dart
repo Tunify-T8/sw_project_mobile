@@ -12,12 +12,12 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     if (nextIndex >= queue.trackIds.length) {
       if (queue.repeat == RepeatMode.all) {
-        await _jumpToIndex(0, queue, autoPlay: current.isPlaying);
+        await _jumpToIndex(0, queue, autoPlay: true);
       }
       return;
     }
 
-    await _jumpToIndex(nextIndex, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(nextIndex, queue, autoPlay: true);
   }
 
   Future<void> previous() async {
@@ -34,13 +34,13 @@ extension PlayerNotifierQueue on PlayerNotifier {
         await _jumpToIndex(
           queue.trackIds.length - 1,
           queue,
-          autoPlay: current.isPlaying,
+          autoPlay: true,
         );
       }
       return;
     }
 
-    await _jumpToIndex(previousIndex, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(previousIndex, queue, autoPlay: true);
   }
 
   Future<void> jumpToQueueIndex(int index) async {
@@ -50,7 +50,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
     final queue = current!.queue!;
     if (index < 0 || index >= queue.trackIds.length) return;
 
-    await _jumpToIndex(index, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(index, queue, autoPlay: true);
   }
 
   Future<void> buildAndLoadQueue({
@@ -240,11 +240,12 @@ extension PlayerNotifierQueue on PlayerNotifier {
   }) async {
     if (artistUserId.trim().isEmpty) return;
 
-    // History-sourced queues are sacred: the user opened the track from
-    // Listening history and expects "next" to mean "next in history",
-    // NOT "more by this artist". Skip enrichment entirely.
+    // Context queues are sacred: if the user opened the track from history,
+    // home recently played, a profile, or an explicit queue, next/previous
+    // must stay inside that exact context. Only enrich single-track playback.
     final currentBeforeFetch = _current;
-    if (currentBeforeFetch?.queue?.source == QueueSource.history) {
+    final source = currentBeforeFetch?.queue?.source;
+    if (source != null && source != QueueSource.singleTrack) {
       return;
     }
 
@@ -257,8 +258,9 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (after == null || after.bundle?.trackId != anchorTrackId) return;
 
     // Double-check source after the async gap — the user may have tapped
-    // a history track while the fetch was in flight.
-    if (after.queue?.source == QueueSource.history) return;
+    // another context while the fetch was in flight.
+    final afterSource = after.queue?.source;
+    if (afterSource != null && afterSource != QueueSource.singleTrack) return;
 
     final existingQueue = after.queue;
     final existingIds = existingQueue?.trackIds ?? <String>[];

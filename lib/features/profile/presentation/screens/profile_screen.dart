@@ -8,7 +8,7 @@ import '../widgets/profile_share_sheet.dart';
 import '../widgets/profile_tracks_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
-import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -159,11 +159,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   ProfileTracksSection(
                     items: uploadedTracks,
-                    onTrackTap: (item) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => TrackDetailScreen(item: item),
-                        ),
+                    onTrackTap: (item) async {
+                      await openUploadItemPlayer(
+                        context,
+                        ref,
+                        item,
+                        queueItems: uploadedTracks,
+                        openScreen: true,
                       );
                     },
                   ),

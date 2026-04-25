@@ -6,10 +6,10 @@ import '../../../notifications/presentation/state/notifications_controller.dart'
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../controllers/upload_flow_controller.dart';
-import '../../domain/entities/upload_item.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
 import '../utils/upload_error_snackbar.dart';
+import '../../domain/entities/upload_item.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
@@ -129,28 +129,18 @@ class HomeScreen extends ConsumerWidget {
             HomeRecentSection(
               latestTrack: latestTrack,
               historyTracks: historyTracks,
-              onOpenTrack: (item) async {
-                await openUploadItemPlayer(context, ref, item);
-              },
               onOpenHistoryTrack: (historyTrack) async {
-                final item = UploadItem(
-                  id: historyTrack.trackId,
-                  title: historyTrack.title,
-                  artistDisplay: historyTrack.artist.name,
-                  durationLabel: _fmtDuration(historyTrack.durationSeconds),
-                  durationSeconds: historyTrack.durationSeconds,
-                  artworkUrl: historyTrack.coverUrl,
-                  visibility: UploadVisibility.public,
-                  status: UploadProcessingStatus.finished,
-                  isExplicit: false,
-                  createdAt: historyTrack.playedAt,
-                );
                 await openHistorySourcedPlayer(
                   context,
                   ref,
-                  item,
+                  _uploadItemFromHistoryTrack(historyTrack),
                   historyTracks: historyTracks,
+                  openScreen: true,
                 );
+              },
+              onOpenTrack: (item) async {
+                // Open the track playing — not just navigating to the screen.
+                await openUploadItemPlayer(context, ref, item);
               },
             ),
             const HomeDiscoverySections(),
@@ -159,11 +149,24 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  String _fmtDuration(int totalSeconds) {
-    final safe = totalSeconds < 0 ? 0 : totalSeconds;
-    final minutes = safe ~/ 60;
-    final seconds = (safe % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
+
+UploadItem _uploadItemFromHistoryTrack(dynamic historyTrack) {
+  final totalSeconds = historyTrack.durationSeconds as int? ?? 0;
+  final minutes = totalSeconds ~/ 60;
+  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+
+  return UploadItem(
+    id: historyTrack.trackId as String,
+    title: historyTrack.title as String,
+    artistDisplay: historyTrack.artist.name as String,
+    durationLabel: '$minutes:$seconds',
+    durationSeconds: totalSeconds,
+    artworkUrl: historyTrack.coverUrl as String?,
+    visibility: UploadVisibility.public,
+    status: UploadProcessingStatus.finished,
+    isExplicit: false,
+    createdAt: historyTrack.playedAt as DateTime,
+  );
 }
