@@ -151,6 +151,7 @@ class TrackMetadataBody extends ConsumerWidget {
                     onContentWarningChanged: metadataNotifier.setContentWarning,
                   ),
                   UploadMetadataTab.permissions => PermissionsMetadataSection(
+                    isPro: uploadState.quota?.isUnlimited ?? false,
                     allowDownloads: state.allowDownloads,
                     offlineListening: state.offlineListening,
                     includeInRss: state.includeInRss,

@@ -14,11 +14,23 @@ import 'package:software_project/features/auth/presentation/widgets/visibility_t
 
 /// Password entry screen for existing users (login path).
 ///
-/// [showAccountExistsNotice] is true when the user arrived via
-/// "Create an account" but the email is already registered —
-/// shows the "We noticed that an account already exists" banner.
+/// Reached from [EmailEntryScreen] after the backend confirms the email exists.
+///
+/// [showAccountExistsNotice] — set to `true` when the user arrived via
+/// "Create an account" but the email is already registered. Displays a
+/// "We noticed that an account already exists" banner so the user
+/// understands why they were redirected here.
+///
+/// ── Key assignment ────────────────────────────────────────────────────────────
+/// Widget keys follow the constants in `test/features/auth/helpers/auth_selectors.dart`
+/// (AuthKeys.loginPasswordField, AuthKeys.loginContinueButton,
+///  AuthKeys.forgotPasswordLink) so automated tests can locate them
+/// without relying on fragile text finders.
 class PasswordScreen extends ConsumerStatefulWidget {
+  /// The email address pre-filled from the previous screen.
   final String email;
+
+  /// When `true`, shows the "account already exists" banner at the top.
   final bool showAccountExistsNotice;
 
   const PasswordScreen({
@@ -34,6 +46,8 @@ class PasswordScreen extends ConsumerStatefulWidget {
 class _PasswordScreenState extends ConsumerState<PasswordScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  /// Whether the password text is currently hidden (dots).
   bool _obscurePassword = true;
 
   @override
@@ -42,10 +56,13 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
     super.dispose();
   }
 
+  /// Validates the form and delegates login to [AuthController.login].
+  ///
+  /// Navigation and error display are handled reactively via [ref.listen]
+  /// in [build] — this method only triggers the operation.
   Future<void> _onContinue() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Delegate login to the controller; UI reacts to state changes via ref.listen.
     await ref
         .read(authControllerProvider.notifier)
         .login(widget.email, _passwordController.text);
@@ -69,6 +86,7 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
         },
         error: (e, _) {
           if (e is UnverifiedUserFailure) {
+            // Account exists but email not verified — redirect to verify screen.
             Navigator.pushNamed(
               context,
               AppRoutes.verifyEmail,
@@ -116,16 +134,18 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── "Account already exists" notice ─────────────────
+                    // Shown only when the user arrived via "Create account"
+                    // flow but their email was already registered.
                     if (widget.showAccountExistsNotice) ...[
                       Text(
-                        'We noticed that an account already exists for this email. '
-                        'Please sign in below',
+                        'We noticed that an account already exists for this '
+                        'email. Please sign in below',
                         style: AppTextStyles.bodyMuted,
                       ),
                       const SizedBox(height: AppSpacing.xl),
                     ],
 
-                    // ── Email as plain text (not in a field) ────────────
+                    // ── Email as plain text (not editable) ──────────────
                     Text(
                       'Your email address or profile URL',
                       style: AppTextStyles.caption,
@@ -135,7 +155,9 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
                     const SizedBox(height: AppSpacing.xl),
 
                     // ── Password field ──────────────────────────────────
+                    // Key: AuthKeys.loginPasswordField
                     AppTextField(
+                      key: const Key('login_password_field'),
                       controller: _passwordController,
                       hintText: 'Your Password (min: 6 characters)',
                       obscureText: _obscurePassword,
@@ -150,7 +172,9 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
                     const SizedBox(height: AppSpacing.base),
 
                     // ── Continue button ─────────────────────────────────
+                    // Key: AuthKeys.loginContinueButton
                     AppButton(
+                      key: const Key('login_continue_button'),
                       label: 'Continue',
                       onPressed: _onContinue,
                       style: AppButtonStyle.primary,
@@ -159,8 +183,10 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
                     ),
                     const SizedBox(height: AppSpacing.base),
 
-                    // ── Forgot password — blue link, left-aligned ───────
+                    // ── Forgot password link ────────────────────────────
+                    // Key: AuthKeys.forgotPasswordLink
                     GestureDetector(
+                      key: const Key('forgot_password_link'),
                       onTap: () => Navigator.pushNamed(
                         context,
                         AppRoutes.forgotPassword,

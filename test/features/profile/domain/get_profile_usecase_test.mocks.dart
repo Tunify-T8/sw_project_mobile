@@ -50,6 +50,19 @@ class MockProfileRepository extends _i1.Mock implements _i3.ProfileRepository {
           as _i4.Future<_i2.ProfileDto>);
 
   @override
+  _i4.Future<_i2.ProfileDto> getProfileById(String? userIdOrUsername) =>
+      (super.noSuchMethod(
+            Invocation.method(#getProfileById, [userIdOrUsername]),
+            returnValue: _i4.Future<_i2.ProfileDto>.value(
+              _FakeProfileDto_0(
+                this,
+                Invocation.method(#getProfileById, [userIdOrUsername]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.ProfileDto>);
+
+  @override
   _i4.Future<_i2.ProfileDto> updateProfile(_i2.ProfileDto? profile) =>
       (super.noSuchMethod(
             Invocation.method(#updateProfile, [profile]),

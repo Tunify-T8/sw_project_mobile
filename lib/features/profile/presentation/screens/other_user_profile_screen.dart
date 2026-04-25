@@ -15,12 +15,11 @@ import '../widgets/profile_info.dart';
 import '../widgets/profile_share_sheet.dart';
 import '../widgets/profile_tracks_section.dart';
 import '../widgets/user_options_sheet.dart';
+import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
-import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
-import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
-import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -63,6 +62,9 @@ class _OtherUserProfileScreenState
     });
   }
 
+  /// Opens an existing or new chat with this user.
+  /// Uses [OpenConversationUseCase] which calls createOrGetConversation,
+  /// then navigates to the ChatScreen.
   Future<void> _openChat(String displayName, String? avatarUrl) async {
     if (_openingChat) return;
     setState(() => _openingChat = true);
@@ -109,15 +111,12 @@ class _OtherUserProfileScreenState
           else
             RelationshipButton(userId: widget.userId),
           const SizedBox(width: 12),
-          // Key: ProfileKeys.notificationsButton
           IconButton(
-            key: const Key('other_profile_notifications_button'),
             icon: const Icon(Icons.notifications_none, color: Colors.white),
             onPressed: () {},
           ),
-          // Key: ProfileKeys.messageButton
+          // FIX: Wire the mail icon to open/create a chat conversation.
           IconButton(
-            key: const Key('other_profile_message_button'),
             icon: _openingChat
                 ? const SizedBox(
                     width: 20,
@@ -133,9 +132,7 @@ class _OtherUserProfileScreenState
                 : () => _openChat(displayName, avatarUrl),
           ),
           const Spacer(),
-          // Key: ProfileKeys.shuffleButton
           IconButton(
-            key: const Key('other_profile_shuffle_button'),
             icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
             onPressed: () {},
           ),
@@ -144,9 +141,7 @@ class _OtherUserProfileScreenState
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            // Key: ProfileKeys.playButton
             child: IconButton(
-              key: const Key('other_profile_play_button'),
               icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
               onPressed: () {},
             ),
@@ -170,16 +165,12 @@ class _OtherUserProfileScreenState
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         leading: IconButton(
-          // Key: ProfileKeys.backButton
-          key: const Key('other_profile_back_button'),
           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(icon: const Icon(Icons.cast), onPressed: () {}),
-          // Key: ProfileKeys.moreOptionsButton
           IconButton(
-            key: const Key('other_profile_more_options_button'),
             icon: const Icon(Icons.more_vert),
             onPressed: profile == null
                 ? null
@@ -237,7 +228,6 @@ class _OtherUserProfileScreenState
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
-                    displayName: profile?.displayName ?? '',
                     userName: profile?.userName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
@@ -269,29 +259,7 @@ class _OtherUserProfileScreenState
                       profile?.userName ?? '',
                       profile?.profileImagePath,
                     ),
-                    onFollowersTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NetworkListsScreen(
-                          userId: widget.userId,
-                          isMyProfile: false,
-                          listType: NetworkListType.followers,
-                        ),
-                      ),
-                    ),
-                    onFollowingTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NetworkListsScreen(
-                          userId: widget.userId,
-                          isMyProfile: false,
-                          listType: NetworkListType.following,
-                        ),
-                      ),
-                    ),
                   ),
-                  // ProfileLikesSection(userId: widget.userId), // no BE endpoint for other users' likes yet
-                  ProfileRepostsSection(userId: widget.userId),
                   _OtherUserTracksSection(userId: widget.userId),
                 ],
               ),
@@ -309,6 +277,7 @@ class _OtherUserTracksSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(publicUserUploadsProvider(userId));
 
+   
     final items = tracksAsync.asData?.value ?? const [];
 
     return ProfileTracksSection(

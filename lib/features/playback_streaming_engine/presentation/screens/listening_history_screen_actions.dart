@@ -49,21 +49,39 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
     final stored = storedUploadItemForTrack(store, track.trackId);
     final seedTrack = _seedTrackFromHistory(track, stored);
 
-    // Bug fix: previously this passed the entire listening history as the
-    // queue.  That made "Next up" show the user's recent plays instead of
-    // "more by this artist" — and worse, blocked the artist-tracks
-    // enrichment because it sees the queue is already "full" of history.
-    //
-    // Launching with no queue lets enrichQueueWithArtistTracks (fired from
-    // inside loadTrack once the real bundle lands) populate Next up with
-    // the playing artist's actual catalog.
-    await ref
-        .read(playerProvider.notifier)
-        .loadTrack(
-          track.trackId,
-          autoPlay: true,
-          seedTrack: seedTrack,
-        );
+    // Opened from Listening history → "next up" should be the next song
+    // in the user's history, not "more by this artist". We build the queue
+    // from the playable history tracks and anchor it at the tapped track.
+    // The queue is marked with QueueSource.history so
+    // enrichQueueWithArtistTracks will skip it and leave the order intact.
+    final playableHistory = historyTracks
+        .where((item) => item.status != PlaybackStatus.blocked)
+        .toList(growable: false);
+    final queueTrackIds = playableHistory
+        .map((item) => item.trackId)
+        .toList(growable: false);
+    final startIndex = queueTrackIds.indexOf(track.trackId);
+
+    if (startIndex >= 0 && queueTrackIds.length > 1) {
+      await ref.read(playerProvider.notifier).loadTrack(
+            track.trackId,
+            autoPlay: true,
+            seedTrack: seedTrack,
+            queue: PlaybackQueue(
+              trackIds: queueTrackIds,
+              currentIndex: startIndex,
+              shuffle: false,
+              repeat: RepeatMode.none,
+              source: QueueSource.history,
+            ),
+          );
+    } else {
+      await ref.read(playerProvider.notifier).loadTrack(
+            track.trackId,
+            autoPlay: true,
+            seedTrack: seedTrack,
+          );
+    }
 
     if (!context.mounted) return;
 

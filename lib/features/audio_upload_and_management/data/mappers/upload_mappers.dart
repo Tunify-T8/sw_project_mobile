@@ -58,6 +58,7 @@ extension TrackResponseDtoMapper on TrackResponseDto {
       licensing: licensing?.type,
       errorCode: errorCode,
       errorMessage: errorMessage,
+      privateToken: _readPrivateToken(this),
     );
   }
 
@@ -79,4 +80,23 @@ extension TrackResponseDtoMapper on TrackResponseDto {
         return UploadStatus.failed;
     }
   }
+}
+
+String? _readPrivateToken(TrackResponseDto dto) {
+  final rawToken = dto.rawJson?['privateToken'];
+  if (rawToken is String && rawToken.trim().isNotEmpty) {
+    return rawToken.trim();
+  }
+
+  try {
+    final dynamic dynamicDto = dto;
+    final token = dynamicDto.privateToken;
+    if (token is String && token.trim().isNotEmpty) {
+      return token.trim();
+    }
+  } catch (_) {
+    // Older generated/test DTO shapes may not expose privateToken directly.
+  }
+
+  return null;
 }

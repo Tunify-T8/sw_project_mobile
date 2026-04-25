@@ -4,6 +4,7 @@ import '../core/routing/routes.dart';
 import '../features/audio_upload_and_management/domain/entities/upload_item.dart';
 import '../features/audio_upload_and_management/presentation/screens/edit_track_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../features/audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../features/audio_upload_and_management/presentation/screens/track_metadata_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/upload_entry_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/upload_progress_screen.dart';
@@ -29,6 +30,8 @@ import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/listening_history_screen.dart';
+import '../features/playback_streaming_engine/presentation/screens/shared_track_link_screen.dart';
+import '../features/playback_streaming_engine/presentation/utils/shared_track_link_opener.dart';
 import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
@@ -54,6 +57,11 @@ class AppRoutes {
   static const String deleteAccount = '/delete-account';
   static const String googleAccountLinking = '/google-account-linking';
   static const String home = '/home';
+
+  /// Internal entry path to open a track when all we have is (trackId,
+  /// optional privateToken) — used by the private-link flow.
+  /// Arguments: { 'trackId': String, 'privateToken': String? }
+  static const String privateTrack = '/private-track';
 }
 
 Route<dynamic> generateRoute(RouteSettings settings) =>
@@ -64,6 +72,20 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = _readArgs(settings.arguments);
+    final sharedTrackLink = settings.name == null
+        ? null
+        : parseTrackShareLink(settings.name!);
+    if (sharedTrackLink != null) {
+      return _slideUp(
+        AuthProtectedScreen(
+          child: SharedTrackLinkScreen(
+            trackId: sharedTrackLink.trackId,
+            privateToken: sharedTrackLink.privateToken,
+          ),
+        ),
+        settings,
+      );
+    }
 
     switch (settings.name) {
       case AppRoutes.authGate:
@@ -221,6 +243,18 @@ class AppRouter {
         final item = settings.arguments as UploadItem;
         return _slide(
           AuthProtectedScreen(child: TrackDetailScreen(item: item)),
+          settings,
+        );
+
+      case AppRoutes.privateTrack:
+        final trackId = (args['trackId'] as String?)?.trim() ?? '';
+        final privateToken = args['privateToken'] as String?;
+        final stub = TrackLinkHelper.buildStubUploadItem(
+          trackId,
+          privateToken: privateToken,
+        );
+        return _slide(
+          AuthProtectedScreen(child: TrackDetailScreen(item: stub)),
           settings,
         );
 

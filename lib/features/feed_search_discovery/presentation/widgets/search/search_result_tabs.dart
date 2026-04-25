@@ -1,22 +1,35 @@
+// Search Feature Guide:
+// Purpose: Tab-based results view shown when user submits a search query.
+//          Hosts All / Tracks / Profiles / Playlists / Albums tabs.
+// Used by: search_screen.dart
+// Concerns: Module 8 search results display; profile navigation; recently played.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../features/followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../../../../../features/profile/presentation/screens/other_user_profile_screen.dart';
 import '../../../domain/entities/album_result_entity.dart';
 import '../../../domain/entities/playlist_result_entity.dart';
 import '../../../domain/entities/profile_result_entity.dart';
-import '../../../domain/entities/track_result_entity.dart';
 import '../../../domain/entities/top_result_entity.dart';
-import '../../../domain/entities/search_genre_entity.dart';
+import '../../../domain/entities/track_result_entity.dart';
 import '../../providers/search_provider.dart';
+import '../../screens/search_see_all_screen.dart';
 import '../../utils/search_track_playback.dart';
 import 'search_artwork_placeholder.dart';
-import 'search_section_header.dart';
-import 'search_result_tile_track.dart';
-import 'search_result_tile_profile.dart';
-import 'search_result_tile_playlist.dart';
 import 'search_result_tile_album.dart';
-import '../../screens/search_see_all_screen.dart';
+import 'search_result_tile_playlist.dart';
+import 'search_result_tile_profile.dart';
+import 'search_result_tile_track.dart';
+import 'search_section_header.dart';
 
+// ── Public entry point ────────────────────────────────────────────────────────
+
+/// Tab controller that hosts All / Tracks / Profiles / Playlists / Albums.
+///
+/// Passed [state] from [searchProvider] — rebuilds whenever the provider
+/// emits a new state. Tab bar index stays in sync with [state.activeTab].
 class SearchResultsTabs extends ConsumerStatefulWidget {
   const SearchResultsTabs({
     super.key,
@@ -46,32 +59,24 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
     SearchTab.playlists,
     SearchTab.albums,
   ];
-
-  static const _tabLabels = [
-    'All',
-    'Tracks',
-    'Profiles',
-    'Playlists',
-    'Albums',
-  ];
+  static const _labels = ['All', 'Tracks', 'Profiles', 'Playlists', 'Albums'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        widget.onTabChanged(_tabs[_tabController.index]);
-      }
+      if (!_tabController.indexIsChanging) return;
+      widget.onTabChanged(_tabs[_tabController.index]);
     });
   }
 
   @override
-  void didUpdateWidget(SearchResultsTabs oldWidget) {
+  void didUpdateWidget(covariant SearchResultsTabs oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final newIndex = _tabs.indexOf(widget.state.activeTab);
-    if (newIndex != -1 && newIndex != _tabController.index) {
-      _tabController.animateTo(newIndex);
+    final idx = _tabs.indexOf(widget.state.activeTab);
+    if (idx != -1 && idx != _tabController.index) {
+      _tabController.animateTo(idx);
     }
   }
 
@@ -81,19 +86,35 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
     super.dispose();
   }
 
+  /// Navigates to the public profile screen for [profile].
+  void _openProfile(ProfileResultEntity profile) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => OtherUserProfileScreen(userId: profile.id),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // ── Tab bar ────────────────────────────────────────────────────────
         TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
-          tabAlignment: TabAlignment.start,
-          tabs: _tabLabels.map((l) => Tab(text: l)).toList(),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          tabs: _labels.map((l) => Tab(text: l)).toList(),
         ),
+
+        // ── Tab body ───────────────────────────────────────────────────────
         Expanded(
           child: widget.state.isLoading
               ? const Center(
@@ -114,9 +135,9 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
                         context,
                         ref,
                         track,
-                        queueTracks:
-                            widget.state.allResult?.tracks ?? const [],
+                        queueTracks: widget.state.allResult?.tracks ?? const [],
                       ),
+                      onProfileTap: _openProfile,
                     ),
                     _TrackTab(
                       tracks: widget.state.tracks,
@@ -130,7 +151,10 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
                         queueTracks: widget.state.tracks,
                       ),
                     ),
-                    _ProfileTab(profiles: widget.state.profiles),
+                    _ProfileTab(
+                      profiles: widget.state.profiles,
+                      onProfileTap: _openProfile,
+                    ),
                     _PlaylistTab(playlists: widget.state.playlists),
                     _AlbumTab(albums: widget.state.albums),
                   ],
@@ -149,12 +173,14 @@ class _AllTab extends StatelessWidget {
     required this.onLoadMore,
     required this.onResultTapped,
     required this.onTrackTap,
+    required this.onProfileTap,
   });
 
   final SearchState state;
   final VoidCallback onLoadMore;
   final ValueChanged<RecentResultItem> onResultTapped;
   final ValueChanged<TrackResultEntity> onTrackTap;
+  final ValueChanged<ProfileResultEntity> onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -168,15 +194,14 @@ class _AllTab extends StatelessWidget {
       return _SearchEmptyState(query: state.query);
     }
 
-    // Tracks that appear in the Tracks section:
-    // exclude the top result track and the second inline track shown in the card
+    // Tracks shown in the Tracks section (exclude top result + second inline).
     final visibleTracks = result.tracks
         .where((t) => t.id != result.topResult?.id)
         .skip(1)
         .take(4)
         .toList();
 
-    // Build "More Results" — anything beyond the first few shown in each section
+    // Overflow items shown in "More Results".
     final moreItems = <_MixedResultItem>[];
     for (final t in result.tracks.skip(4)) {
       moreItems.add(_MixedResultItem.track(t));
@@ -194,7 +219,7 @@ class _AllTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        // Top result card
+        // ── Top Result ─────────────────────────────────────────────────────
         if (result.topResult != null) ...[
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -211,49 +236,47 @@ class _AllTab extends StatelessWidget {
             state: state,
             topResult: result.topResult!,
             onTrackTap: onTrackTap,
-            onTap: () {
-              final top = result.topResult!;
-              onResultTapped(
-                RecentResultItem(
-                  kind: _kindFromTopResultType(top.type),
-                  id: top.id,
-                  title: top.title,
-                  subtitle: top.subtitle,
-                  artworkUrl: top.artworkUrl,
-                  isVerified: top.type == TopResultType.profile,
-                ),
-              );
-            },
+            onProfileTap: onProfileTap,
+            onTap: () => onResultTapped(
+              RecentResultItem(
+                kind: _kindFrom(result.topResult!.type),
+                id: result.topResult!.id,
+                title: result.topResult!.title,
+                subtitle: result.topResult!.subtitle,
+                artworkUrl: result.topResult!.artworkUrl,
+                isVerified: result.topResult!.type == TopResultType.profile,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
         ],
 
-        // Recently Played — large square cards, 2 per row, tracks/albums/playlists only
+        // ── Recently Played ────────────────────────────────────────────────
+        // Only populated via recordTrackPlayed() — never auto-added on search.
         Builder(
           builder: (context) {
-            final playedItems = state.recentResults
+            final played = state.recentResults
                 .where((r) => r.kind != RecentResultKind.profile)
-                .take(2)
                 .toList();
-            if (playedItems.isEmpty) return const SizedBox.shrink();
-
+            if (played.isEmpty) return const SizedBox.shrink();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SearchSectionHeader(title: 'Recently Played'),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: List.generate(playedItems.length, (i) {
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: i == 0 && playedItems.length > 1 ? 8 : 0,
-                          ),
-                          child: _RecentlyPlayedCard(item: playedItems[i]),
-                        ),
-                      );
-                    }),
+                // Horizontal scroll — shows all played items, no arbitrary limit.
+                SizedBox(
+                  height: 196,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: played.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) => _RecentlyPlayedCard(
+                      item: played[i],
+                      onTap: played[i].track != null
+                          ? () => onTrackTap(played[i].track!)
+                          : null,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -262,7 +285,7 @@ class _AllTab extends StatelessWidget {
           },
         ),
 
-        // Tracks section — only shown when there are tracks beyond top+second
+        // ── Tracks ─────────────────────────────────────────────────────────
         if (visibleTracks.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Tracks',
@@ -274,15 +297,12 @@ class _AllTab extends StatelessWidget {
             ),
           ),
           ...visibleTracks.map(
-            (t) => SearchResultTileTrack(
-              track: t,
-              onTap: () => onTrackTap(t),
-            ),
+            (t) => SearchResultTileTrack(track: t, onTap: () => onTrackTap(t)),
           ),
           const SizedBox(height: 16),
         ],
 
-        // Playlists section
+        // ── Playlists ───────────────────────────────────────────────────────
         if (result.playlists.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Playlists',
@@ -301,7 +321,7 @@ class _AllTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
-        // Profiles section
+        // ── Profiles ────────────────────────────────────────────────────────
         if (result.profiles.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Profiles',
@@ -316,11 +336,16 @@ class _AllTab extends StatelessWidget {
           ),
           ...result.profiles
               .take(3)
-              .map((p) => SearchResultTileProfile(profile: p)),
+              .map(
+                (p) => SearchResultTileProfile(
+                  profile: p,
+                  onTap: () => onProfileTap(p),
+                ),
+              ),
           const SizedBox(height: 16),
         ],
 
-        // Albums section
+        // ── Albums ──────────────────────────────────────────────────────────
         if (result.albums.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Albums',
@@ -335,11 +360,15 @@ class _AllTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
-        // More Results — mixed remaining items
+        // ── More Results ────────────────────────────────────────────────────
         if (moreItems.isNotEmpty) ...[
           const SearchSectionHeader(title: 'More Results'),
           ...moreItems.map(
-            (item) => _MixedResultTile(item: item, onTrackTap: onTrackTap),
+            (item) => _MixedResultTile(
+              item: item,
+              onTrackTap: onTrackTap,
+              onProfileTap: onProfileTap,
+            ),
           ),
           const SizedBox(height: 32),
         ],
@@ -347,7 +376,7 @@ class _AllTab extends StatelessWidget {
     );
   }
 
-  RecentResultKind _kindFromTopResultType(TopResultType type) {
+  static RecentResultKind _kindFrom(TopResultType type) {
     switch (type) {
       case TopResultType.profile:
         return RecentResultKind.profile;
@@ -361,175 +390,7 @@ class _AllTab extends StatelessWidget {
   }
 }
 
-// ─── Mixed result item for More Results ──────────────────────────────────────
-
-class _MixedResultItem {
-  const _MixedResultItem._({
-    required this.kind,
-    required this.title,
-    required this.subtitle,
-    this.artworkUrl,
-    this.isUnavailable = false,
-    this.track,
-  });
-
-  factory _MixedResultItem.track(TrackResultEntity t) => _MixedResultItem._(
-    kind: RecentResultKind.track,
-    title: t.title,
-    subtitle: t.artistName,
-    artworkUrl: t.artworkUrl,
-    isUnavailable: t.isUnavailable,
-    track: t,
-  );
-
-  factory _MixedResultItem.album(AlbumResultEntity a) => _MixedResultItem._(
-    kind: RecentResultKind.album,
-    title: a.title,
-    subtitle: a.artistName,
-    artworkUrl: a.artworkUrl,
-  );
-
-  factory _MixedResultItem.profile(ProfileResultEntity p) => _MixedResultItem._(
-    kind: RecentResultKind.profile,
-    title: p.username,
-    subtitle: '${p.followersCount} Followers',
-    artworkUrl: p.avatarUrl,
-  );
-
-  factory _MixedResultItem.playlist(PlaylistResultEntity pl) =>
-      _MixedResultItem._(
-        kind: RecentResultKind.playlist,
-        title: pl.title,
-        subtitle: pl.creatorName,
-        artworkUrl: pl.artworkUrl,
-      );
-
-  final RecentResultKind kind;
-  final String title;
-  final String subtitle;
-  final String? artworkUrl;
-  final bool isUnavailable;
-  final TrackResultEntity? track;
-}
-
-class _MixedResultTile extends StatelessWidget {
-  const _MixedResultTile({required this.item, required this.onTrackTap});
-  final _MixedResultItem item;
-  final ValueChanged<TrackResultEntity> onTrackTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isProfile = item.kind == RecentResultKind.profile;
-    Widget leading;
-    if (item.artworkUrl != null) {
-      leading = ClipRRect(
-        borderRadius: BorderRadius.circular(isProfile ? 24 : 4),
-        child: Image.network(
-          item.artworkUrl!,
-          width: 48,
-          height: 48,
-          fit: BoxFit.cover,
-          errorBuilder: (c, e, s) => SearchArtworkPlaceholder(size: 48),
-        ),
-      );
-    } else {
-      leading = isProfile
-          ? const CircleAvatar(
-              radius: 24,
-              backgroundColor: Color(0xFF2A2A2A),
-              child: Icon(Icons.person, color: Colors.white38),
-            )
-          : SearchArtworkPlaceholder(size: 48);
-    }
-
-    final track = item.track;
-    return ListTile(
-      onTap: (track != null && !track.isUnavailable)
-          ? () => onTrackTap(track)
-          : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: SizedBox(width: 48, height: 48, child: leading),
-      title: Text(
-        item.title,
-        style: TextStyle(
-          color: item.isUnavailable ? Colors.white38 : Colors.white,
-          fontSize: 15,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            item.subtitle,
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
-          ),
-          if (item.isUnavailable)
-            const Text(
-              'Not available in your country',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
-            ),
-        ],
-      ),
-      trailing: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
-    );
-  }
-}
-
-// ─── Recently Played card ─────────────────────────────────────────────────────
-
-class _RecentlyPlayedCard extends StatelessWidget {
-  const _RecentlyPlayedCard({required this.item});
-  final RecentResultItem item;
-
-  static const double _cardSize = 140.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: _cardSize,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: item.artworkUrl != null
-                ? Image.network(
-                    item.artworkUrl!,
-                    width: _cardSize,
-                    height: _cardSize,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) =>
-                        SearchArtworkPlaceholder(size: _cardSize),
-                  )
-                : SearchArtworkPlaceholder(size: _cardSize),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            item.subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Per-tab lists ─────────────────────────────────────────────────────────────
+// ── Track tab ─────────────────────────────────────────────────────────────────
 
 class _TrackTab extends StatelessWidget {
   const _TrackTab({
@@ -551,14 +412,17 @@ class _TrackTab extends StatelessWidget {
     if (tracks.isEmpty) return const _SearchEmptyTabState();
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
-        if (n is ScrollEndNotification && n.metrics.extentAfter < 200) {
+        if (n is ScrollEndNotification &&
+            n.metrics.extentAfter < 300 &&
+            hasMore &&
+            !isLoadingMore) {
           onLoadMore();
         }
         return false;
       },
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: tracks.length + (isLoadingMore ? 1 : 0),
+        itemCount: tracks.length + (isLoadingMore && hasMore ? 1 : 0),
         itemBuilder: (context, i) {
           if (i == tracks.length) {
             return const Padding(
@@ -571,10 +435,9 @@ class _TrackTab extends StatelessWidget {
               ),
             );
           }
-          final track = tracks[i];
           return SearchResultTileTrack(
-            track: track,
-            onTap: () => onTrackTap(track),
+            track: tracks[i],
+            onTap: () => onTrackTap(tracks[i]),
           );
         },
       ),
@@ -582,9 +445,13 @@ class _TrackTab extends StatelessWidget {
   }
 }
 
+// ── Profile tab ───────────────────────────────────────────────────────────────
+
 class _ProfileTab extends StatelessWidget {
-  const _ProfileTab({required this.profiles});
+  const _ProfileTab({required this.profiles, required this.onProfileTap});
+
   final List<ProfileResultEntity> profiles;
+  final ValueChanged<ProfileResultEntity> onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -592,11 +459,15 @@ class _ProfileTab extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: profiles.length,
-      itemBuilder: (context, i) =>
-          SearchResultTileProfile(profile: profiles[i]),
+      itemBuilder: (context, i) => SearchResultTileProfile(
+        profile: profiles[i],
+        onTap: () => onProfileTap(profiles[i]),
+      ),
     );
   }
 }
+
+// ── Playlist tab ──────────────────────────────────────────────────────────────
 
 class _PlaylistTab extends StatelessWidget {
   const _PlaylistTab({required this.playlists});
@@ -614,6 +485,8 @@ class _PlaylistTab extends StatelessWidget {
   }
 }
 
+// ── Album tab ─────────────────────────────────────────────────────────────────
+
 class _AlbumTab extends StatelessWidget {
   const _AlbumTab({required this.albums});
   final List<AlbumResultEntity> albums;
@@ -629,29 +502,30 @@ class _AlbumTab extends StatelessWidget {
   }
 }
 
-// ── Top result card ────────────────────────────────────────────────────────────
+// ── Top result card ───────────────────────────────────────────────────────────
 
+/// Shows the single best result for the query with artwork, title, subtitle,
+/// and — for profiles — a working [RelationshipButton].
 class _TopResultCard extends StatelessWidget {
   const _TopResultCard({
     required this.state,
     required this.topResult,
     required this.onTap,
     required this.onTrackTap,
+    required this.onProfileTap,
   });
 
   final SearchState state;
   final TopResultEntity topResult;
   final VoidCallback onTap;
   final ValueChanged<TrackResultEntity> onTrackTap;
+  final ValueChanged<ProfileResultEntity> onProfileTap;
 
   @override
   Widget build(BuildContext context) {
-    // Find the top result as a track entity (if it is one)
     final topTrack = state.allResult?.tracks
         .where((t) => t.id == topResult.id)
         .firstOrNull;
-
-    // Second item — first track/album that is NOT the top result
     final secondTrack = state.allResult?.tracks
         .where((t) => t.id != topResult.id)
         .firstOrNull;
@@ -662,20 +536,28 @@ class _TopResultCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top result — standard track tile when it's a track
+        // Top result row
         if (topTrack != null)
           SearchResultTileTrack(
             track: topTrack,
             onTap: () => onTrackTap(topTrack),
           )
         else
-          // Fallback large card for profile / album / playlist top results
           GestureDetector(
-            onTap: onTap,
+            onTap: () {
+              onTap();
+              if (topResult.type == TopResultType.profile) {
+                final p = state.allResult?.profiles
+                    .where((p) => p.id == topResult.id)
+                    .firstOrNull;
+                if (p != null) onProfileTap(p);
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
+                  // Artwork
                   ClipRRect(
                     borderRadius: BorderRadius.circular(
                       topResult.type == TopResultType.profile ? 36 : 8,
@@ -686,7 +568,7 @@ class _TopResultCard extends StatelessWidget {
                             width: 72,
                             height: 72,
                             fit: BoxFit.cover,
-                            errorBuilder: (c, e, s) =>
+                            errorBuilder: (_, __, ___) =>
                                 SearchArtworkPlaceholder(size: 72),
                           )
                         : SearchArtworkPlaceholder(
@@ -695,6 +577,7 @@ class _TopResultCard extends StatelessWidget {
                           ),
                   ),
                   const SizedBox(width: 14),
+                  // Title / subtitle
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,34 +605,23 @@ class _TopResultCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (topResult.type == TopResultType.profile)
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white38),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        minimumSize: const Size(72, 34),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      child: const Text('Follow'),
+                  // Profile: RelationshipButton instead of dead OutlinedButton
+                  if (topResult.type == TopResultType.profile) ...[
+                    const SizedBox(width: 8),
+                    RelationshipButton(
+                      userId: topResult.id,
+                      initialIsFollowing: state.allResult?.profiles
+                          .where((p) => p.id == topResult.id)
+                          .firstOrNull
+                          ?.isFollowing,
                     ),
+                  ],
                 ],
               ),
             ),
           ),
 
-        // Second item inline — different from top result
+        // Second inline result
         if (secondTrack != null)
           SearchResultTileTrack(
             track: secondTrack,
@@ -758,6 +630,116 @@ class _TopResultCard extends StatelessWidget {
         else if (secondAlbum != null)
           SearchResultTileAlbum(album: secondAlbum),
       ],
+    );
+  }
+}
+
+// ── Mixed result tile (More Results) ─────────────────────────────────────────
+
+class _MixedResultItem {
+  const _MixedResultItem._({
+    this.track,
+    this.album,
+    this.profile,
+    this.playlist,
+  });
+  factory _MixedResultItem.track(TrackResultEntity t) =>
+      _MixedResultItem._(track: t);
+  factory _MixedResultItem.album(AlbumResultEntity a) =>
+      _MixedResultItem._(album: a);
+  factory _MixedResultItem.profile(ProfileResultEntity p) =>
+      _MixedResultItem._(profile: p);
+  factory _MixedResultItem.playlist(PlaylistResultEntity pl) =>
+      _MixedResultItem._(playlist: pl);
+
+  final TrackResultEntity? track;
+  final AlbumResultEntity? album;
+  final ProfileResultEntity? profile;
+  final PlaylistResultEntity? playlist;
+}
+
+class _MixedResultTile extends StatelessWidget {
+  const _MixedResultTile({
+    required this.item,
+    required this.onTrackTap,
+    required this.onProfileTap,
+  });
+
+  final _MixedResultItem item;
+  final ValueChanged<TrackResultEntity> onTrackTap;
+  final ValueChanged<ProfileResultEntity> onProfileTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.track != null) {
+      return SearchResultTileTrack(
+        track: item.track!,
+        onTap: () => onTrackTap(item.track!),
+      );
+    }
+    if (item.album != null) return SearchResultTileAlbum(album: item.album!);
+    if (item.profile != null) {
+      return SearchResultTileProfile(
+        profile: item.profile!,
+        onTap: () => onProfileTap(item.profile!),
+      );
+    }
+    if (item.playlist != null) {
+      return SearchResultTilePlaylist(playlist: item.playlist!);
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+// ── Recently Played card ──────────────────────────────────────────────────────
+
+class _RecentlyPlayedCard extends StatelessWidget {
+  const _RecentlyPlayedCard({required this.item, this.onTap});
+
+  final RecentResultItem item;
+  final VoidCallback? onTap;
+
+  static const double _cardSize = 140.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: _cardSize,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: item.artworkUrl != null
+                  ? Image.network(
+                      item.artworkUrl!,
+                      width: _cardSize,
+                      height: _cardSize,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          SearchArtworkPlaceholder(size: _cardSize),
+                    )
+                  : SearchArtworkPlaceholder(size: _cardSize),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            Text(
+              item.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -804,14 +786,9 @@ class _SearchEmptyTabState extends StatelessWidget {
   const _SearchEmptyTabState();
 
   @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'No results found.',
-        style: TextStyle(color: Colors.white54, fontSize: 15),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Center(
+    child: Text('Nothing found.', style: TextStyle(color: Colors.white54)),
+  );
 }
 
 class _SearchErrorState extends StatelessWidget {
@@ -823,10 +800,17 @@ class _SearchErrorState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Text(
-          error,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white54, fontSize: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off, color: Colors.white24, size: 56),
+            const SizedBox(height: 16),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white54, fontSize: 15),
+            ),
+          ],
         ),
       ),
     );

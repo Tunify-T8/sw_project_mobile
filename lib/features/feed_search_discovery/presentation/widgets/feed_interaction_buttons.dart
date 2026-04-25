@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/feed_tab_type.dart';
+import '../../domain/entities/feed_view_mode.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
@@ -15,7 +15,7 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
   final bool fallbackIsLiked;
   final bool fallbackIsReposted;
   final int fallbackRepostsCount;
-  final FeedType feedType;
+  final FeedViewMode feedViewMode;
   final String? coverUrl;
   final String? trackTitle;
   final String? artistName;
@@ -28,7 +28,7 @@ class FeedInteractionButtons extends ConsumerStatefulWidget {
     required this.fallbackIsLiked,
     required this.fallbackIsReposted,
     required this.fallbackRepostsCount,
-    required this.feedType,
+    required this.feedViewMode,
     this.coverUrl,
     this.trackTitle,
     this.artistName,
@@ -63,78 +63,77 @@ class _FeedInteractionButtonsState
   Widget build(BuildContext context) {
     final state = ref.watch(engagementProvider(widget.trackId));
     final isLiked = state.engagement?.isLiked ?? widget.fallbackIsLiked;
-    final likesCount =
-        state.engagement?.likeCount ?? widget.fallbackLikesCount;
+    final likesCount = state.engagement?.likeCount ?? widget.fallbackLikesCount;
     final commentsCount =
         state.engagement?.commentCount ?? widget.fallbackCommentsCount;
 
-    return Column(
-      children: [
-        IconButton(
-          key: const Key('feed_like_button'),
-          onPressed: () => ref
-              .read(engagementProvider(widget.trackId).notifier)
-              .toggleLike(),
-          icon: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
-            color: isLiked ? Colors.red : Colors.white,
-          ),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
+    final children = [
+      IconButton(
+        key: const Key('feed_like_button'),
+        onPressed: () =>
+            ref.read(engagementProvider(widget.trackId).notifier).toggleLike(),
+        icon: Icon(
+          isLiked ? Icons.favorite : Icons.favorite_border,
+          color: isLiked ? Colors.red : Colors.white,
         ),
-        GestureDetector(
-          key: const Key('feed_likes_count'),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => LikersScreen(trackId: widget.trackId),
-            ),
-          ),
-          child: Text(
-            likesCount.toString(),
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+        padding: EdgeInsets.zero,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      GestureDetector(
+        key: const Key('feed_likes_count'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => LikersScreen(trackId: widget.trackId),
           ),
         ),
-        IconButton(
-          key: const Key('feed_comment_button'),
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => CommentsScreen(
-                trackId: widget.trackId,
-                coverUrl: widget.coverUrl,
-                trackTitle: widget.trackTitle,
-                artistName: widget.artistName,
-              ),
-            ),
-          ),
-          icon: const Icon(Icons.comment, color: Colors.white),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        Text(
-          commentsCount.toString(),
+        child: Text(
+          likesCount.toString(),
           style: const TextStyle(color: Colors.white, fontSize: 15),
         ),
-        IconButton(
-          key: const Key('feed_playlist_add_button'),
-          onPressed: () {},
-          icon: const Icon(Icons.playlist_add, color: Colors.white),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        if (widget.feedType == FeedType.classic) ...[
-          _RepostButton(
-            trackId: widget.trackId,
-            trackTitle: widget.trackTitle ?? '',
-            artistName: widget.artistName ?? '',
-            coverUrl: widget.coverUrl,
-            state: state,
+      ),
+      IconButton(
+        key: const Key('feed_comment_button'),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CommentsScreen(
+              trackId: widget.trackId,
+              coverUrl: widget.coverUrl,
+              trackTitle: widget.trackTitle,
+              artistName: widget.artistName,
+            ),
           ),
-        ],
-      ],
-    );
+        ),
+        icon: const Icon(Icons.comment, color: Colors.white),
+        padding: EdgeInsets.zero,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      Text(
+        commentsCount.toString(),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
+      ),
+      IconButton(
+        key: const Key('feed_playlist_add_button'),
+        onPressed: () {},
+        icon: const Icon(Icons.playlist_add, color: Colors.white),
+        padding: EdgeInsets.zero,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      if (widget.feedViewMode == FeedViewMode.classic)
+        _RepostButton(
+          trackId: widget.trackId,
+          trackTitle: widget.trackTitle ?? '',
+          artistName: widget.artistName ?? '',
+          coverUrl: widget.coverUrl,
+          state: state,
+        ),
+    ];
+
+    return (widget.feedViewMode == FeedViewMode.discover)
+        ? Column(children: children)
+        : Row(children: children);
   }
 }
 

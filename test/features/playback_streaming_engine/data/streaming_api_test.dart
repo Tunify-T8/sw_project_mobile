@@ -118,6 +118,38 @@ void main() {
       );
     });
 
+    test('forwards private token to GET stream endpoint', () async {
+      when(
+        mockDio.get(
+          ApiEndpoints.trackStream('track-private'),
+          queryParameters: <String, String>{'privateToken': 'secret'},
+          data: anyNamed('data'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer(
+        (_) async => response(sampleStreamResponseJson(trackId: 'track-private')),
+      );
+
+      final result = await api.requestStreamUrl(
+        'track-private',
+        privateToken: 'secret',
+      );
+
+      expect(result.trackId, 'track-private');
+      verify(
+        mockDio.get(
+          ApiEndpoints.trackStream('track-private'),
+          queryParameters: <String, String>{'privateToken': 'secret'},
+          data: anyNamed('data'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).called(1);
+    });
+
     test('falls back to POST for 404 and forwards quality', () async {
       when(
         mockDio.get(

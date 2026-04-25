@@ -54,7 +54,7 @@ class _MainTrackCard extends ConsumerWidget {
                         '${stats.playCountText} plays  ${item.durationLabel}  ${stats.releaseDateText}',
                         style: const TextStyle(
                           color: Colors.white54,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -103,9 +103,28 @@ class _MainTrackCard extends ConsumerWidget {
               const SizedBox(width: 28),
               GestureDetector(
                 onTap: () {
+                  // Track info page is reached from many paths (feed, search,
+                  // history, own uploads). Resolve ownership and artist id
+                  // via the shared lookup so the sheet shows the right
+                  // layout regardless of how we got here.
+                  final bundle =
+                      ref.read(playerProvider).asData?.value.bundle;
+                  final artistId =
+                      (bundle?.trackId == item.id &&
+                              bundle!.artist.id.trim().isNotEmpty)
+                          ? bundle.artist.id
+                          : null;
                   showTrackOptionsSheet(
                     context,
-                    info: TrackOptionInfo.fromUploadItem(item),
+                    info: TrackOptionInfo.fromTrackId(
+                      item.id,
+                      ref,
+                      fallbackTitle: item.title,
+                      fallbackArtist: item.artistDisplay,
+                      fallbackCoverUrl: item.artworkUrl,
+                      fallbackLocalArtworkPath: item.localArtworkPath,
+                      fallbackArtistId: artistId,
+                    ),
                     ref: ref,
                   );
                 },

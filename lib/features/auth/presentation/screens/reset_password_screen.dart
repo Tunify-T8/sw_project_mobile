@@ -11,15 +11,31 @@ import 'package:software_project/shared/ui/widgets/app_button.dart';
 import 'package:software_project/shared/ui/widgets/app_text_field.dart';
 import 'package:software_project/features/auth/presentation/widgets/visibility_toggle.dart';
 
-/// Reset password screen — shown immediately after ForgotPasswordScreen.
+/// Reset password screen — the second step of the password-recovery flow.
 ///
-/// Displays an instruction banner
-/// telling the user to check their inbox, then lets them enter the
-/// 6-char reset code and set a new password.
+/// Shown immediately after [ForgotPasswordScreen]. Displays an instruction
+/// banner telling the user to check their inbox, then collects:
+///   - Their email address (pre-filled from route args).
+///   - The 6-character reset code from the email.
+///   - A new password and confirmation.
+///   - Optional "sign out all devices" checkbox (default: true).
 ///
-/// On success → [BackToLoginScreen].
+/// On success → [PasswordResetSuccessScreen].
+/// On expired/invalid token → error snackbar, stays on this screen.
+///
+/// ── Key assignment ────────────────────────────────────────────────────────────
+/// Widget keys follow `AuthKeys` in `test/features/auth/helpers/auth_selectors.dart`:
+///   - [AuthKeys.resetTokenField]           → 6-char code [AppTextField]
+///   - [AuthKeys.resetNewPasswordField]     → new password [AppTextField]
+///   - [AuthKeys.resetConfirmPasswordField] → confirm password [AppTextField]
+///   - [AuthKeys.resetSaveButton]           → "Reset password" [AppButton]
 class ResetPasswordScreen extends ConsumerStatefulWidget {
+  /// Email pre-filled from [ForgotPasswordScreen] route arguments.
+  /// Editable in case the user arrived directly.
   final String? email;
+
+  /// Optional pre-filled reset token (unused in current flow but kept
+  /// for deep-link support).
   final String? resetToken;
 
   const ResetPasswordScreen({super.key, this.email, this.resetToken});
@@ -36,8 +52,15 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final TextEditingController _confirmController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  /// Whether the new-password field shows dots.
   bool _obscurePassword = true;
+
+  /// Whether the confirm-password field shows dots.
   bool _obscureConfirm = true;
+
+  /// When `true`, all active sessions are revoked after the reset.
+  /// Default is `true` — protects against an attacker who triggered the reset
+  /// staying logged in on another device.
   bool _signOutAll = true;
 
   @override
@@ -56,10 +79,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     super.dispose();
   }
 
+  /// Validates the form and calls [AuthController.resetPassword].
+  ///
+  /// Navigation on success and error display are handled reactively via
+  /// [ref.listen] in [build].
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Delegate reset logic to the controller; UI reacts to state changes.
     await ref
         .read(authControllerProvider.notifier)
         .resetPassword(
@@ -75,12 +101,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authControllerProvider).isLoading;
 
-    // Listen for controller state changes to handle success and errors.
+    // React to controller state changes for success navigation and errors.
     ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (_) {
           if (previous?.isLoading == true) {
-            // Success — go to BackToLoginScreen (repurposed CheckYourEmail).
             Navigator.pushNamedAndRemoveUntil(
               context,
               AppRoutes.passwordResetSuccess,
@@ -126,9 +151,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 Text('Change your password', style: AppTextStyles.screenTitle),
                 const SizedBox(height: AppSpacing.md),
 
-                // ── Instruction banner ──
-                // User sees this while they wait for the email to arrive
-                // and while they fill in the form below.
+                // ── Instruction banner ────────────────────────────────
+                // Shown while the user waits for the email to arrive.
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSpacing.base),
@@ -149,12 +173,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       Expanded(
                         child: Text(
                           _emailController.text.isNotEmpty
-                              ? 'If this email is in our database, we\'ve sent '
-                                    'a reset code to ${_emailController.text}. '
-                                    'Check your spam folder if you don\'t see it.'
-                              : 'If this email is in our database, we\'ve sent '
-                                    'you a reset code. Check your spam folder if '
-                                    'you don\'t see it.',
+                              ? "If this email is in our database, we've sent "
+                                    "a reset code to ${_emailController.text}. "
+                                    "Check your spam folder if you don't see it."
+                              : "If this email is in our database, we've sent "
+                                    "you a reset code. Check your spam folder if "
+                                    "you don't see it.",
                           style: AppTextStyles.bodyMuted,
                         ),
                       ),
@@ -163,7 +187,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xxl),
 
-                // ── Email ────────────────────────────────────────────────
+                // ── Email address ─────────────────────────────────────
                 Text('Email address', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
@@ -174,23 +198,27 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
-                // ── Reset code ───────────────────────────────────────────
+                // ── Reset code ────────────────────────────────────────
+                // Key: AuthKeys.resetTokenField
                 Text(
                   'Reset code (from email)',
                   style: AppTextStyles.fieldLabel,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
+                  key: const Key('reset_token_field'),
                   controller: _tokenController,
                   hintText: '6-character code',
                   validator: Validators.verificationToken,
                 ),
                 const SizedBox(height: AppSpacing.base),
 
-                // ── New password ─────────────────────────────────────────
+                // ── New password ──────────────────────────────────────
+                // Key: AuthKeys.resetNewPasswordField
                 Text('New password', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
+                  key: const Key('reset_new_password_field'),
                   controller: _passwordController,
                   hintText: 'New password',
                   obscureText: _obscurePassword,
@@ -203,10 +231,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
 
-                // ── Confirm password ─────────────────────────────────────
+                // ── Confirm password ──────────────────────────────────
+                // Key: AuthKeys.resetConfirmPasswordField
                 Text('Confirm new password', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: AppSpacing.sm),
                 AppTextField(
+                  key: const Key('reset_confirm_password_field'),
                   controller: _confirmController,
                   hintText: 'Confirm new password',
                   obscureText: _obscureConfirm,
@@ -220,7 +250,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // ── Sign out all devices ─────────────────────────────────
+                // ── Sign out all devices toggle ────────────────────────
+                // Default true — revokes all sessions for security.
                 GestureDetector(
                   onTap: () => setState(() => _signOutAll = !_signOutAll),
                   child: Row(
@@ -231,23 +262,24 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             setState(() => _signOutAll = v ?? true),
                         activeColor: AppColors.primary,
                         checkColor: Colors.white,
-                        side: const BorderSide(
-                          color: AppColors.onBackgroundMuted,
-                        ),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Also sign me out everywhere',
-                        style: AppTextStyles.body,
+                      Expanded(
+                        child: Text(
+                          'Sign out of all other devices',
+                          style: AppTextStyles.body,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
+                // ── Save / Reset password button ──────────────────────
+                // Key: AuthKeys.resetSaveButton
                 AppButton(
-                  label: 'Save new password',
+                  key: const Key('reset_save_button'),
+                  label: 'Reset password',
                   onPressed: _onSave,
                   style: AppButtonStyle.primary,
                   isLoading: isLoading,

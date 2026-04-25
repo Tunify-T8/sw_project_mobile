@@ -40,6 +40,7 @@ class UploadItemDto {
     this.availabilityType = 'worldwide',
     this.availabilityRegions = const [],
     this.licensing = 'all_rights_reserved',
+    this.privateToken,
   });
 
   final String id;
@@ -73,6 +74,7 @@ class UploadItemDto {
   final bool includeInRss;
   final bool displayEmbedCode;
   final bool appPlaybackEnabled;
+  final String? privateToken;
 
   factory UploadItemDto.fromJson(Map<String, dynamic> json) {
     final availability = _asMap(json['availability']);
@@ -86,10 +88,12 @@ class UploadItemDto {
 
     final durationRaw = json['durationSeconds'] ?? json['duration'] ?? 0;
     final artworkRaw = json['artworkUrl'] ?? json['thumbnailUrl'];
-    final privacyRaw =
+    final privacyRaw = (
         _asString(json['privacy']) ??
         _asString(json['visibility']) ??
-        'private';
+        'private')
+        .trim()
+        .toLowerCase();
     final statusRaw =
         _asString(json['status']) ??
         _asString(json['transcodingStatus']) ??
@@ -159,6 +163,7 @@ class UploadItemDto {
           'all_rights_reserved',
       createdAt:
           (json['createdAt'] as String?) ?? DateTime.now().toIso8601String(),
+      privateToken: json['privateToken'] as String?,
     );
   }
 
@@ -194,6 +199,8 @@ class UploadItemDto {
     'availabilityType': availabilityType,
     'availabilityRegions': availabilityRegions,
     'licensing': licensing,
+    //'privateToken': privateToken,
     'createdAt': createdAt,
+    if (privateToken != null) 'privateToken': privateToken,
   };
 }

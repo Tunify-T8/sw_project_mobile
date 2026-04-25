@@ -42,6 +42,7 @@ extension _YourUploadsScreenActions on _YourUploadsScreenState {
   void _showOptions(UploadItem item) {
     showYourUploadsOptionsSheet(
       context,
+      ref: ref,
       item: item,
       onEditTap: () {
         Navigator.pop(context);

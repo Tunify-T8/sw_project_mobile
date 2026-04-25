@@ -40,13 +40,27 @@ class RegisterDetailScreen extends StatefulWidget {
 
 class _RegisterDetailScreenState extends State<RegisterDetailScreen> {
   final TextEditingController _passwordController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   // Holds the reCAPTCHA token when _kRecaptchaEnabled = true,
   // or true/false for the mock checkbox when disabled.
   bool _captchaVerified = false;
+
+  // ── Reactive validity ─────────────────────────────────────────────────────
+  // Recomputed on every keystroke and captcha change via setState.
+  // The button reads this directly — no Form/GlobalKey needed for disabling.
+  bool get _passwordValid =>
+      Validators.password(_passwordController.text) == null;
+
+  bool get _canContinue => _passwordValid && _captchaVerified;
+
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild on every keystroke so _canContinue stays in sync.
+    _passwordController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -55,17 +69,8 @@ class _RegisterDetailScreenState extends State<RegisterDetailScreen> {
   }
 
   void _onContinue() {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (!_captchaVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please complete the CAPTCHA verification.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
+    // Guard is redundant (button is null when !_canContinue) but kept for safety.
+    if (!_canContinue) return;
 
     setState(() => _isLoading = true);
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -87,90 +92,95 @@ class _RegisterDetailScreenState extends State<RegisterDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.screenHorizontal,
-                    AppSpacing.lg,
-                    AppSpacing.screenHorizontal,
-                    0,
-                  ),
-                  child: AppBackButtonRow(title: 'Create an account'),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenHorizontal,
+                  AppSpacing.lg,
+                  AppSpacing.screenHorizontal,
+                  0,
                 ),
+                child: AppBackButtonRow(title: 'Create an account'),
+              ),
 
-                const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.xxl),
 
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenHorizontal,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AuthEmailDisplay(email: widget.email),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      AppTextField(
-                        controller: _passwordController,
-                        hintText: 'Your Password (min: 8 characters)',
-                        obscureText: _obscurePassword,
-                        suffixIcon: VisibilityToggle(
-                          isObscured: _obscurePassword,
-                          onToggle: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                        ),
-                        validator: Validators.password,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // ── CAPTCHA ──────────────────────────────────────────
-                      // When _kRecaptchaEnabled is true, this shows the real
-                      // WebView-based reCAPTCHA. Until then the mock checkbox
-                      // is used. No screen logic changes when you flip the flag.
-                      if (_kRecaptchaEnabled)
-                        _RealCaptcha(
-                          siteKey: _kRecaptchaSiteKey,
-                          onVerified: (token) {
-                            setState(() => _captchaVerified = token != null);
-                          },
-                        )
-                      else
-                        _MockCaptcha(
-                          isChecked: _captchaVerified,
-                          onChanged: (v) =>
-                              setState(() => _captchaVerified = v ?? false),
-                        ),
-
-                      const SizedBox(height: AppSpacing.lg),
-
-                      AppButton(
-                        label: 'Continue',
-                        onPressed: _onContinue,
-                        style: AppButtonStyle.primary,
-                        isLoading: _isLoading,
-                        borderRadius: 4,
-                      ),
-                      const SizedBox(height: AppSpacing.base),
-
-                      AuthLink(
-                        label: 'Need help?',
-                        onTap: () => UrlLauncherUtil.open(
-                          context,
-                          UrlLauncherUtil.helpCenter,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                    ],
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenHorizontal,
                 ),
-              ],
-            ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AuthEmailDisplay(email: widget.email),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // ── Password field ──────────────────────────────────
+                    // Uses a plain AppTextField (no Form wrapper needed —
+                    // validation state is tracked via _passwordValid getter).
+                    AppTextField(
+                      key: const Key('register_password_field'),
+                      controller: _passwordController,
+                      hintText: 'Your Password (min: 8 characters)',
+                      obscureText: _obscurePassword,
+                      suffixIcon: VisibilityToggle(
+                        isObscured: _obscurePassword,
+                        onToggle: () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
+                      ),
+                      // Keep validator for inline error display when the user
+                      // types something invalid — the button disabling is the
+                      // primary guard but the inline message is still helpful.
+                      validator: Validators.password,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ── CAPTCHA ──────────────────────────────────────────
+                    if (_kRecaptchaEnabled)
+                      _RealCaptcha(
+                        siteKey: _kRecaptchaSiteKey,
+                        onVerified: (token) {
+                          setState(() => _captchaVerified = token != null);
+                        },
+                      )
+                    else
+                      _MockCaptcha(
+                        isChecked: _captchaVerified,
+                        onChanged: (v) =>
+                            setState(() => _captchaVerified = v ?? false),
+                      ),
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // ── Continue button ──────────────────────────────────
+                    // onPressed is null (→ greyed out / disabled) until both
+                    // password is valid AND captcha is checked.
+                    AppButton(
+                      key: const Key('register_continue_button'),
+                      label: 'Continue',
+                      onPressed: _canContinue ? _onContinue : null,
+                      style: AppButtonStyle.primary,
+                      isLoading: _isLoading,
+                      borderRadius: 4,
+                    ),
+                    const SizedBox(height: AppSpacing.base),
+
+                    AuthLink(
+                      label: 'Need help?',
+                      onTap: () => UrlLauncherUtil.open(
+                        context,
+                        UrlLauncherUtil.helpCenter,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -192,9 +202,6 @@ class _RegisterDetailScreenState extends State<RegisterDetailScreen> {
 /// On success, [onVerified] receives the one-time-use token string.
 /// Pass this token to your backend along with the registration payload.
 /// Your backend verifies it at: https://www.google.com/recaptcha/api/siteverify
-///
-/// This widget is only instantiated when _kRecaptchaEnabled = true,
-/// so it will not cause import errors until the package is added.
 class _RealCaptcha extends StatelessWidget {
   final String siteKey;
   final void Function(String? token) onVerified;
@@ -250,6 +257,7 @@ class _MockCaptcha extends StatelessWidget {
       child: Row(
         children: [
           Checkbox(
+            key: const Key('captcha_checkbox'),
             value: isChecked,
             onChanged: onChanged,
             activeColor: AppColors.primary,
