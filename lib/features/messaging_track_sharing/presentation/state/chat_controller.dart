@@ -2,12 +2,18 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/realtime_event.dart';
 import '../../domain/entities/send_message_draft.dart';
 import '../providers/messaging_repository_provider.dart';
 import '../providers/messaging_usecases_provider.dart';
+
+/// Marker used by the realtime socket layer when it can't yet attribute a
+/// message to the current user. Chat controllers replace this with the real
+/// auth user id so the UI renders the bubble on the right side.
+const String kOptimisticSenderMarker = '__me__';
 
 class ChatState {
   final bool isLoading;
@@ -37,7 +43,7 @@ class ChatState {
       );
 }
 
-/// Per-conversation chat controller. Loads the message history, listens to
+/// Per-conversation chat controller. Loads message history, listens to
 /// realtime events, and exposes send actions for the UI.
 class ChatController extends Notifier<ChatState> {
   ChatController(this._conversationId);
@@ -59,6 +65,29 @@ class ChatController extends Notifier<ChatState> {
     return const ChatState(isLoading: true);
   }
 
+  String? _currentUserId() =>
+      ref.read(authControllerProvider).asData?.value?.id;
+
+  MessageEntity _attributeToMe(MessageEntity message) {
+    final me = _currentUserId();
+    if (me == null || me.isEmpty) return message;
+    if (message.senderId == kOptimisticSenderMarker) {
+      return MessageEntity(
+        id: message.id,
+        conversationId: message.conversationId,
+        senderId: me,
+        type: message.type,
+        text: message.text,
+        attachments: message.attachments,
+        createdAt: message.createdAt,
+        isRead: message.isRead,
+        isPending: message.isPending,
+        isFailed: message.isFailed,
+      );
+    }
+    return message;
+  }
+
   Future<void> _bootstrap() async {
     try {
       final repo = ref.read(messagingRepositoryProvider);
@@ -66,11 +95,10 @@ class ChatController extends Notifier<ChatState> {
       await repo.joinConversation(_conversationId);
       _bindRealtime();
 
-      final page = await ref
-          .read(getMessagesUseCaseProvider)
-          .call(_conversationId);
+      final page =
+          await ref.read(getMessagesUseCaseProvider).call(_conversationId);
 
-      // Backend returns most-recent-first — chat is rendered oldest → newest.
+      // Backend returns most-recent-first — render oldest → newest.
       final chronological = [...page.items]
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
@@ -79,7 +107,9 @@ class ChatController extends Notifier<ChatState> {
         messages: chronological,
       );
 
-      await ref.read(markConversationReadUseCaseProvider).call(_conversationId);
+      await ref
+          .read(markConversationReadUseCaseProvider)
+          .call(_conversationId);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -94,9 +124,22 @@ class ChatController extends Notifier<ChatState> {
       switch (event) {
         case MessageReceivedEvent(:final message):
           if (message.conversationId != _conversationId) return;
-          if (state.messages.any((m) => m.id == message.id)) return;
-          state = state.copyWith(messages: [...state.messages, message]);
-          ref.read(markConversationReadUseCaseProvider).call(_conversationId);
+          final attributed = _attributeToMe(message);
+          // Drop the optimistic placeholder if the canonical version arrives.
+          final filtered = state.messages.where((m) {
+            if (m.id == attributed.id) return false;
+            if (m.isPending && m.senderId == attributed.senderId) {
+              if ((m.text ?? '') == (attributed.text ?? '') &&
+                  m.attachments.length == attributed.attachments.length) {
+                return false;
+              }
+            }
+            return true;
+          }).toList();
+          state = state.copyWith(messages: [...filtered, attributed]);
+          ref
+              .read(markConversationReadUseCaseProvider)
+              .call(_conversationId);
         case MessageReadEvent():
         case ConversationBlockedEvent():
         case TypingEvent():
@@ -108,18 +151,12 @@ class ChatController extends Notifier<ChatState> {
   Future<void> sendText(String raw) async {
     final text = raw.trim();
     if (text.isEmpty || state.isSending) return;
-    await sendDraft(
-      text: text,
-      attachments: const [],
-    );
+    await sendDraft(text: text, attachments: const []);
   }
 
   Future<void> sendAttachments(List<MessageAttachment> attachments) async {
     if (attachments.isEmpty || state.isSending) return;
-    await sendDraft(
-      text: '',
-      attachments: attachments,
-    );
+    await sendDraft(text: '', attachments: attachments);
   }
 
   Future<void> sendDraft({
@@ -132,7 +169,9 @@ class ChatController extends Notifier<ChatState> {
 
     await _send(
       SendMessageDraft(
-        type: attachments.isNotEmpty ? MessageType.attachment : MessageType.text,
+        type: attachments.isNotEmpty
+            ? MessageType.attachment
+            : MessageType.text,
         text: trimmedText.isEmpty ? null : trimmedText,
         attachments: attachments,
       ),
@@ -146,15 +185,14 @@ class ChatController extends Notifier<ChatState> {
           .read(sendMessageUseCaseProvider)
           .call(_conversationId, draft);
 
-      // Real mode: broadcast event might arrive before or after this point.
-      // Add the message optimistically here — the duplicate check in the
-      // realtime listener makes this idempotent.
-      final alreadyInList = state.messages.any((m) => m.id == message.id);
+      final attributed = _attributeToMe(message);
+      final alreadyInList =
+          state.messages.any((m) => m.id == attributed.id);
       state = state.copyWith(
         isSending: false,
         messages: alreadyInList
             ? state.messages
-            : [...state.messages, message],
+            : [...state.messages, attributed],
       );
     } catch (e) {
       state = state.copyWith(isSending: false, error: e.toString());

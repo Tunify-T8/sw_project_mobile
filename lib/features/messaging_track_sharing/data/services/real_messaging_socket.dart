@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -12,14 +11,13 @@ import 'messaging_socket.dart';
 
 /// Connects to the backend Socket.IO `/conversations` namespace.
 ///
-/// The URL form is identical to the JS frontend that the backend team
-/// confirmed works:
+/// URL form matches the JS frontend the backend team confirmed works:
 ///   io('https://tunify.duckdns.org/conversations',
-///       { transports: ['websocket'], query: { token } });
+///      { transports: ['websocket'], query: { token } });
 ///
-/// In `socket_io_client` (Dart) the namespace is taken from the URL path —
-/// the library handles port `0` (default HTTPS) internally and rewrites it to
-/// 443 before opening the socket.
+/// Reconnection is delegated entirely to `socket_io_client`'s built-in
+/// reconnection — we don't add a parallel manual reconnect (the two used
+/// to fight each other and produced rapid connect/disconnect cycles).
 class RealMessagingSocket implements MessagingSocket {
   RealMessagingSocket(this._tokenStorage);
 
@@ -36,19 +34,20 @@ class RealMessagingSocket implements MessagingSocket {
   bool _connected = false;
   bool _connecting = false;
   bool _disposed = false;
-  int _reconnectAttempt = 0;
-
-  Timer? _manualReconnectTimer;
-  Timer? _tokenRefreshTimer;
 
   /// Pending `message:send` calls keyed by client-side tempId.
+  ///
+  /// We don't block the UI on the server ack — `sendMessage` resolves
+  /// immediately with an optimistic DTO and the broadcast `message:received`
+  /// later replaces it via `_resolvePendingFrom`. The map stays around so
+  /// duplicates can be detected and reconciled if the server does echo.
   final Map<String, _PendingSend> _pending = {};
   int _tempSeq = 0;
 
-  /// Conversation rooms we tried to join before the socket was connected;
-  /// replayed once `onConnect` fires.
-  final Set<String> _pendingJoins = <String>{};
-  final Set<String> _joinedRooms = <String>{};
+  /// Conversation rooms the caller wants to be in. We never drop these on
+  /// disconnect — instead they're re-emitted on every `onConnect` so the
+  /// caller doesn't need to know about reconnects.
+  final Set<String> _activeRooms = <String>{};
 
   @override
   Stream<RealtimeMessagingEvent> get events => _controller.stream;
@@ -58,16 +57,17 @@ class RealMessagingSocket implements MessagingSocket {
 
   @override
   Future<void> connect() async {
-    if (_connected || _connecting || _disposed) return;
+    if (_disposed) return;
+    if (_connected) return;
+    if (_connecting) return;
     _connecting = true;
     try {
-      final token = await _freshAccessToken();
+      final token = await _accessToken();
       if (token == null || token.isEmpty) {
-        debugPrint('[MessagingSocket] No access token');
+        debugPrint('[MessagingSocket] No access token — skipping connect');
         return;
       }
       _openSocket(token);
-      _scheduleTokenRefresh(token);
     } finally {
       _connecting = false;
     }
@@ -75,13 +75,10 @@ class RealMessagingSocket implements MessagingSocket {
 
   @override
   Future<void> disconnect() async {
-    _manualReconnectTimer?.cancel();
-    _tokenRefreshTimer?.cancel();
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
     _connected = false;
-    _joinedRooms.clear();
   }
 
   void dispose() {
@@ -101,34 +98,35 @@ class RealMessagingSocket implements MessagingSocket {
   @override
   Future<void> joinConversation(String conversationId) async {
     if (conversationId.isEmpty) return;
+    _activeRooms.add(conversationId);
     if (!_connected) {
-      _pendingJoins.add(conversationId);
       unawaited(connect());
       return;
     }
-    if (_joinedRooms.contains(conversationId)) return;
-    _joinedRooms.add(conversationId);
     _socket?.emit('conversation:join', {'conversationId': conversationId});
   }
 
   @override
   Future<void> leaveConversation(String conversationId) async {
     if (conversationId.isEmpty) return;
-    _joinedRooms.remove(conversationId);
-    _pendingJoins.remove(conversationId);
+    _activeRooms.remove(conversationId);
     if (!_connected) return;
     _socket?.emit('conversation:leave', {'conversationId': conversationId});
   }
 
   @override
   Future<MessageDto> sendMessage(Map<String, dynamic> payload) async {
-    if (!_connected) await connect();
+    if (!_connected) {
+      // Try to connect, but don't block forever — if the socket isn't ready
+      // we surface an error so the UI can handle it.
+      await connect();
+    }
     if (!_connected || _socket == null) {
       throw StateError('Messaging socket is not connected.');
     }
 
     final conversationId = (payload['conversationId'] ?? '').toString();
-    if (conversationId.isNotEmpty && !_joinedRooms.contains(conversationId)) {
+    if (conversationId.isNotEmpty && !_activeRooms.contains(conversationId)) {
       await joinConversation(conversationId);
     }
 
@@ -144,12 +142,13 @@ class RealMessagingSocket implements MessagingSocket {
 
     _socket!.emit('message:send', enriched);
 
-    Timer(const Duration(seconds: 20), () {
-      final pending = _pending.remove(tempId);
+    // Resolve optimistically — the chat UI shouldn't have to wait for the
+    // server round-trip to render the bubble. The broadcast updates state
+    // again via `message:received` if the server echoes it.
+    Timer.run(() {
+      final pending = _pending[tempId];
       if (pending != null && !pending.completer.isCompleted) {
-        pending.completer.completeError(
-          TimeoutException('message:send timed out'),
-        );
+        pending.completer.complete(_optimisticDtoFromPayload(enriched, ''));
       }
     });
 
@@ -184,7 +183,6 @@ class RealMessagingSocket implements MessagingSocket {
   // ── internals ────────────────────────────────────────────────────────────
 
   void _openSocket(String token) {
-    _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
     debugPrint('[MessagingSocket] connecting to $_socketUrl');
@@ -195,7 +193,7 @@ class RealMessagingSocket implements MessagingSocket {
           .setPath('/socket.io')
           .setQuery({'token': token})
           .enableReconnection()
-          .setReconnectionAttempts(20)
+          .setReconnectionAttempts(0x7fffffff) // never give up
           .setReconnectionDelay(1000)
           .setReconnectionDelayMax(10000)
           .disableAutoConnect()
@@ -205,22 +203,22 @@ class RealMessagingSocket implements MessagingSocket {
 
     _socket!.onConnect((_) {
       _connected = true;
-      _reconnectAttempt = 0;
       debugPrint('[MessagingSocket] connected');
-      _replayPendingJoins();
+      // Re-join every active room — the backend forgets membership on
+      // disconnect, so the client must re-emit on every reconnect.
+      for (final room in _activeRooms) {
+        _socket?.emit('conversation:join', {'conversationId': room});
+      }
     });
 
     _socket!.onDisconnect((_) {
       _connected = false;
-      _joinedRooms.clear();
       debugPrint('[MessagingSocket] disconnected');
-      _scheduleManualReconnect();
     });
 
     _socket!.onConnectError((err) {
       _connected = false;
       debugPrint('[MessagingSocket] connect error: ${_safeError(err)}');
-      _scheduleManualReconnect();
     });
 
     _socket!.onError((err) {
@@ -231,17 +229,12 @@ class RealMessagingSocket implements MessagingSocket {
       debugPrint('[MessagingSocket] authenticated');
     });
 
-    _socket!.on('joined', (data) {
-      final m = _safeMap(data);
-      final id = (m['conversationId'] ?? '').toString();
-      if (id.isNotEmpty) _joinedRooms.add(id);
+    _socket!.on('joined', (_) {
+      // Server-confirmed join. No state change needed since `_activeRooms`
+      // already tracks the desired membership.
     });
 
-    _socket!.on('left', (data) {
-      final m = _safeMap(data);
-      final id = (m['conversationId'] ?? '').toString();
-      _joinedRooms.remove(id);
-    });
+    _socket!.on('left', (_) {});
 
     _socket!.on('message:sent', (data) {
       final m = _safeMap(data);
@@ -251,14 +244,15 @@ class RealMessagingSocket implements MessagingSocket {
 
       final pending = _pending[tempId];
       if (pending == null) return;
-
       if (pending.completer.isCompleted) {
         _pending.remove(tempId);
         return;
       }
 
-      final dto = _optimisticDtoFromPayload(pending.payload, serverId);
-      pending.completer.complete(dto);
+      // Replace the optimistic DTO with one that has the canonical id.
+      pending.completer.complete(
+        _optimisticDtoFromPayload(pending.payload, serverId),
+      );
       _pending.remove(tempId);
     });
 
@@ -330,16 +324,6 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.connect();
   }
 
-  void _replayPendingJoins() {
-    if (_pendingJoins.isEmpty) return;
-    final joins = List<String>.from(_pendingJoins);
-    _pendingJoins.clear();
-    for (final id in joins) {
-      _joinedRooms.add(id);
-      _socket?.emit('conversation:join', {'conversationId': id});
-    }
-  }
-
   void _resolvePendingFrom(MessageDto dto, Map<String, dynamic> envelope) {
     final tempId = envelope['tempId']?.toString();
     if (tempId != null && tempId.isNotEmpty) {
@@ -350,11 +334,13 @@ class RealMessagingSocket implements MessagingSocket {
       return;
     }
 
+    // Fallback heuristic — match by content the client just sent.
     _PendingSend? match;
     for (final entry in _pending.entries) {
       final p = entry.value;
       if (p.conversationId != dto.conversationId) continue;
-      if ((p.payload['content'] ?? p.payload['text']) == dto.text) {
+      final sent = p.payload['content'] ?? p.payload['text'];
+      if (sent == dto.text) {
         match = p;
         break;
       }
@@ -372,11 +358,14 @@ class RealMessagingSocket implements MessagingSocket {
     final convoId = (payload['conversationId'] ?? '').toString();
     final type = (payload['type'] ?? 'TEXT').toString().toUpperCase();
     final content = payload['content'] as String?;
+    final tempId = (payload['tempId'] ?? '').toString();
 
     return MessageDto.fromJson({
-      'id': serverId.isEmpty ? payload['tempId'] : serverId,
+      'id': serverId.isNotEmpty ? serverId : tempId,
       'conversationId': convoId,
-      'senderId': '',
+      // Marker so `chat_controller` can recognise an optimistic message and
+      // tag it as the current user without needing extra plumbing.
+      'senderId': '__me__',
       'type': type,
       if (content != null) 'content': content,
       'createdAt': DateTime.now().toUtc().toIso8601String(),
@@ -395,73 +384,10 @@ class RealMessagingSocket implements MessagingSocket {
     }, fallbackConversationId: convoId);
   }
 
-  Future<void> _reconnect({bool forceRefresh = false}) async {
-    if (_disposed || _connecting) return;
-    _connecting = true;
-    try {
-      _connected = false;
-      _socket?.disconnect();
-      _socket?.dispose();
-      _socket = null;
-
-      final token = await _freshAccessToken(forceRefresh: forceRefresh);
-      if (token == null || token.isEmpty || _disposed) return;
-
-      _pendingJoins.addAll(_joinedRooms);
-      _joinedRooms.clear();
-
-      _openSocket(token);
-      _scheduleTokenRefresh(token);
-    } finally {
-      _connecting = false;
-    }
-  }
-
-  void _scheduleManualReconnect({bool forceRefresh = false}) {
-    if (_disposed || _connected || _manualReconnectTimer?.isActive == true) {
-      return;
-    }
-    final seconds = (1 << _reconnectAttempt).clamp(1, 30).toInt();
-    _reconnectAttempt = (_reconnectAttempt + 1).clamp(0, 5).toInt();
-    _manualReconnectTimer = Timer(Duration(seconds: seconds), () {
-      unawaited(_reconnect(forceRefresh: forceRefresh));
-    });
-  }
-
-  void _scheduleTokenRefresh(String token) {
-    _tokenRefreshTimer?.cancel();
-    final expiresAt = _jwtExpiry(token);
-    if (expiresAt == null) return;
-
-    final refreshAt = expiresAt.subtract(const Duration(minutes: 2));
-    final delay = refreshAt.difference(DateTime.now());
-    _tokenRefreshTimer = Timer(
-      delay.isNegative ? const Duration(seconds: 1) : delay,
-      () => unawaited(_reconnect(forceRefresh: true)),
-    );
-  }
-
-  Future<String?> _freshAccessToken({bool forceRefresh = false}) async {
+  Future<String?> _accessToken() async {
     final access = await _tokenStorage.getAccessToken();
     if (access == null || access.isEmpty) return null;
     return access;
-  }
-
-  DateTime? _jwtExpiry(String? token) {
-    if (token == null || token.isEmpty) return null;
-    final parts = token.split('.');
-    if (parts.length != 3) return null;
-    try {
-      final payload = utf8.decode(
-        base64Url.decode(base64Url.normalize(parts[1])),
-      );
-      final json = jsonDecode(payload) as Map<String, dynamic>;
-      final exp = json['exp'];
-      if (exp is! num) return null;
-      return DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000);
-    } catch (_) {
-      return null;
-    }
   }
 
   Map<String, dynamic> _safeMap(Object? value) {

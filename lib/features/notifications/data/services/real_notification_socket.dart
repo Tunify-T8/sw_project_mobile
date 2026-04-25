@@ -12,16 +12,12 @@ import 'notification_socket.dart';
 
 /// Connects to the backend Socket.IO `/notifications` namespace.
 ///
-/// Backend lives behind Caddy:
-///   handle /socket.io* { reverse_proxy backend:3000 }
-///
-/// In `socket_io_client` (Dart) the namespace is taken from the URL path —
-/// the same form as the JS client used by the web frontend:
+/// Same URL form as the JS frontend the backend team confirmed works:
 ///   io('https://tunify.duckdns.org/notifications', { transports: ['websocket'] })
 ///
-/// The library handles port `0` (default HTTPS) internally and rewrites it to
-/// 443 before opening the socket. Any `:0` you see in error messages is a
-/// purely cosmetic side-effect of `dart:io`'s WebSocket exception formatter.
+/// Reconnection is handled entirely by `socket_io_client`'s built-in logic
+/// (`enableReconnection`). We don't add a parallel manual reconnect — the
+/// two used to fight each other and produced rapid connect/disconnect cycles.
 class RealNotificationSocket implements NotificationSocket {
   RealNotificationSocket(this._tokenStorage);
 
@@ -38,8 +34,6 @@ class RealNotificationSocket implements NotificationSocket {
   bool _connected = false;
   bool _connecting = false;
   bool _disposed = false;
-  int _reconnectAttempt = 0;
-  Timer? _manualReconnectTimer;
   Timer? _tokenRefreshTimer;
 
   @override
@@ -54,7 +48,7 @@ class RealNotificationSocket implements NotificationSocket {
     _connecting = true;
 
     try {
-      final token = await _freshAccessToken();
+      final token = await _accessToken();
       if (token == null || token.isEmpty) {
         debugPrint('[NotificationSocket] No access token');
         return;
@@ -68,7 +62,6 @@ class RealNotificationSocket implements NotificationSocket {
 
   @override
   Future<void> disconnect() async {
-    _manualReconnectTimer?.cancel();
     _tokenRefreshTimer?.cancel();
     _socket?.disconnect();
     _socket?.dispose();
@@ -83,7 +76,6 @@ class RealNotificationSocket implements NotificationSocket {
   }
 
   void _openSocket(String token) {
-    _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
     debugPrint('[NotificationSocket] connecting to $_socketUrl');
@@ -95,7 +87,7 @@ class RealNotificationSocket implements NotificationSocket {
           .setPath('/socket.io')
           .setQuery({'token': token})
           .enableReconnection()
-          .setReconnectionAttempts(20)
+          .setReconnectionAttempts(0x7fffffff)
           .setReconnectionDelay(1000)
           .setReconnectionDelayMax(10000)
           .disableAutoConnect()
@@ -105,20 +97,17 @@ class RealNotificationSocket implements NotificationSocket {
 
     _socket!.onConnect((_) {
       _connected = true;
-      _reconnectAttempt = 0;
       debugPrint('[NotificationSocket] connected');
     });
 
     _socket!.onDisconnect((_) {
       _connected = false;
       debugPrint('[NotificationSocket] disconnected');
-      _scheduleManualReconnect();
     });
 
     _socket!.onConnectError((err) {
       _connected = false;
       debugPrint('[NotificationSocket] connect error: ${_safeError(err)}');
-      _scheduleManualReconnect();
     });
 
     _socket!.onError((err) {
@@ -142,49 +131,28 @@ class RealNotificationSocket implements NotificationSocket {
     _socket!.connect();
   }
 
-  Future<void> _reconnect({bool forceRefresh = false}) async {
-    if (_disposed || _connecting) return;
-    _connecting = true;
-    try {
-      _connected = false;
-      _socket?.disconnect();
-      _socket?.dispose();
-      _socket = null;
-
-      final token = await _freshAccessToken(forceRefresh: forceRefresh);
-      if (token == null || token.isEmpty || _disposed) return;
-
-      _openSocket(token);
-      _scheduleTokenRefresh(token);
-    } finally {
-      _connecting = false;
-    }
-  }
-
-  void _scheduleManualReconnect({bool forceRefresh = false}) {
-    if (_disposed || _connected || _manualReconnectTimer?.isActive == true) {
-      return;
-    }
-    final seconds = (1 << _reconnectAttempt).clamp(1, 30).toInt();
-    _reconnectAttempt = (_reconnectAttempt + 1).clamp(0, 5).toInt();
-    _manualReconnectTimer = Timer(Duration(seconds: seconds), () {
-      unawaited(_reconnect(forceRefresh: forceRefresh));
-    });
+  Future<void> _refreshTokenAndReopen() async {
+    if (_disposed) return;
+    final token = await _accessToken();
+    if (token == null || token.isEmpty) return;
+    _openSocket(token);
+    _scheduleTokenRefresh(token);
   }
 
   void _scheduleTokenRefresh(String token) {
     _tokenRefreshTimer?.cancel();
     final expiresAt = _jwtExpiry(token);
     if (expiresAt == null) return;
+
     final refreshAt = expiresAt.subtract(const Duration(minutes: 2));
     final delay = refreshAt.difference(DateTime.now());
     _tokenRefreshTimer = Timer(
       delay.isNegative ? const Duration(seconds: 1) : delay,
-      () => unawaited(_reconnect(forceRefresh: true)),
+      () => unawaited(_refreshTokenAndReopen()),
     );
   }
 
-  Future<String?> _freshAccessToken({bool forceRefresh = false}) async {
+  Future<String?> _accessToken() async {
     final accessToken = await _tokenStorage.getAccessToken();
     if (accessToken == null || accessToken.isEmpty) return null;
     return accessToken;

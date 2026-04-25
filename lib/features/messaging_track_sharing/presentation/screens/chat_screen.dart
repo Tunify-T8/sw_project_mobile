@@ -422,6 +422,7 @@ class _MessageList extends StatelessWidget {
 
       final isMine =
           message.senderId == currentUserId ||
+          message.senderId == kOptimisticSenderMarker ||
           message.senderId == 'me' ||
           message.senderId == 'mock-user-001' ||
           message.senderId == 'user_current_1';
