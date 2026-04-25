@@ -14,4 +14,21 @@ class TrackEngagementEntity {
   final int commentCount;
   final bool isLiked;
   final bool isReposted;
+
+  TrackEngagementEntity copyWith({
+    int? commentCount,
+    int? likeCount,
+    int? repostCount,
+    bool? isLiked,
+    bool? isReposted,
+  }) {
+    return TrackEngagementEntity(
+      trackId: trackId,
+      likeCount: likeCount ?? this.likeCount,
+      repostCount: repostCount ?? this.repostCount,
+      commentCount: commentCount ?? this.commentCount,
+      isLiked: isLiked ?? this.isLiked,
+      isReposted: isReposted ?? this.isReposted,
+    );
+  }
 }

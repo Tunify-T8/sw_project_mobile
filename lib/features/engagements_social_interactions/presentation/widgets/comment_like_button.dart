@@ -22,7 +22,9 @@ class CommentLikeButton extends ConsumerWidget {
         .isCommentLiked(commentId);
     final likeCount = baseLikesCount + (isLiked ? 1 : 0);
 
+    // Key: EngagementKeys.commentLikeButton (ValueKey per comment)
     return GestureDetector(
+      key: ValueKey('comment_like_button_$commentId'),
       onTap: () => ref
           .read(engagementProvider(trackId).notifier)
           .toggleCommentLike(commentId),

@@ -17,6 +17,9 @@ import '../../../audio_upload_and_management/presentation/screens/track_info_scr
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
+import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../messaging_track_sharing/domain/entities/conversation_entity.dart';
 import '../../../messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
@@ -31,10 +34,10 @@ class TrackOptionInfo {
     required this.trackId,
     required this.title,
     required this.artist,
+    this.artistId,
     this.coverUrl,
     this.localArtworkPath,
     this.isOwned = false,
-    this.artistId,
     this.isPrivate = false,
     this.privateToken,
   });
@@ -42,10 +45,10 @@ class TrackOptionInfo {
   final String trackId;
   final String title;
   final String artist;
+  final String? artistId;
   final String? coverUrl;
   final String? localArtworkPath;
   final bool isOwned;
-  final String? artistId;
   final bool isPrivate;
   final String? privateToken;
 
@@ -68,8 +71,8 @@ class TrackOptionInfo {
       trackId: track.trackId,
       title: track.title,
       artist: track.artist.name,
-      coverUrl: track.coverUrl,
       artistId: track.artist.id.isNotEmpty ? track.artist.id : null,
+      coverUrl: track.coverUrl,
     );
   }
 
@@ -78,10 +81,10 @@ class TrackOptionInfo {
     WidgetRef ref, {
     String? fallbackTitle,
     String? fallbackArtist,
+    String? fallbackArtistId,
     String? fallbackCoverUrl,
     String? fallbackLocalArtworkPath,
     bool fallbackIsOwned = false,
-    String? fallbackArtistId,
     String? fallbackPrivateToken,
   }) {
     final stored = ref.read(globalTrackStoreProvider).find(trackId);
@@ -114,10 +117,10 @@ class TrackOptionInfo {
       trackId: trackId,
       title: fallbackTitle ?? 'Track',
       artist: fallbackArtist ?? '',
+      artistId: fallbackArtistId,
       coverUrl: fallbackCoverUrl,
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
-      artistId: fallbackArtistId,
       isPrivate:
           fallbackPrivateToken != null && fallbackPrivateToken.trim().isNotEmpty,
       privateToken: fallbackPrivateToken,
@@ -136,12 +139,17 @@ Future<void> showTrackOptionsSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (_) => _TrackOptionsSheetContent(
-      info: info,
-      ref: ref,
-      onEditTap: onEditTap,
-      onDeleteTap: onDeleteTap,
-    ),
+    builder: (ctx) {
+      if (ref.read(engagementProvider(info.trackId)).engagementStatus == EngagementStatus.initial) {
+        ref.read(engagementProvider(info.trackId).notifier).loadEngagement();
+      }
+      return _TrackOptionsSheetContent(
+        info: info,
+        ref: ref,
+        onEditTap: onEditTap,
+        onDeleteTap: onDeleteTap,
+      );
+    },
   );
 }
 
@@ -563,6 +571,164 @@ class _FrostedTrackHeader extends StatelessWidget {
                 ],
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'SHARE',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 80,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: const [
+                  YourUploadsShareButton(
+                    icon: Icons.send_outlined,
+                    label: 'Message',
+                  ),
+                  YourUploadsShareButton(
+                    icon: Icons.copy_outlined,
+                    label: 'Copy link',
+                  ),
+                  YourUploadsShareButton(
+                    icon: Icons.qr_code_2,
+                    label: 'QR code',
+                  ),
+                  YourUploadsShareButton(
+                    icon: Icons.sms_outlined,
+                    label: 'SMS',
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            Consumer(
+              builder: (context, watchRef, _) {
+                final engagement = watchRef.watch(engagementProvider(info.trackId)).engagement;
+                final isLiked = engagement?.isLiked ?? false;
+                final isReposted = engagement?.isReposted ?? false;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    YourUploadsOptionRow(
+                      key: const Key('track_options_like_row'),
+                      icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                      label: isLiked ? 'Unlike' : 'Like',
+                      color: isLiked ? Colors.orange : Colors.white,
+                      onTap: () {
+                        watchRef.read(engagementProvider(info.trackId).notifier).toggleLike();
+                        Navigator.pop(context);
+                      },
+                    ),
+                    YourUploadsOptionRow(
+                      icon: Icons.playlist_add,
+                      label: 'Add to playlist',
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    YourUploadsOptionRow(
+                      icon: Icons.radio,
+                      label: 'Start station',
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    const Divider(color: Colors.white12, height: 1),
+                    if (info.artistId != null && info.artistId!.isNotEmpty)
+                      YourUploadsOptionRow(
+                        icon: Icons.person_outline,
+                        label: 'Go to artist profile',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => OtherUserProfileScreen(userId: info.artistId!),
+                            ),
+                          );
+                        },
+                      ),
+                    YourUploadsOptionRow(
+                      key: const Key('track_options_comments_row'),
+                      icon: Icons.comment_outlined,
+                      label: 'View comments',
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    YourUploadsOptionRow(
+                      key: const Key('track_options_repost_row'),
+                      icon: isReposted ? Icons.repeat_on : Icons.repeat,
+                      label: isReposted ? 'Undo Repost' : 'Repost',
+                      color: isReposted ? Colors.orange : Colors.white,
+                      onTap: () async {
+                        Navigator.pop(context);
+                        if (isReposted) {
+                          watchRef.read(engagementProvider(info.trackId).notifier).removeRepost();
+                        } else {
+                          await RepostCaptionSheet.show(
+                            context,
+                            trackId: info.trackId,
+                            trackTitle: info.title,
+                            artistName: info.artist,
+                            coverUrl: info.coverUrl,
+                          );
+                        }
+                      },
+                    ),
+                    const Divider(color: Colors.white12, height: 1),
+                    YourUploadsOptionRow(
+                      icon: Icons.graphic_eq,
+                      label: 'Behind this track',
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    YourUploadsOptionRow(
+                      icon: Icons.queue_play_next,
+                      label: 'Play next',
+                      onTap: () {
+                        watchRef.read(playerProvider.notifier).addToQueueNext(info.trackId);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    YourUploadsOptionRow(
+                      icon: Icons.playlist_play,
+                      label: 'Play last',
+                      onTap: () {
+                        watchRef.read(playerProvider.notifier).addToQueueLast(info.trackId);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (info.isOwned)
+                      YourUploadsOptionRow(
+                        icon: Icons.edit_outlined,
+                        label: 'Edit track',
+                        onTap: () {
+                          Navigator.pop(context);
+                          final stored = watchRef.read(globalTrackStoreProvider).find(info.trackId);
+                          if (stored != null) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
+                            );
+                          }
+                        },
+                      ),
+                    if (info.isOwned)
+                      YourUploadsOptionRow(
+                        icon: Icons.delete_outline,
+                        label: 'Delete track',
+                        color: Colors.redAccent,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

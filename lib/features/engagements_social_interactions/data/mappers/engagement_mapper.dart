@@ -40,7 +40,7 @@ class EngagementMapper {
   static EngagementUserEntity toUserEntity(EngagementUserDto dto) {
     return EngagementUserEntity(
       id: dto.id,
-      username: dto.username,
+      displayName: dto.displayName,
       avatarUrl: dto.avatarUrl,
     );
   }
@@ -65,6 +65,7 @@ class EngagementMapper {
       text: dto.text,
       likesCount: dto.likesCount,
       repliesCount: dto.repliesCount,
+      isLiked: dto.isLiked,
       createdAt: dto.createdAt,
     );
   }
@@ -77,12 +78,12 @@ class EngagementMapper {
     return dtos.map(toCommentEntity).toList();
   }
 
-  static CommentsPageEntity toCommentsPageEntity(List<CommentDto> dtos) {
+  static CommentsPageEntity toCommentsPageEntity(List<CommentDto> dtos, {int? total}) {
     final comments = toCommentEntityList(dtos);
     return CommentsPageEntity(
       comments: comments,
       meta: CommentsPageMetaEntity(
-        totalCount: comments.length,
+        totalCount: total ?? comments.length,
         page: 1,
         totalPages: 1,
         hasNextPage: false,

@@ -128,6 +128,20 @@ class ApiEndpoints {
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyPlaybackContext = '/playback/context';
 
+  // Engagement & Social Interactions
+  static String trackEngagement(String trackId) => '/tracks/$trackId/engagement';
+  static String likeTrack(String trackId) => '/tracks/$trackId/like';
+  static String repostTrack(String trackId) => '/tracks/$trackId/repost';
+  static String trackComments(String trackId) => '/tracks/$trackId/comments';
+  static String trackLikers(String trackId) => '/tracks/$trackId/likes';
+  static String trackReposters(String trackId) => '/tracks/$trackId/reposts';
+  static String deleteComment(String commentId) => '/comments/$commentId';
+  static String commentReplies(String commentId) => '/comments/$commentId/replies';
+  static String likeComment(String commentId) => '/comments/$commentId/like';
+  static const String myLikedTracks = '/users/me/liked-tracks';
+  static const String myReposts = '/users/me/reposts';
+  static String userReposts(String userId) => '/users/$userId/reposts';
+
   // Feed - Search - Discovery
   static const String getFollowingFeed = '/feed';
   static const String getDiscover = '/discover';

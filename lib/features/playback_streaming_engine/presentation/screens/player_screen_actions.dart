@@ -22,7 +22,9 @@ class _BottomActions extends ConsumerWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _ActionBtn(icon: Icons.share_outlined, label: 'Share', onTap: () {}),
+        // Key: PlayerKeys.repostButton
         GestureDetector(
+          key: const Key('player_repost_button'),
           onTap: () {
             final notifier = ref.read(engagementProvider(trackId).notifier);
             if (isReposted) {
@@ -50,7 +52,9 @@ class _BottomActions extends ConsumerWidget {
             ],
           ),
         ),
+        // Key: PlayerKeys.commentButton
         GestureDetector(
+          key: const Key('player_comment_button'),
           onTap: onComments,
           child: Column(
             mainAxisSize: MainAxisSize.min,

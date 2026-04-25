@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_tab_type.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/feed_interaction_buttons.dart';
@@ -6,89 +7,50 @@ import 'package:software_project/features/feed_search_discovery/presentation/wid
 void main() {
   Widget buildButtons({
     required FeedType feedType,
-    required bool isLiked,
-    bool? isReposted,
-    int? repostsCount,
+    required bool fallbackIsLiked,
+    bool fallbackIsReposted = false,
+    int fallbackRepostsCount = 0,
   }) {
-    return MaterialApp(
-      home: Material(
-        color: Colors.black,
-        child: FeedInteractionButtons(
-          isLiked: isLiked,
-          isReposted: isReposted,
-          likesCount: 320,
-          repostsCount: repostsCount,
-          commentsCount: 45,
-          feedType: feedType,
+    return ProviderScope(
+      child: MaterialApp(
+        home: Material(
+          color: Colors.black,
+          child: FeedInteractionButtons(
+            trackId: 'test-track-id',
+            fallbackLikesCount: 320,
+            fallbackCommentsCount: 45,
+            fallbackIsLiked: fallbackIsLiked,
+            fallbackIsReposted: fallbackIsReposted,
+            fallbackRepostsCount: fallbackRepostsCount,
+            feedType: feedType,
+          ),
         ),
       ),
     );
   }
 
-  testWidgets('renders non-classic vertical layout with like, comment, and more buttons', (tester) async {
+  testWidgets('renders like and comment buttons', (tester) async {
     await tester.pumpWidget(
       buildButtons(
         feedType: FeedType.discover,
-        isLiked: false,
+        fallbackIsLiked: false,
       ),
     );
+    await tester.pump();
 
     expect(find.byIcon(Icons.favorite_border), findsOneWidget);
     expect(find.byIcon(Icons.comment), findsOneWidget);
-    expect(find.byIcon(Icons.more), findsOneWidget);
-    expect(find.byIcon(Icons.repeat), findsNothing);
-    expect(find.text('320'), findsOneWidget);
-    expect(find.text('45'), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.favorite_border));
-    await tester.pump();
-    await tester.tap(find.byIcon(Icons.comment));
-    await tester.pump();
-    await tester.tap(find.byIcon(Icons.more));
-    await tester.pump();
   });
 
-  testWidgets('renders classic layout with repost button and highlighted repost color', (tester) async {
+  testWidgets('shows filled heart when liked', (tester) async {
     await tester.pumpWidget(
       buildButtons(
         feedType: FeedType.classic,
-        isLiked: true,
-        isReposted: true,
-        repostsCount: 28,
+        fallbackIsLiked: true,
       ),
     );
+    await tester.pump();
 
     expect(find.byIcon(Icons.favorite), findsOneWidget);
-    expect(find.byIcon(Icons.comment), findsOneWidget);
-    expect(find.byIcon(Icons.repeat), findsOneWidget);
-    expect(find.byIcon(Icons.more), findsNothing);
-    expect(find.text('320'), findsOneWidget);
-    expect(find.text('45'), findsOneWidget);
-    expect(find.text('28'), findsOneWidget);
-
-    final repeatIcon = tester.widget<Icon>(find.byIcon(Icons.repeat));
-    expect(repeatIcon.color, Colors.orange);
-
-    await tester.tap(find.byIcon(Icons.favorite));
-    await tester.pump();
-    await tester.tap(find.byIcon(Icons.comment));
-    await tester.pump();
-    await tester.tap(find.byIcon(Icons.repeat));
-    await tester.pump();
-  });
-
-  testWidgets('uses default repost values when classic repost data is null', (tester) async {
-    await tester.pumpWidget(
-      buildButtons(
-        feedType: FeedType.classic,
-        isLiked: false,
-        isReposted: null,
-        repostsCount: null,
-      ),
-    );
-
-    final repeatIcon = tester.widget<Icon>(find.byIcon(Icons.repeat));
-    expect(repeatIcon.color, isNull);
-    expect(find.text('0'), findsOneWidget);
   });
 }

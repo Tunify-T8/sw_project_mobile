@@ -51,7 +51,9 @@ class _TrackInfo extends StatelessWidget {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Key: PlayerKeys.likeButton
             GestureDetector(
+              key: const Key('player_like_button'),
               onTap: onLike,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -64,7 +66,9 @@ class _TrackInfo extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
+            // Key: PlayerKeys.likesCount
             GestureDetector(
+              key: const Key('player_likes_count'),
               onTap: onLikeCountTap, // engagement addition — tap count to open LikersScreen
               child: Text(
                 likeCount.toString(),

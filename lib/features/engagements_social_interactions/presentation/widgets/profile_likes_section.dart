@@ -1,28 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/reposted_track_entity.dart';
+import '../../domain/entities/liked_track_entity.dart';
 import '../provider/enagement_providers.dart';
-import '../screens/user_reposts_screen.dart';
+import '../screens/liked_tracks_screen.dart';
 import '../utils/engagement_formatters.dart';
 import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 
-class ProfileRepostsSection extends ConsumerStatefulWidget {
-  /// null → current user (GET /users/me/reposts)
-  /// non-null → another user (GET /users/{userId}/reposts)
-  const ProfileRepostsSection({super.key, this.userId});
+class ProfileLikesSection extends ConsumerStatefulWidget {
+  /// null → current user, non-null → another user
+  const ProfileLikesSection({super.key, this.userId});
 
   final String? userId;
 
   @override
-  ConsumerState<ProfileRepostsSection> createState() =>
-      _ProfileRepostsSectionState();
+  ConsumerState<ProfileLikesSection> createState() => _ProfileLikesSectionState();
 }
 
-class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
+class _ProfileLikesSectionState extends ConsumerState<ProfileLikesSection> {
   static const int _previewCount = 2;
 
-  List<RepostedTrackEntity> _tracks = [];
+  List<LikedTrackEntity> _tracks = [];
   bool _loading = true;
 
   @override
@@ -34,9 +32,21 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
   Future<void> _load() async {
     try {
       final tracks = await ref
-          .read(getUserRepostsUsecaseProvider)
-          .call(userId: widget.userId);
-      if (mounted) setState(() { _tracks = tracks; _loading = false; });
+          .read(getLikedTracksUsecaseProvider)
+          .call(viewerId: widget.userId ?? '');
+      if (mounted) {
+        // Seed engagement state as liked
+        for (final t in tracks) {
+          ref.read(engagementProvider(t.trackId).notifier).seedFromFeed(
+            likeCount: t.likesCount,
+            commentCount: t.commentsCount,
+            repostCount: 0,
+            isLiked: true,
+            isReposted: false,
+          );
+        }
+        setState(() { _tracks = tracks; _loading = false; });
+      }
     } catch (_) {
       if (mounted) setState(() { _loading = false; });
     }
@@ -57,7 +67,7 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 9),
                 child: Text(
-                  'Reposts',
+                  'Likes',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -65,12 +75,12 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
                   ),
                 ),
               ),
-              // Key: EngagementKeys.repostsSeeAllButton
+              // Key: EngagementKeys.likesSeeAllButton
               TextButton(
-                key: const Key('reposts_see_all_button'),
+                key: const Key('likes_see_all_button'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => UserRepostsScreen(userId: widget.userId),
+                    builder: (_) => const LikedTracksScreen(),
                   ),
                 ),
                 child: const Text(
@@ -99,7 +109,7 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
               separatorBuilder: (_, __) =>
                   const Divider(color: Colors.white10, height: 1),
               itemBuilder: (context, index) =>
-                  _RepostPreviewTile(track: _tracks[index]),
+                  _LikePreviewTile(track: _tracks[index]),
             ),
         ],
       ),
@@ -107,9 +117,9 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
   }
 }
 
-class _RepostPreviewTile extends ConsumerWidget {
-  const _RepostPreviewTile({required this.track});
-  final RepostedTrackEntity track;
+class _LikePreviewTile extends ConsumerWidget {
+  const _LikePreviewTile({required this.track});
+  final LikedTrackEntity track;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,17 +127,10 @@ class _RepostPreviewTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
+          // cover → fallback to artistAvatar → placeholder
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: track.coverUrl != null
-                ? Image.network(
-                    track.coverUrl!,
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholder(),
-                  )
-                : _placeholder(),
+            child: _buildCover(),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -157,11 +160,6 @@ class _RepostPreviewTile extends ConsumerWidget {
                     const Icon(Icons.play_arrow, size: 12, color: Colors.white38),
                     const SizedBox(width: 3),
                     Text(
-                      EngagementFormatters.compactCount(track.playCount),
-                      style: const TextStyle(color: Colors.white38, fontSize: 11),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
                       EngagementFormatters.timestamp(track.duration),
                       style: const TextStyle(color: Colors.white38, fontSize: 11),
                     ),
@@ -190,6 +188,20 @@ class _RepostPreviewTile extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildCover() {
+    final url = track.coverUrl ?? track.artistAvatar;
+    if (url != null) {
+      return Image.network(
+        url,
+        width: 52,
+        height: 52,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    return _placeholder();
   }
 
   Widget _placeholder() {

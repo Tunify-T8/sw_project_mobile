@@ -24,8 +24,10 @@ class FeedMenuSheet extends ConsumerWidget {
     required String label,
     required VoidCallback onTap,
     Color color = Colors.white,
+    Key? key,
   }) {
     return ListTile(
+      key: key,
       leading: Icon(icon, color: color),
       title: Text(label, style: TextStyle(color: color)),
       onTap: onTap,
@@ -40,6 +42,7 @@ class FeedMenuSheet extends ConsumerWidget {
         engagementState.engagement?.isReposted ?? track.interaction.isReposted;
     return [
       _createMenuItem(
+        key: const Key('feed_menu_like_item'),
         icon: isLiked ? Icons.favorite : Icons.favorite_border,
         label: isLiked ? 'Liked' : 'Like',
         color: isLiked ? Colors.orange : Colors.white,
@@ -84,7 +87,9 @@ class FeedMenuSheet extends ConsumerWidget {
         );
       },
     ),
+    // Key: FeedMenuKeys.commentItem
     _createMenuItem(
+      key: const Key('feed_menu_comment_item'),
       icon: Icons.comment_outlined,
       label: 'View comments',
       onTap: () {
@@ -97,7 +102,9 @@ class FeedMenuSheet extends ConsumerWidget {
         );
       },
     ),
+    // Key: FeedMenuKeys.repostItem
     _createMenuItem(
+      key: const Key('feed_menu_repost_item'),
       icon: isReposted ? Icons.repeat_on : Icons.repeat,
       label: isReposted ? 'Reposted' : 'Repost',
       color: isReposted ? Colors.orange : Colors.white,

@@ -177,7 +177,7 @@ class MockEngagementStore {
     final user = _usersById[viewerId] ??
         EngagementUserDto(
           id: viewerId,
-          username: 'user_$viewerId',
+          displayName: 'user_$viewerId',
           avatarUrl: null,
         );
 
@@ -254,7 +254,7 @@ class MockEngagementStore {
   }) {
     _usersById.putIfAbsent(
       id,
-      () => EngagementUserDto(id: id, username: username, avatarUrl: avatarUrl),
+      () => EngagementUserDto(id: id, displayName: username, avatarUrl: avatarUrl),
     );
   }
 
@@ -365,7 +365,7 @@ class MockEngagementStore {
     final user = _usersById[viewerId] ??
         EngagementUserDto(
           id: viewerId,
-          username: 'user_$viewerId',
+          displayName: 'user_$viewerId',
           avatarUrl: null,
         );
 

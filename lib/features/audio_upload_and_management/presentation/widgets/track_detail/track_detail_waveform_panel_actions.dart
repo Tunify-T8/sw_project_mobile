@@ -186,7 +186,9 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
               likeCount: likeCount,
             ),
             // Comment button — opens CommentsScreen
+            // Key: WaveformKeys.commentButton
             _ActionMetric(
+              key: const Key('waveform_comment_button'),
               icon: Icons.chat_bubble_outline,
               label: _fmtCount(commentCount),
               onTap: () => Navigator.of(context).push(
@@ -246,7 +248,9 @@ class _LikeMetric extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Key: WaveformKeys.likeButton
               GestureDetector(
+                key: const Key('waveform_like_button'),
                 onTap: () => ref
                     .read(engagementProvider(trackId).notifier)
                     .toggleLike(),
@@ -259,7 +263,9 @@ class _LikeMetric extends ConsumerWidget {
               ),
               if (likeCount > 0) ...[
                 const SizedBox(width: 6),
+                // Key: WaveformKeys.likesCount
                 GestureDetector(
+                  key: const Key('waveform_likes_count'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => LikersScreen(trackId: trackId),
@@ -284,7 +290,7 @@ class _LikeMetric extends ConsumerWidget {
 }
 
 class _ActionMetric extends StatelessWidget {
-  const _ActionMetric({required this.icon, required this.label, this.onTap});
+  const _ActionMetric({super.key, required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;

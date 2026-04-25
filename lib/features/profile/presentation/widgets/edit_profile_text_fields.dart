@@ -19,8 +19,9 @@ class EditProfileTextFields extends StatelessWidget {//controller are better 3ls
   });
 
   Widget buildField(String label, TextEditingController controller,
-      {int maxLength = 50}) {
+      {int maxLength = 50, Key? key}) {
     return TextField(
+      key: key,
       controller: controller,
       maxLength: maxLength,
       onChanged: (_) => onChanged(),
@@ -46,10 +47,14 @@ class EditProfileTextFields extends StatelessWidget {//controller are better 3ls
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          buildField('Display Name', nameController),
-          buildField('City', cityController, maxLength: 35),
+          // Key: ProfileKeys.displayNameField
+          buildField('Display Name', nameController, key: const Key('edit_profile_display_name_field')),
+          // Key: ProfileKeys.cityField
+          buildField('City', cityController, maxLength: 35, key: const Key('edit_profile_city_field')),
           ////buildField('Country', countryController, maxLength: 35),
+            // Key: ProfileKeys.countryTile
             ListTile(
+                key: const Key('edit_profile_country_tile'),
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Country', style: TextStyle(color: Colors.white70)),
                 subtitle: Text(countryController.text, style: const TextStyle(color: Colors.white)),
@@ -57,7 +62,8 @@ class EditProfileTextFields extends StatelessWidget {//controller are better 3ls
                 onTap: onCountryTap,
             ),
           ///////
-          buildField('Bio', bioController),
+          // Key: ProfileKeys.bioField
+          buildField('Bio', bioController, key: const Key('edit_profile_bio_field')),
           //buildField('Genre', genreController),
         ],
       ),

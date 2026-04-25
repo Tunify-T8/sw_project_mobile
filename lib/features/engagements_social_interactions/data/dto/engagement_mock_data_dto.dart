@@ -10,27 +10,27 @@ class EngagementMockDataDto {
   static final List<EngagementUserDto> users = <EngagementUserDto>[
     const EngagementUserDto(
       id: 'user_current_1',
-      username: 'darine',
+      displayName: 'darine',
       avatarUrl: 'https://i.pravatar.cc/150?img=47',
     ),
     const EngagementUserDto(
       id: 'user_2',
-      username: 'beatmaker_ali',
+      displayName: 'beatmaker_ali',
       avatarUrl: 'https://i.pravatar.cc/150?img=12',
     ),
     const EngagementUserDto(
       id: 'user_3',
-      username: 'sara_mix',
+      displayName: 'sara_mix',
       avatarUrl: 'https://i.pravatar.cc/150?img=23',
     ),
     const EngagementUserDto(
       id: 'user_4',
-      username: 'omar.wav',
+      displayName: 'omar.wav',
       avatarUrl: 'https://i.pravatar.cc/150?img=33',
     ),
     const EngagementUserDto(
       id: 'user_5',
-      username: 'nour_lofi',
+      displayName: 'nour_lofi',
       avatarUrl: 'https://i.pravatar.cc/150?img=41',
     ),
   ];

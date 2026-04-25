@@ -330,8 +330,6 @@ class _GenreTrackList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Zero-duration tracks still appear — SearchResultTileTrack hides
-    // the timer text, not the whole tile.
     final visible = tracks;
     if (visible.isEmpty) {
       return const _GenreEmptyState(message: 'No trending tracks yet.');
