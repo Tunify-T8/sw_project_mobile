@@ -1,54 +1,46 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
-import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../dto/notification_dto.dart';
 import '../mappers/notification_mapper.dart';
 import 'notification_socket.dart';
 
-/// Connects to the backend Socket.IO notifications namespace.
+/// Connects to the backend Socket.IO `/notifications` namespace.
 ///
-/// Backend: @WebSocketGateway({ namespace: '/notifications' })
-/// Auth:    socket.handshake.query.token <- JWT access token
-/// Event:   'notification' <- server emits the notification payload
+/// Backend lives behind Caddy:
+///   handle /socket.io* { reverse_proxy backend:3000 }
+///
+/// In `socket_io_client` (Dart) the namespace is taken from the URL path —
+/// the same form as the JS client used by the web frontend:
+///   io('https://tunify.duckdns.org/notifications', { transports: ['websocket'] })
+///
+/// The library handles port `0` (default HTTPS) internally and rewrites it to
+/// 443 before opening the socket. Any `:0` you see in error messages is a
+/// purely cosmetic side-effect of `dart:io`'s WebSocket exception formatter.
 class RealNotificationSocket implements NotificationSocket {
   RealNotificationSocket(this._tokenStorage);
 
   final TokenStorage _tokenStorage;
 
+  static const String _socketUrl = String.fromEnvironment(
+    'NOTIFICATION_WS_URL',
+    defaultValue: 'https://tunify.duckdns.org/notifications',
+  );
+
   io.Socket? _socket;
   final _controller = StreamController<NotificationEntity>.broadcast();
+
   bool _connected = false;
   bool _connecting = false;
   bool _disposed = false;
   int _reconnectAttempt = 0;
   Timer? _manualReconnectTimer;
   Timer? _tokenRefreshTimer;
-
-  static const String _configuredWsUrl = String.fromEnvironment(
-    'NOTIFICATION_WS_URL',
-    defaultValue: '',
-  );
-
-  /// Full Socket.IO namespace URL.
-  ///
-  /// Backend runs behind a reverse proxy that terminates TLS on 443 and
-  /// routes `/notifications` to the realtime service — no explicit port.
-  /// Example that the backend team verified:
-  ///   `io('https://tunify.duckdns.org/notifications', { query: { token } })`
-  static String get _socketUrl {
-    final configured = _configuredWsUrl.trim();
-    if (configured.isNotEmpty) return _stripTrailingSlash(configured);
-
-    final uri = Uri.parse(ApiEndpoints.baseUrl);
-    return '${uri.scheme}://${uri.host}/notifications';
-  }
 
   @override
   Stream<NotificationEntity> get notifications => _controller.stream;
@@ -64,10 +56,9 @@ class RealNotificationSocket implements NotificationSocket {
     try {
       final token = await _freshAccessToken();
       if (token == null || token.isEmpty) {
-        debugPrint('[NotificationSocket] No access token - skipping connect');
+        debugPrint('[NotificationSocket] No access token');
         return;
       }
-
       _openSocket(token);
       _scheduleTokenRefresh(token);
     } finally {
@@ -95,26 +86,20 @@ class RealNotificationSocket implements NotificationSocket {
     _manualReconnectTimer?.cancel();
     _socket?.dispose();
 
-    // URL  : https://host:443/notifications  — Socket.IO namespace
-    // Path : /socket.io                      — Engine.IO handshake path (NestJS default)
-    //
-    // Port must be explicit (443 for https) — socket_io_client v2 resolves to
-    // port 0 when the port is omitted from the URL.
-    //
-    // The app uses websocket transport directly; polling against the wrong
-    // REST endpoint was the source of HTTP 200 upgrade failures.
     debugPrint('[NotificationSocket] connecting to $_socketUrl');
+
     _socket = io.io(
       _socketUrl,
       io.OptionBuilder()
           .setTransports(['websocket'])
           .setPath('/socket.io')
+          .setQuery({'token': token})
           .enableReconnection()
           .setReconnectionAttempts(20)
           .setReconnectionDelay(1000)
           .setReconnectionDelayMax(10000)
           .disableAutoConnect()
-          .setQuery({'token': token})
+          .enableForceNew()
           .build(),
     );
 
@@ -136,12 +121,19 @@ class RealNotificationSocket implements NotificationSocket {
       _scheduleManualReconnect();
     });
 
+    _socket!.onError((err) {
+      debugPrint('[NotificationSocket] socket error: ${_safeError(err)}');
+    });
+
+    _socket!.on('authenticated', (_) {
+      debugPrint('[NotificationSocket] authenticated');
+    });
+
     _socket!.on('notification', (data) {
       try {
         final map = _notificationPayload(data);
         final dto = NotificationDto.fromJson(map);
-        final entity = NotificationMapper.notification(dto);
-        _controller.add(entity);
+        _controller.add(NotificationMapper.notification(dto));
       } catch (e) {
         debugPrint('[NotificationSocket] parse error: $e');
       }
@@ -153,7 +145,6 @@ class RealNotificationSocket implements NotificationSocket {
   Future<void> _reconnect({bool forceRefresh = false}) async {
     if (_disposed || _connecting) return;
     _connecting = true;
-
     try {
       _connected = false;
       _socket?.disconnect();
@@ -174,7 +165,6 @@ class RealNotificationSocket implements NotificationSocket {
     if (_disposed || _connected || _manualReconnectTimer?.isActive == true) {
       return;
     }
-
     final seconds = (1 << _reconnectAttempt).clamp(1, 30).toInt();
     _reconnectAttempt = (_reconnectAttempt + 1).clamp(0, 5).toInt();
     _manualReconnectTimer = Timer(Duration(seconds: seconds), () {
@@ -184,10 +174,8 @@ class RealNotificationSocket implements NotificationSocket {
 
   void _scheduleTokenRefresh(String token) {
     _tokenRefreshTimer?.cancel();
-
     final expiresAt = _jwtExpiry(token);
     if (expiresAt == null) return;
-
     final refreshAt = expiresAt.subtract(const Duration(minutes: 2));
     final delay = refreshAt.difference(DateTime.now());
     _tokenRefreshTimer = Timer(
@@ -198,62 +186,14 @@ class RealNotificationSocket implements NotificationSocket {
 
   Future<String?> _freshAccessToken({bool forceRefresh = false}) async {
     final accessToken = await _tokenStorage.getAccessToken();
-    if (!forceRefresh && !_isExpiringSoon(accessToken)) {
-      return accessToken;
-    }
-
-    final refreshToken = await _tokenStorage.getRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) return accessToken;
-
-    try {
-      final dio = Dio(BaseOptions(baseUrl: ApiEndpoints.baseUrl));
-      final response = await dio.post(
-        ApiEndpoints.refreshToken,
-        data: {'refreshToken': refreshToken},
-      );
-
-      final body = _map(response.data);
-      final nested = body['data'];
-      final data = nested is Map ? _map(nested) : body;
-      final newAccessToken = data['accessToken'] as String?;
-      final newRefreshToken = data['refreshToken'] as String?;
-      if (newAccessToken == null || newRefreshToken == null) {
-        return accessToken;
-      }
-
-      await _tokenStorage.saveTokens(
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-      );
-      return newAccessToken;
-    } on DioException catch (e) {
-      debugPrint(
-        '[NotificationSocket] token refresh failed: ${_safeDioError(e)}',
-      );
-      return _isExpired(accessToken) ? null : accessToken;
-    } catch (e) {
-      debugPrint('[NotificationSocket] token refresh failed: ${e.runtimeType}');
-      return _isExpired(accessToken) ? null : accessToken;
-    }
-  }
-
-  bool _isExpiringSoon(String? token) {
-    final expiresAt = _jwtExpiry(token);
-    if (expiresAt == null) return token == null || token.isEmpty;
-    return expiresAt.difference(DateTime.now()) < const Duration(minutes: 2);
-  }
-
-  bool _isExpired(String? token) {
-    final expiresAt = _jwtExpiry(token);
-    if (expiresAt == null) return token == null || token.isEmpty;
-    return !expiresAt.isAfter(DateTime.now());
+    if (accessToken == null || accessToken.isEmpty) return null;
+    return accessToken;
   }
 
   DateTime? _jwtExpiry(String? token) {
     if (token == null || token.isEmpty) return null;
     final parts = token.split('.');
     if (parts.length != 3) return null;
-
     try {
       final payload = utf8.decode(
         base64Url.decode(base64Url.normalize(parts[1])),
@@ -279,28 +219,11 @@ class RealNotificationSocket implements NotificationSocket {
     if (value is Map) {
       return value.map((key, val) => MapEntry(key.toString(), val));
     }
-    throw StateError('Expected map payload');
+    return <String, dynamic>{};
   }
 
   String _safeError(Object? error) {
     final text = error?.toString() ?? 'unknown';
     return text.replaceAll(RegExp(r'token=[^&\s#]+'), 'token=<redacted>');
-  }
-
-  String _safeDioError(DioException error) {
-    final status = error.response?.statusCode;
-    final data = error.response?.data;
-    final message = data is Map && data['message'] != null
-        ? data['message'].toString()
-        : error.message;
-    return 'status=${status ?? 'none'}, message=$message';
-  }
-
-  static String _stripTrailingSlash(String value) {
-    var result = value;
-    while (result.endsWith('/')) {
-      result = result.substring(0, result.length - 1);
-    }
-    return result;
   }
 }
