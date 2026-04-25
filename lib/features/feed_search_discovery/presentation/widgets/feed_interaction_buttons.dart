@@ -49,14 +49,18 @@ class _FeedInteractionButtonsState
       if (!mounted) return;
       final state = ref.read(engagementProvider(widget.trackId));
       if (state.engagementStatus == EngagementStatus.initial) {
-        ref.read(engagementProvider(widget.trackId).notifier).seedFromFeed(
-          likeCount: widget.fallbackLikesCount,
-          commentCount: widget.fallbackCommentsCount,
-          isLiked: widget.fallbackIsLiked,
-          isReposted: widget.fallbackIsReposted,
-          repostCount: widget.fallbackRepostsCount,
-        );
-        await ref.read(engagementProvider(widget.trackId).notifier).loadEngagement();
+        ref
+            .read(engagementProvider(widget.trackId).notifier)
+            .seedFromFeed(
+              likeCount: widget.fallbackLikesCount,
+              commentCount: widget.fallbackCommentsCount,
+              isLiked: widget.fallbackIsLiked,
+              isReposted: widget.fallbackIsReposted,
+              repostCount: widget.fallbackRepostsCount,
+            );
+        await ref
+            .read(engagementProvider(widget.trackId).notifier)
+            .loadEngagement();
       }
     });
   }
@@ -100,7 +104,9 @@ class _FeedInteractionButtonsState
           final currentCommentsCount =
               state.engagement?.commentCount ?? widget.fallbackCommentsCount;
           // ignore: avoid_print
-          print('[FeedInteractionButtons] navigating to comments: trackId=${widget.trackId}, commentsCount=$currentCommentsCount');
+          print(
+            '[FeedInteractionButtons] navigating to comments: trackId=${widget.trackId}, commentsCount=$currentCommentsCount',
+          );
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => CommentsScreen(
@@ -121,22 +127,29 @@ class _FeedInteractionButtonsState
         commentsCount.toString(),
         style: const TextStyle(color: Colors.white, fontSize: 15),
       ),
-      IconButton(
-        key: const Key('feed_playlist_add_button'),
-        onPressed: () {},
-        icon: const Icon(Icons.playlist_add, color: Colors.white),
-        padding: EdgeInsets.zero,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
-      if (widget.feedViewMode == FeedViewMode.classic)
-        _RepostButton(
-          trackId: widget.trackId,
-          trackTitle: widget.trackTitle ?? '',
-          artistName: widget.artistName ?? '',
-          coverUrl: widget.coverUrl,
-          state: state,
-        ),
+
+      (widget.feedViewMode == FeedViewMode.discover)
+          ? IconButton(
+              key: const Key('feed_playlist_add_button'),
+              onPressed: () {},
+              icon: const Icon(Icons.playlist_add, color: Colors.white),
+              padding: EdgeInsets.zero,
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(width: 8),
+                _RepostButton(
+                  trackId: widget.trackId,
+                  trackTitle: widget.trackTitle ?? '',
+                  artistName: widget.artistName ?? '',
+                  coverUrl: widget.coverUrl,
+                  state: state,
+                ),
+              ],
+            ),
     ];
 
     return (widget.feedViewMode == FeedViewMode.discover)
@@ -165,7 +178,7 @@ class _RepostButton extends ConsumerWidget {
     final isReposted = state.engagement?.isReposted ?? false;
     final repostCount = state.engagement?.repostCount ?? 0;
 
-    return Column(
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
@@ -195,6 +208,7 @@ class _RepostButton extends ConsumerWidget {
             size: 28,
           ),
         ),
+        SizedBox(width: 8,),
         GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
