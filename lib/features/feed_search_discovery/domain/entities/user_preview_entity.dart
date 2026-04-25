@@ -3,7 +3,7 @@ class UserPreviewEntity {
   final String username;
   final String? avatarUrl;
   final int followersCount;
-  final bool verified;
+  final bool isCertified;
   final String? location;
   final bool isFollowing;
 
@@ -12,7 +12,7 @@ class UserPreviewEntity {
     required this.username,
     this.avatarUrl,
     required this.followersCount,
-    required this.verified,
+    required this.isCertified,
     this.location,
     required this.isFollowing,
   });
@@ -22,7 +22,7 @@ class UserPreviewEntity {
     String? username,
     String? avatarUrl,
     int? followersCount,
-    bool? verified,
+    bool? isCertified,
     String? location,
     bool? isFollowing,
   }) {
@@ -31,7 +31,7 @@ class UserPreviewEntity {
       username: username ?? this.username,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       followersCount: followersCount ?? this.followersCount,
-      verified: verified ?? this.verified,
+      isCertified: isCertified ?? this.isCertified,
       location: location ?? this.location,
       isFollowing: isFollowing ?? this.isFollowing,
     );

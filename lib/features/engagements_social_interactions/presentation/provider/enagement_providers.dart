@@ -5,9 +5,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/profile/presentation/providers/profile_provider.dart';
 import '../../data/api/real_engagement_api.dart';
-import '../../data/repository/engagement_repository_impl.dart';
 import '../../data/repository/real_engagement_repository_impl.dart';
-import '../../data/services/mock_engagement_store.dart';
 import '../../domain/repositories/engagement_repository.dart';
 import '../../domain/usecases/get_track_engagement_usecase.dart';
 import '../../domain/usecases/toggle_like_usecase.dart';
@@ -32,21 +30,11 @@ import 'engagement_state.dart';
 
 //Infrastructure
 
-// Set to false to use the real backend
-const bool _useMockEngagement = false;
-
-final mockEngagementStoreProvider = Provider<MockEngagementStore>((ref) {
-  return MockEngagementStore();
-});
-
 final _realEngagementApiProvider = Provider<RealEngagementApi>((ref) {
   return RealEngagementApi(dio: ref.watch(dioProvider));
 });
 
 final engagementRepositoryProvider = Provider<EngagementRepository>((ref) {
-  if (_useMockEngagement) {
-    return EngagementRepositoryImpl(store: ref.watch(mockEngagementStoreProvider));
-  }
   return RealEngagementRepositoryImpl(api: ref.watch(_realEngagementApiProvider));
 });
 

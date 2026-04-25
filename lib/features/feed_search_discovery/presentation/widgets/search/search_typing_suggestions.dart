@@ -109,7 +109,7 @@ class _SuggestionsList extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (profileMatch.isVerified) ...[
+                if (profileMatch.isCertified) ...[
                   const SizedBox(width: 4),
                   const Icon(Icons.verified, color: Colors.blue, size: 14),
                 ],
@@ -295,7 +295,7 @@ class _RecentResultTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (isProfile && item.isVerified) ...[
+          if (isProfile && item.isCertified) ...[
             const SizedBox(width: 4),
             const Icon(Icons.verified, color: Colors.blue, size: 14),
           ],

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../core/utils/navigation_utils.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
@@ -127,6 +128,7 @@ class GenreDetailScreen extends ConsumerWidget {
                       detail: state.detail,
                       genreId: genreId,
                       genreLabel: genreLabel,
+                      currentUserId: ref.read(authControllerProvider).value?.id,
                     ),
                     _GenreTrackList(tracks: state.detail?.trendingTracks ?? []),
                     _GenrePlaylistList(
@@ -148,11 +150,13 @@ class _GenreAllTab extends StatelessWidget {
     required this.detail,
     required this.genreId,
     required this.genreLabel,
+    this.currentUserId,
   });
 
   final GenreDetailEntity? detail;
   final String genreId;
   final String genreLabel;
+  final String? currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +287,10 @@ class _GenreAllTab extends StatelessWidget {
               itemCount: detail!.profiles.length,
               separatorBuilder: (context, index) => const SizedBox(width: 16),
               itemBuilder: (context, i) =>
-                  _ProfileCard(profile: detail!.profiles[i]),
+                  _ProfileCard(
+                    profile: detail!.profiles[i],
+                    currentUserId: currentUserId,
+                  ),
             ),
           ),
         ],
@@ -487,15 +494,12 @@ class _PlaylistCard extends StatelessWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.profile});
+  const _ProfileCard({required this.profile, this.currentUserId});
   final ProfileResultEntity profile;
+  final String? currentUserId;
 
   void _open(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => OtherUserProfileScreen(userId: profile.id),
-      ),
-    );
+    navigateToProfile(context, profile.id, currentUserId: currentUserId);
   }
 
   @override

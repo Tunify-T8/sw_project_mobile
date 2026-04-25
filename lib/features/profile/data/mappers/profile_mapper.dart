@@ -19,7 +19,7 @@ class ProfileMapper {
     final country = commaIndex >= 0 ? locationRaw.substring(commaIndex + 1).trim() : '';
 
     return ProfileDto(
-      id: user['id'] ?? '',          
+      id: user['id'] ?? '',
       userName: user['username'] ?? '',
       displayName: user['displayName'], 
       email: user['email'] ?? '',     

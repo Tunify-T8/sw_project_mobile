@@ -3,7 +3,7 @@ class UserPreviewDto {
   final String username;
   final String? avatarUrl;
   final int followersCount;
-  final bool verified;
+  final bool isCertified;
   final String? location;
   final bool isFollowing;
 
@@ -12,7 +12,7 @@ class UserPreviewDto {
     required this.username,
     this.avatarUrl,
     required this.followersCount,
-    required this.verified,
+    required this.isCertified,
     this.location,
     required this.isFollowing,
   });
@@ -23,7 +23,7 @@ class UserPreviewDto {
       username: json['username']?.toString() ?? '',
       avatarUrl: json['avatarUrl']?.toString(),
       followersCount: json['followersCount'] ?? 0,
-      verified: json['verified'] ?? false,
+      isCertified: (json['isCertified'] as bool?) ?? (json['verified'] as bool?) ?? false,
       location: json['location']?.toString(),
       isFollowing: json['isFollowing'] ?? false,
     );

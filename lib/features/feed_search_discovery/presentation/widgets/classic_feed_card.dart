@@ -5,7 +5,8 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import '../../domain/entities/feed_item_entity.dart';
 import 'feed_activity_row.dart';
 import 'feed_interaction_buttons.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../widgets/feed_menu_sheet.dart';
 
 class ClassicFeedCard extends ConsumerWidget {
@@ -21,11 +22,10 @@ class ClassicFeedCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () => Navigator.push(
+            onTap: () => navigateToProfile(
               context,
-              MaterialPageRoute(
-                builder: (_) => OtherUserProfileScreen(userId: item.actor.id),
-              ),
+              item.actor.id,
+              currentUserId: ref.read(authControllerProvider).value?.id,
             ),
             child: FeedActivityRow(
               avatarUrl: item.actor.avatarUrl,
@@ -89,13 +89,10 @@ class ClassicFeedCard extends ConsumerWidget {
                       decoration: BoxDecoration(color: Colors.black),
                       padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                       child: GestureDetector(
-                        onTap: () => Navigator.push(
+                        onTap: () => navigateToProfile(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => OtherUserProfileScreen(
-                              userId: item.track.artistId,
-                            ),
-                          ),
+                          item.track.artistId,
+                          currentUserId: ref.read(authControllerProvider).value?.id,
                         ),
                         child: Text(
                           item.track.artistName,

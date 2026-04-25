@@ -3,11 +3,13 @@ class EngagementUserDto {
     required this.id,
     required this.displayName,
     this.avatarUrl,
+    this.isCertified = false,
   });
 
   final String id;
   final String displayName;
   final String? avatarUrl;
+  final bool isCertified;
 
   factory EngagementUserDto.fromJson(Map<String, dynamic> json) {
     return EngagementUserDto(
@@ -16,6 +18,7 @@ class EngagementUserDto {
           ? json['displayName'] as String
           : (json['username'] as String?) ?? '',
       avatarUrl: json['avatarUrl'] as String?,
+      isCertified: (json['isCertified'] as bool?) ?? false,
     );
   }
 
@@ -24,6 +27,7 @@ class EngagementUserDto {
       'id': id,
       'displayName': displayName,
       'avatarUrl': avatarUrl,
+      'isCertified': isCertified,
     };
   }
 }

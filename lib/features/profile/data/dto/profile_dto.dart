@@ -66,7 +66,7 @@ class ProfileDto {
       tracksCount: json['tracksCount'] as int?,
       likesReceived: json['likesReceived'] as int?,
       isActive: json['isActive'] as bool?,
-      isCertified: json['isVerified'] as bool?, // Note: API uses 'isVerified', we map to 'isCertified'
+      isCertified: (json['isCertified'] as bool?) ?? (json['isVerified'] as bool?),
       followersCount: json['followersCount'] as int?,
       followingCount: json['followingCount'] as int?,
       userName: json['username'] as String? ?? '',

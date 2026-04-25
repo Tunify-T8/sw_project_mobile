@@ -6,7 +6,8 @@ import '../../../engagements_social_interactions/presentation/screens/comments_s
 import '../../domain/entities/feed_view_mode.dart';
 import '../providers/feed_view_provider.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 
 class FeedMenuSheet extends ConsumerWidget {
   // engagement modification — was StatelessWidget, converted to ConsumerWidget
@@ -79,11 +80,10 @@ class FeedMenuSheet extends ConsumerWidget {
       label: 'Go to profile',
       onTap: () {
         Navigator.pop(context);
-        Navigator.push(
+        navigateToProfile(
           context,
-          MaterialPageRoute(
-            builder: (_) => OtherUserProfileScreen(userId: track.artistId),
-          ),
+          track.artistId,
+          currentUserId: ref.read(authControllerProvider).value?.id,
         );
       },
     ),

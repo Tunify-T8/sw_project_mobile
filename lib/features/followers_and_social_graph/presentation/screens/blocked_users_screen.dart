@@ -6,7 +6,8 @@ import '../providers/network_lists_notifier.dart';
 import '../widgets/network_lists_empty_state.dart';
 import '../widgets/network_lists_error_state.dart';
 import '../widgets/user_social_tile.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class BlockedUsersScreen extends ConsumerStatefulWidget {
   const BlockedUsersScreen({super.key});
@@ -77,16 +78,14 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
                   itemBuilder: (context, index) {
                     final user = users[index];
 
+                    final currentUserId = ref.read(authControllerProvider).value?.id;
                     return UserSocialTile(
                       key: ValueKey('blocked_user_tile_${user.id}'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OtherUserProfileScreen(userId: user.id),
-                          ),
-                        );
-                      },
+                      onTap: () => navigateToProfile(
+                        context,
+                        user.id,
+                        currentUserId: currentUserId,
+                      ),
                       user: user,
                       listType: NetworkListType.blocked,
                       onToggleNotifications: null,

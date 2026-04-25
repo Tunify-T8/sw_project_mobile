@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../features/profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../../core/utils/navigation_utils.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
@@ -85,10 +86,10 @@ class SearchSeeAllScreen extends ConsumerWidget {
           return SearchResultTileProfile(
             profile: profile,
             // FIX: was missing onTap — profiles now navigate to profile screen
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => OtherUserProfileScreen(userId: profile.id),
-              ),
+            onTap: () => navigateToProfile(
+              context,
+              profile.id,
+              currentUserId: ref.read(authControllerProvider).value?.id,
             ),
           );
         },

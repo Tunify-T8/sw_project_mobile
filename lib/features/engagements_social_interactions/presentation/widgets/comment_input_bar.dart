@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
-import '../../data/services/mock_engagement_store.dart';
 import '../provider/enagement_providers.dart';
 import '../utils/engagement_formatters.dart';
 
@@ -81,13 +80,6 @@ class _CommentInputBarState extends ConsumerState<CommentInputBar> {
     final replyTarget = widget.replyingToCommentId;
     if (replyTarget != null) {
       final authUser = ref.read(authControllerProvider).value;
-      if (authUser != null) {
-        ref.read(mockEngagementStoreProvider).seedUser(
-          id: authUser.id,
-          username: authUser.username,
-          avatarUrl: authUser.avatarUrl,
-        );
-      }
       await ref.read(addReplyUsecaseProvider).call(
             commentId: replyTarget,
             viewerId: authUser?.id ?? 'user_current_1',

@@ -32,7 +32,7 @@ class RecentResultItem {
     required this.title,
     required this.subtitle,
     this.artworkUrl,
-    this.isVerified = false,
+    this.isCertified = false,
     // Added for play-on-tap from Recently Played row.
     this.track,
   });
@@ -42,7 +42,7 @@ class RecentResultItem {
   final String title;
   final String subtitle;
   final String? artworkUrl;
-  final bool isVerified;
+  final bool isCertified;
 
   /// Attached for track items so tapping a recently-played card can replay it.
   /// Not present on album/playlist/profile items.
@@ -696,7 +696,7 @@ class SearchNotifier extends Notifier<SearchState> {
         title: top.title,
         subtitle: top.subtitle,
         artworkUrl: top.artworkUrl,
-        isVerified: top.type == TopResultType.profile,
+        isCertified: top.type == TopResultType.profile,
       ),
     );
 

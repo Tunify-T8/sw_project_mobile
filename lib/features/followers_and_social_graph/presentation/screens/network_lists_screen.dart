@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
 import '../providers/utils/network_list_view_mapper.dart';
@@ -118,18 +119,16 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                         ? users[index - 1]
                         : users[index];
 
+                    final currentUserId = ref.read(authControllerProvider).value?.id;
                     return UserSocialTile(
                       key: ValueKey('${widget.listType.name}_user_tile_${user.id}'),
                       user: user,
                       listType: widget.listType,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OtherUserProfileScreen(userId: user.id),
-                          ),
-                        );
-                      },
+                      onTap: () => navigateToProfile(
+                        context,
+                        user.id,
+                        currentUserId: currentUserId,
+                      ),
                       onToggleNotifications: null,
                     );
                   },

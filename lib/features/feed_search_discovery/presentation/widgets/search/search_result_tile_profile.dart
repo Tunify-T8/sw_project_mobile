@@ -17,7 +17,7 @@ class SearchResultTileProfile extends StatelessWidget {
   Widget build(BuildContext context) {
     final secondLine = profile.location?.isNotEmpty == true
         ? profile.location!
-        : profile.isVerified
+        : profile.isCertified
         ? 'Verified'
         : null;
 
@@ -48,7 +48,7 @@ class SearchResultTileProfile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (profile.isVerified) ...[
+          if (profile.isCertified) ...[
             const SizedBox(width: 4),
             const Icon(Icons.verified, color: Colors.blue, size: 14),
           ],
