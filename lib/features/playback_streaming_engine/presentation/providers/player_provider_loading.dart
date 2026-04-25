@@ -17,6 +17,16 @@ extension PlayerNotifierLoading on PlayerNotifier {
     _progressReportTimer?.cancel();
     await _audioPlayer.stop();
 
+    // FIX: always clear the loaded-source cache so _prepareAudioSource
+    // unconditionally sets a fresh audio source on every loadTrack call.
+    // Without this, if Account B loads the same trackId that Account A had
+    // loaded (the cache survived the account switch), the source-key equality
+    // check inside _prepareAudioSource skips setAudioSource entirely — leaving
+    // just_audio in a stopped state with no playable source, which causes the
+    // player screen to hang at paused indefinitely.
+    _loadedTrackId = null;
+    _loadedSourceKey = null;
+
     final provisionalBundle = seedTrack?.toPlaybackBundle();
     if (provisionalBundle != null) {
       _setPlayerState(
@@ -29,11 +39,17 @@ extension PlayerNotifierLoading on PlayerNotifier {
           volume: previous?.volume ?? 1.0,
           isBuffering: true,
           localFilePath: seedTrack?.localFilePath,
+          privateToken: privateToken,
         ),
       );
     } else if (previous != null) {
       _setPlayerState(
-        previous.copyWith(isPlaying: false, isBuffering: true, queue: queue),
+        previous.copyWith(
+          isPlaying: false,
+          isBuffering: true,
+          queue: queue,
+          privateToken: privateToken,
+        ),
       );
     } else {
       _setAsyncState(const AsyncLoading());
@@ -50,6 +66,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
         final source = await _resolvePlaybackSource(
           trackId,
           seedTrack: seedTrack,
+          privateToken: privateToken,
         );
 
         final initialPosition = _initialPositionFor(bundle).toDouble();
@@ -66,6 +83,7 @@ extension PlayerNotifierLoading on PlayerNotifier {
           volume: previous?.volume ?? 1.0,
           isBuffering: false,
           mediaDurationSeconds: bundle.durationSeconds.toDouble(),
+          privateToken: privateToken,
         );
 
         await _prepareAudioSource(nextState, force: true);
@@ -81,6 +99,10 @@ extension PlayerNotifierLoading on PlayerNotifier {
       }),
     );
 
+    if (state.hasError) {
+      debugPrint('loadTrack failed for $trackId: ${state.error}');
+    }
+
     if (state.asData?.value != null) {
       await _persistCurrentSession(
         playerState: state.asData!.value,
@@ -90,6 +112,25 @@ extension PlayerNotifierLoading on PlayerNotifier {
 
     if (autoPlay && state.asData?.value != null) {
       await play();
+    }
+
+    // Kick off the "more by this artist" enrichment now that the real bundle
+    // is in state. Doing it here (instead of polling from the launcher) makes
+    // the trigger reliable: we only run it when artist.id is real, never on
+    // the seed bundle's empty placeholder. Fire-and-forget — audio start
+    // never waits on this.
+    final landed = state.asData?.value;
+    final landedArtistId = landed?.bundle?.artist.id;
+    if (landed != null &&
+        landed.bundle?.trackId == trackId &&
+        landedArtistId != null &&
+        landedArtistId.trim().isNotEmpty) {
+      unawaited(
+        enrichQueueWithArtistTracks(
+          artistUserId: landedArtistId,
+          anchorTrackId: trackId,
+        ),
+      );
     }
   }
 

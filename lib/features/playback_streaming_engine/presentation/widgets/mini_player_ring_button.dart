@@ -13,18 +13,20 @@ class _RingPlayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sizes reduced to fit the compact mini-player:
+    // outer ring 62→48, inner disc 52→38, icon 30→22.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
-        width: 62,
-        height: 62,
+        width: 48,
+        height: 48,
         child: Stack(
           alignment: Alignment.center,
           children: [
             SizedBox(
-              width: 62,
-              height: 62,
+              width: 48,
+              height: 48,
               child: TweenAnimationBuilder<double>(
                 tween: Tween<double>(end: progress),
                 duration: const Duration(milliseconds: 180),
@@ -32,7 +34,7 @@ class _RingPlayButton extends StatelessWidget {
                 builder: (context, value, _) {
                   return CircularProgressIndicator(
                     value: value,
-                    strokeWidth: 3.6,
+                    strokeWidth: 3.0,
                     backgroundColor: Colors.white10,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       AppColors.primary,
@@ -42,8 +44,8 @@ class _RingPlayButton extends StatelessWidget {
               ),
             ),
             Container(
-              width: 52,
-              height: 52,
+              width: 38,
+              height: 38,
               decoration: const BoxDecoration(
                 color: Colors.black,
                 shape: BoxShape.circle,
@@ -55,7 +57,7 @@ class _RingPlayButton extends StatelessWidget {
                     isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                     key: ValueKey(isPlaying),
                     color: Colors.white,
-                    size: 30,
+                    size: 22,
                   ),
                 ),
               ),

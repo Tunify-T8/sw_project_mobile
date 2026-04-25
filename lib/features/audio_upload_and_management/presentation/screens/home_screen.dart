@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
@@ -10,6 +11,7 @@ import '../utils/upload_error_snackbar.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
+import '../../../../core/routing/routes.dart';
 import '../widgets/home/home_top_bar.dart';
 import 'artist_home_screen.dart';
 
@@ -27,6 +29,9 @@ class HomeScreen extends ConsumerWidget {
     final libraryState = ref.watch(libraryUploadsProvider);
     final uploadState = ref.watch(uploadProvider);
     final historyAsync = ref.watch(listeningHistoryProvider);
+    final hasUnreadMessages = ref.watch(
+      conversationsControllerProvider.select((state) => state.totalUnread > 0),
+    );
 
     // Prefer the most recently played track for the "Picked for you" hero card.
     // Fall back to the most recent upload if history is empty/loading.
@@ -71,6 +76,7 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       HomeTopBar(
                         isBusy: uploadState.isBusy,
+                        hasUnreadMessages: hasUnreadMessages,
                         onOpenArtistHome: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -79,6 +85,10 @@ class HomeScreen extends ConsumerWidget {
                           );
                         },
                         onStartUpload: () => startUploadFlow(context, ref),
+                        onOpenMessaging: () {
+                          Navigator.of(context)
+                              .pushNamed(Routes.messagingActivity);
+                        },
                       ),
                       const Padding(
                         padding: EdgeInsets.fromLTRB(18, 8, 18, 4),

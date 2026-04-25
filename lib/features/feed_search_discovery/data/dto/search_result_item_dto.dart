@@ -120,6 +120,7 @@ class SearchUserItemDto {
   final String id;
   final String username;
   final String? displayName;
+  final String? avatarUrl;
   final String? location;
   final bool isCertified;
   final int followersCount;
@@ -130,6 +131,7 @@ class SearchUserItemDto {
     required this.id,
     required this.username,
     this.displayName,
+    this.avatarUrl,
     this.location,
     required this.isCertified,
     required this.followersCount,
@@ -142,6 +144,7 @@ class SearchUserItemDto {
       id: json['id']?.toString() ?? '',
       username: json['username']?.toString() ?? '',
       displayName: json['displayName']?.toString(),
+      avatarUrl: json['avatarUrl']?.toString(),
       location: json['location']?.toString(),
       isCertified: json['isCertified'] as bool? ?? false,
       followersCount: json['followersCount'] as int? ?? 0,

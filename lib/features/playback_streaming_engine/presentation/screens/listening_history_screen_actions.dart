@@ -45,23 +45,43 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
   ) async {
     if (track.status == PlaybackStatus.blocked) return;
 
-    final trackIds = historyTracks
-        .map((item) => item.trackId)
-        .toList(growable: false);
-    final currentIndex = trackIds.indexOf(track.trackId);
     final store = ref.read(globalTrackStoreProvider);
     final stored = storedUploadItemForTrack(store, track.trackId);
     final seedTrack = _seedTrackFromHistory(track, stored);
 
-    await ref
-        .read(playerProvider.notifier)
-        .loadTrackWithQueue(
-          trackId: track.trackId,
-          trackIds: trackIds,
-          currentIndex: currentIndex < 0 ? 0 : currentIndex,
-          autoPlay: true,
-          seedTrack: seedTrack,
-        );
+    // Opened from Listening history → "next up" should be the next song
+    // in the user's history, not "more by this artist". We build the queue
+    // from the playable history tracks and anchor it at the tapped track.
+    // The queue is marked with QueueSource.history so
+    // enrichQueueWithArtistTracks will skip it and leave the order intact.
+    final playableHistory = historyTracks
+        .where((item) => item.status != PlaybackStatus.blocked)
+        .toList(growable: false);
+    final queueTrackIds = playableHistory
+        .map((item) => item.trackId)
+        .toList(growable: false);
+    final startIndex = queueTrackIds.indexOf(track.trackId);
+
+    if (startIndex >= 0 && queueTrackIds.length > 1) {
+      await ref.read(playerProvider.notifier).loadTrack(
+            track.trackId,
+            autoPlay: true,
+            seedTrack: seedTrack,
+            queue: PlaybackQueue(
+              trackIds: queueTrackIds,
+              currentIndex: startIndex,
+              shuffle: false,
+              repeat: RepeatMode.none,
+              source: QueueSource.history,
+            ),
+          );
+    } else {
+      await ref.read(playerProvider.notifier).loadTrack(
+            track.trackId,
+            autoPlay: true,
+            seedTrack: seedTrack,
+          );
+    }
 
     if (!context.mounted) return;
 

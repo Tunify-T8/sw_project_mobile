@@ -4,6 +4,9 @@ import 'package:software_project/core/routing/routes.dart';
 
 import '../features/audio_upload_and_management/presentation/screens/home_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/library_screen.dart';
+import '../features/feed_search_discovery/domain/entities/feed_view_mode.dart';
+import '../features/feed_search_discovery/presentation/providers/feed_view_provider.dart';
+import '../features/feed_search_discovery/presentation/screens/classic_feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/search_screen.dart';
 import '../features/playback_streaming_engine/presentation/widgets/mini_player.dart';
@@ -12,6 +15,10 @@ import 'router.dart';
 
 class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({super.key});
+
+  /// Allows pushed screens (e.g. messaging) to switch the active bottom tab
+  /// before popping back. The shell listens to this notifier and rebuilds.
+  static final ValueNotifier<int> tabNotifier = ValueNotifier<int>(0);
 
   @override
   ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
@@ -31,6 +38,18 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         ),
       );
     });
+    MainShellScreen.tabNotifier.addListener(_onExternalTabChange);
+  }
+
+  @override
+  void dispose() {
+    MainShellScreen.tabNotifier.removeListener(_onExternalTabChange);
+    super.dispose();
+  }
+
+  void _onExternalTabChange() {
+    final next = MainShellScreen.tabNotifier.value;
+    if (mounted && next != _index) setState(() => _index = next);
   }
 
   @override
@@ -49,7 +68,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           index: _index,
           children: [
             const HomeScreen(),
-            const FeedScreen(),
+            ref.watch(feedViewModeProvider) == FeedViewMode.classic
+                ? const ClassicFeedScreen()
+                : const FeedScreen(),
             const SearchScreen(),
             LibraryScreen(
               onOpenSettings: () =>
@@ -78,7 +99,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: _SCBottomBar(
                 selectedIndex: _index,
-                onTap: (i) => setState(() => _index = i),
+                onTap: (i) {
+                  MainShellScreen.tabNotifier.value = i;
+                  setState(() => _index = i);
+                },
               ),
             ),
           ],

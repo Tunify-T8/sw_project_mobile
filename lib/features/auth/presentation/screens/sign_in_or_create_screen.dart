@@ -7,6 +7,7 @@ import 'package:software_project/core/design_system/spacing.dart';
 import 'package:software_project/core/design_system/typography.dart';
 import 'package:software_project/core/errors/failure.dart';
 import 'package:software_project/core/utils/url_launcher_util.dart';
+import 'package:software_project/core/utils/validators.dart';
 import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 
 /// Sign in or create account — OAuth choice + email entry screen.
@@ -14,13 +15,20 @@ import 'package:software_project/features/auth/presentation/providers/auth_provi
 /// [initialMode] is set by the landing screen:
 /// - `'login'`  → user pressed "Log in"
 /// - `'create'` → user pressed "Create an account" (default / null)
+///
+/// FIX (M1-001): The Continue button on the inline email field is now
+/// DISABLED (greyed out) until the user has typed a valid email address.
+/// Previously the button was always enabled, so the user had to tap it
+/// and see an error. Now it stays grey until the email passes validation,
+/// matching the SoundCloud behaviour. The button navigates to EmailEntryScreen
+/// which performs the actual checkEmail call.
 class SignInOrCreateScreen extends ConsumerWidget {
   final String? initialMode;
   const SignInOrCreateScreen({super.key, this.initialMode});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Listen for successful Google sign-in (Scenario 1/2) and navigate to home.
+    // Listen for successful Google sign-in and navigate to home.
     ref.listen<AsyncValue<dynamic>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         data: (user) {
@@ -105,6 +113,7 @@ class SignInOrCreateScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.md),
 
+              // Email entry field — Continue is disabled until valid email.
               _EmailEntryField(
                 onSubmit: (email) => Navigator.pushNamed(
                   context,
@@ -152,10 +161,7 @@ class SignInOrCreateScreen extends ConsumerWidget {
         break;
 
       case GoogleSignInOutcome.requiresLinking:
-        // Scenario 3 — extract linkingToken from controller error state.
-        final state = ref.read(authControllerProvider);
-        final failure = state is AsyncError ? state.error : null;
-
+        final failure = ref.read(authControllerProvider).error;
         if (failure is GoogleAccountLinkingRequiredFailure) {
           Navigator.pushNamed(
             context,
@@ -169,18 +175,24 @@ class SignInOrCreateScreen extends ConsumerWidget {
         break;
 
       case GoogleSignInOutcome.error:
+        final failure = ref.read(authControllerProvider).error;
+        final msg = failure is Failure
+            ? failure.message
+            : 'Google sign-in failed. Please try again.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Google sign-in is not available yet.')),
+          SnackBar(content: Text(msg), backgroundColor: AppColors.error),
         );
         break;
     }
   }
 
-  /// Shows a "coming soon" snackbar for OAuth providers not yet supported.
   void _onUnsupportedOAuth(BuildContext context, String provider) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$provider sign-in coming soon.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$provider sign-in is not available yet.'),
+        backgroundColor: AppColors.surfaceHigh,
+      ),
+    );
   }
 }
 
@@ -191,13 +203,9 @@ class _LegalText extends StatelessWidget {
   Widget build(BuildContext context) {
     return RichText(
       text: TextSpan(
-        style: AppTextStyles.caption.copyWith(height: 1.6),
+        style: AppTextStyles.bodyMuted,
         children: [
-          const TextSpan(
-            text:
-                'By clicking on any of the "Continue" buttons below, you '
-                "agree to SoundCloud's ",
-          ),
+          const TextSpan(text: 'By continuing you agree to our '),
           TextSpan(
             text: 'Terms of Use',
             style: const TextStyle(color: AppColors.link),
@@ -205,7 +213,7 @@ class _LegalText extends StatelessWidget {
               ..onTap = () =>
                   UrlLauncherUtil.open(context, UrlLauncherUtil.termsOfUse),
           ),
-          const TextSpan(text: ' and acknowledge our '),
+          const TextSpan(text: ' and confirm that you have read our '),
           TextSpan(
             text: 'Privacy Policy',
             style: const TextStyle(color: AppColors.link),
@@ -220,8 +228,51 @@ class _LegalText extends StatelessWidget {
   }
 }
 
+// ── OAuth button ──────────────────────────────────────────────────────────────
+
+class _OAuthButton extends StatelessWidget {
+  final String label;
+  final Color backgroundColor;
+  final Widget icon;
+  final VoidCallback onTap;
+
+  const _OAuthButton({
+    required this.label,
+    required this.backgroundColor,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: icon,
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          alignment: Alignment.centerLeft,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Email entry field ─────────────────────────────────────────────────────────
 
+/// Inline email entry widget with a reactive Continue button.
+///
+/// FIX (M1-001): The Continue button is disabled (greyed out) until the
+/// typed value passes [Validators.email]. The user no longer needs to tap
+/// and get an error — the button simply becomes active once a valid email
+/// format is entered, matching SoundCloud's behaviour.
 class _EmailEntryField extends StatefulWidget {
   final void Function(String email) onSubmit;
   const _EmailEntryField({required this.onSubmit});
@@ -232,6 +283,14 @@ class _EmailEntryField extends StatefulWidget {
 
 class _EmailEntryFieldState extends State<_EmailEntryField> {
   final TextEditingController _controller = TextEditingController();
+
+  bool get _emailValid => Validators.email(_controller.text) == null;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -244,6 +303,7 @@ class _EmailEntryFieldState extends State<_EmailEntryField> {
     return Column(
       children: [
         TextField(
+          key: const Key('sign_in_email_field'),
           controller: _controller,
           keyboardType: TextInputType.emailAddress,
           style: AppTextStyles.inputText,
@@ -279,14 +339,20 @@ class _EmailEntryFieldState extends State<_EmailEntryField> {
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: () {
-              if (_controller.text.trim().isNotEmpty) {
-                widget.onSubmit(_controller.text.trim());
-              }
-            },
+            key: const Key('sign_in_continue_button'),
+            // null → Flutter renders the button greyed out and ignores taps.
+            onPressed: _emailValid
+                ? () => widget.onSubmit(_controller.text.trim())
+                : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.buttonPrimary,
               foregroundColor: AppColors.buttonPrimaryText,
+              disabledBackgroundColor: AppColors.buttonPrimary.withValues(
+                alpha: 0.5,
+              ),
+              disabledForegroundColor: AppColors.buttonPrimaryText.withValues(
+                alpha: 0.5,
+              ),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
@@ -300,56 +366,6 @@ class _EmailEntryFieldState extends State<_EmailEntryField> {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── OAuth Button ──────────────────────────────────────────────────────────────
-
-class _OAuthButton extends StatelessWidget {
-  final String label;
-  final Color backgroundColor;
-  final Widget icon;
-  final VoidCallback onTap;
-
-  const _OAuthButton({
-    required this.label,
-    required this.backgroundColor,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
-        ),
-        child: Row(
-          children: [
-            SizedBox(width: 24, child: icon),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

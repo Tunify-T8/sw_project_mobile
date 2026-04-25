@@ -15,6 +15,7 @@ class SuggestedUserItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: GestureDetector(
+        key: Key('suggested_user_item_${user.id}'),
         onTap: onTap,
         child: SizedBox(
           width: 140,

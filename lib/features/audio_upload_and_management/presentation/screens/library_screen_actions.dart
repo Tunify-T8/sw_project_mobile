@@ -2,6 +2,13 @@ part of 'library_screen.dart';
 
 extension _LibraryScreenActions on _LibraryScreenState {
   void _handleTap(BuildContext context, String label) {
+    if (label == 'Your likes') { // engagement addition — navigate to liked tracks screen
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const LikedTracksScreen()),
+      );
+      return;
+    }
+
     if (label == 'Following') {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -27,6 +34,15 @@ extension _LibraryScreenActions on _LibraryScreenState {
             onStartUpload: widget.onStartUpload,
             onOpenSubscription: widget.onOpenSubscription,
           ),
+        ),
+      );
+      return;
+    }
+
+    if (label == 'Open shared link') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const OpenSharedTrackLinkScreen(),
         ),
       );
       return;

@@ -32,6 +32,7 @@ class UploadedTrack {
   final String? availabilityType;
   final List<String>? availabilityRegions;
   final String? licensing;
+  final String? privateToken;
   final String? errorCode;
   final String? errorMessage;
 
@@ -63,6 +64,7 @@ class UploadedTrack {
     this.availabilityType,
     this.availabilityRegions,
     this.licensing,
+    this.privateToken,
     this.errorCode,
     this.errorMessage,
   });
@@ -95,6 +97,7 @@ class UploadedTrack {
     String? availabilityType,
     List<String>? availabilityRegions,
     String? licensing,
+    String? privateToken,
     String? errorCode,
     String? errorMessage,
   }) {
@@ -126,6 +129,7 @@ class UploadedTrack {
       availabilityType: availabilityType ?? this.availabilityType,
       availabilityRegions: availabilityRegions ?? this.availabilityRegions,
       licensing: licensing ?? this.licensing,
+      privateToken: privateToken ?? this.privateToken,
       errorCode: errorCode ?? this.errorCode,
       errorMessage: errorMessage ?? this.errorMessage,
     );

@@ -35,8 +35,13 @@ class MockPlayerRepository implements PlayerRepository {
   Future<StreamUrl> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
-    final data = await service.requestStreamUrl(trackId, quality: quality);
+    final data = await service.requestStreamUrl(
+      trackId,
+      quality: quality,
+      privateToken: privateToken,
+    );
     return StreamResponseDto.fromJson(data, trackId).toEntity();
   }
 

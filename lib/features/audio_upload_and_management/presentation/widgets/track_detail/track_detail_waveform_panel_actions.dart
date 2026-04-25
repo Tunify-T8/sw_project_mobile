@@ -74,46 +74,101 @@ class _WaveformCommentBubble extends StatelessWidget {
   }
 }
 
+// engagement addition — tapping opens CommentsScreen for this track
+// advise to remove: replaced by CommentInputBar in track_detail_waveform_panel.dart
 class _CommentComposerBar extends StatelessWidget {
-  const _CommentComposerBar();
+  const _CommentComposerBar({
+    required this.trackId,
+    this.coverUrl,
+    this.trackTitle,
+    this.artistName,
+  });
+
+  final String trackId;
+  final String? coverUrl;
+  final String? trackTitle;
+  final String? artistName;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade700.withOpacity(0.68),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: const Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Comment...',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CommentsScreen(
+            trackId: trackId,
+            coverUrl: coverUrl,
+            trackTitle: trackTitle,
+            artistName: artistName,
           ),
-          Icon(Icons.chat_bubble_outline, color: Colors.white70, size: 24),
-          SizedBox(width: 12),
-          Icon(Icons.send_rounded, color: Colors.white70, size: 22),
-        ],
+        ),
+      ),
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade700.withOpacity(0.68),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: const Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Comment...',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ),
+            Icon(Icons.chat_bubble_outline, color: Colors.white70, size: 24),
+            SizedBox(width: 12),
+            Icon(Icons.send_rounded, color: Colors.white70, size: 22),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _BottomActionBar extends StatelessWidget {
+// engagement addition — like/comment counts and actions driven by engagementProvider
+class _BottomActionBar extends ConsumerStatefulWidget {
   const _BottomActionBar({
+    required this.trackId,
     required this.onMoreTap,
     required this.onQueueTap,
+    this.coverUrl,
+    this.trackTitle,
+    this.artistName,
   });
 
+  final String trackId;
   final VoidCallback onMoreTap;
   final VoidCallback onQueueTap;
+  final String? coverUrl;
+  final String? trackTitle;
+  final String? artistName;
+
+  @override
+  ConsumerState<_BottomActionBar> createState() => _BottomActionBarState();
+}
+
+class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = ref.read(engagementProvider(widget.trackId));
+      if (state.engagementStatus == EngagementStatus.initial) {
+        ref.read(engagementProvider(widget.trackId).notifier).loadEngagement();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(engagementProvider(widget.trackId));
+    final isLiked = state.engagement?.isLiked ?? false;
+    final likeCount = state.engagement?.likeCount ?? 0;
+    final commentCount = state.engagement?.commentCount ?? 0;
+
     // Wrap in a GestureDetector that absorbs all taps in this row so the
     // full-screen background play/pause detector cannot steal them.
     return GestureDetector(
@@ -124,20 +179,110 @@ class _BottomActionBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const _ActionMetric(icon: Icons.favorite_border, label: '36K'),
-            const _ActionMetric(icon: Icons.chat_bubble_outline, label: '191'),
+            // Like button — tapping icon toggles like, tapping count opens likers
+            _LikeMetric(
+              trackId: widget.trackId,
+              isLiked: isLiked,
+              likeCount: likeCount,
+            ),
+            // Comment button — opens CommentsScreen
+            // Key: WaveformKeys.commentButton
+            _ActionMetric(
+              key: const Key('waveform_comment_button'),
+              icon: Icons.chat_bubble_outline,
+              label: _fmtCount(commentCount),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CommentsScreen(
+                    trackId: widget.trackId,
+                    coverUrl: widget.coverUrl,
+                    trackTitle: widget.trackTitle,
+                    artistName: widget.artistName,
+                  ),
+                ),
+              ),
+            ),
             const _ActionMetric(icon: Icons.ios_share_outlined, label: ''),
             _ActionMetric(
               icon: Icons.playlist_play,
               label: '',
-              onTap: onQueueTap,
+              onTap: widget.onQueueTap,
             ),
             _ActionMetric(
               icon: Icons.more_horiz,
               label: '',
-              onTap: onMoreTap,
+              onTap: widget.onMoreTap,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtCount(int count) =>
+      count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count';
+}
+
+// engagement addition — like icon + count as a single tappable group
+class _LikeMetric extends ConsumerWidget {
+  const _LikeMetric({
+    required this.trackId,
+    required this.isLiked,
+    required this.likeCount,
+  });
+
+  final String trackId;
+  final bool isLiked;
+  final int likeCount;
+
+  String _fmtCount(int count) =>
+      count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      height: 44,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Key: WaveformKeys.likeButton
+              GestureDetector(
+                key: const Key('waveform_like_button'),
+                onTap: () => ref
+                    .read(engagementProvider(trackId).notifier)
+                    .toggleLike(),
+                behavior: HitTestBehavior.opaque,
+                child: Icon(
+                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: isLiked ? Colors.red : Colors.white,
+                  size: 29,
+                ),
+              ),
+              if (likeCount > 0) ...[
+                const SizedBox(width: 6),
+                // Key: WaveformKeys.likesCount
+                GestureDetector(
+                  key: const Key('waveform_likes_count'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => LikersScreen(trackId: trackId),
+                    ),
+                  ),
+                  child: Text(
+                    _fmtCount(likeCount),
+                    style: TextStyle(
+                      color: isLiked ? Colors.red : Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -145,7 +290,7 @@ class _BottomActionBar extends StatelessWidget {
 }
 
 class _ActionMetric extends StatelessWidget {
-  const _ActionMetric({required this.icon, required this.label, this.onTap});
+  const _ActionMetric({super.key, required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;

@@ -22,8 +22,19 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
     try {
       return await _getBundle(trackId, privateToken: privateToken);
-    } catch (_) {
-      // Server reachable but request failed — fall back to seed metadata.
+    } catch (error) {
+      // M5-011B / M5-001 fix: previously ANY error fell back to the seed track,
+      // whose toPlaybackBundle() hardcodes PlaybackStatus.playable. That let
+      // owners play their own deleted/blocked tracks (M5-011B) and bypassed
+      // "processing"/"blocked" states coming from the backend (M5-001).
+      //
+      // A 4xx response is the backend DELIBERATELY refusing (deleted, blocked,
+      // private-no-token, not-found) — we must let it propagate so canPlay
+      // evaluates to false. Only fall back for genuine transport errors
+      // (timeout, connection error, etc.) where the user has local seed data.
+      if (_isClientRefusal(error)) {
+        rethrow;
+      }
       if (seedTrack != null) {
         return seedTrack.toPlaybackBundle();
       }
@@ -31,9 +42,25 @@ extension _PlayerNotifierSources on PlayerNotifier {
     }
   }
 
+  // A 4xx DioException means the server made a deliberate decision — don't mask it.
+  bool _isClientRefusal(Object error) {
+    if (error is just_audio.PlayerException) return false;
+    // Uses duck-typing on the dynamic to avoid importing Dio here just for the type.
+    // Dio errors expose `.response?.statusCode` as an int.
+    try {
+      final dynamic d = error;
+      final int? code = d.response?.statusCode as int?;
+      if (code != null && code >= 400 && code < 500) return true;
+    } catch (_) {
+      // Not a Dio-shaped error; treat as transport error.
+    }
+    return false;
+  }
+
   Future<_ResolvedPlaybackSource> _resolvePlaybackSource(
     String trackId, {
     PlayerSeedTrack? seedTrack,
+    String? privateToken,
   }) async {
     final mode = ref.read(playerBackendModeProvider);
 
@@ -71,7 +98,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
     // Request a signed streaming URL from the server (the only correct way
     // to play a track online — never use the raw upload audioUrl directly).
-    final streamUrl = await _requestStream(trackId);
+    final streamUrl = await _requestStream(trackId, privateToken: privateToken);
 
     return _ResolvedPlaybackSource(
       streamUrl: streamUrl,
@@ -99,7 +126,10 @@ extension _PlayerNotifierSources on PlayerNotifier {
       return current;
     }
 
-    final resolved = await _resolvePlaybackSource(current.bundle!.trackId);
+    final resolved = await _resolvePlaybackSource(
+      current.bundle!.trackId,
+      privateToken: current.privateToken,
+    );
 
     final updated = current.copyWith(
       streamUrl: resolved.streamUrl,
@@ -135,17 +165,27 @@ extension _PlayerNotifierSources on PlayerNotifier {
       return;
     }
 
-    if (playerState.localFilePath != null &&
-        playerState.localFilePath!.trim().isNotEmpty) {
-      await _audioPlayer.setFilePath(playerState.localFilePath!);
-    } else if (playerState.streamUrl?.url.trim().isNotEmpty == true) {
-      // Use AudioSource.uri for better caching and buffering control.
-      // This avoids repeated seeks causing stuttering on remote URLs.
-      await _audioPlayer.setAudioSource(
-        just_audio.AudioSource.uri(Uri.parse(playerState.streamUrl!.url)),
-        preload: true,
-      );
+    // just_audio throws PlayerInterruptedException when a pending load is
+    // superseded by another setAudioSource / setFilePath / stop call (rapid
+    // next/prev taps, a refresh racing a restore, etc.). That is a benign
+    // signal, not a playback failure — swallow it so the newer load wins.
+    try {
+      if (playerState.localFilePath != null &&
+          playerState.localFilePath!.trim().isNotEmpty) {
+        await _audioPlayer.setFilePath(playerState.localFilePath!);
+      } else if (playerState.streamUrl?.url.trim().isNotEmpty == true) {
+        await _audioPlayer.setAudioSource(
+          just_audio.AudioSource.uri(Uri.parse(playerState.streamUrl!.url)),
+          preload: true,
+        );
+      }
+    } on just_audio.PlayerInterruptedException {
+      return;
+    }
 
+    if (playerState.streamUrl?.url.trim().isNotEmpty == true &&
+        (playerState.localFilePath == null ||
+            playerState.localFilePath!.trim().isEmpty)) {
       // Download audio + artwork to device storage in the background so
       // subsequent plays work fully offline without requesting a new stream URL.
       // HLS manifests (.m3u8) are not cacheable as single files — skip them.

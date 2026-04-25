@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
@@ -10,6 +10,7 @@ import '../../../audio_upload_and_management/presentation/screens/track_detail_s
 import '../../../audio_upload_and_management/presentation/utils/playback_surface_item_mapper.dart';
 //import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../domain/entities/history_track.dart';
+import '../../domain/entities/playback_queue.dart';
 import '../../domain/entities/playback_status.dart';
 import '../../domain/entities/player_seed_track.dart';
 import '../providers/listening_history_provider.dart';

@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/track_preview_entity.dart';
 import 'package:software_project/features/profile/presentation/screens/other_user_profile_screen.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../utils/feed_track_playback.dart';
 
-class TrackInfoBox extends StatelessWidget {
+class TrackInfoBox extends ConsumerWidget {
   final TrackPreviewEntity track;
 
   const TrackInfoBox({super.key, required this.track});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(5.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFF464646),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      // Tapping the info box opens the full playback surface for the track.
+      // It also stops any active feed preview before launching the player.
+      onTap: () => playFeedTrack(context, ref, track),
+      child: Container(
+        padding: const EdgeInsets.all(5.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF464646),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Row(
         children: [
           Expanded(
             child: Column(
@@ -89,6 +96,7 @@ class TrackInfoBox extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

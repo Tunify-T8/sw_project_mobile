@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/network/api_endpoints.dart';
+
 class ProfileShareSheet {
   final BuildContext context;
   final String userName;
@@ -168,7 +170,8 @@ class ProfileShareSheet {
                     onTap: () {
                       Clipboard.setData(
                         ClipboardData(
-                            text: 'https://soundcloud.com/$userName'),
+                          text: ApiEndpoints.shareProfileUrl(userName),
+                        ),
                       );
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(

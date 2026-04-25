@@ -9,6 +9,8 @@ import '../widgets/profile_tracks_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -111,7 +113,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: const TextStyle(color: Colors.white),
               ),
             )
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              color: Colors.orangeAccent,
+              onRefresh: () async {
+                await ref.read(profileProvider.notifier).loadProfile();
+                await ref.read(libraryUploadsProvider.notifier).load();
+              },
+              child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -124,6 +132,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
+                    displayName: profile?.displayName ?? '',
                     userName: profile?.userName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
@@ -166,9 +175,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       );
                     },
                   ),
+                  const ProfileLikesSection(),
+                  const ProfileRepostsSection(),
                 ],
               ),
             ),
+          ),
     );
   }
 }

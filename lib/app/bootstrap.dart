@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
+import 'package:software_project/features/notifications/data/services/push_notification_service.dart';
 import 'router.dart';
 
 /// Initialises the Flutter framework and launches the app.
@@ -35,6 +36,8 @@ Future<void> bootstrap() async {
     ),
   );
 
+  await PushNotificationService.instance.init();
+
   runApp(const ProviderScope(child: TunifyApp()));
 }
 
@@ -44,6 +47,12 @@ class TunifyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final platformRoute =
+        WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+    final initialRoute = platformRoute.startsWith('/tracks/')
+        ? platformRoute
+        : AppRoutes.authGate;
+
     return MaterialApp(
       title: 'Tunify',
       debugShowCheckedModeBanner: false,
@@ -54,7 +63,7 @@ class TunifyApp extends StatelessWidget {
       // home + onGenerateRoute conflict because home bypasses the route
       // generator entirely for the first screen, making pushReplacementNamed
       // from initState unreliable before the navigator is ready.
-      initialRoute: AppRoutes.authGate,
+      initialRoute: initialRoute,
     );
   }
 

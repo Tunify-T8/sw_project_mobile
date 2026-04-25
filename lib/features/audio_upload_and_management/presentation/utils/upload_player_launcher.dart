@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
+import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/domain/entities/track_artist_summary.dart';
@@ -35,14 +36,87 @@ Future<void> openUploadItemPlayer(
 
   _optimisticallyPromoteHistory(ref, preparedItem);
 
-  unawaited(
-    ensureUploadItemPlayback(
-      ref,
-      preparedItem,
-      queueItems: queueItems,
-      autoPlay: true,
+  await ensureUploadItemPlayback(
+    ref,
+    preparedItem,
+    queueItems: queueItems,
+    autoPlay: true,
+  );
+
+  if (!openScreen || !context.mounted) return;
+  await Navigator.of(context).push(
+    PageRouteBuilder(
+      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 340),
     ),
   );
+}
+
+/// Variant of [openUploadItemPlayer] used when the track is being played
+/// from the user's listening history. Builds the queue from the supplied
+/// history tracks and tags it with [QueueSource.history] so the "next up"
+/// list tracks the history, not "more by this artist".
+Future<void> openHistorySourcedPlayer(
+  BuildContext context,
+  WidgetRef ref,
+  UploadItem item, {
+  required List<HistoryTrack> historyTracks,
+  bool openScreen = true,
+}) async {
+  if (!item.isPlayable) return;
+
+  await _ensureCachedUploadsHydrated(ref);
+
+  final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
+
+  _optimisticallyPromoteHistory(ref, preparedItem);
+
+  final queueTrackIds = historyTracks
+      .where((h) => h.status != PlaybackStatus.blocked)
+      .map((h) => h.trackId)
+      .toList(growable: false);
+  final startIndex = queueTrackIds.indexOf(preparedItem.id);
+
+  final seedTrack = PlayerSeedTrack(
+    trackId: preparedItem.id,
+    title: preparedItem.title,
+    artistName: preparedItem.artistDisplay,
+    durationSeconds: preparedItem.durationSeconds,
+    coverUrl: preparedItem.artworkUrl,
+    waveformUrl: preparedItem.waveformUrl,
+    directAudioUrl: preparedItem.audioUrl,
+    localFilePath: preparedItem.localFilePath,
+  );
+
+  final notifier = ref.read(playerProvider.notifier);
+
+  if (startIndex >= 0 && queueTrackIds.length > 1) {
+    unawaited(
+      notifier.loadTrack(
+        preparedItem.id,
+        autoPlay: true,
+        seedTrack: seedTrack,
+        queue: PlaybackQueue(
+          trackIds: queueTrackIds,
+          currentIndex: startIndex,
+          shuffle: false,
+          repeat: RepeatMode.none,
+          source: QueueSource.history,
+        ),
+      ),
+    );
+  } else {
+    unawaited(
+      notifier.loadTrack(preparedItem.id, autoPlay: true, seedTrack: seedTrack),
+    );
+  }
 
   await _waitForTrackToBecomeCurrent(ref, preparedItem.id);
 
@@ -98,10 +172,42 @@ Future<void> ensureUploadItemPlayback(
 
   await _ensureCachedUploadsHydrated(ref);
 
+  // Private tracks from the library list never include privateToken (the list
+  // endpoint omits it). Fetch the full track detail here so we have the token
+  // before we attempt the stream request. Without it the backend returns 403.
+  UploadItem resolvedItem = item;
+  if (item.visibility == UploadVisibility.private &&
+      item.privateToken == null) {
+    ref.invalidate(trackDetailItemProvider(item));
+    try {
+      resolvedItem = await ref
+          .read(trackDetailItemProvider(item).future)
+          .timeout(const Duration(seconds: 5));
+    } catch (error) {
+      debugPrint('Private track detail fetch failed for ${item.id}: $error');
+      resolvedItem = item;
+    }
+
+    if (resolvedItem.privateToken == null ||
+        resolvedItem.privateToken!.trim().isEmpty) {
+      debugPrint('Private track ${item.id} has no privateToken after details.');
+    }
+  }
+
+  // Rebind item to the resolved copy (may have privateToken now).
+  // ignore: parameter_assignments
+  item = resolvedItem;
+
   final notifier = ref.read(playerProvider.notifier);
   final current = ref.read(playerProvider).asData?.value;
   final isSameTrack = current?.bundle?.trackId == item.id;
   final store = ref.read(globalTrackStoreProvider);
+  // Local pre-fetch: only same-artist tracks already in GlobalTrackStore
+  // (own uploads).  Listening history is intentionally NOT used here — those
+  // are tracks the user already played, not "more by this artist", and
+  // surfacing them as the queue was confusing.  The real artist catalog is
+  // fetched from the backend by enrichQueueWithArtistTracks (called from
+  // inside loadTrack once the real bundle lands).
   final queue = _resolveArtistQueue(item, queueItems, store);
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
@@ -117,7 +223,7 @@ Future<void> ensureUploadItemPlayback(
     localFilePath: item.localFilePath,
   );
 
-  if (isSameTrack) {
+  if (isSameTrack && current?.isBuffering != true) {
     final hasUsefulQueue = (current?.queue?.trackIds.length ?? 0) > 1;
     if (!hasUsefulQueue && currentIndex >= 0 && queueIds.length > 1) {
       await notifier.loadTrackWithQueue(
@@ -127,6 +233,7 @@ Future<void> ensureUploadItemPlayback(
         repeat: RepeatMode.all,
         autoPlay: autoPlay || current?.isPlaying == true,
         seedTrack: seedTrack,
+        privateToken: item.privateToken,
       );
       return;
     }
@@ -145,12 +252,26 @@ Future<void> ensureUploadItemPlayback(
       repeat: RepeatMode.all,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
+      privateToken: item.privateToken,
     );
     return;
   }
 
-  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
+  await notifier.loadTrack(
+    item.id,
+    autoPlay: autoPlay,
+    seedTrack: seedTrack,
+    privateToken: item.privateToken,
+  );
 }
+
+// Fire-and-forget background fetch: pull the playing artist's full track
+// catalog from the backend and merge it into the live queue. Runs AFTER
+// NOTE: the previous _enrichQueueAfterLaunch polling helper was removed.
+// The "more by this artist" enrichment is now triggered from inside
+// loadTrack() itself, as soon as the real backend bundle is in state.
+// This is reliable — no timing race against the seed bundle — and removes
+// the need for the launcher to know anything about it.
 
 Future<void> toggleUploadItemPlayback(
   WidgetRef ref,
@@ -209,6 +330,20 @@ Future<void> openCurrentPlaybackTrackSurface(
   );
 }
 
+// Resolves the local same-artist queue used right at launch.
+//
+// Sources, in priority order:
+//   1. An explicit queueItems list (e.g. playlist context) — trust as-is.
+//   2. Same-artist tracks already in GlobalTrackStore — covers playing your
+//      own tracks (the store only holds the signed-in user's uploads today).
+//
+// History is intentionally NOT consulted here.  Recent plays aren't a queue —
+// they're a queue's *opposite* (tracks the user already heard).  The real
+// "more by this artist" queue for ANY artist is fetched from the backend by
+// enrichQueueWithArtistTracks, which fires from inside loadTrack as soon as
+// the real bundle is in state.
+//
+// Dedupes by trackId, always includes the current track.
 List<UploadItem> _resolveArtistQueue(
   UploadItem item,
   List<UploadItem>? queueItems,
@@ -221,22 +356,31 @@ List<UploadItem> _resolveArtistQueue(
     return explicitQueue;
   }
 
-  final sameArtist =
-      store.all
-          .where(
-            (track) =>
-                track.isPlayable &&
-                track.artistDisplay.trim().toLowerCase() ==
-                    item.artistDisplay.trim().toLowerCase(),
-          )
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  final normalizedArtist = item.artistDisplay.trim().toLowerCase();
 
-  if (sameArtist.any((track) => track.id == item.id)) {
-    return sameArtist;
+  final fromStore = store.all
+      .where(
+        (track) =>
+            track.isPlayable &&
+            track.artistDisplay.trim().toLowerCase() == normalizedArtist,
+      )
+      .toList();
+
+  final seen = <String>{};
+  final merged = <UploadItem>[];
+  void addIfNew(UploadItem u) {
+    if (seen.add(u.id)) merged.add(u);
   }
 
-  return <UploadItem>[item];
+  for (final u in fromStore) {
+    addIfNew(u);
+  }
+  // Always include the current track even if it isn't in the store
+  // (e.g. another user's track launched from search/profile).
+  addIfNew(item);
+
+  merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return merged;
 }
 
 Future<UploadItem> _prepareTrackSurfaceItemFast(
@@ -329,7 +473,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     tags: dto.tags,
     genreCategory: dto.genreCategory,
     genreSubGenre: dto.genreSubGenre,
-    visibility: dto.privacy == 'public'
+    visibility: dto.privacy.trim().toLowerCase() == 'public'
         ? UploadVisibility.public
         : UploadVisibility.private,
     status: _dtoStatusToEntityStatus(dto.status),
@@ -349,6 +493,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     availabilityType: dto.availabilityType,
     availabilityRegions: dto.availabilityRegions,
     licensing: dto.licensing,
+    privateToken: dto.privateToken,
     createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
   );
 }

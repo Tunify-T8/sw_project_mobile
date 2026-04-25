@@ -95,6 +95,8 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
 
     _formControllers.sync(metadataState);
 
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       body: SafeArea(
@@ -127,17 +129,18 @@ class _TrackMetadataScreenState extends ConsumerState<TrackMetadataScreen> {
                 onCancelUpload: _handleInlineUploadCancel,
               ),
             ),
-            SaveMetadataFooter(
-              errorMessage: metadataState.error ?? uploadState.error,
-              buttonText: buildTrackMetadataSaveButtonText(
-                metadataState,
-                isEditMode: widget.isEditMode,
-                uploadFinished: uploadFinished,
+            if (!keyboardOpen)
+              SaveMetadataFooter(
+                errorMessage: metadataState.error ?? uploadState.error,
+                buttonText: buildTrackMetadataSaveButtonText(
+                  metadataState,
+                  isEditMode: widget.isEditMode,
+                  uploadFinished: uploadFinished,
+                ),
+                onSavePressed: saveBusy
+                    ? null
+                    : (widget.isEditMode || uploadFinished ? _handleSave : null),
               ),
-              onSavePressed: saveBusy
-                  ? null
-                  : (widget.isEditMode || uploadFinished ? _handleSave : null),
-            ),
           ],
         ),
       ),

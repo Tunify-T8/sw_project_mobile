@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:software_project/app/router.dart';
 import 'package:software_project/core/design_system/colors.dart';
 
 /// Splash screen shown immediately after app startup.
 ///
-/// Displays a brief animation and then navigates to [destination], which is
-/// passed via route arguments (typically by [AuthGate]).
+/// Displays a brief animation then navigates to [destination] (provided by
+/// [AuthGate] via route arguments).
 ///
-/// If no destination is provided (e.g. in unit tests), it falls back to
-/// [AppRoutes.landing].
-///
-/// The logo is currently rendered using [CustomPaint]; replace it with
-/// an asset image when an official logo file is available.
+/// The logo is loaded from `assets/images/soundcloud_logo.png`.
+/// The glow animation (fade-in → pulse dim-to-bright-to-dim) is unchanged.
 class SplashScreen extends StatefulWidget {
   final String destination;
   const SplashScreen({super.key, required this.destination});
@@ -31,19 +27,20 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 2200),
     );
 
+    // Logo fades in during the first 25 % of the animation.
     _fadeIn = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.45, curve: Curves.easeOut),
     );
 
-    // Glow pulses: dim → bright → dim, matching the real SoundCloud splash.
+    // Glow pulses dim → bright → dim, matching the real SoundCloud splash.
     _glow =
         TweenSequence<double>([
-          TweenSequenceItem(tween: Tween(begin: 0.15, end: 0.55), weight: 50),
-          TweenSequenceItem(tween: Tween(begin: 0.55, end: 0.15), weight: 50),
+          TweenSequenceItem(tween: Tween(begin: 0.1, end: 0.25), weight: 50),
+          TweenSequenceItem(tween: Tween(begin: 0.25, end: 0.1), weight: 50),
         ]).animate(
           CurvedAnimation(
             parent: _controller,
@@ -59,8 +56,6 @@ class _SplashScreenState extends State<SplashScreen>
     // Wait for the full animation + a small hold so the logo is visible.
     await Future.delayed(const Duration(milliseconds: 2200));
     if (!mounted) return;
-
-    // Navigate to the destination provided by the caller.
     Navigator.pushReplacementNamed(context, widget.destination);
   }
 
@@ -73,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.background, // #0D0D0D — pure dark
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,
@@ -87,10 +82,13 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// ── Logo with glow ────────────────────────────────────────────────────────────
+// ── Logo with animated glow ───────────────────────────────────────────────────
 
+/// Renders the logo image with a pulsing white glow halo behind it.
 class _LogoWithGlow extends StatelessWidget {
+  /// Current glow intensity — driven by the parent [AnimationController].
   final double glowOpacity;
+
   const _LogoWithGlow({required this.glowOpacity});
 
   @override
@@ -98,7 +96,8 @@ class _LogoWithGlow extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Soft white glow halo behind the logo
+        // ── Soft glow halo ────────────────────────────────────────────────
+        // Sized generously so the blur bleeds well beyond the logo edges.
         Container(
           width: 160,
           height: 160,
@@ -106,66 +105,26 @@ class _LogoWithGlow extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.white.withValues(alpha: glowOpacity * 0.3),
-                blurRadius: 80,
-                spreadRadius: 20,
+                color: Colors.white.withValues(alpha: glowOpacity),
+                blurRadius: 40,
+                spreadRadius: 8,
               ),
             ],
           ),
         ),
 
-        // White SoundCloud waveform + cloud logo (CustomPaint replica).
-        // Swap this widget for Image.asset once you have the PNG:
-        //   Image.asset('assets/images/soundcloud_logo_white.png', width: 120)
-        const _SoundCloudWavemark(),
+        // ── Logo image ────────────────────────────────────────────────────
+        // Place the file at: assets/images/soundcloud_logo.png
+        // and register it in pubspec.yaml under flutter › assets.
+        Image.asset(
+          'assets/images/soundcloud_logo.png',
+          width: 250,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(Icons.graphic_eq, color: Colors.white, size: 120);
+          },
+        ),
       ],
     );
   }
-}
-
-/// Paints the SoundCloud waveform-and-cloud mark in white.
-///
-/// Replace with an Image.asset once the official PNG/SVG is added to assets/.
-class _SoundCloudWavemark extends StatelessWidget {
-  const _SoundCloudWavemark();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(size: const Size(120, 72), painter: _WavemarkPainter());
-  }
-}
-
-class _WavemarkPainter extends CustomPainter {
-  const _WavemarkPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    // Bar heights as fractions — matches the real SoundCloud waveform shape.
-    const heights = [0.25, 0.4, 0.62, 0.45, 0.88, 0.62, 1.0, 0.78, 0.52, 0.68];
-    const barWidth = 8.0;
-    const gap = 4.5;
-
-    for (int i = 0; i < heights.length; i++) {
-      final barH = size.height * heights[i];
-      final x = i * (barWidth + gap);
-      final top = size.height - barH;
-      canvas.drawRRect(
-        RRect.fromLTRBR(
-          x,
-          top,
-          x + barWidth,
-          size.height,
-          const Radius.circular(3),
-        ),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _WavemarkPainter old) => false;
 }

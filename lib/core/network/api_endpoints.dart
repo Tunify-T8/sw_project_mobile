@@ -4,6 +4,27 @@ class ApiEndpoints {
   //static const String baseUrl = 'http://10.0.2.2:3000/api';
   static const String baseUrl = 'https://tunify.duckdns.org/api';
 
+  /// Base URL used for shareable links (no /api suffix).
+  static const String shareBaseUrl = 'https://tunify.duckdns.org';
+
+  /// Builds a shareable track URL.
+  /// Private tracks include [privateToken] as a query parameter.
+  static String shareTrackUrl(String trackId, {String? privateToken}) {
+    final base = Uri.parse(shareBaseUrl).replace(
+      pathSegments: ['tracks', trackId],
+    );
+    if (privateToken == null || privateToken.trim().isEmpty) {
+      return base.toString();
+    }
+    return base.replace(
+      queryParameters: {'privateToken': privateToken},
+    ).toString();
+  }
+
+  /// Builds a shareable profile URL.
+  static String shareProfileUrl(String username) =>
+      '$shareBaseUrl/users/$username';
+
   // Auth
   static const String checkEmail = '/auth/check-email';
   static const String register = '/auth/register';
@@ -69,6 +90,10 @@ class ApiEndpoints {
   // Profile
   static const String getProfile = '/users/me';
   static String getUserProfile(String userIdOrUsername) => '/users/$userIdOrUsername';
+  // Public tracks for any user — used to build the "Next up" queue from the
+  // playing artist's catalog without needing the current user to have played
+  // those tracks before. Mirrors the /tracks/me response shape.
+  static String getUserTracks(String userId) => '/users/$userId/tracks';
   static const String updateProfile = '/users/me/profile';
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';
@@ -87,8 +112,11 @@ class ApiEndpoints {
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyListeningHistory = '/me/listening-history';
  
-  /// DELETE /me/listening-history — clears the user's listening history.
-  static const String clearListeningHistory = '/me/listening-history';
+  /// Current backend contract (v1.1.0).
+  static const String clearListeningHistory = '/tracks/me/listening-history';
+
+  /// Older contract endpoint kept only as a compatibility fallback.
+  static const String legacyClearListeningHistory = '/me/listening-history';
  
   /// Batch-reports plays that occurred while the device was offline.
   /// Body: `{ "plays": [{ "trackId", "playedAt", "completed" }] }`
@@ -99,6 +127,20 @@ class ApiEndpoints {
  
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyPlaybackContext = '/playback/context';
+
+  // Engagement & Social Interactions
+  static String trackEngagement(String trackId) => '/tracks/$trackId/engagement';
+  static String likeTrack(String trackId) => '/tracks/$trackId/like';
+  static String repostTrack(String trackId) => '/tracks/$trackId/repost';
+  static String trackComments(String trackId) => '/tracks/$trackId/comments';
+  static String trackLikers(String trackId) => '/tracks/$trackId/likes';
+  static String trackReposters(String trackId) => '/tracks/$trackId/reposts';
+  static String deleteComment(String commentId) => '/comments/$commentId';
+  static String commentReplies(String commentId) => '/comments/$commentId/replies';
+  static String likeComment(String commentId) => '/comments/$commentId/like';
+  static const String myLikedTracks = '/users/me/liked-tracks';
+  static const String myReposts = '/users/me/reposts';
+  static String userReposts(String userId) => '/users/$userId/reposts';
 
   // Feed - Search - Discovery
   static const String getFollowingFeed = '/feed';

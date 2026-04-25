@@ -1,12 +1,39 @@
 part of 'track_info_screen.dart';
 
-class _UploaderCard extends StatelessWidget {
+class _UploaderCard extends ConsumerWidget {
   const _UploaderCard({required this.item});
 
   final UploadItem item;
 
+  /// The follow pill should be hidden when the track belongs to the signed-in
+  /// user. Ownership is derived from (in priority order):
+  ///   1. The local uploads store — any track present here was uploaded by me.
+  ///   2. The currently playing bundle's artist id vs. the authenticated user id.
+  bool _isOwnUpload(WidgetRef ref) {
+    final store = ref.read(globalTrackStoreProvider);
+    if (store.find(item.id) != null) return true;
+
+    final bundle = ref.read(playerProvider).asData?.value.bundle;
+    final bundleArtistId = (bundle != null && bundle.trackId == item.id)
+        ? bundle.artist.id.trim()
+        : '';
+    if (bundleArtistId.isEmpty) return false;
+
+    final currentUserId = ref
+        .read(authControllerProvider)
+        .asData
+        ?.value
+        ?.id
+        .trim();
+    if (currentUserId == null || currentUserId.isEmpty) return false;
+
+    return currentUserId == bundleArtistId;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOwn = _isOwnUpload(ref);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 10),
       child: Row(
@@ -46,21 +73,22 @@ class _UploaderCard extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
-            ),
-            child: const Text(
-              'Follow',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+          if (!isOwn)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: const Text(
+                'Follow',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

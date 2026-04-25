@@ -25,7 +25,7 @@ extension UploadItemDtoMapper on UploadItemDto {
       tags: tags,
       genreCategory: genreCategory,
       genreSubGenre: genreSubGenre,
-      visibility: privacy == 'public'
+      visibility: privacy.trim().toLowerCase() == 'public'
           ? UploadVisibility.public
           : UploadVisibility.private,
       status: _mapStatus(status),
@@ -45,6 +45,7 @@ extension UploadItemDtoMapper on UploadItemDto {
       availabilityType: availabilityType,
       availabilityRegions: availabilityRegions,
       licensing: licensing,
+      privateToken: privateToken,
       createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
     );
   }

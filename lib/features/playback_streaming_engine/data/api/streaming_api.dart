@@ -30,13 +30,21 @@ class StreamingApi {
   /// Current backend contract:
   /// GET /tracks/{trackId}/stream
   ///
+  /// For private tracks the backend requires the privateToken query param,
+  /// otherwise it responds with 403 `private_no_token`.
   /// Older drafts used POST, so we still keep the GET -> POST fallback.
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
+    final queryParams =
+        privateToken != null ? {'privateToken': privateToken} : null;
     try {
-      final response = await _dio.get(ApiEndpoints.trackStream(trackId));
+      final response = await _dio.get(
+        ApiEndpoints.trackStream(trackId),
+        queryParameters: queryParams,
+      );
       return StreamResponseDto.fromJson(_unwrapMap(response.data), trackId);
     } on DioException catch (error) {
       if (!_isMethodOrRouteMismatch(error)) rethrow;
@@ -44,8 +52,10 @@ class StreamingApi {
 
     final fallbackResponse = await _dio.post(
       ApiEndpoints.trackStream(trackId),
+      queryParameters: queryParams,
       data: {
         'quality': quality,
+        ...?(privateToken != null ? {'privateToken': privateToken} : null),
       },
     );
 
@@ -132,17 +142,25 @@ class StreamingApi {
     return _parseListeningHistory(fallbackResponse.data);
   }
 
-  /// DELETE /me/listening-history
+  /// DELETE /tracks/me/listening-history
   ///
-  /// Clears the user's listening history on the backend.
+  /// Clears the user's listening history on the backend, with fallback to the
+  /// older `/me/listening-history` contract while the deployed server catches
+  /// up.
   Future<void> clearListeningHistory() async {
     try {
       await _dio.delete(ApiEndpoints.clearListeningHistory);
-    } on DioException catch (e) {
-      // If endpoint doesn't exist yet, silently succeed (local clear still works).
-      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
-        return;
-      }
+      return;
+    } on DioException catch (error) {
+      if (!_isMethodOrRouteMismatch(error)) rethrow;
+    }
+
+    try {
+      await _dio.delete(ApiEndpoints.legacyClearListeningHistory);
+    } on DioException catch (error) {
+      // If neither contract exists yet, silently succeed because the provider
+      // still clears locally and guards against stale backend rows.
+      if (_isMethodOrRouteMismatch(error)) return;
       rethrow;
     }
   }
