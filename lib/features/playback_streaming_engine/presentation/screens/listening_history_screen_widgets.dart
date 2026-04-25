@@ -344,7 +344,9 @@ class _HistoryTrackTile extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     track.lastPositionSeconds > 0
-                        ? 'Stopped at ${_fmtDuration(track.lastPositionSeconds)} / ${_fmtDuration(track.durationSeconds)}'
+                        ? 'Stopped at '
+                              '${_fmtDuration(track.lastPositionSeconds)} / '
+                              '${_fmtDuration(track.durationSeconds)}'
                         : _fmtDuration(track.durationSeconds),
                     style: const TextStyle(color: Colors.white38, fontSize: 13),
                   ),

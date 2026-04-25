@@ -12,20 +12,23 @@ part 'home_recent_section_placeholder_card.dart';
 /// Shows a 2-column grid of recently played tracks on the home screen.
 ///
 /// Priority:
-///   1. [historyTracks] — tracks from listening history (most recently played first)
-///   2. [latestTrack] — fallback to the user's most recent upload
-///   3. Placeholder cards if neither is available
+///   1. [historyTracks] — tracks from local listening history, including the
+///      last saved resume position.
+///   2. [latestTrack] — fallback to the user's most recent upload.
+///   3. Placeholder cards if neither is available.
 class HomeRecentSection extends StatelessWidget {
   const HomeRecentSection({
     super.key,
     required this.latestTrack,
     required this.onOpenTrack,
+    required this.onOpenHistoryTrack,
     this.historyTracks = const [],
   });
 
   final UploadItem? latestTrack;
   final List<HistoryTrack> historyTracks;
   final ValueChanged<UploadItem> onOpenTrack;
+  final ValueChanged<HistoryTrack> onOpenHistoryTrack;
 
   static const _placeholders = [
     _PlaceholderData(
@@ -52,36 +55,18 @@ class HomeRecentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Build grid items from history first, then fill with placeholders
     final cards = <Widget>[];
 
-    // Add up to 4 history-based cards
     final recentHistoryItems = historyTracks.take(4).toList();
     for (final historyTrack in recentHistoryItems) {
       cards.add(
         _HistoryRecentCard(
           historyTrack: historyTrack,
-          onTap: () {
-            // Convert to minimal UploadItem so the launcher can open it
-            final item = UploadItem(
-              id: historyTrack.trackId,
-              title: historyTrack.title,
-              artistDisplay: historyTrack.artist.name,
-              durationLabel: _fmtDuration(historyTrack.durationSeconds),
-              durationSeconds: historyTrack.durationSeconds,
-              artworkUrl: historyTrack.coverUrl,
-              visibility: UploadVisibility.public,
-              status: UploadProcessingStatus.finished,
-              isExplicit: false,
-              createdAt: historyTrack.playedAt,
-            );
-            onOpenTrack(item);
-          },
+          onTap: () => onOpenHistoryTrack(historyTrack),
         ),
       );
     }
 
-    // If no history at all, show upload-based card if available
     if (cards.isEmpty && latestTrack != null) {
       cards.add(
         _RecentCard(
@@ -91,7 +76,6 @@ class HomeRecentSection extends StatelessWidget {
       );
     }
 
-    // Fill remaining slots with placeholders up to 4 total
     int placeholderIndex = 0;
     while (cards.length < 4 && placeholderIndex < _placeholders.length) {
       final p = _placeholders[placeholderIndex];
@@ -113,12 +97,6 @@ class HomeRecentSection extends StatelessWidget {
         delegate: SliverChildListDelegate(cards),
       ),
     );
-  }
-
-  String _fmtDuration(int totalSeconds) {
-    final m = totalSeconds ~/ 60;
-    final s = (totalSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
   }
 }
 

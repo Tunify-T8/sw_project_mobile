@@ -2,6 +2,10 @@ import 'playback_status.dart';
 import 'track_artist_summary.dart';
 
 /// One entry in the user's listening history.
+///
+/// [lastPositionSeconds] is stored locally by Flutter. It lets Recently Played
+/// and Listening History resume from where the user actually stopped, without
+/// depending on a backend progress endpoint.
 class HistoryTrack {
   const HistoryTrack({
     required this.trackId,
@@ -10,6 +14,7 @@ class HistoryTrack {
     required this.playedAt,
     required this.durationSeconds,
     required this.status,
+    this.lastPositionSeconds = 0,
     this.coverUrl,
     this.genre,
     this.releaseDate,
@@ -17,7 +22,6 @@ class HistoryTrack {
     this.commentCount = 0,
     this.repostCount = 0,
     this.playCount = 0,
-    this.lastPositionSeconds = 0,
   });
 
   final String trackId;
@@ -26,6 +30,7 @@ class HistoryTrack {
   final DateTime playedAt;
   final int durationSeconds;
   final PlaybackStatus status;
+  final int lastPositionSeconds;
   final String? coverUrl;
   final String? genre;
   final DateTime? releaseDate;
@@ -34,11 +39,6 @@ class HistoryTrack {
   final int repostCount;
   final int playCount;
 
-  /// Local resume position used by Flutter when the backend does not provide
-  /// playback-progress support. This is saved in secure storage with the
-  /// listening-history cache.
-  final int lastPositionSeconds;
-
   HistoryTrack copyWith({
     String? trackId,
     String? title,
@@ -46,6 +46,7 @@ class HistoryTrack {
     DateTime? playedAt,
     int? durationSeconds,
     PlaybackStatus? status,
+    int? lastPositionSeconds,
     String? coverUrl,
     String? genre,
     DateTime? releaseDate,
@@ -53,7 +54,6 @@ class HistoryTrack {
     int? commentCount,
     int? repostCount,
     int? playCount,
-    int? lastPositionSeconds,
   }) {
     return HistoryTrack(
       trackId: trackId ?? this.trackId,
@@ -62,6 +62,7 @@ class HistoryTrack {
       playedAt: playedAt ?? this.playedAt,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       status: status ?? this.status,
+      lastPositionSeconds: lastPositionSeconds ?? this.lastPositionSeconds,
       coverUrl: coverUrl ?? this.coverUrl,
       genre: genre ?? this.genre,
       releaseDate: releaseDate ?? this.releaseDate,
@@ -69,7 +70,6 @@ class HistoryTrack {
       commentCount: commentCount ?? this.commentCount,
       repostCount: repostCount ?? this.repostCount,
       playCount: playCount ?? this.playCount,
-      lastPositionSeconds: lastPositionSeconds ?? this.lastPositionSeconds,
     );
   }
 }

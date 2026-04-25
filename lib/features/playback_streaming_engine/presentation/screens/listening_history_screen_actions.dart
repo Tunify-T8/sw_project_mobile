@@ -123,6 +123,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
       coverUrl: stored?.artworkUrl ?? track.coverUrl,
       waveformUrl: stored?.waveformUrl,
       directAudioUrl: stored?.audioUrl,
+      resumePositionSeconds: track.lastPositionSeconds,
       localFilePath: stored?.localFilePath,
     );
   }

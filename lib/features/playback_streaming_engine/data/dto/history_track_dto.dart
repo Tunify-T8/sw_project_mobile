@@ -8,6 +8,7 @@ class HistoryTrackDto {
     required this.playedAt,
     required this.durationSeconds,
     required this.status,
+    this.lastPositionSeconds = 0,
     this.coverUrl,
     this.genre,
     this.releaseDate,
@@ -15,7 +16,6 @@ class HistoryTrackDto {
     this.commentCount = 0,
     this.repostCount = 0,
     this.playCount = 0,
-    this.lastPositionSeconds = 0,
   });
 
   final String trackId;
@@ -24,6 +24,7 @@ class HistoryTrackDto {
   final String playedAt;
   final int durationSeconds;
   final String status;
+  final int lastPositionSeconds;
   final String? coverUrl;
   final String? genre;
   final String? releaseDate;
@@ -31,7 +32,6 @@ class HistoryTrackDto {
   final int commentCount;
   final int repostCount;
   final int playCount;
-  final int lastPositionSeconds;
 
   factory HistoryTrackDto.fromJson(Map<String, dynamic> json) {
     final artistJson = json['artist'];
@@ -58,6 +58,13 @@ class HistoryTrackDto {
       resolvedStatus = playabilityJson['status'] as String;
     }
 
+    final rawPosition =
+        json['lastPositionSeconds'] ??
+        json['positionSeconds'] ??
+        json['position'] ??
+        json['lastPosition'] ??
+        0;
+
     return HistoryTrackDto(
       trackId: (json['trackId'] ?? '') as String,
       title: (json['title'] ?? '') as String,
@@ -65,6 +72,7 @@ class HistoryTrackDto {
       playedAt: (json['playedAt'] ?? '') as String,
       durationSeconds: (json['durationSeconds'] as int?) ?? 0,
       status: resolvedStatus,
+      lastPositionSeconds: rawPosition is num ? rawPosition.round() : 0,
       coverUrl: json['coverUrl'] as String?,
       genre: json['genre'] as String?,
       releaseDate: json['releaseDate'] as String?,
@@ -80,11 +88,6 @@ class HistoryTrackDto {
       playCount: engagementJson is Map<String, dynamic>
           ? (engagementJson['playCount'] as int?) ?? 0
           : 0,
-      lastPositionSeconds:
-          (json['lastPositionSeconds'] as int?) ??
-          (json['positionSeconds'] as int?) ??
-          (json['position'] as int?) ??
-          0,
     );
   }
 }

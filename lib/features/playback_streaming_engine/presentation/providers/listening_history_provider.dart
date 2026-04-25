@@ -250,65 +250,68 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
   }
 
-  Future<void> updateTrackProgress(
-    String trackId,
-    int positionSeconds, {
-    DateTime? playedAt,
-  }) async {
-    final current = state.asData?.value;
-    final timestamp = playedAt ?? DateTime.now();
-
-    HistoryTrack update(HistoryTrack track) {
-      var safePosition = positionSeconds < 0 ? 0 : positionSeconds;
-      if (track.durationSeconds > 0 && safePosition > track.durationSeconds) {
-        safePosition = track.durationSeconds;
-      }
-      return track.copyWith(
-        lastPositionSeconds: safePosition,
-        playedAt: timestamp.isAfter(track.playedAt) ? timestamp : track.playedAt,
-      );
-    }
-
-    var changed = false;
-
-    for (var i = 0; i < _optimisticTracks.length; i++) {
-      if (_optimisticTracks[i].trackId == trackId) {
-        _optimisticTracks[i] = update(_optimisticTracks[i]);
-        changed = true;
-      }
-    }
-
-    if (current != null) {
-      final nextTracks = current.tracks.map((track) {
-        if (track.trackId != trackId) return track;
-        changed = true;
-        return update(track);
-      }).toList(growable: false);
-
-      if (!changed) return;
-
-      final nextState = current.copyWith(tracks: nextTracks);
-      state = AsyncData(nextState);
-      await _persistLocalState(nextTracks, wasClearedLocally: false);
-      return;
-    }
-
-    final cachedTracks = await _readCachedTracks();
-    final nextTracks = cachedTracks.map((track) {
-      if (track.trackId != trackId) return track;
-      changed = true;
-      return update(track);
-    }).toList(growable: false);
-
-    if (changed) {
-      await _persistLocalState(nextTracks, wasClearedLocally: false);
-    }
-  }
-
   // Called when a track has been deleted on the backend (soft-delete).
   // Scrubs it from the in-memory list, the optimistic buffer, and the cached
   // copy in secure storage — so the "recently played" view doesn't keep
   // resurrecting a track that no longer exists. No-op if absent.
+  /// Updates only the locally saved resume position for an existing history item.
+  ///
+  /// This is the key part of Priority 2: Flutter keeps the user's
+  /// last listened position locally, so Recently Played / History can resume
+  /// from the right second even if the backend never stores progress.
+  Future<void> updateTrackProgress(
+    String trackId,
+    int positionSeconds,
+  ) async {
+    final safePosition = positionSeconds < 0 ? 0 : positionSeconds;
+
+    HistoryTrack updateOne(HistoryTrack track) {
+      if (track.trackId != trackId) return track;
+      final max = track.durationSeconds > 0 ? track.durationSeconds : safePosition;
+      final clamped = safePosition.clamp(0, max).toInt();
+      return track.copyWith(
+        lastPositionSeconds: clamped,
+        playedAt: DateTime.now(),
+      );
+    }
+
+    var touched = false;
+    for (var i = 0; i < _optimisticTracks.length; i++) {
+      if (_optimisticTracks[i].trackId == trackId) {
+        _optimisticTracks[i] = updateOne(_optimisticTracks[i]);
+        touched = true;
+        break;
+      }
+    }
+
+    final current = state.asData?.value;
+    if (current != null) {
+      final nextTracks = current.tracks.map((track) {
+        if (track.trackId == trackId) touched = true;
+        return updateOne(track);
+      }).toList(growable: false);
+
+      if (touched) {
+        state = AsyncData(current.copyWith(tracks: nextTracks));
+        await _persistLocalState(
+          nextTracks,
+          wasClearedLocally: current.wasClearedLocally,
+        );
+        return;
+      }
+    }
+
+    final cached = await _readCachedTracks();
+    final nextCached = cached.map((track) {
+      if (track.trackId == trackId) touched = true;
+      return updateOne(track);
+    }).toList(growable: false);
+
+    if (touched) {
+      await _persistLocalState(nextCached, wasClearedLocally: _clearedLocally);
+    }
+  }
+
   Future<void> removeTrack(String trackId) async {
     _optimisticTracks.removeWhere((track) => track.trackId == trackId);
 
@@ -394,7 +397,14 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
 
   HistoryTrack _pickNewerTrack(HistoryTrack primary, HistoryTrack? secondary) {
     if (secondary == null) return primary;
-    return secondary.playedAt.isAfter(primary.playedAt) ? secondary : primary;
+    final chosen = secondary.playedAt.isAfter(primary.playedAt)
+        ? secondary
+        : primary;
+    final other = identical(chosen, primary) ? secondary : primary;
+    if (chosen.lastPositionSeconds <= 0 && other.lastPositionSeconds > 0) {
+      return chosen.copyWith(lastPositionSeconds: other.lastPositionSeconds);
+    }
+    return chosen;
   }
 
   /// Drops backend tracks whose playedAt is on-or-before the local clear
@@ -434,20 +444,21 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   }
 
   void _rememberOptimisticTrack(HistoryTrack track) {
-    // If this exact track was already recorded within the last 60 seconds,
-    // keep the existing entry instead of duplicating it. This prevents the
-    // same song from appearing twice when it is played from two different
-    // places (e.g. "My Uploads" and "Recently Played") in quick succession.
     final existingIdx = _optimisticTracks.indexWhere(
       (t) => t.trackId == track.trackId,
     );
+
     if (existingIdx != -1) {
-      final age = DateTime.now().difference(
-        _optimisticTracks[existingIdx].playedAt,
+      final existing = _optimisticTracks.removeAt(existingIdx);
+      final merged = track.copyWith(
+        lastPositionSeconds: track.lastPositionSeconds > 0
+            ? track.lastPositionSeconds
+            : existing.lastPositionSeconds,
       );
-      if (age.inSeconds < 60) return; // recent enough — keep existing entry
-      _optimisticTracks.removeAt(existingIdx);
+      _optimisticTracks.insert(0, merged);
+      return;
     }
+
     _optimisticTracks.insert(0, track);
   }
 
@@ -525,6 +536,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       },
       'playedAt': track.playedAt.toIso8601String(),
       'durationSeconds': track.durationSeconds,
+      'lastPositionSeconds': track.lastPositionSeconds,
       'status': _statusToString(track.status),
       'coverUrl': track.coverUrl,
       'genre': track.genre,
@@ -533,7 +545,6 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       'commentCount': track.commentCount,
       'repostCount': track.repostCount,
       'playCount': track.playCount,
-      'lastPositionSeconds': track.lastPositionSeconds,
     };
   }
 
@@ -567,15 +578,13 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       releaseDate: json['releaseDate'] == null
           ? null
           : DateTime.tryParse(json['releaseDate'].toString()),
+      lastPositionSeconds:
+          (json['lastPositionSeconds'] as int?) ??
+          ((json['positionSeconds'] as num?)?.round() ?? 0),
       likeCount: (json['likeCount'] as int?) ?? 0,
       commentCount: (json['commentCount'] as int?) ?? 0,
       repostCount: (json['repostCount'] as int?) ?? 0,
       playCount: (json['playCount'] as int?) ?? 0,
-      lastPositionSeconds:
-          (json['lastPositionSeconds'] as int?) ??
-          (json['positionSeconds'] as int?) ??
-          (json['position'] as int?) ??
-          0,
     );
   }
 
