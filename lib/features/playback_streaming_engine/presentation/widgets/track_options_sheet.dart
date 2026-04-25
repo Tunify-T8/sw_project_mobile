@@ -141,7 +141,9 @@ Future<void> showTrackOptionsSheet(
     isScrollControlled: true,
     builder: (ctx) {
       if (ref.read(engagementProvider(info.trackId)).engagementStatus == EngagementStatus.initial) {
-        ref.read(engagementProvider(info.trackId).notifier).loadEngagement();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(engagementProvider(info.trackId).notifier).loadEngagement();
+        });
       }
       return _TrackOptionsSheetContent(
         info: info,
@@ -209,21 +211,21 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
               const SizedBox(height: 12),
 
               // ── Frosted track header ─────────────────────────────────
-              _FrostedTrackHeader(info: info),
+              FrostedTrackHeader(info: info),
               const SizedBox(height: 4),
 
               // ── Send To ──────────────────────────────────────────────
               if (conversations.isNotEmpty) ...[
-                _SectionLabel(label: 'SEND TO'),
-                _SendToRow(
+                SectionLabel(label: 'SEND TO'),
+                SendToRow(
                   info: info,
                   conversations: conversations,
                 ),
               ],
 
               // ── Share ────────────────────────────────────────────────
-              _SectionLabel(label: 'SHARE'),
-              _ShareRow(info: info, ref: ref),
+              SectionLabel(label: 'SHARE'),
+              ShareRow(info: info, ref: ref),
 
               const Divider(color: Colors.white12, height: 1),
 
@@ -463,8 +465,8 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
 
 // ── Frosted track header ────────────────────────────────────────────────────
 
-class _FrostedTrackHeader extends StatelessWidget {
-  const _FrostedTrackHeader({required this.info});
+class FrostedTrackHeader extends StatelessWidget {
+  const FrostedTrackHeader({super.key, required this.info});
 
   final TrackOptionInfo info;
 
@@ -474,272 +476,95 @@ class _FrostedTrackHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            // Blurred artwork backdrop
-            if (info.coverUrl != null || info.localArtworkPath != null)
-              Positioned.fill(
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                  child: UploadArtworkView(
-                    localPath: info.localArtworkPath,
-                    remoteUrl: info.coverUrl,
-                    width: double.infinity,
-                    height: double.infinity,
-                    backgroundColor: const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.zero,
-                    placeholder: const SizedBox.shrink(),
-                  ),
-                ),
-              )
-            else
-              Positioned.fill(
-                child: Container(color: const Color(0xFF2A2A2A)),
-              ),
-
-            // Dark overlay so text is always readable
-            Positioned.fill(
-              child: Container(color: Colors.black.withValues(alpha: 0.55)),
-            ),
-
-            // Content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  UploadArtworkView(
-                    localPath: info.localArtworkPath,
-                    remoteUrl: info.coverUrl,
-                    width: 56,
-                    height: 56,
-                    backgroundColor: const Color(0xFF3A4A6A),
-                    borderRadius: BorderRadius.circular(6),
-                    placeholder: const Icon(
-                      Icons.music_note,
-                      color: Colors.white24,
-                      size: 28,
+        child: SizedBox(
+          height: 84,
+          child: Stack(
+            children: [
+              if (info.coverUrl != null || info.localArtworkPath != null)
+                Positioned.fill(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                    child: UploadArtworkView(
+                      localPath: info.localArtworkPath,
+                      remoteUrl: info.coverUrl,
+                      width: double.infinity,
+                      height: double.infinity,
+                      backgroundColor: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.zero,
+                      placeholder: const SizedBox.shrink(),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          info.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              info.artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                              ),
-                            ),
-                            if (info.isPrivate) ...[
-                              const SizedBox(width: 6),
-                              const Icon(
-                                Icons.lock_outline,
-                                color: Colors.white54,
-                                size: 13,
-                              ),
-                              const SizedBox(width: 2),
-                              const Text(
-                                'Private',
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'SHARE',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
+                )
+              else
+                Positioned.fill(
+                  child: Container(color: const Color(0xFF2A2A2A)),
                 ),
+
+              Positioned.fill(
+                child: Container(color: Colors.black.withValues(alpha: 0.55)),
               ),
-            ),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  YourUploadsShareButton(
-                    icon: Icons.send_outlined,
-                    label: 'Message',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.copy_outlined,
-                    label: 'Copy link',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.qr_code_2,
-                    label: 'QR code',
-                  ),
-                  YourUploadsShareButton(
-                    icon: Icons.sms_outlined,
-                    label: 'SMS',
-                  ),
-                ],
-              ),
-            ),
-            const Divider(color: Colors.white12, height: 1),
-            Consumer(
-              builder: (context, watchRef, _) {
-                final engagement = watchRef.watch(engagementProvider(info.trackId)).engagement;
-                final isLiked = engagement?.isLiked ?? false;
-                final isReposted = engagement?.isReposted ?? false;
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
+
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
                   children: [
-                    YourUploadsOptionRow(
-                      key: const Key('track_options_like_row'),
-                      icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                      label: isLiked ? 'Unlike' : 'Like',
-                      color: isLiked ? Colors.orange : Colors.white,
-                      onTap: () {
-                        watchRef.read(engagementProvider(info.trackId).notifier).toggleLike();
-                        Navigator.pop(context);
-                      },
+                    UploadArtworkView(
+                      localPath: info.localArtworkPath,
+                      remoteUrl: info.coverUrl,
+                      width: 56,
+                      height: 56,
+                      backgroundColor: const Color(0xFF3A4A6A),
+                      borderRadius: BorderRadius.circular(6),
+                      placeholder: const Icon(
+                        Icons.music_note,
+                        color: Colors.white24,
+                        size: 28,
+                      ),
                     ),
-                    YourUploadsOptionRow(
-                      icon: Icons.playlist_add,
-                      label: 'Add to playlist',
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    YourUploadsOptionRow(
-                      icon: Icons.radio,
-                      label: 'Start station',
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    const Divider(color: Colors.white12, height: 1),
-                    if (info.artistId != null && info.artistId!.isNotEmpty)
-                      YourUploadsOptionRow(
-                        icon: Icons.person_outline,
-                        label: 'Go to artist profile',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => OtherUserProfileScreen(userId: info.artistId!),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            info.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        },
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            info.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
-                    YourUploadsOptionRow(
-                      key: const Key('track_options_comments_row'),
-                      icon: Icons.comment_outlined,
-                      label: 'View comments',
-                      onTap: () => Navigator.pop(context),
                     ),
-                    YourUploadsOptionRow(
-                      key: const Key('track_options_repost_row'),
-                      icon: isReposted ? Icons.repeat_on : Icons.repeat,
-                      label: isReposted ? 'Undo Repost' : 'Repost',
-                      color: isReposted ? Colors.orange : Colors.white,
-                      onTap: () async {
-                        Navigator.pop(context);
-                        if (isReposted) {
-                          watchRef.read(engagementProvider(info.trackId).notifier).removeRepost();
-                        } else {
-                          await RepostCaptionSheet.show(
-                            context,
-                            trackId: info.trackId,
-                            trackTitle: info.title,
-                            artistName: info.artist,
-                            coverUrl: info.coverUrl,
-                          );
-                        }
-                      },
-                    ),
-                    const Divider(color: Colors.white12, height: 1),
-                    YourUploadsOptionRow(
-                      icon: Icons.graphic_eq,
-                      label: 'Behind this track',
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    YourUploadsOptionRow(
-                      icon: Icons.queue_play_next,
-                      label: 'Play next',
-                      onTap: () {
-                        watchRef.read(playerProvider.notifier).addToQueueNext(info.trackId);
-                        Navigator.pop(context);
-                      },
-                    ),
-                    YourUploadsOptionRow(
-                      icon: Icons.playlist_play,
-                      label: 'Play last',
-                      onTap: () {
-                        watchRef.read(playerProvider.notifier).addToQueueLast(info.trackId);
-                        Navigator.pop(context);
-                      },
-                    ),
-                    if (info.isOwned)
-                      YourUploadsOptionRow(
-                        icon: Icons.edit_outlined,
-                        label: 'Edit track',
-                        onTap: () {
-                          Navigator.pop(context);
-                          final stored = watchRef.read(globalTrackStoreProvider).find(info.trackId);
-                          if (stored != null) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
-                            );
-                          }
-                        },
-                      ),
-                    if (info.isOwned)
-                      YourUploadsOptionRow(
-                        icon: Icons.delete_outline,
-                        label: 'Delete track',
-                        color: Colors.redAccent,
-                        onTap: () => Navigator.pop(context),
-                      ),
                   ],
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
 // ── Section label ───────────────────────────────────────────────────────────
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
+class SectionLabel extends StatelessWidget {
+  const SectionLabel({required this.label});
 
   final String label;
 
@@ -765,8 +590,8 @@ class _SectionLabel extends StatelessWidget {
 
 // ── Send To row (recent conversations) ─────────────────────────────────────
 
-class _SendToRow extends StatelessWidget {
-  const _SendToRow({required this.info, required this.conversations});
+class SendToRow extends StatelessWidget {
+  const SendToRow({required this.info, required this.conversations});
 
   final TrackOptionInfo info;
   final List<ConversationEntity> conversations;
@@ -784,15 +609,15 @@ class _SendToRow extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final conv = visible[index];
-          return _SendToAvatar(info: info, conversation: conv);
+          return SendToAvatar(info: info, conversation: conv);
         },
       ),
     );
   }
 }
 
-class _SendToAvatar extends StatelessWidget {
-  const _SendToAvatar({required this.info, required this.conversation});
+class SendToAvatar extends StatelessWidget {
+  const SendToAvatar({required this.info, required this.conversation});
 
   final TrackOptionInfo info;
   final ConversationEntity conversation;
@@ -860,8 +685,8 @@ class _SendToAvatar extends StatelessWidget {
 
 // ── Share row (social + copy link) ─────────────────────────────────────────
 
-class _ShareRow extends StatelessWidget {
-  const _ShareRow({required this.info, required this.ref});
+class ShareRow extends StatelessWidget {
+  const ShareRow({required this.info, required this.ref});
 
   final TrackOptionInfo info;
   final WidgetRef ref;

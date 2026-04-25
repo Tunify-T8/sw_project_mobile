@@ -7,7 +7,7 @@ import 'feed_activity_row.dart';
 import 'feed_interaction_buttons.dart';
 import '../../../../../core/utils/navigation_utils.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
-import '../widgets/feed_menu_sheet.dart';
+import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 class ClassicFeedCard extends ConsumerWidget {
   final FeedItemEntity item;
@@ -149,24 +149,18 @@ class ClassicFeedCard extends ConsumerWidget {
               ),
               const Spacer(),
               IconButton(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Color(0xFF121212),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                    ),
-                    showDragHandle: true,
-                    useSafeArea: true,
-                    builder: (_) => FeedMenuSheet(
-                      track: item.track,
-                      feedViewMode: FeedViewMode.classic,
-                    ),
-                  );
-                },
+              onPressed: () async {
+                await showTrackOptionsMenu(
+                  context: context,
+                  trackId: item.track.trackId,
+                  title: item.track.title,
+                  artistId: item.track.artistId,
+                  artistName: item.track.artistName,
+                  coverUrl: item.track.coverUrl,
+                  initialIsLiked: item.track.interaction.isLiked,
+                  initialIsReposted: item.track.interaction.isReposted,
+                );
+              },
                 icon: const Icon(Icons.more_horiz, color: Colors.white),
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,

@@ -102,35 +102,34 @@ class _MainTrackCard extends ConsumerWidget {
               _MetricIconText(icon: Icons.repeat, text: stats.repostCountText),
               const SizedBox(width: 28),
               GestureDetector(
-                onTap: () {
+                onTap: () async {
                   // Track info page is reached from many paths (feed, search,
                   // history, own uploads). Resolve ownership and artist id
                   // via the shared lookup so the sheet shows the right
                   // layout regardless of how we got here.
-                  final bundle =
-                      ref.read(playerProvider).asData?.value.bundle;
+                  final bundle = ref.read(playerProvider).asData?.value.bundle;
                   final artistId =
                       (bundle?.trackId == item.id &&
-                              bundle!.artist.id.trim().isNotEmpty)
-                          ? bundle.artist.id
-                          : null;
-                  showTrackOptionsSheet(
-                    context,
-                    info: TrackOptionInfo.fromTrackId(
-                      item.id,
-                      ref,
-                      fallbackTitle: item.title,
-                      fallbackArtist: item.artistDisplay,
-                      fallbackCoverUrl: item.artworkUrl,
-                      fallbackLocalArtworkPath: item.localArtworkPath,
-                      fallbackArtistId: artistId,
-                    ),
-                    ref: ref,
+                          bundle!.artist.id.trim().isNotEmpty)
+                      ? bundle.artist.id
+                      : null;
+                  await showTrackOptionsMenu(
+                    context: context,
+                    trackId: item.id,
+                    title: item.title,
+                    artistId: artistId ?? '',
+                    artistName: item.artistDisplay,
+                    coverUrl: item.artworkUrl,
+                    isBehindTrack: true,
                   );
                 },
                 child: const Padding(
                   padding: EdgeInsets.all(4),
-                  child: Icon(Icons.more_horiz, color: Colors.white70, size: 28),
+                  child: Icon(
+                    Icons.more_horiz,
+                    color: Colors.white70,
+                    size: 28,
+                  ),
                 ),
               ),
             ],
