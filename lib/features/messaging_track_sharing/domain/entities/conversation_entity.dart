@@ -18,16 +18,17 @@ class ConversationEntity {
   });
 
   ConversationEntity copyWith({
+    UserPreview? otherUser,
     String? lastMessagePreview,
     DateTime? lastMessageAt,
     int? unreadCount,
     bool? isBlocked,
   }) => ConversationEntity(
-        conversationId: conversationId,
-        otherUser: otherUser,
-        lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
-        lastMessageAt: lastMessageAt ?? this.lastMessageAt,
-        unreadCount: unreadCount ?? this.unreadCount,
-        isBlocked: isBlocked ?? this.isBlocked,
-      );
+    conversationId: conversationId,
+    otherUser: otherUser ?? this.otherUser,
+    lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+    lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+    unreadCount: unreadCount ?? this.unreadCount,
+    isBlocked: isBlocked ?? this.isBlocked,
+  );
 }

@@ -20,13 +20,22 @@ class PaginatedDto<T> {
     Map<String, dynamic> j,
     T Function(Map<String, dynamic>) itemFromJson,
   ) {
-    final raw = (j['data'] as List?) ?? (j['items'] as List?) ?? const [];
-    final list = raw.whereType<Map<String, dynamic>>().map(itemFromJson).toList();
+    final raw =
+        (j['data'] as List?) ??
+        (j['items'] as List?) ??
+        (j['results'] as List?) ??
+        (j['conversations'] as List?) ??
+        (j['messages'] as List?) ??
+        const [];
+    final list = raw
+        .whereType<Map<String, dynamic>>()
+        .map(itemFromJson)
+        .toList();
     return PaginatedDto(
       items: list,
       page: (j['page'] as int?) ?? 1,
       limit: (j['limit'] as int?) ?? list.length,
-      total: (j['total'] as int?) ?? list.length,
+      total: (j['total'] as int?) ?? (j['count'] as int?) ?? list.length,
     );
   }
 }

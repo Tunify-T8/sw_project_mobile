@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/routing/routes.dart';
 import '../../../audio_upload_and_management/presentation/providers/public_user_uploads_provider.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
-import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
 import '../../../messaging_track_sharing/domain/usecases/open_conversation_usecase.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
@@ -66,7 +65,9 @@ class _OtherUserProfileScreenState
     if (_openingChat) return;
     setState(() => _openingChat = true);
     try {
-      ref.read(mockMessagingStoreProvider).registerUserPreview(
+      ref
+          .read(mockMessagingStoreProvider)
+          .registerUserPreview(
             id: widget.userId,
             displayName: displayName,
             avatarUrl: avatarUrl,
@@ -98,7 +99,11 @@ class _OtherUserProfileScreenState
     }
   }
 
-  Widget _buildActionButtons(bool isBlocked, String displayName, String? avatarUrl) {
+  Widget _buildActionButtons(
+    bool isBlocked,
+    String displayName,
+    String? avatarUrl,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: Row(
@@ -155,6 +160,10 @@ class _OtherUserProfileScreenState
       relationshipStatusProvider(widget.userId),
     );
     final profile = state.profile;
+    final profileDisplayName = _displayName(
+      profile?.displayName,
+      profile?.userName,
+    );
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -253,7 +262,7 @@ class _OtherUserProfileScreenState
                     ).showInfoSheet(),
                     actionButtons: _buildActionButtons(
                       relationshipState.isBlocked ?? false,
-                      profile?.userName ?? '',
+                      profileDisplayName,
                       profile?.profileImagePath,
                     ),
                   ),
@@ -262,6 +271,13 @@ class _OtherUserProfileScreenState
               ),
             ),
     );
+  }
+
+  String _displayName(String? displayName, String? userName) {
+    final display = displayName?.trim() ?? '';
+    if (display.isNotEmpty) return display;
+    final username = userName?.trim() ?? '';
+    return username.isEmpty ? 'Unknown User' : username;
   }
 }
 
@@ -283,9 +299,7 @@ class _OtherUserTracksSection extends ConsumerWidget {
       items: items,
       onTrackTap: (item) {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => TrackDetailScreen(item: item),
-          ),
+          MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)),
         );
       },
     );

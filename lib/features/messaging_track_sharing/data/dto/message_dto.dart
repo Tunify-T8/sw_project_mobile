@@ -37,53 +37,103 @@ class MessageDto {
     this.attachments = const [],
   });
 
-  factory MessageDto.fromJson(Map<String, dynamic> j,
-      {String? fallbackConversationId}) {
-    final sender = (j['sender'] is Map<String, dynamic>)
-        ? j['sender'] as Map<String, dynamic>
-        : const <String, dynamic>{};
+  factory MessageDto.fromJson(
+    Map<String, dynamic> j, {
+    String? fallbackConversationId,
+  }) {
+    final sender =
+        _map(j['sender'] ?? j['from'] ?? j['user']) ??
+        const <String, dynamic>{};
 
-    final senderId = (j['senderId'] ?? sender['id'] ?? '').toString();
-    final senderDisplay =
-        (sender['username'] ?? sender['displayName']) as String?;
-    final senderAvatar = sender['avatarUrl'] as String?;
+    final senderId = _firstNonEmpty([
+      j['senderId'],
+      j['sender_id'],
+      j['fromUserId'],
+      j['from_user_id'],
+      j['userId'],
+      sender['id'],
+      sender['_id'],
+      sender['userId'],
+      sender['user_id'],
+    ]);
+    final senderDisplay = _nullableString(
+      sender['displayName'] ??
+          sender['display_name'] ??
+          sender['username'] ??
+          sender['userName'] ??
+          sender['name'],
+    );
+    final senderAvatar = _nullableString(
+      sender['avatarUrl'] ??
+          sender['avatar_url'] ??
+          sender['profileImagePath'] ??
+          sender['profile_image_path'],
+    );
 
     final type =
         (j['type'] ?? (j['attachment'] != null ? 'ATTACHMENT' : 'TEXT'))
             .toString()
             .toUpperCase();
 
-    final text = (j['text'] ?? j['content']) as String?;
+    final text = _nullableString(j['text'] ?? j['content'] ?? j['body']);
 
     // Backend may send a single attachment under `attachment`, older /
     // optimistic payloads use the flat `attachments` list.
     final attachments = <MessageAttachmentDto>[];
-    if (j['attachment'] is Map<String, dynamic>) {
-      final att = j['attachment'] as Map<String, dynamic>;
+    final singleAttachment = _map(j['attachment'] ?? j['sharedResource']);
+    if (singleAttachment != null) {
+      final att = singleAttachment;
       // Propagate outer type into the attachment so the mapper can route
       // the UI correctly even if `att.type` is absent.
       final merged = <String, dynamic>{...att, 'type': att['type'] ?? type};
       attachments.add(MessageAttachmentDto.fromJson(merged));
     } else {
       final list = (j['attachments'] as List?) ?? const [];
-      attachments.addAll(list
-          .whereType<Map<String, dynamic>>()
-          .map(MessageAttachmentDto.fromJson));
+      attachments.addAll(
+        list.whereType<Map<String, dynamic>>().map(
+          MessageAttachmentDto.fromJson,
+        ),
+      );
     }
 
     return MessageDto(
-      id: (j['id'] ?? '').toString(),
-      conversationId:
-          (j['conversationId'] ?? fallbackConversationId ?? '').toString(),
+      id: _string(j['id'] ?? j['_id'] ?? j['messageId'] ?? j['message_id']),
+      conversationId: _string(
+        j['conversationId'] ?? j['conversation_id'] ?? fallbackConversationId,
+      ),
       senderId: senderId,
       senderDisplayName: senderDisplay,
       senderAvatarUrl: senderAvatar,
       type: type,
       text: text,
-      createdAt: DateTime.tryParse((j['createdAt'] ?? '').toString()) ??
+      createdAt:
+          DateTime.tryParse((j['createdAt'] ?? '').toString()) ??
           DateTime.now().toUtc(),
       isRead: (j['read'] as bool?) ?? (j['isRead'] as bool?) ?? false,
       attachments: attachments,
     );
+  }
+
+  static String _string(Object? value) => value?.toString().trim() ?? '';
+
+  static String? _nullableString(Object? value) {
+    final text = _string(value);
+    return text.isEmpty ? null : text;
+  }
+
+  static String _firstNonEmpty(List<Object?> values) {
+    for (final value in values) {
+      final text = _string(value);
+      if (text.isNotEmpty) return text;
+    }
+    return '';
+  }
+
+  static Map<String, dynamic>? _map(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(key.toString(), val));
+    }
+    return null;
   }
 }

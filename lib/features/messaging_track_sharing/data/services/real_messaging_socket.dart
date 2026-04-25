@@ -140,7 +140,9 @@ class RealMessagingSocket implements MessagingSocket {
       payload: enriched,
     );
 
-    _socket!.emit('message:send', enriched);
+    final socketPayload = <String, dynamic>{...enriched}
+      ..remove('clientPreview');
+    _socket!.emit('message:send', socketPayload);
 
     // Resolve optimistically — the chat UI shouldn't have to wait for the
     // server round-trip to render the bubble. The broadcast updates state
@@ -191,6 +193,8 @@ class RealMessagingSocket implements MessagingSocket {
       io.OptionBuilder()
           .setTransports(['websocket'])
           .setPath('/socket.io')
+          .setAuth({'token': token})
+          .setExtraHeaders({'authorization': 'Bearer $token'})
           .setQuery({'token': token})
           .enableReconnection()
           .setReconnectionAttempts(0x7fffffff) // never give up
@@ -286,8 +290,9 @@ class RealMessagingSocket implements MessagingSocket {
         MessageReadEvent(
           conversationId: convoId,
           readerUserId: readerId,
-          messageId:
-              (messageId == null || messageId.isEmpty) ? null : messageId,
+          messageId: (messageId == null || messageId.isEmpty)
+              ? null
+              : messageId,
         ),
       );
     });
@@ -297,11 +302,9 @@ class RealMessagingSocket implements MessagingSocket {
       final convoId = (m['conversationId'] ?? '').toString();
       final userId = (m['userId'] ?? '').toString();
       if (convoId.isEmpty || userId.isEmpty) return;
-      _controller.add(TypingEvent(
-        conversationId: convoId,
-        userId: userId,
-        isTyping: true,
-      ));
+      _controller.add(
+        TypingEvent(conversationId: convoId, userId: userId, isTyping: true),
+      );
     });
 
     _socket!.on('typing:inactive', (data) {
@@ -309,11 +312,9 @@ class RealMessagingSocket implements MessagingSocket {
       final convoId = (m['conversationId'] ?? '').toString();
       final userId = (m['userId'] ?? '').toString();
       if (convoId.isEmpty || userId.isEmpty) return;
-      _controller.add(TypingEvent(
-        conversationId: convoId,
-        userId: userId,
-        isTyping: false,
-      ));
+      _controller.add(
+        TypingEvent(conversationId: convoId, userId: userId, isTyping: false),
+      );
     });
 
     _socket!.on('error', (data) {
@@ -360,6 +361,7 @@ class RealMessagingSocket implements MessagingSocket {
     final content = payload['content'] as String?;
     final tempId = (payload['tempId'] ?? '').toString();
 
+    final preview = _safeMap(payload['clientPreview']);
     return MessageDto.fromJson({
       'id': serverId.isNotEmpty ? serverId : tempId,
       'conversationId': convoId,
@@ -367,19 +369,21 @@ class RealMessagingSocket implements MessagingSocket {
       // tag it as the current user without needing extra plumbing.
       'senderId': '__me__',
       'type': type,
-      if (content != null) 'content': content,
+      ...(content == null ? const {} : {'content': content}),
       'createdAt': DateTime.now().toUtc().toIso8601String(),
       'read': true,
       if (payload['trackId'] != null ||
           payload['collectionId'] != null ||
           payload['userId'] != null)
         'attachment': {
-          'id': (payload['trackId'] ??
-                  payload['collectionId'] ??
-                  payload['userId'] ??
-                  '')
-              .toString(),
+          'id':
+              (payload['trackId'] ??
+                      payload['collectionId'] ??
+                      payload['userId'] ??
+                      '')
+                  .toString(),
           'type': type,
+          if (preview.isNotEmpty) 'preview': preview,
         },
     }, fallbackConversationId: convoId);
   }

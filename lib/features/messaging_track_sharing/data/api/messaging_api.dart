@@ -38,7 +38,7 @@ class MessagingApi {
       queryParameters: {'page': page, 'limit': limit},
     );
     return PaginatedDto<ConversationDto>.fromJson(
-      _asMap(res.data),
+      _asPaginatedMap(res.data),
       (m) => ConversationDto.fromJson(m, currentUserId: currentUserId),
     );
   }
@@ -51,7 +51,16 @@ class MessagingApi {
       data: {'userId': userId},
     );
     final body = _asMap(res.data);
-    return (body['id'] ?? body['conversationId'] ?? '').toString();
+    final nested = _asNullableMap(body['conversation']);
+    return (body['id'] ??
+            body['_id'] ??
+            body['conversationId'] ??
+            body['conversation_id'] ??
+            nested?['id'] ??
+            nested?['_id'] ??
+            nested?['conversationId'] ??
+            '')
+        .toString();
   }
 
   Future<void> deleteConversation(String id) =>
@@ -67,7 +76,7 @@ class MessagingApi {
       queryParameters: {'page': page, 'limit': limit},
     );
     return PaginatedDto<MessageDto>.fromJson(
-      _asMap(res.data),
+      _asPaginatedMap(res.data),
       (m) => MessageDto.fromJson(m, fallbackConversationId: id),
     );
   }
@@ -77,8 +86,7 @@ class MessagingApi {
   Future<void> markUnread(String id) =>
       _dio.post(MessagingEndpoints.unread(id));
 
-  Future<void> archive(String id) =>
-      _dio.post(MessagingEndpoints.archive(id));
+  Future<void> archive(String id) => _dio.post(MessagingEndpoints.archive(id));
 
   Future<int> getUnreadCount() async {
     final res = await _dio.get(MessagingEndpoints.unreadCount);
@@ -89,14 +97,10 @@ class MessagingApi {
     String id, {
     bool removeComments = false,
     bool reportSpam = false,
-  }) =>
-      _dio.post(
-        MessagingEndpoints.block(id),
-        data: {
-          'removeComments': removeComments,
-          'reportSpam': reportSpam,
-        },
-      );
+  }) => _dio.post(
+    MessagingEndpoints.block(id),
+    data: {'removeComments': removeComments, 'reportSpam': reportSpam},
+  );
 
   Future<void> unblock(String blockedUserId) =>
       _dio.post(MessagingEndpoints.unblock(blockedUserId));
@@ -111,5 +115,22 @@ class MessagingApi {
       return raw['data'] as Map<String, dynamic>;
     }
     return raw;
+  }
+
+  Map<String, dynamic> _asPaginatedMap(dynamic raw) {
+    if (raw is List) return {'data': raw};
+    final map = _asMap(raw);
+    if (map['data'] is List) return map;
+    final nested = _asNullableMap(map['data']);
+    if (nested != null) return nested;
+    return map;
+  }
+
+  Map<String, dynamic>? _asNullableMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) {
+      return raw.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return null;
   }
 }

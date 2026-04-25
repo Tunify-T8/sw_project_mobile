@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/token_storage.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/api/messaging_api.dart';
 import '../../data/services/messaging_socket.dart';
 import '../../data/services/mock_messaging_socket.dart';
@@ -21,14 +22,20 @@ final messagingApiProvider = Provider<MessagingApi>(
   (ref) => MessagingApi(ref.watch(messagingDioProvider)),
 );
 
+final messagingSessionUserIdProvider = Provider<String?>((ref) {
+  return ref.watch(authControllerProvider).asData?.value?.id;
+});
+
 /// Shared mock store — kept alive for the app lifetime so multiple screens
 /// observe the same in-memory dataset.
-final mockMessagingStoreProvider =
-    Provider<MockMessagingStore>((ref) => MockMessagingStore());
+final mockMessagingStoreProvider = Provider<MockMessagingStore>(
+  (ref) => MockMessagingStore(),
+);
 
 /// Mock socket is kept exposed separately so the mock repo can type-cast it
 /// safely and emit events directly.
 final mockMessagingSocketProvider = Provider<MockMessagingSocket>((ref) {
+  ref.watch(messagingSessionUserIdProvider);
   final socket = MockMessagingSocket();
   ref.onDispose(socket.dispose);
   return socket;
@@ -38,6 +45,7 @@ final mockMessagingSocketProvider = Provider<MockMessagingSocket>((ref) {
 /// and a lightweight in-memory bus in mock mode.
 final messagingSocketProvider = Provider<MessagingSocket>((ref) {
   final mode = ref.watch(messagingBackendModeProvider);
+  ref.watch(messagingSessionUserIdProvider);
   if (mode == MessagingBackendMode.real) {
     final socket = RealMessagingSocket(const TokenStorage());
     ref.onDispose(socket.dispose);

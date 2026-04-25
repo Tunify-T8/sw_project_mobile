@@ -6,6 +6,9 @@ import '../../domain/entities/realtime_event.dart';
 import '../../domain/entities/send_message_draft.dart';
 import '../../domain/repositories/messaging_repository.dart';
 import '../api/messaging_api.dart';
+import '../dto/conversation_dto.dart';
+import '../dto/paginated_dto.dart';
+import '../dto/user_preview_dto.dart';
 import '../mappers/messaging_mapper.dart';
 import '../services/messaging_socket.dart';
 
@@ -18,7 +21,8 @@ class RealMessagingRepository implements MessagingRepository {
     this._api,
     this._socket, {
     required this.currentUserId,
-  });
+    Future<UserPreviewDto?> Function(String userId)? userPreviewResolver,
+  }) : _userPreviewResolver = userPreviewResolver;
 
   final MessagingApi _api;
   final MessagingSocket _socket;
@@ -26,6 +30,8 @@ class RealMessagingRepository implements MessagingRepository {
   /// Getter for the current signed-in user's id. Conversation DTOs don't
   /// denormalize the "other user" so we need this to resolve who that is.
   final String? Function() currentUserId;
+  final Future<UserPreviewDto?> Function(String userId)? _userPreviewResolver;
+  final Map<String, UserPreviewDto> _userPreviewCache = {};
 
   @override
   Future<PaginatedConversations> getConversations({
@@ -37,7 +43,17 @@ class RealMessagingRepository implements MessagingRepository {
       limit: limit,
       currentUserId: currentUserId(),
     );
-    return MessagingMapper.conversations(paginated);
+    final hydratedItems = await Future.wait(
+      paginated.items.map(_hydrateConversationUser),
+    );
+    return MessagingMapper.conversations(
+      PaginatedDto<ConversationDto>(
+        items: hydratedItems,
+        page: paginated.page,
+        limit: paginated.limit,
+        total: paginated.total,
+      ),
+    );
   }
 
   @override
@@ -53,10 +69,9 @@ class RealMessagingRepository implements MessagingRepository {
     String conversationId, {
     int page = 1,
     int limit = 20,
-  }) async =>
-      MessagingMapper.messages(
-        await _api.getMessages(conversationId, page: page, limit: limit),
-      );
+  }) async => MessagingMapper.messages(
+    await _api.getMessages(conversationId, page: page, limit: limit),
+  );
 
   @override
   Future<MessageEntity> sendMessage(
@@ -91,12 +106,20 @@ class RealMessagingRepository implements MessagingRepository {
       final payload = <String, dynamic>{
         'conversationId': conversationId,
         'type': kind.wireType,
+        'clientPreview': {
+          'id': attachment.id,
+          'type': kind.wireType,
+          'title': attachment.title,
+          if (attachment.subtitle != null) 'subtitle': attachment.subtitle,
+          if (attachment.artworkUrl != null)
+            'artworkUrl': attachment.artworkUrl,
+        },
       };
       switch (kind) {
         case MessageAttachmentBackendKind.trackLike:
-        case MessageAttachmentBackendKind.trackUpload:
           payload['trackId'] = attachment.id;
           break;
+        case MessageAttachmentBackendKind.trackUpload:
         case MessageAttachmentBackendKind.playlist:
         case MessageAttachmentBackendKind.album:
           payload['collectionId'] = attachment.id;
@@ -138,4 +161,68 @@ class RealMessagingRepository implements MessagingRepository {
 
   @override
   Future<void> disconnectRealtime() => _socket.disconnect();
+
+  Future<ConversationDto> _hydrateConversationUser(
+    ConversationDto conversation,
+  ) async {
+    final userId = conversation.otherUser.id.trim();
+    if (userId.isEmpty || !_looksLikeFallbackName(conversation.otherUser)) {
+      return conversation;
+    }
+
+    final cached = _userPreviewCache[userId];
+    if (cached != null) {
+      return _copyConversation(conversation, cached);
+    }
+
+    final resolver = _userPreviewResolver;
+    if (resolver == null) return conversation;
+
+    try {
+      final preview = await resolver(userId);
+      if (preview == null) return conversation;
+      _userPreviewCache[userId] = preview;
+      return _copyConversation(conversation, preview);
+    } catch (_) {
+      return conversation;
+    }
+  }
+
+  ConversationDto _copyConversation(
+    ConversationDto conversation,
+    UserPreviewDto otherUser,
+  ) => ConversationDto(
+    conversationId: conversation.conversationId,
+    otherUser: otherUser,
+    user1Id: conversation.user1Id,
+    user2Id: conversation.user2Id,
+    lastMessagePreview: conversation.lastMessagePreview,
+    lastMessageAt: conversation.lastMessageAt,
+    unreadCount: conversation.unreadCount,
+    isBlocked: conversation.isBlocked,
+    lastMessage: conversation.lastMessage,
+  );
+
+  bool _looksLikeFallbackName(UserPreviewDto preview) {
+    final id = preview.id.trim();
+    final name = preview.displayName.trim();
+    if (name.isEmpty || name == 'Unknown User') return true;
+    if (id.isEmpty) return false;
+    if (name == id) return true;
+    return name == _friendlyDisplayName(id);
+  }
+
+  String _friendlyDisplayName(String raw) {
+    final emailName = raw.contains('@') ? raw.split('@').first : raw;
+    final cleaned = emailName.replaceAll(RegExp(r'[_:-]+'), ' ').trim();
+    if (cleaned.isEmpty) return raw;
+    return cleaned
+        .split(RegExp(r'\s+'))
+        .map(
+          (part) => part.isEmpty
+              ? part
+              : '${part[0].toUpperCase()}${part.substring(1)}',
+        )
+        .join(' ');
+  }
 }
