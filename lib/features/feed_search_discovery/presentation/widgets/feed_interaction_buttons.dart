@@ -70,8 +70,9 @@ class _FeedInteractionButtonsState
     final state = ref.watch(engagementProvider(widget.trackId));
     final isLiked = state.engagement?.isLiked ?? widget.fallbackIsLiked;
     final likesCount = state.engagement?.likeCount ?? widget.fallbackLikesCount;
-    final commentsCount =
-        state.engagement?.commentCount ?? widget.fallbackCommentsCount;
+    final commentsCount = state.engagementStatus == EngagementStatus.initial
+        ? widget.fallbackCommentsCount
+        : state.totalCommentsCount;
 
     final children = [
       IconButton(
