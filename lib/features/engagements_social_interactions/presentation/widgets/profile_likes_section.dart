@@ -6,6 +6,7 @@ import '../provider/enagement_providers.dart';
 import '../screens/liked_tracks_screen.dart';
 import '../utils/engagement_formatters.dart';
 import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
+import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 class ProfileLikesSection extends ConsumerStatefulWidget {
   /// null → current user, non-null → another user
@@ -173,17 +174,17 @@ class _LikePreviewTile extends ConsumerWidget {
             icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            onPressed: () => showTrackOptionsSheet(
-              context,
-              info: TrackOptionInfo(
-                trackId: track.trackId,
-                title: track.title,
-                artist: track.artistName,
-                artistId: track.artistId,
-                coverUrl: track.coverUrl,
-              ),
-              ref: ref,
-            ),
+            onPressed: () async {
+                await showTrackOptionsMenu(
+                  context: context,
+                  trackId: track.trackId,
+                  title: track.title,
+                  artistId: track.artistId,
+                  artistName: track.artistName,
+                  coverUrl: track.coverUrl,
+                  initialIsLiked: true,
+                );
+              },
           ),
         ],
       ),

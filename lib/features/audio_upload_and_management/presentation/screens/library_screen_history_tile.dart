@@ -178,11 +178,14 @@ class _LibraryHistoryTile extends ConsumerWidget {
                 width: 32,
                 child: Center(
                   child: GestureDetector(
-                    onTap: () {
-                      showTrackOptionsSheet(
-                        context,
-                        info: TrackOptionInfo.fromHistory(track),
-                        ref: ref,
+                    onTap: () async {
+                      await showTrackOptionsMenu(
+                        context: context,
+                        trackId: track.trackId,
+                        title: track.title,
+                        artistId: track.artist.id,
+                        artistName: track.artist.name,
+                        coverUrl: track.coverUrl,
                       );
                     },
                     child: const Padding(

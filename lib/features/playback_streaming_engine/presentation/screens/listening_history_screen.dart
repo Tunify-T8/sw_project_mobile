@@ -17,6 +17,7 @@ import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/track_options_sheet.dart';
+import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 part 'listening_history_screen_actions.dart';
 part 'listening_history_screen_widgets.dart';

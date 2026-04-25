@@ -10,6 +10,7 @@ import 'feed_preview_overlay.dart';
 import 'feed_interaction_buttons.dart';
 import 'feed_activity_row.dart';
 import 'track_info_box.dart';
+import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 class FeedTrackCard extends ConsumerWidget {
   final FeedItemEntity item;
@@ -28,9 +29,9 @@ class FeedTrackCard extends ConsumerWidget {
         final wasPreviewing = ref.read(feedNotifierProvider).isPreviewing;
         ref.read(feedNotifierProvider.notifier).togglePreview();
 
-
-        final previewController =
-            ref.read(feedPreviewPlaybackControllerProvider);
+        final previewController = ref.read(
+          feedPreviewPlaybackControllerProvider,
+        );
         if (wasPreviewing) {
           previewController.stop();
         } else {
@@ -94,20 +95,18 @@ class FeedTrackCard extends ConsumerWidget {
             top: 63.0,
             right: 20.0,
             child: IconButton(
-              onPressed: () {
-                showModalBottomSheet(
+              onPressed: () async {
+                await showTrackOptionsMenu(
                   context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Color(0xFF121212),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                  ),
-                  showDragHandle: true,
-                  useSafeArea: true,
-                  builder: (_) =>
-                      FeedMenuSheet(track: item.track, feedViewMode: FeedViewMode.discover),
+                  trackId: item.track.trackId,
+                  title: item.track.title,
+                  artistId: item.track.artistId,
+                  artistName: item.track.artistName,
+                  coverUrl: item.track.coverUrl,
+                  initialIsLiked: item.track.interaction.isLiked,
+                  initialIsReposted: item.track.interaction.isReposted,
+                  isDiscoverFeed: tabType == FeedType.discover, 
+                  isFollowingFeed: tabType == FeedType.following
                 );
               },
               icon: const Icon(Icons.more_horiz),
