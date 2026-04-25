@@ -13,9 +13,7 @@ extension _LibraryScreenActions on _LibraryScreenState {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => const NetworkListsScreen(
-            userId: 'u2',
             listType: NetworkListType.following,
-            isMyProfile: true,
           ),
         ),
       );

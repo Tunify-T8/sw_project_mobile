@@ -11,6 +11,7 @@ import '../../../audio_upload_and_management/presentation/providers/library_uplo
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -145,6 +146,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     nameStyle: nameStyle,
                     bioStyle: bioStyle,
                     followerStyle: followerStyle,
+                    userId: null,
                     onShowMore: () => ProfileShareSheet(
                       context: context,
                       userName: profile?.userName ?? '',

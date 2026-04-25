@@ -246,6 +246,7 @@ class _OtherUserProfileScreenState
                     nameStyle: nameStyle,
                     bioStyle: bioStyle,
                     followerStyle: followerStyle,
+                    userId: widget.userId,
                     onShowMore: () => ProfileShareSheet(
                       context: context,
                       userName: profile?.userName ?? '',
