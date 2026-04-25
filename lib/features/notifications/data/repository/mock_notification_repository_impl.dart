@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../domain/entities/notification_entity.dart';
 import '../../domain/entities/notification_preferences_entity.dart';
 import '../../domain/entities/paginated_notifications.dart';
 import '../../domain/repositories/notification_repository.dart';
@@ -7,8 +8,6 @@ import '../dto/notification_dto.dart';
 import '../mappers/notification_mapper.dart';
 import '../services/mock_notification_store.dart';
 
-/// Mock repo — all state lives in [MockNotificationStore].
-/// Mirrors [RealNotificationRepository] so providers can swap transparently.
 class MockNotificationRepository implements NotificationRepository {
   final MockNotificationStore _store;
 
@@ -25,18 +24,15 @@ class MockNotificationRepository implements NotificationRepository {
   }) async {
     var items = List<NotificationDto>.from(_store.notifications);
 
-    // Filter by type (comma-separated).
     if (type != null && type.isNotEmpty) {
       final types = type.split(',').map((t) => t.trim()).toSet();
       items = items.where((n) => types.contains(n.type)).toList();
     }
 
-    // Filter by unread.
     if (unreadOnly == true) {
       items = items.where((n) => !n.isRead).toList();
     }
 
-    // Sort newest first.
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return PaginatedNotifications(
@@ -56,10 +52,8 @@ class MockNotificationRepository implements NotificationRepository {
     final index =
         _store.notifications.indexWhere((n) => n.id == notificationId);
     if (index == -1) return;
-
     final old = _store.notifications[index];
     if (old.isRead) return;
-
     _store.notifications[index] = NotificationDto(
       id: old.id,
       type: old.type,
@@ -108,16 +102,23 @@ class MockNotificationRepository implements NotificationRepository {
     Map<String, bool>? push,
     Map<String, bool>? email,
   }) async {
-    if (push != null) {
-      _store.pushPreferences.addAll(push);
-    }
-    if (email != null) {
-      _store.emailPreferences.addAll(email);
-    }
+    if (push != null) _store.pushPreferences.addAll(push);
+    if (email != null) _store.emailPreferences.addAll(email);
   }
 
-  PreferenceChannel _channelFromMap(Map<String, bool> map) =>
-      PreferenceChannel(
+  // ── Realtime (mock: driven by store's push stream) ────────────────────────
+
+  @override
+  Stream<NotificationEntity> realtimeNotifications() =>
+      _store.onNewNotification.map(NotificationMapper.notification);
+
+  @override
+  Future<void> connectRealtime() async {}
+
+  @override
+  Future<void> disconnectRealtime() async {}
+
+  PreferenceChannel _channelFromMap(Map<String, bool> map) => PreferenceChannel(
         trackLiked: map['trackLiked'] ?? true,
         trackCommented: map['trackCommented'] ?? true,
         trackReposted: map['trackReposted'] ?? true,

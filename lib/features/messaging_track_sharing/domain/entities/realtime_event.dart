@@ -12,11 +12,27 @@ class MessageReceivedEvent extends RealtimeMessagingEvent {
 
 class MessageReadEvent extends RealtimeMessagingEvent {
   final String conversationId;
+  final String? messageId;
   final String readerUserId;
-  const MessageReadEvent({required this.conversationId, required this.readerUserId});
+  const MessageReadEvent({
+    required this.conversationId,
+    required this.readerUserId,
+    this.messageId,
+  });
 }
 
 class ConversationBlockedEvent extends RealtimeMessagingEvent {
   final String conversationId;
   const ConversationBlockedEvent(this.conversationId);
+}
+
+class TypingEvent extends RealtimeMessagingEvent {
+  final String conversationId;
+  final String userId;
+  final bool isTyping;
+  const TypingEvent({
+    required this.conversationId,
+    required this.userId,
+    required this.isTyping,
+  });
 }

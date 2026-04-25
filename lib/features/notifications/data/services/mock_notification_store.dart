@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import '../dto/notification_dto.dart';
-import 'push_notification_service.dart';
 
 /// In-memory notification store used by the mock repository.
 /// Shared across screens via a Riverpod provider so state is consistent.
@@ -50,9 +49,10 @@ class MockNotificationStore {
           id: 'user-rozana',
           username: 'Rozana Ahmed',
         ),
-        referenceType: 'comment',
-        referenceId: 'comment-001',
-        message: 'commented yes on Win The Morning WIN THE DAY! Listen Every Day! MORNING MOTIVATION',
+        referenceType: 'track',
+        referenceId: 'track-001',
+        message:
+            'commented yes on Win The Morning WIN THE DAY! Listen Every Day! MORNING MOTIVATION',
         isRead: false,
         createdAt: now.subtract(const Duration(hours: 23)),
       ),
@@ -65,7 +65,8 @@ class MockNotificationStore {
         ),
         referenceType: 'track',
         referenceId: 'track-001',
-        message: 'liked your track Win The Morning WIN THE DAY! Listen Every Day! MORNING MOTIVATION',
+        message:
+            'liked your track Win The Morning WIN THE DAY! Listen Every Day! MORNING MOTIVATION',
         isRead: false,
         createdAt: now.subtract(const Duration(hours: 23)),
       ),
@@ -114,12 +115,9 @@ class MockNotificationStore {
       NotificationDto(
         id: 'notif-006',
         type: 'track_commented',
-        actor: const NotificationActorDto(
-          id: 'user-lina',
-          username: 'Lina K.',
-        ),
-        referenceType: 'comment',
-        referenceId: 'comment-002',
+        actor: const NotificationActorDto(id: 'user-lina', username: 'Lina K.'),
+        referenceType: 'track',
+        referenceId: 'track-003',
         message: 'commented fire on Late Night Vibes',
         isRead: true,
         readAt: now.subtract(const Duration(days: 3)),
@@ -145,19 +143,9 @@ class MockNotificationStore {
   void addNotification(NotificationDto dto) {
     notifications.insert(0, dto);
     _newNotificationController.add(dto);
-
-    // Fire a device-level push notification so it appears in the system tray.
-    final actorName = dto.actor?.username ?? 'Tunify';
-    PushNotificationService.instance.show(
-      id: dto.id.hashCode,
-      title: actorName,
-      body: dto.message,
-      payload: dto.id,
-    );
   }
 
-  int get unreadCount =>
-      notifications.where((n) => !n.isRead).length;
+  int get unreadCount => notifications.where((n) => !n.isRead).length;
 
   void dispose() {
     _newNotificationController.close();

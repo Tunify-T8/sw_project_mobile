@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
+import '../../../notifications/presentation/state/notifications_controller.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../controllers/upload_flow_controller.dart';
@@ -32,11 +33,14 @@ class HomeScreen extends ConsumerWidget {
     final hasUnreadMessages = ref.watch(
       conversationsControllerProvider.select((state) => state.totalUnread > 0),
     );
+    final hasUnreadNotifications = ref.watch(
+      notificationsControllerProvider.select((state) => state.unreadCount > 0),
+    );
+    final hasUnreadActivity = hasUnreadMessages || hasUnreadNotifications;
 
     // Prefer the most recently played track for the "Picked for you" hero card.
     // Fall back to the most recent upload if history is empty/loading.
-    final historyTracks =
-        historyAsync.asData?.value.tracks ?? const [];
+    final historyTracks = historyAsync.asData?.value.tracks ?? const [];
     final latestTrack = historyTracks.isNotEmpty
         ? null // history-based: handled inside HomeRecentSection
         : (libraryState.items.isNotEmpty ? libraryState.items.first : null);
@@ -64,7 +68,7 @@ class HomeScreen extends ConsumerWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.white.withOpacity(0.05),
+                      Colors.white.withValues(alpha: 0.05),
                       Colors.transparent,
                     ],
                   ),
@@ -76,7 +80,7 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       HomeTopBar(
                         isBusy: uploadState.isBusy,
-                        hasUnreadMessages: hasUnreadMessages,
+                        hasUnreadMessages: hasUnreadActivity,
                         onOpenArtistHome: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -86,8 +90,9 @@ class HomeScreen extends ConsumerWidget {
                         },
                         onStartUpload: () => startUploadFlow(context, ref),
                         onOpenMessaging: () {
-                          Navigator.of(context)
-                              .pushNamed(Routes.messagingActivity);
+                          Navigator.of(
+                            context,
+                          ).pushNamed(Routes.messagingActivity);
                         },
                       ),
                       const Padding(

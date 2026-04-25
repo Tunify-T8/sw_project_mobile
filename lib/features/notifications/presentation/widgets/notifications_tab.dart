@@ -1,20 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../domain/entities/notification_entity.dart';
+import '../../domain/entities/notification_type.dart';
 import '../state/notification_filter.dart';
 import '../state/notifications_controller.dart';
+import '../utils/notification_navigation.dart';
 import '../utils/time_ago.dart';
 import 'notification_empty_state.dart';
 import 'notification_tile.dart';
 
 /// The full content of the Notifications tab inside the Activity screen.
-class NotificationsTab extends ConsumerWidget {
+class NotificationsTab extends ConsumerStatefulWidget {
   const NotificationsTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsTab> createState() => _NotificationsTabState();
+}
+
+class _NotificationsTabState extends ConsumerState<NotificationsTab> {
+  bool _clearedInitialUnread = false;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(notificationsControllerProvider);
 
     if (state.isLoading) {
@@ -22,6 +33,8 @@ class NotificationsTab extends ConsumerWidget {
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
+
+    _clearInitialUnreadWhenVisible(state);
 
     if (state.items.isEmpty) {
       return NotificationEmptyState(
@@ -64,17 +77,41 @@ class NotificationsTab extends ConsumerWidget {
           final notification = item as NotificationEntity;
           return NotificationTile(
             notification: notification,
-            onTap: () {
-              if (!notification.isRead) {
-                ref
-                    .read(notificationsControllerProvider.notifier)
-                    .markAsRead(notification.id);
-              }
-            },
+            onTap: () =>
+                NotificationNavigation.openDefault(context, ref, notification),
+            onActorTap: () =>
+                NotificationNavigation.openActor(context, ref, notification),
+            onReferenceTap: () =>
+                notification.type == NotificationType.userFollowed
+                ? NotificationNavigation.openActor(context, ref, notification)
+                : NotificationNavigation.openReference(
+                    context,
+                    ref,
+                    notification,
+                  ),
+            onActionTap: () =>
+                NotificationNavigation.openActor(context, ref, notification),
           );
         },
       ),
     );
+  }
+
+  void _clearInitialUnreadWhenVisible(NotificationsState state) {
+    if (_clearedInitialUnread || state.unreadCount == 0) return;
+    _clearedInitialUnread = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_markInitialUnreadAsRead());
+    });
+  }
+
+  Future<void> _markInitialUnreadAsRead() async {
+    try {
+      await ref.read(notificationsControllerProvider.notifier).markAllAsRead();
+    } catch (_) {
+      _clearedInitialUnread = false;
+    }
   }
 
   /// Groups notifications into date sections: Today, Yesterday, This Week, etc.

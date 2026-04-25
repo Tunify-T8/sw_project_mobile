@@ -846,6 +846,9 @@ class _SendToAvatar extends StatelessWidget {
         'pendingAttachment': MessageAttachment(
           id: info.trackId,
           type: MessageAttachmentType.track,
+          backendKind: info.isOwned
+              ? MessageAttachmentBackendKind.trackUpload
+              : MessageAttachmentBackendKind.trackLike,
           title: info.title,
           subtitle: info.artist,
           artworkUrl: info.coverUrl,

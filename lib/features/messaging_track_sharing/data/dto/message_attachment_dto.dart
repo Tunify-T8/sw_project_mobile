@@ -1,6 +1,18 @@
+/// Wire-level representation of a message attachment.
+///
+/// The backend models attachments polymorphically: a message has a single
+/// `type` (TRACK_LIKE / TRACK_UPLOAD / PLAYLIST / ALBUM / USER) plus a
+/// matching foreign-key field. Inside the `attachment` object we get a
+/// `preview` blob with the display fields. This DTO normalizes all of that
+/// into a single flat structure the mapper can consume directly.
 class MessageAttachmentDto {
   final String id;
-  final String type; // TRACK | COLLECTION
+
+  /// Raw wire type: TRACK | COLLECTION | USER |
+  /// TRACK_LIKE | TRACK_UPLOAD | PLAYLIST | ALBUM.
+  /// The mapper collapses it into the domain enum.
+  final String type;
+
   final String title;
   final String? subtitle;
   final String? artworkUrl;
@@ -13,14 +25,39 @@ class MessageAttachmentDto {
     this.artworkUrl,
   });
 
-  factory MessageAttachmentDto.fromJson(Map<String, dynamic> j) =>
-      MessageAttachmentDto(
-        id: (j['id'] ?? '').toString(),
-        type: (j['type'] ?? 'TRACK').toString().toUpperCase(),
-        title: (j['title'] ?? '').toString(),
-        subtitle: (j['subtitle'] ?? j['artistName'] ?? j['ownerName']) as String?,
-        artworkUrl: j['artworkUrl'] as String?,
-      );
+  factory MessageAttachmentDto.fromJson(Map<String, dynamic> j) {
+    // Backend-shape: `attachment: { id, type, preview: { ... } }`
+    final preview = (j['preview'] is Map<String, dynamic>)
+        ? j['preview'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+
+    final rawType = (j['type'] ?? preview['type'] ?? 'TRACK_LIKE').toString();
+
+    final title = (j['title'] ??
+            preview['title'] ??
+            preview['username'] ??
+            preview['displayName'] ??
+            '')
+        .toString();
+
+    final subtitle = (j['subtitle'] ??
+            preview['artistName'] ??
+            preview['ownerName'] ??
+            preview['subtitle']) as String?;
+
+    final artwork = (j['artworkUrl'] ??
+            preview['artworkUrl'] ??
+            preview['coverUrl'] ??
+            preview['avatarUrl']) as String?;
+
+    return MessageAttachmentDto(
+      id: (j['id'] ?? preview['id'] ?? '').toString(),
+      type: rawType.toUpperCase(),
+      title: title,
+      subtitle: subtitle,
+      artworkUrl: artwork,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

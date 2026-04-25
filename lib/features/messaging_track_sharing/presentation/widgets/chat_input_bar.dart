@@ -89,7 +89,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: widget.pendingAttachments.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final attachment = widget.pendingAttachments[index];
                     return _AttachmentChip(
@@ -196,10 +196,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
 }
 
 class _AttachmentChip extends StatelessWidget {
-  const _AttachmentChip({
-    required this.attachment,
-    this.onRemove,
-  });
+  const _AttachmentChip({required this.attachment, this.onRemove});
 
   final MessageAttachment attachment;
   final VoidCallback? onRemove;
@@ -241,11 +238,7 @@ class _AttachmentChip extends StatelessWidget {
             const SizedBox(width: 8),
             GestureDetector(
               onTap: onRemove,
-              child: const Icon(
-                Icons.close,
-                color: Colors.white54,
-                size: 16,
-              ),
+              child: const Icon(Icons.close, color: Colors.white54, size: 16),
             ),
           ],
         ],

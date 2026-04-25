@@ -1,13 +1,16 @@
+import '../../domain/entities/notification_entity.dart';
 import '../../domain/entities/notification_preferences_entity.dart';
 import '../../domain/entities/paginated_notifications.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../api/notification_api.dart';
 import '../mappers/notification_mapper.dart';
+import '../services/notification_socket.dart';
 
-/// Real backend-backed implementation. REST via [NotificationApi].
 class RealNotificationRepository implements NotificationRepository {
   final NotificationApi _api;
-  RealNotificationRepository(this._api);
+  final NotificationSocket _socket;
+
+  RealNotificationRepository(this._api, this._socket);
 
   @override
   Future<PaginatedNotifications> getNotifications({
@@ -29,9 +32,8 @@ class RealNotificationRepository implements NotificationRepository {
   Future<int> getUnreadCount() => _api.getUnreadCount();
 
   @override
-  Future<void> markAsRead(String notificationId) async {
-    await _api.markAsRead(notificationId);
-  }
+  Future<void> markAsRead(String notificationId) =>
+      _api.markAsRead(notificationId);
 
   @override
   Future<int> markAllAsRead() async {
@@ -51,4 +53,15 @@ class RealNotificationRepository implements NotificationRepository {
     Map<String, bool>? email,
   }) =>
       _api.updatePreferences(push: push, email: email);
+
+  // ── Realtime ──────────────────────────────────────────────────────────────
+
+  @override
+  Stream<NotificationEntity> realtimeNotifications() => _socket.notifications;
+
+  @override
+  Future<void> connectRealtime() => _socket.connect();
+
+  @override
+  Future<void> disconnectRealtime() => _socket.disconnect();
 }
