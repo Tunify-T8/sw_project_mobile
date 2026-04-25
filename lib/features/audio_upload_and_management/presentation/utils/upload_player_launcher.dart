@@ -7,18 +7,21 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
+import '../../../playback_streaming_engine/domain/entities/playability_info.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/domain/entities/track_artist_summary.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../data/dto/upload_item_dto.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../providers/track_detail_item_provider.dart';
 import '../providers/track_detail_waveform_provider.dart';
 import '../screens/track_detail_screen.dart';
+import 'country_code_utils.dart';
 import 'playback_surface_item_mapper.dart';
 
 Future<void> openUploadItemPlayer(
@@ -35,7 +38,9 @@ Future<void> openUploadItemPlayer(
   final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
   _cacheUploadItems(ref, [preparedItem, ...?queueItems]);
 
-  _optimisticallyPromoteHistory(ref, preparedItem);
+  if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
+    _optimisticallyPromoteHistory(ref, preparedItem);
+  }
 
   await ensureUploadItemPlayback(
     ref,
@@ -77,7 +82,9 @@ Future<void> openHistorySourcedPlayer(
 
   final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
 
-  _optimisticallyPromoteHistory(ref, preparedItem);
+  if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
+    _optimisticallyPromoteHistory(ref, preparedItem);
+  }
 
   final queueTrackIds = historyTracks
       .where((h) => h.status != PlaybackStatus.blocked)
@@ -85,16 +92,7 @@ Future<void> openHistorySourcedPlayer(
       .toList(growable: false);
   final startIndex = queueTrackIds.indexOf(preparedItem.id);
 
-  final seedTrack = PlayerSeedTrack(
-    trackId: preparedItem.id,
-    title: preparedItem.title,
-    artistName: preparedItem.artistDisplay,
-    durationSeconds: preparedItem.durationSeconds,
-    coverUrl: preparedItem.artworkUrl,
-    waveformUrl: preparedItem.waveformUrl,
-    directAudioUrl: preparedItem.audioUrl,
-    localFilePath: preparedItem.localFilePath,
-  );
+  final seedTrack = await _seedTrackForUploadItem(ref, preparedItem);
 
   final notifier = ref.read(playerProvider.notifier);
 
@@ -216,16 +214,7 @@ Future<void> ensureUploadItemPlayback(
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
 
-  final seedTrack = PlayerSeedTrack(
-    trackId: item.id,
-    title: item.title,
-    artistName: item.artistDisplay,
-    durationSeconds: item.durationSeconds,
-    coverUrl: item.artworkUrl,
-    waveformUrl: item.waveformUrl,
-    directAudioUrl: item.audioUrl,
-    localFilePath: item.localFilePath,
-  );
+  final seedTrack = await _seedTrackForUploadItem(ref, item);
 
   if (isSameTrack && current?.isBuffering != true) {
     final hasUsefulQueue = (current?.queue?.trackIds.length ?? 0) > 1;
@@ -294,7 +283,9 @@ Future<void> toggleUploadItemPlayback(
     return;
   }
 
-  _optimisticallyPromoteHistory(ref, item);
+  if (!await _isRegionRestrictedForCurrentUser(ref, item)) {
+    _optimisticallyPromoteHistory(ref, item);
+  }
 
   await ensureUploadItemPlayback(
     ref,
@@ -302,6 +293,90 @@ Future<void> toggleUploadItemPlayback(
     queueItems: queueItems,
     autoPlay: true,
   );
+}
+
+Future<PlayerSeedTrack> _seedTrackForUploadItem(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final playability = await _regionPlayabilityOverrideFor(ref, item);
+
+  return PlayerSeedTrack(
+    trackId: item.id,
+    title: item.title,
+    artistName: item.artistDisplay,
+    durationSeconds: item.durationSeconds,
+    coverUrl: item.artworkUrl,
+    waveformUrl: item.waveformUrl,
+    directAudioUrl: item.audioUrl,
+    localFilePath: item.localFilePath,
+    playability: playability,
+  );
+}
+
+Future<PlayabilityInfo?> _regionPlayabilityOverrideFor(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  if (!await _isRegionRestrictedForCurrentUser(ref, item)) {
+    return null;
+  }
+
+  return const PlayabilityInfo(
+    status: PlaybackStatus.blocked,
+    regionBlocked: true,
+    tierBlocked: false,
+    requiresSubscription: false,
+    blockedReason: BlockedReason.regionRestricted,
+  );
+}
+
+Future<bool> _isRegionRestrictedForCurrentUser(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final availabilityType = item.availabilityType.trim().toLowerCase();
+  if (availabilityType == 'worldwide') return false;
+
+  final regions = item.availabilityRegions
+      .map((region) => CountryCodeUtils.normalizeCountryCode(region))
+      .whereType<String>()
+      .toSet();
+  if (regions.isEmpty) return false;
+
+  final userCountryCode = await _currentUserCountryCode(ref);
+  if (userCountryCode == null) {
+    return availabilityType == 'exclusive_regions';
+  }
+
+  final isSelectedCountry = regions.contains(userCountryCode);
+  if (availabilityType == 'exclusive_regions') {
+    return !isSelectedCountry;
+  }
+  if (availabilityType == 'excluded_regions') {
+    return isSelectedCountry;
+  }
+
+  return false;
+}
+
+Future<String?> _currentUserCountryCode(WidgetRef ref) async {
+  String? normalizeProfileCountry() {
+    final country = ref.read(profileProvider).profile?.country;
+    if (country == null || country.trim().isEmpty) return null;
+    return CountryCodeUtils.normalizeCountryCode(country);
+  }
+
+  final current = normalizeProfileCountry();
+  if (current != null) return current;
+
+  try {
+    await ref.read(profileProvider.notifier).loadProfile();
+  } catch (_) {
+    return null;
+  }
+
+  return normalizeProfileCountry();
 }
 
 Future<void> openCurrentPlaybackTrackSurface(

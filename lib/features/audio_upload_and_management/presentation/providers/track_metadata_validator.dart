@@ -3,6 +3,7 @@
 // Used by: track_metadata_provider
 // Concerns: Metadata engine.
 import 'track_metadata_state.dart';
+import '../utils/country_code_utils.dart';
 
 class TrackMetadataValidator {
   const TrackMetadataValidator._();
@@ -18,6 +19,13 @@ class TrackMetadataValidator {
 
     if (!hasAtLeastOneArtist) {
       return 'At least one artist is required.';
+    }
+
+    if (state.availabilityType != 'worldwide' &&
+        CountryCodeUtils.parseCountryCodes(
+          state.availabilityRegionsText,
+        ).isEmpty) {
+      return 'Select at least one country for availability.';
     }
 
     return null;
