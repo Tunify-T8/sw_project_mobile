@@ -2,8 +2,10 @@ part of 'player_provider.dart';
 
 extension PlayerNotifierQueue on PlayerNotifier {
   Future<void> next() async {
+    if (_shouldIgnoreM5RapidTransportTap()) return;
+
     final current = _current;
-    if (current?.queue == null) return;
+    if (current?.queue == null || current!.isBuffering) return;
 
     final queue = current!.queue!;
     if (queue.trackIds.length <= 1) return;
@@ -21,8 +23,10 @@ extension PlayerNotifierQueue on PlayerNotifier {
   }
 
   Future<void> previous() async {
+    if (_shouldIgnoreM5RapidTransportTap()) return;
+
     final current = _current;
-    if (current?.queue == null) return;
+    if (current?.queue == null || current!.isBuffering) return;
 
     final queue = current!.queue!;
     if (queue.trackIds.length <= 1) return;
@@ -44,8 +48,10 @@ extension PlayerNotifierQueue on PlayerNotifier {
   }
 
   Future<void> jumpToQueueIndex(int index) async {
+    if (_shouldIgnoreM5RapidTransportTap()) return;
+
     final current = _current;
-    if (current?.queue == null) return;
+    if (current?.queue == null || current!.isBuffering) return;
 
     final queue = current!.queue!;
     if (index < 0 || index >= queue.trackIds.length) return;
@@ -99,7 +105,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   void removeFromQueue(int index) {
     final current = _current;
-    if (current?.queue == null) return;
+    if (current?.queue == null || current!.isBuffering) return;
 
     final queue = current!.queue!;
     if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
@@ -201,7 +207,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
   /// not the full underlying queue. So we offset them by the current track.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
-    if (current?.queue == null) return;
+    if (current?.queue == null || current!.isBuffering) return;
 
     final queue = current!.queue!;
     final offset = queue.currentIndex + 1;

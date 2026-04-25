@@ -122,7 +122,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             label,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -297,7 +297,7 @@ class _LibraryRecentlyPlayedPlaylistsSection extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 184,
+          height: 214,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -355,6 +355,7 @@ class _LibraryRecentPlaylistCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 150,
+      height: 206,
       child: InkWell(
         borderRadius: BorderRadius.circular(4),
         onTap: onTap,
@@ -394,7 +395,7 @@ class _LibraryRecentPlaylistCard extends StatelessWidget {
                   Positioned(
                     left: 12,
                     right: 12,
-                    bottom: 16,
+                    bottom: 12,
                     child: Text(
                       item.title,
                       maxLines: 2,

@@ -1,5 +1,20 @@
 part of 'player_provider.dart';
 
+DateTime? _m5LastTransportTapAt;
+
+/// Prevents rapid double-taps from starting overlapping just_audio commands.
+bool _shouldIgnoreM5RapidTransportTap({int milliseconds = 320}) {
+  final now = DateTime.now();
+  final previous = _m5LastTransportTapAt;
+  if (previous != null && now.difference(previous).inMilliseconds < milliseconds) {
+    debugPrint('[M5 Player] rapid transport tap ignored safely');
+    return true;
+  }
+  _m5LastTransportTapAt = now;
+  return false;
+}
+
+
 extension _PlayerNotifierSources on PlayerNotifier {
   Future<TrackPlaybackBundle> _resolveBundle(
     String trackId, {
@@ -23,9 +38,15 @@ extension _PlayerNotifierSources on PlayerNotifier {
     try {
       return await _getBundle(trackId, privateToken: privateToken);
     } catch (error) {
-      // A 4xx response is the backend deliberately refusing the track, so we
-      // must not hide it behind seed data. Transport errors can fall back to
-      // seed data so cached/offline playback can still open.
+      // M5-011B / M5-001 fix: previously ANY error fell back to the seed track,
+      // whose toPlaybackBundle() hardcodes PlaybackStatus.playable. That let
+      // owners play their own deleted/blocked tracks (M5-011B) and bypassed
+      // "processing"/"blocked" states coming from the backend (M5-001).
+      //
+      // A 4xx response is the backend DELIBERATELY refusing (deleted, blocked,
+      // private-no-token, not-found) — we must let it propagate so canPlay
+      // evaluates to false. Only fall back for genuine transport errors
+      // (timeout, connection error, etc.) where the user has local seed data.
       if (_isClientRefusal(error)) {
         rethrow;
       }
@@ -59,12 +80,8 @@ extension _PlayerNotifierSources on PlayerNotifier {
     final mode = ref.read(playerBackendModeProvider);
 
     if (mode == PlayerBackendMode.mock && seedTrack != null) {
-      final localPath = await _bestLocalAudioPath(trackId, seedTrack);
-      if (localPath != null) {
-        return _ResolvedPlaybackSource(localFilePath: localPath);
-      }
-
       final directStream = seedTrack.toDirectStreamUrl();
+
       return _ResolvedPlaybackSource(
         streamUrl: directStream,
         streamExpiresAt: directStream == null
@@ -72,34 +89,31 @@ extension _PlayerNotifierSources on PlayerNotifier {
             : DateTime.now().add(
                 Duration(seconds: directStream.expiresInSeconds),
               ),
-        localFilePath: null,
+        localFilePath: seedTrack.localFilePath,
       );
     }
 
-    // If a completed local audio file exists, prefer it. This is what makes a
-    // previously cached track playable when Wi-Fi/mobile data is off.
-    final cachedPath = await _bestLocalAudioPath(trackId, seedTrack);
-    if (cachedPath != null) {
-      debugPrint('[M5 Cache] USE_LOCAL_SOURCE track=$trackId path=$cachedPath');
+    // A locally cached audio file — plays fully offline, no server call needed.
+    if (seedTrack?.localFilePath?.trim().isNotEmpty == true) {
       return _ResolvedPlaybackSource(
         streamUrl: null,
         streamExpiresAt: null,
-        localFilePath: cachedPath,
+        localFilePath: seedTrack!.localFilePath,
       );
     }
 
-    // No local file. Fail fast when offline instead of waiting for a network
-    // timeout. The player screen will show this message.
-    if (await _isOffline()) {
-      debugPrint('[M5 Cache] OFFLINE_BLOCKED track=$trackId reason=no completed cache');
+    // No local file.  Fail fast when offline instead of waiting for the
+    // connection timeout (which can be up to 60 s).
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.every((r) => r == ConnectivityResult.none)) {
       throw Exception(
-        'This track is not available offline yet. Play it online first and wait until it finishes caching.',
+        'No internet connection and no local audio source available.',
       );
     }
 
-    // Online path: request a playable stream URL from the server.
+    // Request a signed streaming URL from the server (the only correct way
+    // to play a track online — never use the raw upload audioUrl directly).
     final streamUrl = await _requestStream(trackId, privateToken: privateToken);
-    debugPrint('[M5 Cache] USE_REMOTE_SOURCE track=$trackId format=${streamUrl.format}');
 
     return _ResolvedPlaybackSource(
       streamUrl: streamUrl,
@@ -112,56 +126,6 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
   Future<PlayerState?> _ensureFreshPlaybackSource(PlayerState current) async {
     if (current.bundle == null) return null;
-
-    // If we are offline, always try to switch to the completed local cache.
-    // This matters when the player state still contains an old remote streamUrl
-    // but the background cache has finished since that state was created.
-    if (await _isOffline()) {
-      final cachedPath = await _audioCache.cachedAudioPathForTrack(
-        current.bundle!.trackId,
-      );
-
-      if (cachedPath != null) {
-        debugPrint('[M5 Cache] SWITCH_TO_LOCAL_SOURCE track=${current.bundle!.trackId} path=$cachedPath');
-        final updated = current.copyWith(
-          streamUrl: null,
-          streamExpiresAt: null,
-          localFilePath: cachedPath,
-          isBuffering: false,
-        );
-
-        await _prepareAudioSource(updated, force: true);
-
-        if (updated.positionSeconds > 0) {
-          await _audioPlayer.seek(
-            Duration(milliseconds: (updated.positionSeconds * 1000).round()),
-          );
-        }
-
-        _setPlayerState(updated);
-        return updated;
-      }
-
-      // If the same remote source is already loaded in just_audio during the
-      // current app session, let just_audio try to continue from its in-memory
-      // buffer. This supports the exact case: user started the song online,
-      // then internet disconnected while the loaded player still has data.
-      final remoteKey = current.streamUrl?.url;
-      final sameSourceStillLoaded =
-          remoteKey != null &&
-          _loadedTrackId == current.bundle!.trackId &&
-          _loadedSourceKey == remoteKey;
-
-      if (sameSourceStillLoaded) {
-        debugPrint('[M5 Cache] CONTINUE_MEMORY_BUFFER track=${current.bundle!.trackId}');
-        await _prepareAudioSource(current);
-        return current;
-      }
-
-      throw Exception(
-        'This track is not available offline yet. Play it online first and wait until it finishes caching.',
-      );
-    }
 
     final expiresAt = current.streamExpiresAt;
     final mustRefresh =
@@ -223,16 +187,12 @@ extension _PlayerNotifierSources on PlayerNotifier {
     try {
       if (playerState.localFilePath != null &&
           playerState.localFilePath!.trim().isNotEmpty) {
-        debugPrint('[M5 Cache] PLAYER_SET_FILE track=${activeBundle.trackId} path=${playerState.localFilePath}');
         await _audioPlayer.setFilePath(playerState.localFilePath!);
       } else if (playerState.streamUrl?.url.trim().isNotEmpty == true) {
-        debugPrint('[M5 Cache] PLAYER_SET_REMOTE track=${activeBundle.trackId}');
         await _audioPlayer.setAudioSource(
           just_audio.AudioSource.uri(Uri.parse(playerState.streamUrl!.url)),
           preload: true,
         );
-      } else {
-        throw Exception('No playable audio source is available for this track.');
       }
     } on just_audio.PlayerInterruptedException {
       return;
@@ -241,10 +201,9 @@ extension _PlayerNotifierSources on PlayerNotifier {
     if (playerState.streamUrl?.url.trim().isNotEmpty == true &&
         (playerState.localFilePath == null ||
             playerState.localFilePath!.trim().isEmpty)) {
-      // Download audio + artwork to device storage in the background so later
-      // plays can use a real local file while offline. HLS manifests (.m3u8)
-      // are skipped inside AudioCacheService because they are not one simple
-      // audio file.
+      // Download audio + artwork to device storage in the background so
+      // subsequent plays work fully offline without requesting a new stream URL.
+      // HLS manifests (.m3u8) are not cacheable as single files — skip them.
       final streamUrl = playerState.streamUrl;
       if (streamUrl != null && !streamUrl.isHls) {
         _audioCache.cacheAudioInBackground(
@@ -265,32 +224,22 @@ extension _PlayerNotifierSources on PlayerNotifier {
     _loadedSourceKey = sourceKey;
   }
 
-  Future<String?> _bestLocalAudioPath(
-    String trackId,
-    PlayerSeedTrack? seedTrack,
-  ) async {
-    final seedPath = seedTrack?.localFilePath;
-    if (seedPath != null && seedPath.trim().isNotEmpty) {
-      final file = File(seedPath);
-      try {
-        if (await file.exists() && await file.length() >= 8 * 1024) {
-          debugPrint('[M5 Cache] HIT_SEED_PATH track=$trackId path=$seedPath');
-          return seedPath;
-        }
-      } catch (_) {}
-    }
-
-    return _audioCache.cachedAudioPathForTrack(trackId);
-  }
-
-  Future<bool> _isOffline() async {
-    final connectivity = await Connectivity().checkConnectivity();
-    return connectivity.every((result) => result == ConnectivityResult.none);
-  }
-
   Future<void> _applyVolume(PlayerState playerState) async {
     final targetVolume = playerState.isMuted ? 0.0 : playerState.volume;
-    await _audioPlayer.setVolume(targetVolume.clamp(0.0, 1.0).toDouble());
+
+    try {
+      await _audioPlayer.setVolume(targetVolume.clamp(0.0, 1.0).toDouble());
+    } on just_audio.PlayerInterruptedException catch (error) {
+      // This can happen when the user taps next/previous/play very quickly
+      // while just_audio is still loading a previous source. It is not a real
+      // app error; it only means the older audio operation was interrupted by
+      // a newer one. Swallow it so rapid taps do not break the track screen.
+      debugPrint('[M5 Player] volume update interrupted safely: $error');
+    } catch (error) {
+      // Volume should never crash playback. If another platform/audio-service
+      // error happens, log it and keep the player alive.
+      debugPrint('[M5 Player] volume update failed safely: $error');
+    }
   }
 
   int _initialPositionFor(TrackPlaybackBundle bundle) {
@@ -317,4 +266,32 @@ extension _PlayerNotifierSources on PlayerNotifier {
         .toDouble();
   }
 
+  Future<void> _safeReportEvent(PlaybackEvent event) async {
+    try {
+      await _reportEvent(event);
+    } catch (_) {
+      // Keep playback working even if reporting is unsupported or fails.
+    }
+  }
+
+  /// Called when the user reaches 90 % of a track naturally.
+  ///
+  /// Online  → POST /tracks/{trackId}/played (server records the completion).
+  /// Offline → marks the pending [OfflinePlayRecord] as completed so it is
+  ///           sent with the batch when the device comes back online.
+  Future<void> _safeReportTrackCompleted(String trackId) async {
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      final isOnline = connectivity.any((r) => r != ConnectivityResult.none);
+
+      if (isOnline) {
+        await _reportTrackCompleted(trackId);
+      } else {
+        // Update the offline record so it carries completed: true when flushed.
+        await _repository.markOfflinePlayCompleted(trackId);
+      }
+    } catch (_) {
+      // Never interrupt playback because of a reporting failure.
+    }
+  }
 }

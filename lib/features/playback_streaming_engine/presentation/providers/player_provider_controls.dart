@@ -2,8 +2,10 @@ part of 'player_provider.dart';
 
 extension PlayerNotifierControls on PlayerNotifier {
   Future<void> play() async {
+    if (_shouldIgnoreM5RapidTransportTap()) return;
+
     final current = _current;
-    if (current == null || !current.canPlay) return;
+    if (current == null || !current.canPlay || current.isBuffering) return;
 
     var preparedState = await _ensureFreshPlaybackSource(current);
     if (preparedState == null) return;
@@ -54,11 +56,21 @@ extension PlayerNotifierControls on PlayerNotifier {
   }
 
   Future<void> pause() async {
+    if (_shouldIgnoreM5RapidTransportTap()) return;
+
     final current = _current;
     if (current == null) return;
 
     _progressReportTimer?.cancel();
-    await _audioPlayer.pause();
+    try {
+      await _audioPlayer.pause();
+    } on just_audio.PlayerInterruptedException catch (_) {
+      debugPrint('[M5 Player] pause interrupted safely');
+      return;
+    } catch (_) {
+      debugPrint('[M5 Player] pause failed safely');
+      return;
+    }
 
     final pausedPosition = _audioPlayer.position.inMilliseconds / 1000.0;
 
@@ -70,7 +82,6 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     _setPlayerState(pausedState);
     await _persistCurrentSession(playerState: pausedState, force: true);
-    _rememberCurrentHistoryPosition(pausedState, force: true);
 
     await _safeReportEvent(
       PlaybackEvent(
@@ -85,14 +96,26 @@ extension PlayerNotifierControls on PlayerNotifier {
   }
 
   Future<void> seek(num positionSeconds) async {
+    if (_shouldIgnoreM5RapidTransportTap(milliseconds: 180)) return;
+
     final current = _current;
-    if (current == null || current.bundle == null) return;
+    if (current == null || current.bundle == null || current.isBuffering) return;
 
     final clamped = _clampPosition(current.bundle!, positionSeconds.toDouble());
 
     _isManualSeeking = true;
 
-    await _audioPlayer.seek(Duration(milliseconds: (clamped * 1000).round()));
+    try {
+      await _audioPlayer.seek(Duration(milliseconds: (clamped * 1000).round()));
+    } on just_audio.PlayerInterruptedException catch (_) {
+      debugPrint('[M5 Player] seek interrupted safely');
+      _isManualSeeking = false;
+      return;
+    } catch (_) {
+      debugPrint('[M5 Player] seek failed safely');
+      _isManualSeeking = false;
+      return;
+    }
 
     final soughtState = current.copyWith(
       positionSeconds: clamped,
@@ -101,7 +124,6 @@ extension PlayerNotifierControls on PlayerNotifier {
 
     _setPlayerState(soughtState);
     await _persistCurrentSession(playerState: soughtState, force: true);
-    _rememberCurrentHistoryPosition(soughtState, force: true);
 
     await _safeReportEvent(
       PlaybackEvent(

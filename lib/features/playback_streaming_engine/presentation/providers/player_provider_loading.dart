@@ -16,7 +16,13 @@ extension PlayerNotifierLoading on PlayerNotifier {
     final previous = _current;
 
     _progressReportTimer?.cancel();
-    await _audioPlayer.stop();
+    try {
+      await _audioPlayer.stop();
+    } on just_audio.PlayerInterruptedException catch (_) {
+      debugPrint('[M5 Player] stop interrupted safely while loading: ');
+    } catch (_) {
+      debugPrint('[M5 Player] stop failed safely while loading: ');
+    }
 
     // FIX: always clear the loaded-source cache so _prepareAudioSource
     // unconditionally sets a fresh audio source on every loadTrack call.
