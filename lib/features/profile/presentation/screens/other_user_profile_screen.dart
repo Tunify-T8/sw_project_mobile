@@ -20,6 +20,7 @@ import '../../../followers_and_social_graph/presentation/providers/relationship_
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -210,11 +211,8 @@ class _OtherUserProfileScreenState
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.isError
-          ? Center(
-              child: Text(
-                state.errorMessage ?? 'Error loading profile',
-                style: const TextStyle(color: Colors.white),
-              ),
+          ? ErrorRetryView(
+              onRetry: () => ref.read(userProfileProvider.notifier).loadProfile(widget.userId),
             )
           : SingleChildScrollView(
               child: Column(

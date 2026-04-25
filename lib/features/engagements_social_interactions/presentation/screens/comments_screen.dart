@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../provider/enagement_providers.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
 import '../provider/engagement_state.dart';
 import '../utils/engagement_formatters.dart';
 import '../widgets/comment_input_bar.dart';
@@ -44,10 +45,11 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
     final totalCount = state.totalCommentsCount;
 
     return Scaffold(
+      key: const Key('comments_screen'),
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1A1A),
-        leading: const BackButton(color: Colors.white),
+        leading: const BackButton(key: Key('comments_back_button'), color: Colors.white),
         title: Text(
           '$totalCount comments',
           style: const TextStyle(color: Colors.white, fontSize: 18),
@@ -168,20 +170,19 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
 
   Widget _buildList(EngagementState state) {
     if (state.commentsStatus == EngagementStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(key: Key('comments_loading'), child: CircularProgressIndicator());
     }
 
     if (state.commentsStatus == EngagementStatus.error) {
-      return Center(
-        child: Text(
-          state.error ?? 'Something went wrong',
-          style: const TextStyle(color: Colors.white70),
-        ),
+      return ErrorRetryView(
+        key: const Key('comments_error'),
+        onRetry: () => ref.read(engagementProvider(widget.trackId).notifier).loadComments(),
       );
     }
 
     if (state.comments.isEmpty) {
       return const Center(
+        key: Key('comments_empty'),
         child: Text(
           'No comments yet. Be the first!',
           style: TextStyle(color: Colors.white54),
@@ -190,10 +191,12 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
     }
 
     return RefreshIndicator(
+      key: const Key('comments_refresh'),
       onRefresh: () => ref
           .read(engagementProvider(widget.trackId).notifier)
           .loadComments(),
       child: ListView.builder(
+      key: const Key('comments_list'),
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       itemCount: state.comments.length,
       itemBuilder: (context, index) {

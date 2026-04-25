@@ -8,6 +8,7 @@ import '../utils/engagement_formatters.dart';
 import 'comment_like_button.dart';
 import 'comment_options_sheet.dart';
 import 'reply_tile.dart';
+import '../../../../core/utils/navigation_utils.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 
 class CommentTile extends ConsumerStatefulWidget {
@@ -80,6 +81,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final theme = Theme.of(context);
     final comment = widget.comment;
     final timestamp = comment.timestamp;
+    final currentUserId = ref.read(authControllerProvider).value?.id;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +91,12 @@ class _CommentTileState extends ConsumerState<CommentTile> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Avatar(username: comment.user.displayName, avatarUrl: comment.user.avatarUrl),
+              _Avatar(
+                username: comment.user.displayName,
+                avatarUrl: comment.user.avatarUrl,
+                userId: comment.user.id,
+                currentUserId: currentUserId,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -97,6 +104,9 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                   children: [
                     _CommentHeader(
                       username: comment.user.displayName,
+                      isCertified: comment.user.isCertified,
+                      userId: comment.user.id,
+                      currentUserId: currentUserId,
                       timestamp: timestamp,
                       createdAt: comment.createdAt,
                       onTapTimestamp: widget.onTapTimestamp,
@@ -175,25 +185,35 @@ class _CommentTileState extends ConsumerState<CommentTile> {
 // ── Private sub-widgets ───────────────────────────────────────────────────────
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.username, this.avatarUrl});
+  const _Avatar({
+    required this.username,
+    this.avatarUrl,
+    required this.userId,
+    this.currentUserId,
+  });
   final String username;
   final String? avatarUrl;
+  final String userId;
+  final String? currentUserId;
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: Colors.white24,
-      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-      child: avatarUrl == null
-          ? Text(
-              EngagementFormatters.initials(username),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            )
-          : null,
+    return GestureDetector(
+      onTap: () => navigateToProfile(context, userId, currentUserId: currentUserId),
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: Colors.white24,
+        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+        child: avatarUrl == null
+            ? Text(
+                EngagementFormatters.initials(username),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
+      ),
     );
   }
 }
@@ -201,6 +221,9 @@ class _Avatar extends StatelessWidget {
 class _CommentHeader extends StatelessWidget {
   const _CommentHeader({
     required this.username,
+    required this.isCertified,
+    required this.userId,
+    required this.currentUserId,
     required this.timestamp,
     required this.createdAt,
     required this.theme,
@@ -208,6 +231,9 @@ class _CommentHeader extends StatelessWidget {
   });
 
   final String username;
+  final bool isCertified;
+  final String userId;
+  final String? currentUserId;
   final int? timestamp;
   final DateTime createdAt;
   final ThemeData theme;
@@ -220,13 +246,18 @@ class _CommentHeader extends StatelessWidget {
       spacing: 6,
       runSpacing: 4,
       children: [
-        Text(
-          username,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
+        GestureDetector(
+          onTap: () => navigateToProfile(context, userId, currentUserId: currentUserId),
+          child: Text(
+            username,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
+        if (isCertified)
+          const Icon(Icons.verified, color: Colors.blue, size: 14),
         if (timestamp != null)
           GestureDetector(
             onTap: onTapTimestamp == null

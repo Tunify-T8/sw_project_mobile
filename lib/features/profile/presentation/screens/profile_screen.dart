@@ -54,7 +54,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
+      if (!mounted) return;
       await ref.read(profileProvider.notifier).loadProfile();
+      if (!mounted) return;
       await ref.read(libraryUploadsProvider.notifier).load();
     });
   }

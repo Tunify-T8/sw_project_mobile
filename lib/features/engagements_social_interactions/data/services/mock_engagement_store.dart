@@ -1,3 +1,6 @@
+// Mock engagement store disabled — real backend is used exclusively.
+// See RealEngagementRepositoryImpl for the live implementation.
+/*
 import '../dto/comment_dto.dart';
 import '../dto/engagement_mock_data_dto.dart';
 import '../dto/engagement_user_dto.dart';
@@ -49,7 +52,6 @@ class MockEngagementStore {
     final actualCommentCount = (_commentsByTrackId[trackId] ?? []).length;
 
     if (existing != null) {
-      // keep all fields but override commentCount with real list length
       final synced = TrackEngagementDto(
         trackId: existing.trackId,
         likeCount: existing.likeCount,
@@ -79,7 +81,6 @@ class MockEngagementStore {
     required String viewerId,
   }) {
     final current = getTrackEngagement(trackId);
-    // seed from t1's likers so default likers stay when a real track is liked
     if (!_likersByTrackId.containsKey(trackId)) {
       _likersByTrackId[trackId] = List<String>.from(_likersByTrackId['t1'] ?? []);
     }
@@ -157,8 +158,6 @@ class MockEngagementStore {
   }
 
   List<CommentDto> getTrackComments(String trackId) {
-    // Fall back to t1's comments for any track not in the mock store
-    // (real API track IDs won't match t1/t2/t3, so this keeps comments visible)
     final comments = _commentsByTrackId[trackId] ??
         _commentsByTrackId['t1'] ??
         <CommentDto>[];
@@ -183,8 +182,6 @@ class MockEngagementStore {
 
     _usersById.putIfAbsent(viewerId, () => user);
 
-    // If this track has no comments yet, seed it with t1's mock comments first
-    // so new comments appear alongside the existing mock ones
     if (!_commentsByTrackId.containsKey(trackId)) {
       _commentsByTrackId[trackId] = List<CommentDto>.from(
         _commentsByTrackId['t1'] ?? <CommentDto>[],
@@ -234,15 +231,10 @@ class MockEngagementStore {
         .toList();
   }
 
-  // engagement addition — returns mock liked tracks for the viewer
-  // replaces GET /users/me/likes; swap with real API call when BE is ready
   List<LikedTrackEntity> getLikedTracks(String viewerId) {
     return EngagementMockDataDto.likedTracks;
   }
 
-  // returns mock reposted tracks for the given user
-  // null userId → GET /users/me/reposts; non-null → GET /users/{id}/reposts
-  // swap with real API call when BE is ready
   List<RepostedTrackEntity> getRepostedTracks(String? userId) {
     return EngagementMockDataDto.repostedTracks;
   }
@@ -303,7 +295,6 @@ class MockEngagementStore {
   void deleteReply(String commentId, String replyId) {
     _repliesByCommentId[commentId]?.removeWhere((r) => r.id == replyId);
 
-    // keep repliesCount on parent comment in sync
     for (final trackId in _commentsByTrackId.keys) {
       final comments = _commentsByTrackId[trackId]!;
       final idx = comments.indexWhere((c) => c.id == commentId);
@@ -328,7 +319,6 @@ class MockEngagementStore {
     return List<ReplyDto>.from(_repliesByCommentId[commentId] ?? <ReplyDto>[]);
   }
 
-  // engagement addition — toggles like on a reply, persisting count + viewer state in the store
   ReplyDto toggleReplyLike({
     required String commentId,
     required String replyId,
@@ -385,7 +375,6 @@ class MockEngagementStore {
     _repliesByCommentId.putIfAbsent(commentId, () => <ReplyDto>[]);
     _repliesByCommentId[commentId]!.add(newReply);
 
-    // update repliesCount in every copy of the comment list (t1 + any seeded copies)
     for (final comments in _commentsByTrackId.values) {
       final idx = comments.indexWhere((c) => c.id == commentId);
       if (idx != -1) {
@@ -406,3 +395,4 @@ class MockEngagementStore {
     return newReply;
   }
 }
+*/

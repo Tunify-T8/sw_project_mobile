@@ -42,6 +42,7 @@ class EngagementMapper {
       id: dto.id,
       displayName: dto.displayName,
       avatarUrl: dto.avatarUrl,
+      isCertified: dto.isCertified,
     );
   }
 
