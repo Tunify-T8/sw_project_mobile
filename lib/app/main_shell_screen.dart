@@ -30,6 +30,14 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const UpgradeScreen(popUp: true),
+        ),
+      );
+    });
     MainShellScreen.tabNotifier.addListener(_onExternalTabChange);
   }
 
@@ -72,7 +80,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               onOpenYourUploads: () =>
                   Navigator.of(context).pushNamed(Routes.yourUploads),
             ),
-            const UpgradeScreen(),
+            const UpgradeScreen(popUp: false,),
           ],
         ),
       ),

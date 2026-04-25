@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../premium_subscription/presentation/screens/upgrade_screen.dart';
 
 class HomeTopBar extends StatelessWidget {
   const HomeTopBar({
@@ -48,6 +49,25 @@ class HomeTopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const UpgradeScreen(popUp: true),
+                ),
+              );
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              overlayColor: Colors.transparent,
+            ),
+            child: Text(
+              "GET PRO",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 12),
           _CircleIconButton(
             icon: Icons.cloud_upload_outlined,
             isBusy: isBusy,
