@@ -30,6 +30,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
         final nextState = current.copyWith(positionSeconds: clamped);
         _setPlayerState(nextState);
         unawaited(_persistCurrentSession(playerState: nextState));
+        _rememberCurrentHistoryPosition(nextState);
       }
 
       if (current.isPreviewOnly &&
@@ -244,6 +245,7 @@ extension _PlayerNotifierBindings on PlayerNotifier {
         durationSeconds: bundle.durationSeconds,
         status: bundle.playability.status,
         coverUrl: bundle.coverUrl,
+        lastPositionSeconds: current?.positionSeconds.round() ?? 0,
       );
 
       unawaited(
@@ -263,4 +265,5 @@ extension _PlayerNotifierBindings on PlayerNotifier {
       }
     }
   }
+
 }

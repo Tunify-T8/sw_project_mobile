@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/routes.dart';
 import '../../../audio_upload_and_management/presentation/providers/public_user_uploads_provider.dart';
+import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../messaging_track_sharing/domain/usecases/open_conversation_usecase.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
@@ -107,6 +110,7 @@ class _OtherUserProfileScreenState
     bool isBlocked,
     String displayName,
     String? avatarUrl,
+    List<UploadItem> profileTracks,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -121,7 +125,6 @@ class _OtherUserProfileScreenState
             icon: const Icon(Icons.notifications_none, color: Colors.white),
             onPressed: () {},
           ),
-          // FIX: Wire the mail icon to open/create a chat conversation.
           IconButton(
             icon: _openingChat
                 ? const SizedBox(
@@ -140,7 +143,18 @@ class _OtherUserProfileScreenState
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
-            onPressed: () {},
+            onPressed: profileTracks.isEmpty
+                ? null
+                : () {
+                    final shuffled = List.of(profileTracks)..shuffle();
+                    openUploadItemPlayer(
+                      context,
+                      ref,
+                      shuffled.first,
+                      queueItems: shuffled,
+                      openScreen: false,
+                    );
+                  },
           ),
           Container(
             decoration: const BoxDecoration(
@@ -149,7 +163,15 @@ class _OtherUserProfileScreenState
             ),
             child: IconButton(
               icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
-              onPressed: () {},
+              onPressed: profileTracks.isEmpty
+                  ? null
+                  : () => openUploadItemPlayer(
+                        context,
+                        ref,
+                        profileTracks.first,
+                        queueItems: profileTracks,
+                        openScreen: false,
+                      ),
             ),
           ),
         ],
@@ -168,8 +190,10 @@ class _OtherUserProfileScreenState
       profile?.displayName,
       profile?.userName,
     );
+    final profileTracks = ref.watch(publicUserUploadsProvider(widget.userId)).asData?.value ?? const <UploadItem>[];
 
     return Scaffold(
+      bottomNavigationBar: const MiniPlayer(),
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -267,6 +291,7 @@ class _OtherUserProfileScreenState
                       relationshipState.isBlocked ?? false,
                       profileDisplayName,
                       profile?.profileImagePath,
+                      profileTracks,
                     ),
                   ),
                   _OtherUserTracksSection(userId: widget.userId),
@@ -299,8 +324,11 @@ class _OtherUserTracksSection extends ConsumerWidget {
     return ProfileTracksSection(
       items: items,
       onTrackTap: (item) {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)),
+        openUploadItemPlayer(
+          context,
+          ref,
+          item,
+          queueItems: items,
         );
       },
     );

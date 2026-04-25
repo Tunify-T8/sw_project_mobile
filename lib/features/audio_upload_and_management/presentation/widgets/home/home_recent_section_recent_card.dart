@@ -1,7 +1,7 @@
 part of 'home_recent_section.dart';
 
 /// Card that displays a track the user has actually listened to,
-/// using data from their listening history.
+/// using data from their local listening history.
 class _HistoryRecentCard extends StatelessWidget {
   const _HistoryRecentCard({
     required this.historyTrack,
@@ -14,6 +14,7 @@ class _HistoryRecentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final coverUrl = historyTrack.coverUrl;
+    final position = historyTrack.lastPositionSeconds;
 
     return GestureDetector(
       onTap: onTap,
@@ -59,9 +60,20 @@ class _HistoryRecentCard extends StatelessWidget {
                     historyTrack.artist.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
+                  if (position > 0) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Resume ${_fmt(position)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -84,6 +96,13 @@ class _HistoryRecentCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _fmt(int totalSeconds) {
+    final safe = totalSeconds < 0 ? 0 : totalSeconds;
+    final minutes = safe ~/ 60;
+    final seconds = (safe % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 }
 
@@ -146,8 +165,7 @@ class _RecentCard extends ConsumerWidget {
                     resolvedItem.artistDisplay,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),

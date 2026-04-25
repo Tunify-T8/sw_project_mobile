@@ -3,6 +3,10 @@ part of 'player_provider.dart';
 extension PlayerNotifierQueue on PlayerNotifier {
   Future<void> next() async {
     final current = _current;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] next ignored while player is busy");
+      return;
+    }
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
@@ -22,6 +26,10 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   Future<void> previous() async {
     final current = _current;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] previous ignored while player is busy");
+      return;
+    }
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
@@ -45,12 +53,16 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   Future<void> jumpToQueueIndex(int index) async {
     final current = _current;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] queue jump ignored while player is busy");
+      return;
+    }
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
     if (index < 0 || index >= queue.trackIds.length) return;
 
-    await _jumpToIndex(index, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(index, queue, autoPlay: true);
   }
 
   Future<void> buildAndLoadQueue({
@@ -102,10 +114,21 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
+    if (index < 0 || index >= queue.trackIds.length) return;
+    if (index == queue.currentIndex) return;
 
     final newIds = List<String>.from(queue.trackIds)..removeAt(index);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    var newCurrentIndex = queue.currentIndex;
+    if (index < queue.currentIndex) {
+      newCurrentIndex -= 1;
+    }
+    if (newCurrentIndex >= newIds.length) {
+      newCurrentIndex = newIds.isEmpty ? 0 : newIds.length - 1;
+    }
+
+    final next = current.copyWith(
+      queue: queue.copyWith(trackIds: newIds, currentIndex: newCurrentIndex),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }

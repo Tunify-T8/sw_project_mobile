@@ -67,6 +67,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
             track.trackId,
             autoPlay: true,
             seedTrack: seedTrack,
+            initialPositionSeconds: track.lastPositionSeconds.toDouble(),
             queue: PlaybackQueue(
               trackIds: queueTrackIds,
               currentIndex: startIndex,
@@ -80,6 +81,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
             track.trackId,
             autoPlay: true,
             seedTrack: seedTrack,
+            initialPositionSeconds: track.lastPositionSeconds.toDouble(),
           );
     }
 
@@ -121,6 +123,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
       coverUrl: stored?.artworkUrl ?? track.coverUrl,
       waveformUrl: stored?.waveformUrl,
       directAudioUrl: stored?.audioUrl,
+      resumePositionSeconds: track.lastPositionSeconds,
       localFilePath: stored?.localFilePath,
     );
   }

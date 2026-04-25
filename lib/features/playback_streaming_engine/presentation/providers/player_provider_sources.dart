@@ -180,6 +180,10 @@ extension _PlayerNotifierSources on PlayerNotifier {
         );
       }
     } on just_audio.PlayerInterruptedException {
+      debugPrint("[M5 Player] audio source load was interrupted by a newer command");
+      return;
+    } catch (error) {
+      debugPrint("[M5 Player] audio source failed safely: $error");
       return;
     }
 
@@ -211,7 +215,13 @@ extension _PlayerNotifierSources on PlayerNotifier {
 
   Future<void> _applyVolume(PlayerState playerState) async {
     final targetVolume = playerState.isMuted ? 0.0 : playerState.volume;
-    await _audioPlayer.setVolume(targetVolume.clamp(0.0, 1.0).toDouble());
+    try {
+      await _audioPlayer.setVolume(targetVolume.clamp(0.0, 1.0).toDouble());
+    } on just_audio.PlayerInterruptedException {
+      debugPrint("[M5 Player] volume change ignored because loading was interrupted");
+    } catch (error) {
+      debugPrint("[M5 Player] volume change failed safely: $error");
+    }
   }
 
   int _initialPositionFor(TrackPlaybackBundle bundle) {

@@ -117,7 +117,16 @@ class MiniPlayer extends ConsumerWidget {
                 color: Colors.white70,
                 tooltip: 'Open track details',
               ),
-              LikeButton(trackId: bundle.trackId, showCount: false), // engagement addition
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: LikeButton(
+                    trackId: bundle.trackId,
+                    showCount: false,
+                  ),
+                ),
+              ), // engagement addition
               const SizedBox(width: 10),
             ],
           ),

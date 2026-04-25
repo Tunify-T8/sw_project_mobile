@@ -2,119 +2,157 @@ part of 'player_provider.dart';
 
 extension PlayerNotifierControls on PlayerNotifier {
   Future<void> play() async {
-    final current = _current;
-    if (current == null || !current.canPlay) return;
-
-    var preparedState = await _ensureFreshPlaybackSource(current);
-    if (preparedState == null) return;
-
-    final restartPosition =
-        preparedState.positionSeconds >= preparedState.previewEndSeconds
-        ? _initialPositionFor(preparedState.bundle!).toDouble()
-        : null;
-
-    if (restartPosition != null) {
-      await _audioPlayer.seek(
-        Duration(milliseconds: (restartPosition * 1000).round()),
-      );
-      preparedState = preparedState.copyWith(positionSeconds: restartPosition);
-      _setPlayerState(preparedState);
+    if (_isTransportBusy) {
+      debugPrint('[M5 Player] play ignored during another transport action');
+      return;
     }
+    _isTransportBusy = true;
+    try {
+      final current = _current;
+      if (current == null || !current.canPlay || current.isBuffering) return;
 
-    await _applyVolume(preparedState);
+      var preparedState = await _ensureFreshPlaybackSource(current);
+      if (preparedState == null) return;
 
-    // just_audio.play() completes when playback finishes or is interrupted,
-    // not when playback STARTS. So awaiting it blocks navigation/history/queue.
-    unawaited(
-      _audioPlayer.play().catchError((Object error, StackTrace stackTrace) {
-        debugPrint('just_audio play failed: $error');
-      }),
-    );
+      final restartPosition =
+          preparedState.positionSeconds >= preparedState.previewEndSeconds
+          ? _initialPositionFor(preparedState.bundle!).toDouble()
+          : null;
 
-    final playingState = preparedState.copyWith(
-      isPlaying: true,
-      isBuffering: false,
-    );
-    _setPlayerState(playingState);
-    unawaited(_persistCurrentSession(playerState: playingState, force: true));
+      if (restartPosition != null) {
+        try {
+          await _audioPlayer.seek(
+            Duration(milliseconds: (restartPosition * 1000).round()),
+          );
+        } on just_audio.PlayerInterruptedException {
+          debugPrint('[M5 Player] restart seek ignored safely');
+          return;
+        }
+        preparedState = preparedState.copyWith(positionSeconds: restartPosition);
+        _setPlayerState(preparedState);
+      }
 
-    // History is recorded only after 2 seconds of real playback (see
-    // _positionSubscription in player_provider_bindings.dart).
-    _pendingHistoryTrackId = playingState.bundle?.trackId;
+      await _applyVolume(preparedState);
 
-    await _safeReportEvent(
-      PlaybackEvent(
-        trackId: playingState.bundle!.trackId,
-        action: PlaybackAction.play,
-        positionSeconds: playingState.positionSeconds.round(),
-      ),
-    );
+      unawaited(
+        _audioPlayer.play().catchError((Object error, StackTrace stackTrace) {
+          debugPrint('[M5 Player] play failed safely: $error');
+        }),
+      );
 
-    _startProgressReporting();
+      final playingState = preparedState.copyWith(
+        isPlaying: true,
+        isBuffering: false,
+      );
+      _setPlayerState(playingState);
+      unawaited(_persistCurrentSession(playerState: playingState, force: true));
+
+      _pendingHistoryTrackId = playingState.bundle?.trackId;
+
+      await _safeReportEvent(
+        PlaybackEvent(
+          trackId: playingState.bundle!.trackId,
+          action: PlaybackAction.play,
+          positionSeconds: playingState.positionSeconds.round(),
+        ),
+      );
+
+      _startProgressReporting();
+    } on just_audio.PlayerInterruptedException {
+      debugPrint('[M5 Player] play interrupted safely');
+    } finally {
+      _isTransportBusy = false;
+    }
   }
 
   Future<void> pause() async {
-    final current = _current;
-    if (current == null) return;
+    if (_isTransportBusy) {
+      debugPrint('[M5 Player] pause ignored during another transport action');
+      return;
+    }
+    _isTransportBusy = true;
+    try {
+      final current = _current;
+      if (current == null) return;
 
-    _progressReportTimer?.cancel();
-    await _audioPlayer.pause();
+      _progressReportTimer?.cancel();
+      try {
+        await _audioPlayer.pause();
+      } on just_audio.PlayerInterruptedException {
+        debugPrint('[M5 Player] pause interrupted safely');
+      }
 
-    final pausedPosition = _audioPlayer.position.inMilliseconds / 1000.0;
+      final pausedPosition = _audioPlayer.position.inMilliseconds / 1000.0;
 
-    final pausedState = current.copyWith(
-      isPlaying: false,
-      isBuffering: false,
-      positionSeconds: _clampPosition(current.bundle!, pausedPosition),
-    );
+      final pausedState = current.copyWith(
+        isPlaying: false,
+        isBuffering: false,
+        positionSeconds: _clampPosition(current.bundle!, pausedPosition),
+      );
 
-    _setPlayerState(pausedState);
-    await _persistCurrentSession(playerState: pausedState, force: true);
+      _setPlayerState(pausedState);
+      await _persistCurrentSession(playerState: pausedState, force: true);
 
-    await _safeReportEvent(
-      PlaybackEvent(
-        trackId: current.bundle!.trackId,
-        action: PlaybackAction.pause,
-        positionSeconds: _clampPosition(
-          current.bundle!,
-          pausedPosition,
-        ).round(),
-      ),
-    );
+      await _safeReportEvent(
+        PlaybackEvent(
+          trackId: current.bundle!.trackId,
+          action: PlaybackAction.pause,
+          positionSeconds: _clampPosition(
+            current.bundle!,
+            pausedPosition,
+          ).round(),
+        ),
+      );
+    } finally {
+      _isTransportBusy = false;
+    }
   }
 
   Future<void> seek(num positionSeconds) async {
-    final current = _current;
-    if (current == null || current.bundle == null) return;
+    if (_isTransportBusy || _isLoadingTrack) {
+      debugPrint('[M5 Player] seek ignored while player is busy');
+      return;
+    }
+    _isTransportBusy = true;
+    try {
+      final current = _current;
+      if (current == null || current.bundle == null || current.isBuffering) {
+        return;
+      }
 
-    final clamped = _clampPosition(current.bundle!, positionSeconds.toDouble());
+      final clamped = _clampPosition(current.bundle!, positionSeconds.toDouble());
 
-    _isManualSeeking = true;
+      _isManualSeeking = true;
 
-    await _audioPlayer.seek(Duration(milliseconds: (clamped * 1000).round()));
+      try {
+        await _audioPlayer.seek(Duration(milliseconds: (clamped * 1000).round()));
+      } on just_audio.PlayerInterruptedException {
+        debugPrint('[M5 Player] seek interrupted safely');
+        return;
+      }
 
-    final soughtState = current.copyWith(
-      positionSeconds: clamped,
-      isBuffering: false,
-    );
+      final soughtState = current.copyWith(
+        positionSeconds: clamped,
+        isBuffering: false,
+      );
 
-    _setPlayerState(soughtState);
-    await _persistCurrentSession(playerState: soughtState, force: true);
+      _setPlayerState(soughtState);
+      await _persistCurrentSession(playerState: soughtState, force: true);
 
-    await _safeReportEvent(
-      PlaybackEvent(
-        trackId: current.bundle!.trackId,
-        action: PlaybackAction.progress,
-        positionSeconds: clamped.round(),
-      ),
-    );
+      await _safeReportEvent(
+        PlaybackEvent(
+          trackId: current.bundle!.trackId,
+          action: PlaybackAction.progress,
+          positionSeconds: clamped.round(),
+        ),
+      );
 
-    // M5-002: 180ms was not enough on slower networks — the position stream
-    // could still emit a pre-seek position after the flag was cleared.
-    // 400ms covers typical remote-seek latency without feeling laggy.
-    Future<void>.delayed(const Duration(milliseconds: 400), () {
-      _isManualSeeking = false;
-    });
+      Future<void>.delayed(const Duration(milliseconds: 400), () {
+        _isManualSeeking = false;
+      });
+    } finally {
+      _isTransportBusy = false;
+    }
   }
 
   void toggleMute() {

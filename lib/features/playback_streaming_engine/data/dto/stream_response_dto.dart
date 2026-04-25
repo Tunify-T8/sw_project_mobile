@@ -19,7 +19,7 @@ class StreamResponseDto {
       trackId: (json['trackId'] ?? trackId) as String,
       url: (stream['url'] ?? '') as String,
       expiresInSeconds: (stream['expiresInSeconds'] as int?) ?? 600,
-      format: (stream['format'] ?? 'hls') as String,
+      format: (stream['format'] ?? 'mp3') as String,
     );
   }
 }
