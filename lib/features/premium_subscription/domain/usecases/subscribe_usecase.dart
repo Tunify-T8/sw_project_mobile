@@ -1,5 +1,5 @@
+import '../../data/dto/subscribe_response_dto.dart';
 import '../entities/billing_cycle.dart';
-import '../entities/current_subscription_entity.dart';
 import '../entities/payment_method_entity.dart';
 import '../entities/subscription_tier.dart';
 import '../repositories/subscription_repository.dart';
@@ -9,7 +9,7 @@ class SubscribeUseCase {
 
   SubscribeUseCase(this.repository);
 
-  Future<CurrentSubscriptionEntity> call({
+  Future<SubscribeResponseDto> call({
     required SubscriptionTier tier,
     required BillingCycle billingCycle,
     required PaymentMethodEntity paymentMethod,

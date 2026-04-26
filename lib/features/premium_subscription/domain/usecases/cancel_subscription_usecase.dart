@@ -1,3 +1,4 @@
+import '../../data/dto/cancel_subscription_response_dto.dart';
 import '../repositories/subscription_repository.dart';
 
 class CancelSubscriptionUseCase {
@@ -5,7 +6,7 @@ class CancelSubscriptionUseCase {
 
   CancelSubscriptionUseCase(this.repository);
 
-  Future<DateTime> call() {
+  Future<CancelSubscriptionResponseDto> call() {
     return repository.cancelSubscription();
   }
 }

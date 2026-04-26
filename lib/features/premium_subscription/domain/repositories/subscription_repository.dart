@@ -1,3 +1,5 @@
+import '../../data/dto/cancel_subscription_response_dto.dart';
+import '../../data/dto/subscribe_response_dto.dart';
 import '../entities/billing_cycle.dart';
 import '../entities/current_subscription_entity.dart';
 import '../entities/payment_method_entity.dart';
@@ -9,12 +11,12 @@ abstract class SubscriptionRepository {
 
   Future<CurrentSubscriptionEntity> getCurrentSubscription();
 
-  Future<CurrentSubscriptionEntity> subscribe({
+  Future<SubscribeResponseDto> subscribe({
     required SubscriptionTier tier,
     required BillingCycle billingCycle,
     required PaymentMethodEntity paymentMethod,
     int trialDays = 0,
   });
 
-  Future<DateTime> cancelSubscription();
+  Future<CancelSubscriptionResponseDto> cancelSubscription();
 }
