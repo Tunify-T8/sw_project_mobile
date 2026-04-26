@@ -41,6 +41,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   /// Passed to _PlayerBody so AnimatedSwitcher can slide in from the correct side.
   int _swipeDir = 0;
 
+  // Cached seed info for the loading screen — updated every time data arrives.
+  String? _lastTitle;
+  String? _lastArtist;
+  String? _lastCoverUrl;
+
   @override
   void initState() {
     super.initState();
@@ -54,9 +59,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final playerState = ref.read(playerProvider).asData?.value;
       if (playerState?.isPlaying == true) _artworkController.forward();
-      final trackId = playerState?.bundle?.trackId;
-      if (trackId != null) {
-        ref.read(engagementProvider(trackId).notifier).loadEngagement(); // engagement addition — load engagement for the initial track on screen open
+      final bundle = playerState?.bundle;
+      if (bundle != null) {
+        _lastTitle = bundle.title;
+        _lastArtist = bundle.artist.name;
+        _lastCoverUrl = bundle.coverUrl;
+        ref.read(engagementProvider(bundle.trackId).notifier).loadEngagement(); // engagement addition — load engagement for the initial track on screen open
       }
     });
   }
@@ -79,6 +87,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       } else if (!isPlaying && wasPlaying) {
         _artworkController.reverse();
       }
+      // Cache the last seen bundle info so the loading screen can show it.
+      final bundle = next.asData?.value.bundle;
+      if (bundle != null) {
+        _lastTitle = bundle.title;
+        _lastArtist = bundle.artist.name;
+        _lastCoverUrl = bundle.coverUrl;
+      }
     });
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -86,10 +101,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       child: Scaffold(
         backgroundColor: Colors.black,
         body: playerAsync.when(
-          loading: () => const _PlayerLoading(),
+          loading: () => _PlayerLoading(
+            title: _lastTitle,
+            artist: _lastArtist,
+            coverUrl: _lastCoverUrl,
+          ),
           error: (error, _) => _PlayerError(error: error.toString()),
           data: (playerState) {
-            if (playerState.bundle == null) return const _PlayerEmpty();
+            if (playerState.bundle == null) {
+              return _PlayerLoading(
+                title: _lastTitle,
+                artist: _lastArtist,
+                coverUrl: _lastCoverUrl,
+              );
+            }
 
             final bundle = playerState.bundle!;
             if (bundle.playability.isBlocked) {

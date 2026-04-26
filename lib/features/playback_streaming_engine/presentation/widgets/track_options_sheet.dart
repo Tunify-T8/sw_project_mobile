@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:dio/dio.dart' as dl;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_endpoints.dart';
@@ -11,15 +14,17 @@ import '../../../../core/routing/routes.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
+import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
+import '../../../audio_upload_and_management/presentation/providers/upload_dependencies_provider.dart';
 import '../../../audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
-import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../audio_upload_and_management/presentation/screens/edit_track_screen.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_info_screen.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
-import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../../../messaging_track_sharing/domain/entities/conversation_entity.dart';
 import '../../../messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
@@ -171,14 +176,35 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   bool _resolveIsOwned() {
     if (info.isOwned) return true;
 
-    final uploaderId = info.artistId?.trim();
-    if (uploaderId == null || uploaderId.isEmpty) return false;
-
     final currentUserId =
         ref.read(authControllerProvider).asData?.value?.id.trim();
     if (currentUserId == null || currentUserId.isEmpty) return false;
 
-    return currentUserId == uploaderId;
+    // Check explicit artistId on the info object.
+    final uploaderId = info.artistId?.trim();
+    if (uploaderId != null && uploaderId.isNotEmpty) {
+      return currentUserId == uploaderId;
+    }
+
+    // Fall back to the currently playing bundle's artist ID.
+    final bundle = ref.read(playerProvider).asData?.value.bundle;
+    if (bundle != null && bundle.trackId == info.trackId) {
+      final bundleArtistId = bundle.artist.id.trim();
+      if (bundleArtistId.isNotEmpty) {
+        return currentUserId == bundleArtistId;
+      }
+    }
+
+    // Fall back to the global track store owner.
+    final storeOwner =
+        ref.read(globalTrackStoreProvider).ownerUserIdForTrack(info.trackId);
+    if (storeOwner != null &&
+        storeOwner.isNotEmpty &&
+        storeOwner != '__global__') {
+      return currentUserId == storeOwner;
+    }
+
+    return false;
   }
 
   @override
@@ -245,11 +271,6 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   List<Widget> _buildOwnerRows(BuildContext context) {
     return [
       YourUploadsOptionRow(
-        icon: Icons.favorite_border,
-        label: 'Like',
-        onTap: () => Navigator.pop(context),
-      ),
-      YourUploadsOptionRow(
         icon: Icons.edit_outlined,
         label: 'Edit track',
         onTap: () {
@@ -278,16 +299,6 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
           Navigator.pop(context);
         },
       ),
-      YourUploadsOptionRow(
-        icon: Icons.playlist_add,
-        label: 'Add to playlist',
-        onTap: () => Navigator.pop(context),
-      ),
-      YourUploadsOptionRow(
-        icon: Icons.radio,
-        label: 'Start station',
-        onTap: () => Navigator.pop(context),
-      ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.graphic_eq,
@@ -300,8 +311,20 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
       YourUploadsOptionRow(
         icon: Icons.comment_outlined,
         label: 'View comments',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToComments(context);
+        },
       ),
+      YourUploadsOptionRow(
+        icon: Icons.download_outlined,
+        label: 'Download track',
+        onTap: () {
+          Navigator.pop(context);
+          _downloadTrack(context);
+        },
+      ),
+      const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.delete_outline,
         label: 'Delete track',
@@ -311,6 +334,7 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
             onDeleteTap!();
           } else {
             Navigator.pop(context);
+            _confirmAndDeleteTrack(context);
           }
         },
       ),
@@ -319,11 +343,6 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
 
   List<Widget> _buildNonOwnerRows(BuildContext context) {
     return [
-      YourUploadsOptionRow(
-        icon: Icons.favorite_border,
-        label: 'Like',
-        onTap: () => Navigator.pop(context),
-      ),
       YourUploadsOptionRow(
         icon: Icons.queue_play_next,
         label: 'Play next',
@@ -340,16 +359,6 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
           Navigator.pop(context);
         },
       ),
-      YourUploadsOptionRow(
-        icon: Icons.playlist_add,
-        label: 'Add to playlist',
-        onTap: () => Navigator.pop(context),
-      ),
-      YourUploadsOptionRow(
-        icon: Icons.radio,
-        label: 'Start station',
-        onTap: () => Navigator.pop(context),
-      ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.person_outline,
@@ -362,14 +371,11 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
       YourUploadsOptionRow(
         icon: Icons.comment_outlined,
         label: 'View comments',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToComments(context);
+        },
       ),
-      YourUploadsOptionRow(
-        icon: Icons.repeat,
-        label: 'Repost',
-        onTap: () => Navigator.pop(context),
-      ),
-      const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.graphic_eq,
         label: 'Behind this track',
@@ -379,19 +385,151 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
         },
       ),
       YourUploadsOptionRow(
-        icon: Icons.flag_outlined,
-        label: 'Report',
-        onTap: () => Navigator.pop(context),
+        icon: Icons.download_outlined,
+        label: 'Download track',
+        onTap: () {
+          Navigator.pop(context);
+          _downloadTrack(context);
+        },
       ),
     ];
   }
 
+  // ── Navigation helpers ───────────────────────────────────────────────────
+
   void _navigateToEditTrack(BuildContext context) {
+    // Try the local store first; if not found, use a minimal stub — EditTrackScreen
+    // fetches fresh details from the backend using trackDetailItemProvider.
     final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-    if (stored == null) return;
+    final item = stored ??
+        UploadItem(
+          id: info.trackId,
+          title: info.title,
+          artistDisplay: info.artist,
+          durationLabel: '',
+          durationSeconds: 0,
+          audioUrl: null,
+          waveformUrl: null,
+          artworkUrl: info.coverUrl,
+          localArtworkPath: info.localArtworkPath,
+          localFilePath: null,
+          description: '',
+          visibility: info.isPrivate
+              ? UploadVisibility.private
+              : UploadVisibility.public,
+          status: UploadProcessingStatus.finished,
+          isExplicit: false,
+          privateToken: info.privateToken,
+          createdAt: DateTime.now(),
+        );
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
+      MaterialPageRoute(builder: (_) => EditTrackScreen(item: item)),
     );
+  }
+
+  void _navigateToComments(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CommentsScreen(trackId: info.trackId),
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDeleteTrack(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Delete track?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${info.title}"? This cannot be undone.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete',
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await ref.read(libraryUploadsProvider.notifier).deleteTrack(info.trackId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Track deleted'), duration: Duration(seconds: 2)),
+    );
+  }
+
+  Future<void> _downloadTrack(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Fetching download link…'),
+        duration: Duration(seconds: 20),
+      ),
+    );
+
+    try {
+      final api = ref.read(uploadApiProvider);
+      final downloadUrl = await api.getDownloadUrl(info.trackId);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // The backend returns a signed URL valid for 600 s.
+      // We save the file to the device by downloading it directly.
+      final safeName = info.title
+          .replaceAll(RegExp(r'[^\w\s\-.]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '_');
+      final fileName = '${safeName.isEmpty ? info.trackId : safeName}.mp3';
+
+      final Directory saveDir;
+      if (Platform.isAndroid) {
+        // Android 10+ (API 29+): scoped storage — Downloads is accessible
+        // without WRITE_EXTERNAL_STORAGE permission.
+        saveDir = Directory('/storage/emulated/0/Download');
+        if (!saveDir.existsSync()) saveDir.createSync(recursive: true);
+      } else {
+        saveDir = await getApplicationDocumentsDirectory();
+      }
+
+      final savePath = '${saveDir.path}/$fileName';
+
+      await dl.Dio().download(
+        downloadUrl,
+        savePath,
+        options: dl.Options(receiveTimeout: const Duration(minutes: 5)),
+      );
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved to Downloads: $fileName'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Download failed: ${e.toString()}'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _navigateToUploaderProfile(BuildContext context) {

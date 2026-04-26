@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/router.dart';
+import '../../../../core/design_system/colors.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
@@ -71,9 +72,7 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final activePlayer = playerState;
     final isCurrentTrack = activePlayer?.bundle?.trackId == resolvedItem.id;
     final isPlaying = isCurrentTrack && activePlayer?.isPlaying == true;
-    final activeDurationSeconds = isCurrentTrack
-        ? (activePlayer?.visualDurationSeconds ?? resolvedItem.durationSeconds)
-        : resolvedItem.durationSeconds;
+    final isBuffering = isCurrentTrack && (activePlayer?.isBuffering ?? false);
     final progress = isCurrentTrack
         ? (activePlayer?.normalizedProgress ?? 0.0)
         : 0.0;
@@ -156,6 +155,27 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
             },
             onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
           ),
+          if (isBuffering)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2.8,
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

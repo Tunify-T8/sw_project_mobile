@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/design_system/app_loading_spinner.dart';
 import '../../../../core/design_system/colors.dart';
 import '../../../../core/routing/routes.dart';
 import '../../../notifications/presentation/state/notification_filter.dart';
@@ -199,7 +200,7 @@ class _MessagesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (state.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: AppLoadingSpinner(label: 'Loading messages…'),
       );
     }
 

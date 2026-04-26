@@ -140,4 +140,16 @@ class UploadApi {
   Future<void> deleteTrack(String trackId) async {
     await dio.delete(ApiEndpoints.deleteTrack(trackId));
   }
+
+  /// Fetches a signed download URL for [trackId].
+  /// Returns the URL string from `{ downloadUrl: "..." }`.
+  Future<String> getDownloadUrl(String trackId) async {
+    final response = await dio.get(ApiEndpoints.trackDownload(trackId));
+    final data = response.data;
+    if (data is Map) {
+      final url = data['downloadUrl'] as String?;
+      if (url != null && url.isNotEmpty) return url;
+    }
+    throw Exception('Download URL not found in response');
+  }
 }
