@@ -312,7 +312,7 @@ class _UploadsTab extends ConsumerWidget {
         final attachment = MessageAttachment(
           id: item.id,
           type: MessageAttachmentType.track,
-          backendKind: MessageAttachmentBackendKind.trackUpload,
+          backendKind: MessageAttachmentBackendKind.trackLike,
           title: item.title,
           subtitle: item.artistDisplay,
           artworkUrl: item.artworkUrl,

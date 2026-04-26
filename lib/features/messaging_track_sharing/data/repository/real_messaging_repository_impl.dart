@@ -117,9 +117,9 @@ class RealMessagingRepository implements MessagingRepository {
       };
       switch (kind) {
         case MessageAttachmentBackendKind.trackLike:
+        case MessageAttachmentBackendKind.trackUpload:
           payload['trackId'] = attachment.id;
           break;
-        case MessageAttachmentBackendKind.trackUpload:
         case MessageAttachmentBackendKind.playlist:
         case MessageAttachmentBackendKind.album:
           payload['collectionId'] = attachment.id;
