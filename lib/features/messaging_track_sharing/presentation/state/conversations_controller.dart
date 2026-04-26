@@ -42,12 +42,14 @@ class ConversationsState {
   );
 
   /// The list as it should be rendered, after the active filter is applied.
+  /// Archived and blocked conversations are always hidden.
   List<ConversationEntity> get visible {
+    final active = items.where((c) => !c.isArchived && !c.isBlocked).toList();
     switch (filter) {
       case MessagesFilter.all:
-        return items;
+        return active;
       case MessagesFilter.unreadOnly:
-        return items.where((c) => c.unreadCount > 0).toList();
+        return active.where((c) => c.unreadCount > 0).toList();
     }
   }
 
@@ -56,6 +58,15 @@ class ConversationsState {
 
 class ConversationsController extends Notifier<ConversationsState> {
   StreamSubscription<RealtimeMessagingEvent>? _eventsSub;
+
+  /// Client-side archive set — survives refresh() calls because the backend
+  /// returns all conversations regardless of status. Any id in this set is
+  /// treated as archived and hidden from the visible list.
+  final Set<String> _localArchivedIds = {};
+
+  /// Client-side unarchive set — conversations explicitly re-opened by the
+  /// user that should appear even if the backend still says ARCHIVED.
+  final Set<String> _localUnarchivedIds = {};
 
   @override
   ConversationsState build() {
@@ -66,10 +77,21 @@ class ConversationsController extends Notifier<ConversationsState> {
     if (userId == null || userId.isEmpty) {
       return const ConversationsState();
     }
-    // Auto-load on first watch — every consumer gets a populated list with
-    // no extra wiring at the call site.
     Future.microtask(load);
     return const ConversationsState(isLoading: true);
+  }
+
+  /// Merges backend items with the local archive/unarchive overrides.
+  List<ConversationEntity> _applyLocalArchive(List<ConversationEntity> items) {
+    return items.map((c) {
+      if (_localUnarchivedIds.contains(c.conversationId)) {
+        return c.copyWith(isArchived: false);
+      }
+      if (_localArchivedIds.contains(c.conversationId)) {
+        return c.copyWith(isArchived: true);
+      }
+      return c;
+    }).toList();
   }
 
   Future<void> load() async {
@@ -80,13 +102,15 @@ class ConversationsController extends Notifier<ConversationsState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      // Make sure realtime events flow before we hand control back to the UI.
       await ref.read(messagingRepositoryProvider).connectRealtime();
       _bindRealtime();
 
       final page = await ref.read(getConversationsUseCaseProvider).call();
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
-      state = state.copyWith(isLoading: false, items: page.items);
+      state = state.copyWith(
+        isLoading: false,
+        items: _applyLocalArchive(page.items),
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -99,7 +123,10 @@ class ConversationsController extends Notifier<ConversationsState> {
     try {
       final page = await ref.read(getConversationsUseCaseProvider).call();
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
-      state = state.copyWith(isRefreshing: false, items: page.items);
+      state = state.copyWith(
+        isRefreshing: false,
+        items: _applyLocalArchive(page.items),
+      );
     } catch (e) {
       state = state.copyWith(isRefreshing: false, error: e.toString());
     }
@@ -145,6 +172,30 @@ class ConversationsController extends Notifier<ConversationsState> {
       return bTime.compareTo(aTime);
     });
     state = state.copyWith(items: next);
+  }
+
+  Future<void> archiveConversation(String conversationId) async {
+    await ref.read(archiveConversationUseCaseProvider).call(conversationId);
+    _localArchivedIds.add(conversationId);
+    _localUnarchivedIds.remove(conversationId);
+    // Remove immediately from visible list without waiting for refresh.
+    state = state.copyWith(
+      items: state.items.map((c) {
+        if (c.conversationId == conversationId) return c.copyWith(isArchived: true);
+        return c;
+      }).toList(),
+    );
+  }
+
+  void unarchiveLocally(String conversationId) {
+    _localUnarchivedIds.add(conversationId);
+    _localArchivedIds.remove(conversationId);
+    state = state.copyWith(
+      items: state.items.map((c) {
+        if (c.conversationId == conversationId) return c.copyWith(isArchived: false);
+        return c;
+      }).toList(),
+    );
   }
 
   Future<void> deleteConversation(String conversationId) async {

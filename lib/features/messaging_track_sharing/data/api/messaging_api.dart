@@ -19,6 +19,7 @@ class MessagingEndpoints {
   static String read(String id) => '/conversations/$id/read';
   static String unread(String id) => '/conversations/$id/unread';
   static String archive(String id) => '/conversations/$id/archive';
+  static String unarchive(String id) => '/conversations/$id/unarchive';
   static String block(String id) => '/conversations/$id/block';
   static String unblock(String blockedUserId) =>
       '/conversations/unblock/$blockedUserId';
@@ -87,6 +88,15 @@ class MessagingApi {
       _dio.post(MessagingEndpoints.unread(id));
 
   Future<void> archive(String id) => _dio.post(MessagingEndpoints.archive(id));
+
+  Future<void> unarchive(String id) async {
+    try {
+      await _dio.post(MessagingEndpoints.unarchive(id));
+    } catch (_) {
+      // Unarchive endpoint may not exist yet on the backend — fail silently
+      // so the conversation still opens and the user can send messages.
+    }
+  }
 
   Future<int> getUnreadCount() async {
     final res = await _dio.get(MessagingEndpoints.unreadCount);

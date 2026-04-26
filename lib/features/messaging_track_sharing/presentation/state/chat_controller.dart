@@ -123,6 +123,12 @@ class ChatController extends Notifier<ChatState> {
       final repo = ref.read(messagingRepositoryProvider);
       await repo.connectRealtime();
       await repo.joinConversation(_conversationId);
+      // Unarchive silently — if this conversation was archived, opening it
+      // should bring it back to the active list.
+      unawaited(repo.unarchiveConversation(_conversationId).catchError((_) {}));
+      ref
+          .read(conversationsControllerProvider.notifier)
+          .unarchiveLocally(_conversationId);
       _bindRealtime();
 
       final page = await ref
@@ -263,6 +269,12 @@ class ChatController extends Notifier<ChatState> {
       );
       unawaited(ref.read(conversationsControllerProvider.notifier).refresh());
     }
+  }
+
+  Future<void> archiveConversation() async {
+    await ref
+        .read(conversationsControllerProvider.notifier)
+        .archiveConversation(_conversationId);
   }
 
   Future<void> blockConversation() async {

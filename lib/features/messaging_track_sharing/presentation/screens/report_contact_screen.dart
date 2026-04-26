@@ -65,7 +65,7 @@ class _ReportContactScreenState extends ConsumerState<ReportContactScreen> {
       text: authUser?.email ?? '',
     );
     _urlController = TextEditingController(
-      text: 'https://soundcloud.com/messages/${widget.conversationId}',
+      text: 'tunify://messages/${widget.conversationId}',
     );
   }
 
@@ -136,7 +136,7 @@ class _ReportContactScreenState extends ConsumerState<ReportContactScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Report Content to SoundCloud',
+                'Report Content',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -278,68 +278,6 @@ class _ReportContactScreenState extends ConsumerState<ReportContactScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Enjoy the full SoundCloud experience in the app',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  height: 1.25,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: 116,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Center(
-                  child: Text(
-                    'App Store',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
-              Wrap(
-                spacing: 18,
-                runSpacing: 12,
-                children: const [
-                  _FooterLink(label: 'Company'),
-                  _FooterLink(label: 'About us'),
-                  _FooterLink(label: 'Blog'),
-                  _FooterLink(label: 'Jobs'),
-                  _FooterLink(label: 'Developers'),
-                  _FooterLink(label: 'Legal'),
-                  _FooterLink(label: 'Copyright'),
-                ],
-              ),
-              const SizedBox(height: 22),
-              const Row(
-                children: [
-                  Icon(Icons.camera_alt_outlined, color: Colors.white70, size: 22),
-                  SizedBox(width: 18),
-                  Icon(Icons.music_note_outlined, color: Colors.white70, size: 22),
-                  SizedBox(width: 18),
-                  Icon(Icons.facebook_outlined, color: Colors.white70, size: 22),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                '© 2026 SoundCloud · Language: English (US)',
-                style: TextStyle(
-                  color: Color(0xFF8A8A8A),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
             ],
           ),
         ),
@@ -496,24 +434,6 @@ class _SquareCheck extends StatelessWidget {
               color: Colors.black,
             )
           : null,
-    );
-  }
-}
-
-class _FooterLink extends StatelessWidget {
-  const _FooterLink({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: Color(0xFF6FA8FF),
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-      ),
     );
   }
 }

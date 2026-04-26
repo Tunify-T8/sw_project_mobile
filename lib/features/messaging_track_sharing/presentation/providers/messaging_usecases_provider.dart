@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/usecases/archive_conversation_usecase.dart';
 import '../../domain/usecases/block_conversation_usecase.dart';
 import '../../domain/usecases/delete_conversation_usecase.dart';
 import '../../domain/usecases/get_conversations_usecase.dart';
@@ -23,6 +24,8 @@ final openConversationUseCaseProvider = Provider(
     (ref) => OpenConversationUseCase(ref.watch(messagingRepositoryProvider)));
 final getUnreadMessageCountUseCaseProvider = Provider((ref) =>
     GetUnreadMessageCountUseCase(ref.watch(messagingRepositoryProvider)));
+final archiveConversationUseCaseProvider = Provider(
+    (ref) => ArchiveConversationUseCase(ref.watch(messagingRepositoryProvider)));
 final blockConversationUseCaseProvider = Provider(
     (ref) => BlockConversationUseCase(ref.watch(messagingRepositoryProvider)));
 final deleteConversationUseCaseProvider = Provider(
