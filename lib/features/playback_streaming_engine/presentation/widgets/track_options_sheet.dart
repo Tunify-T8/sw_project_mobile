@@ -924,7 +924,7 @@ class _ShareRow extends StatelessWidget {
           ),
 
           // WhatsApp
-          _SocialShareButton(
+          SocialShareButton(
             faIcon: FontAwesomeIcons.whatsapp,
             iconColor: const Color(0xFF25D366),
             label: 'WhatsApp',
@@ -957,7 +957,7 @@ class _ShareRow extends StatelessWidget {
           ),
 
           // Instagram Stories
-          _SocialShareButton(
+          SocialShareButton(
             faIcon: FontAwesomeIcons.instagram,
             iconColor: const Color(0xFFE1306C),
             label: 'Stories',
@@ -973,7 +973,7 @@ class _ShareRow extends StatelessWidget {
           ),
 
           // Snapchat
-          _SocialShareButton(
+          SocialShareButton(
             faIcon: FontAwesomeIcons.snapchat,
             iconColor: const Color(0xFFFFFC00),
             label: 'Snapchat',
@@ -988,7 +988,7 @@ class _ShareRow extends StatelessWidget {
           ),
 
           // Facebook
-          _SocialShareButton(
+          SocialShareButton(
             faIcon: FontAwesomeIcons.facebook,
             iconColor: const Color(0xFF1877F2),
             label: 'Facebook',
@@ -1003,7 +1003,7 @@ class _ShareRow extends StatelessWidget {
           ),
 
           // X (Twitter)
-          _SocialShareButton(
+          SocialShareButton(
             faIcon: FontAwesomeIcons.xTwitter,
             iconColor: Colors.white,
             label: 'X',
@@ -1020,7 +1020,7 @@ class _ShareRow extends StatelessWidget {
           ),
 
           // Messenger
-          _SocialShareButton(
+          SocialShareButton(
             faIcon: FontAwesomeIcons.facebookMessenger,
             iconColor: const Color(0xFF0084FF),
             label: 'Messenger',
@@ -1053,52 +1053,6 @@ class _ShareRow extends StatelessWidget {
   }
 }
 
-/// A share button that renders a FontAwesome brand icon inside a colored circle.
-class _SocialShareButton extends StatelessWidget {
-  const _SocialShareButton({
-    required this.faIcon,
-    required this.iconColor,
-    required this.label,
-    this.onTap,
-  });
-
-  final IconData faIcon;
-  final Color iconColor;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: const BoxDecoration(
-                color: Color(0xFF2A2A2A),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: FaIcon(faIcon, color: iconColor, size: 22),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── Share URL builder ───────────────────────────────────────────────────────
 

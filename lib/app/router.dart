@@ -27,6 +27,9 @@ import '../features/messaging_track_sharing/presentation/screens/messaging_activ
 import '../features/messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
 import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
+import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
+import '../features/playlists/presentation/screens/playlist_screen.dart';
+import '../features/playlists/presentation/widgets/track_reorder_list.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
@@ -306,6 +309,30 @@ class AppRouter {
       case Routes.notificationPreferences:
         return _slide(
           const AuthProtectedScreen(child: NotificationPreferencesScreen()),
+          settings,
+        );
+
+      case Routes.playlists:
+        return _slide(
+          const AuthProtectedScreen(child: PlaylistsScreen()),
+          settings,
+        );
+
+      case Routes.playlistDetail:
+        final id = args['playlistId'] as String? ?? '';
+        return _slide(
+          AuthProtectedScreen(
+            child: PlaylistDetailScreen(playlistId: id),
+          ),
+          settings,
+        );
+
+      case Routes.playlistReorder:
+        final collectionId = args['collectionId'] as String? ?? '';
+        return _slide(
+          AuthProtectedScreen(
+            child: TrackReorderScreen(collectionId: collectionId),
+          ),
           settings,
         );
 

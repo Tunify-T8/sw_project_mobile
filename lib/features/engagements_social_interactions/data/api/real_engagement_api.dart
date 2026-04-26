@@ -16,6 +16,8 @@ class RealEngagementApi {
   Future<TrackEngagementDto> getTrackEngagement(String trackId) async {
     final res = await _dio.get(ApiEndpoints.trackEngagement(trackId));
     final data = res.data as Map<String, dynamic>;
+    // ignore: avoid_print
+    print('[getTrackEngagement] trackId: $trackId | commentsCount from BE: ${data['commentsCount'] ?? data['commentCount']}');
     return TrackEngagementDto.fromJson({...data, 'trackId': trackId});
   }
 
@@ -55,7 +57,7 @@ class RealEngagementApi {
     final total = (data['total'] as int?) ?? comments.length;
     // Debug: log backend total count for comments
     // ignore: avoid_print
-    print('[getComments] total comments from BE: $total');
+    print('[getComments] trackId: $trackId | total from BE: $total');
     return (comments: comments, total: total);
   }
 

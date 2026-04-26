@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
+import '../../domain/entities/paginated_playlists.dart';
 import '../../domain/entities/playlist_entity.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/usecases/playlist_usecases.dart';
@@ -20,6 +21,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
   late final DeletePlaylistUseCase _deletePlaylist;
   late final GetPlaylistUseCase _getPlaylist;
   late final GetMyPlaylistsUseCase _getMyPlaylists;
+  late final GetTracksPerPlaylistUseCase _getTracksPerPlaylist;
   late final ReorderTracksUseCase _reorderTracks;
   late final AddTrackUseCase _addTrack;
   late final RemoveTrackUseCase _removeTrack;
@@ -31,6 +33,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     _deletePlaylist = ref.read(deletePlaylistUseCaseProvider);
     _getPlaylist = ref.read(getPlaylistUseCaseProvider);
     _getMyPlaylists = ref.read(getMyPlaylistsUseCaseProvider);
+    _getTracksPerPlaylist = ref.read(getTracksPerPlaylistUseCaseProvider);
     _reorderTracks = ref.read(reorderTracksUseCaseProvider);
     _addTrack = ref.read(addTrackUseCaseProvider);
     _removeTrack = ref.read(removeTrackUseCaseProvider);
@@ -97,8 +100,18 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       tracksPage: 1,
     );
     try {
-      final playlist = await _getPlaylist(id);
-      state = state.copyWith(activePlaylist: playlist, isDetailLoading: false);
+      final results = await Future.wait([
+        _getPlaylist(id),
+        _getTracksPerPlaylist(playlistId: id, limit: 50),
+      ]);
+      final playlist = results[0] as PlaylistEntity;
+      final tracks = results[1] as PaginatedPlaylistTracks;
+      state = state.copyWith(
+        activePlaylist: playlist,
+        activeTracks: tracks.items,
+        hasMoreTracks: tracks.hasMore,
+        isDetailLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isDetailLoading: false, detailError: e.toString());
     }

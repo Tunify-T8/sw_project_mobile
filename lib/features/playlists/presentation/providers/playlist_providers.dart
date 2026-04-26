@@ -66,6 +66,10 @@ final getMyPlaylistsUseCaseProvider = Provider<GetMyPlaylistsUseCase>(
   (ref) => GetMyPlaylistsUseCase(ref.watch(playlistRepositoryProvider)),
 );
 
+final getTracksPerPlaylistUseCaseProvider = Provider<GetTracksPerPlaylistUseCase>(
+  (ref) => GetTracksPerPlaylistUseCase(ref.watch(playlistRepositoryProvider)),
+);
+
 final reorderTracksUseCaseProvider = Provider<ReorderTracksUseCase>(
   (ref) => ReorderTracksUseCase(ref.watch(playlistRepositoryProvider)),
 );

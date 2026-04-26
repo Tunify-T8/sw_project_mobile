@@ -9,7 +9,7 @@ import '../entities/playlist_summary_entity.dart';
 /// Contract between domain use-cases and the data layer.
 /// Implemented by [MockPlaylistRepositoryImpl] and [RealPlaylistRepositoryImpl].
 abstract class PlaylistRepository {
-  // ─── CRUD ────────────────────────────────────────────────────────────────
+  // CRUD
 
   /// Creates a new collection. [cover] is optional.
   Future<PlaylistEntity> createCollection({

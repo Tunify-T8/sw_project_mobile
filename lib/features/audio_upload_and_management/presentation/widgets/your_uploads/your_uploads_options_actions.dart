@@ -3,6 +3,7 @@
 // Used by: your_uploads_options_sheet
 // Concerns: Multi-format support; Track visibility.
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class YourUploadsShareButton extends StatelessWidget {
   const YourUploadsShareButton({
@@ -36,6 +37,53 @@ class YourUploadsShareButton extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: iconColor ?? Colors.white, size: 22),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SocialShareButton extends StatelessWidget {
+  const SocialShareButton({
+    super.key,
+    required this.faIcon,
+    required this.iconColor,
+    required this.label,
+    this.onTap,
+  });
+
+  final IconData faIcon;
+  final Color iconColor;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2A2A2A),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: FaIcon(faIcon, color: iconColor, size: 22),
+              ),
             ),
             const SizedBox(height: 4),
             Text(

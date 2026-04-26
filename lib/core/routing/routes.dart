@@ -20,4 +20,9 @@ abstract class Routes {
 
   // Module 10 — Notifications
   static const String notificationPreferences = '/notification-preferences';
+
+  // Module 7 — Playlists & Sets
+  static const String playlists = '/playlists';
+  static const String playlistDetail = '/playlist-detail';
+  static const String playlistReorder = '/playlist-reorder';
 }

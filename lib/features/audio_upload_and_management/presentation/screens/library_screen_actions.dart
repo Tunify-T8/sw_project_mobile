@@ -2,6 +2,11 @@ part of 'library_screen.dart';
 
 extension _LibraryScreenActions on _LibraryScreenState {
   void _handleTap(BuildContext context, String label) {
+    if (label == 'Playlists' || label == 'Albums') {
+      Navigator.of(context).pushNamed(Routes.playlists);
+      return;
+    }
+
     if (label == 'Your likes') { // engagement addition — navigate to liked tracks screen
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const LikedTracksScreen()),

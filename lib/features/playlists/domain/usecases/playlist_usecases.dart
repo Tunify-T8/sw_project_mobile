@@ -83,6 +83,23 @@ class GetMyPlaylistsUseCase {
   }) => _repository.getMyCollections(page: page, limit: limit, type: type);
 }
 
+// ─── Get tracks ───────────────────────────────────────────────────────────────
+
+class GetTracksPerPlaylistUseCase {
+  const GetTracksPerPlaylistUseCase(this._repository);
+  final PlaylistRepository _repository;
+
+  Future<PaginatedPlaylistTracks> call({
+    required String playlistId,
+    int page = 1,
+    int limit = 50,
+  }) => _repository.getCollectionTracks(
+    collectionId: playlistId,
+    page: page,
+    limit: limit,
+  );
+}
+
 // ─── Reorder ──────────────────────────────────────────────────────────────────
 
 /// Sends a full-replacement reorder to the backend.
