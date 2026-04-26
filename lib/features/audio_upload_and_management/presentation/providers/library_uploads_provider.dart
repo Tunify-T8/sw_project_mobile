@@ -10,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 // Post-delete cleanup imports: after a track is deleted we stop playback if
 // it's the currently playing track and scrub it from listening history.
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../data/dto/upload_item_dto.dart';
@@ -308,8 +309,15 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
 
   void _syncGlobalTrackStore(List<UploadItem> uploads) {
     final store = ref.read(globalTrackStoreProvider);
+    final currentUserId =
+        ref.read(authControllerProvider).asData?.value?.id.trim();
     for (final item in uploads) {
-      store.update(item);
+      store.update(
+        item,
+        ownerUserId: currentUserId == null || currentUserId.isEmpty
+            ? null
+            : currentUserId,
+      );
     }
   }
 
