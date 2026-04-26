@@ -29,11 +29,12 @@ class MessagingTimeFormat {
     return _shortMonthDay(when);
   }
 
-  /// Bubble timestamp — h:mm AM/PM (12h), e.g. "2:02 AM".
+  /// Bubble timestamp — h:mm AM/PM (12h) in device local time, e.g. "2:02 AM".
   static String clock12(DateTime when) {
-    final hour24 = when.hour;
+    final local = when.toLocal();
+    final hour24 = local.hour;
     final hour12 = hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24);
-    final minute = when.minute.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
     final suffix = hour24 < 12 ? 'AM' : 'PM';
     return '$hour12:$minute $suffix';
   }
@@ -41,13 +42,14 @@ class MessagingTimeFormat {
   /// Used as the date separator above the first message of the day —
   /// "Today", "Yesterday", or e.g. "Mar 4".
   static String dayHeader(DateTime when, {DateTime? now}) {
-    final ref = now ?? DateTime.now();
+    final local = when.toLocal();
+    final ref = now?.toLocal() ?? DateTime.now();
     final today = DateTime(ref.year, ref.month, ref.day);
-    final that = DateTime(when.year, when.month, when.day);
+    final that = DateTime(local.year, local.month, local.day);
     final diff = today.difference(that).inDays;
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';
-    return _shortMonthDay(when);
+    return _shortMonthDay(local);
   }
 
   static const _months = [

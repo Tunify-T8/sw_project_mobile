@@ -68,23 +68,35 @@ extension PlayerNotifierLoading on PlayerNotifier {
 
       _setAsyncState(
         await AsyncValue.guard(() async {
-          final bundle = await _resolveBundle(
-            trackId,
-            privateToken: privateToken,
-            seedTrack: seedTrack,
-          );
+          final localBlockedBundle = seedTrack?.playability?.isBlocked == true
+              ? seedTrack!.toPlaybackBundle()
+              : null;
+          final bundle =
+              localBlockedBundle ??
+              await _resolveBundle(
+                trackId,
+                privateToken: privateToken,
+                seedTrack: seedTrack,
+              );
 
-          final source = await _resolvePlaybackSource(
-            trackId,
-            seedTrack: seedTrack,
-            privateToken: privateToken,
-          );
+          final playableBundle = localBlockedBundle != null ||
+                  seedTrack?.playability == null
+              ? bundle
+              : bundle.copyWith(playability: seedTrack!.playability);
+
+          final source = playableBundle.playability.isBlocked
+              ? const _ResolvedPlaybackSource()
+              : await _resolvePlaybackSource(
+                  trackId,
+                  seedTrack: seedTrack,
+                  privateToken: privateToken,
+                );
 
           final initialPosition = initialPositionSeconds ??
-              _initialPositionFor(bundle).toDouble();
+              _initialPositionFor(playableBundle).toDouble();
 
           final nextState = PlayerState(
-            bundle: bundle,
+            bundle: playableBundle,
             streamUrl: source.streamUrl,
             streamExpiresAt: source.streamExpiresAt,
             localFilePath: source.localFilePath,
@@ -94,12 +106,14 @@ extension PlayerNotifierLoading on PlayerNotifier {
             isMuted: previous?.isMuted ?? false,
             volume: previous?.volume ?? 1.0,
             isBuffering: false,
-            mediaDurationSeconds: bundle.durationSeconds.toDouble(),
+            mediaDurationSeconds: playableBundle.durationSeconds.toDouble(),
             privateToken: privateToken,
           );
 
-          await _prepareAudioSource(nextState, force: true);
-          await _applyVolume(nextState);
+          if (!playableBundle.playability.isBlocked) {
+            await _prepareAudioSource(nextState, force: true);
+            await _applyVolume(nextState);
+          }
 
           if (initialPosition > 0) {
             try {

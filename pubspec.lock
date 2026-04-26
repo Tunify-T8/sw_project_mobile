@@ -1180,7 +1180,7 @@ packages:
       sha256: "0cc24b5ff94b38d2ae73e1eb43cc302b77964fbf67abad1e296025b78deb53d0"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.15"
+    version: "0.6.12"
   timezone:
     dependency: transitive
     description:

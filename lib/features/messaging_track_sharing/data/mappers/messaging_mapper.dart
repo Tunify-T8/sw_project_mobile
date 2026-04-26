@@ -55,6 +55,7 @@ class MessagingMapper {
       case 'ATTACHMENT':
       case 'TRACK_LIKE':
       case 'TRACK_UPLOAD':
+      case 'UPLOAD':
       case 'PLAYLIST':
       case 'ALBUM':
       case 'USER':
@@ -81,6 +82,7 @@ class MessagingMapper {
         lastMessageAt: d.lastMessageAt,
         unreadCount: d.unreadCount,
         isBlocked: d.isBlocked,
+        isArchived: d.isArchived,
       );
 
   static PaginatedMessages messages(PaginatedDto<MessageDto> d) =>

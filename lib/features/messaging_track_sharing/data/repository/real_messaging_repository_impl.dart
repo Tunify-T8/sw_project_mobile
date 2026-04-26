@@ -142,6 +142,14 @@ class RealMessagingRepository implements MessagingRepository {
   Future<int> getUnreadCount() => _api.getUnreadCount();
 
   @override
+  Future<void> archiveConversation(String conversationId) =>
+      _api.archive(conversationId);
+
+  @override
+  Future<void> unarchiveConversation(String conversationId) =>
+      _api.unarchive(conversationId);
+
+  @override
   Future<void> blockConversation(String conversationId) =>
       _api.block(conversationId);
 
@@ -200,6 +208,7 @@ class RealMessagingRepository implements MessagingRepository {
     lastMessageAt: conversation.lastMessageAt,
     unreadCount: conversation.unreadCount,
     isBlocked: conversation.isBlocked,
+    isArchived: conversation.isArchived,
     lastMessage: conversation.lastMessage,
   );
 

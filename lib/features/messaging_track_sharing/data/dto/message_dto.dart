@@ -81,13 +81,20 @@ class MessageDto {
     // optimistic payloads use the flat `attachments` list.
     final attachments = <MessageAttachmentDto>[];
     final singleAttachment = _map(j['attachment'] ?? j['sharedResource']);
-    if (singleAttachment != null &&
-        _hasRealAttachment(singleAttachment, type)) {
+    if (singleAttachment != null && _hasRealAttachment(singleAttachment, type)) {
       final att = singleAttachment;
-      // Propagate outer type into the attachment so the mapper can route
-      // the UI correctly even if `att.type` is absent.
       final merged = <String, dynamic>{...att, 'type': att['type'] ?? type};
       attachments.add(MessageAttachmentDto.fromJson(merged));
+    } else if (_isAttachmentType(type)) {
+      // Backend returned an attachment-type message but with no usable
+      // attachment payload (e.g. collection include missing on getMessages).
+      // Synthesise a placeholder so the bubble doesn't render empty.
+      final fallbackTitle = _attachmentFallbackTitle(type);
+      attachments.add(MessageAttachmentDto(
+        id: '',
+        type: type,
+        title: fallbackTitle,
+      ));
     } else {
       final list = (j['attachments'] as List?) ?? const [];
       attachments.addAll(
@@ -138,16 +145,45 @@ class MessageDto {
     return null;
   }
 
+  static const _attachmentTypes = {
+    'TRACK_LIKE', 'TRACK_UPLOAD', 'UPLOAD', 'PLAYLIST', 'ALBUM', 'USER',
+  };
+
+  static bool _isAttachmentType(String type) => _attachmentTypes.contains(type);
+
+  static String _attachmentFallbackTitle(String type) {
+    switch (type) {
+      case 'TRACK_LIKE':
+      case 'TRACK_UPLOAD':
+      case 'UPLOAD':
+        return 'Shared track';
+      case 'PLAYLIST':
+        return 'Shared playlist';
+      case 'ALBUM':
+        return 'Shared album';
+      case 'USER':
+        return 'Shared profile';
+      default:
+        return 'Shared content';
+    }
+  }
+
   static bool _hasRealAttachment(Map<String, dynamic> value, String type) {
     if (type == 'TEXT') return false;
+
     final id = _string(value['id']);
-    if (id.isNotEmpty && id.toLowerCase() != 'null') return true;
+    final hasId = id.isNotEmpty && id.toLowerCase() != 'null';
 
     final preview = _map(value['preview']);
-    if (preview == null || preview.isEmpty) return false;
-    return preview.values.any((v) {
-      final text = _string(v);
-      return text.isNotEmpty && text.toLowerCase() != 'null';
-    });
+    final hasPreview = preview != null &&
+        preview.values.any((v) {
+          final text = _string(v);
+          return text.isNotEmpty && text.toLowerCase() != 'null';
+        });
+
+    // Accept the attachment if either the id or the preview has real content.
+    // This covers UPLOAD messages where id comes from collectionId and
+    // preview carries title/coverUrl even when the other field is null.
+    return hasId || hasPreview;
   }
 }

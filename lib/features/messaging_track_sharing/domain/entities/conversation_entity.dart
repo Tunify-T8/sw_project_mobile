@@ -7,6 +7,7 @@ class ConversationEntity {
   final DateTime? lastMessageAt;
   final int unreadCount;
   final bool isBlocked;
+  final bool isArchived;
 
   const ConversationEntity({
     required this.conversationId,
@@ -15,6 +16,7 @@ class ConversationEntity {
     this.lastMessageAt,
     this.unreadCount = 0,
     this.isBlocked = false,
+    this.isArchived = false,
   });
 
   ConversationEntity copyWith({
@@ -23,6 +25,7 @@ class ConversationEntity {
     DateTime? lastMessageAt,
     int? unreadCount,
     bool? isBlocked,
+    bool? isArchived,
   }) => ConversationEntity(
     conversationId: conversationId,
     otherUser: otherUser ?? this.otherUser,
@@ -30,5 +33,6 @@ class ConversationEntity {
     lastMessageAt: lastMessageAt ?? this.lastMessageAt,
     unreadCount: unreadCount ?? this.unreadCount,
     isBlocked: isBlocked ?? this.isBlocked,
+    isArchived: isArchived ?? this.isArchived,
   );
 }

@@ -3,6 +3,7 @@
 // Used by: track_metadata_provider
 // Concerns: Metadata engine.
 import '../../domain/entities/track_metadata.dart';
+import '../utils/country_code_utils.dart';
 import 'track_metadata_state.dart';
 
 class TrackMetadataMapper {
@@ -53,10 +54,6 @@ class TrackMetadataMapper {
       return <String>[];
     }
 
-    return state.availabilityRegionsText
-        .split(',')
-        .map((region) => region.trim().toUpperCase())
-        .where((region) => region.isNotEmpty)
-        .toList();
+    return CountryCodeUtils.parseCountryCodes(state.availabilityRegionsText);
   }
 }

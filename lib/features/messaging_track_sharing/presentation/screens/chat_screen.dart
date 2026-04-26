@@ -269,10 +269,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _archiveConversation() {
     ref
         .read(chatControllerProvider(widget.conversationId).notifier)
-        .deleteConversation()
+        .archiveConversation()
         .then((_) {
           if (!mounted) return;
-          ref.read(conversationsControllerProvider.notifier).refresh();
           Navigator.of(context).pop();
         });
   }

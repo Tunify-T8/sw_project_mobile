@@ -110,6 +110,27 @@ void main() {
       ),
       isNull,
     );
+    expect(
+      TrackMetadataValidator.validateForSave(
+        const TrackMetadataState(
+          title: 'Title',
+          artists: ['Kevin'],
+          availabilityType: 'exclusive_regions',
+        ),
+      ),
+      'Select at least one country for availability.',
+    );
+    expect(
+      TrackMetadataMapper.toEntity(
+        const TrackMetadataState(
+          title: 'Title',
+          artists: ['Kevin'],
+          availabilityType: 'excluded_regions',
+          availabilityRegionsText: 'Egypt, us, Egypt',
+        ),
+      ).availabilityRegions,
+      ['EG', 'US'],
+    );
   });
 
   test('library uploads state and filter apply visibility query and sort rules', () {
