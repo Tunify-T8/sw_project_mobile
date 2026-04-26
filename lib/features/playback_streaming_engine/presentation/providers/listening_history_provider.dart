@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/network/connectivity_provider.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
 import '../../domain/entities/track_artist_summary.dart';
@@ -55,6 +56,11 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   late GetListeningHistoryUsecase _getHistory;
   late PlayerRepository _repository;
 
+  /// The user ID active when this notifier was built. Every cache read/write
+  /// is namespaced under this ID so switching accounts never leaks one user's
+  /// history into another's view.
+  String _userId = '';
+
   final List<HistoryTrack> _optimisticTracks = <HistoryTrack>[];
   bool _clearedLocally = false;
   // Watermark recorded by clearHistory().  When non-null, any backend track
@@ -63,10 +69,34 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   // honour the clear request and keeps re-serving the old history.
   DateTime? _clearedAt;
 
+  // ── Per-user storage key helpers ──────────────────────────────────────────
+  // All three keys are suffixed with the current user ID so that signing in
+  // as a different account never reads the previous user's cached history,
+  // clear-flag, or watermark timestamp.
+
+  String get _historyKey =>
+      _userId.isEmpty
+          ? StorageKeys.cachedListeningHistory
+          : '${StorageKeys.cachedListeningHistory}_$_userId';
+
+  String get _clearedLocallyKey =>
+      _userId.isEmpty
+          ? StorageKeys.historyClearedLocally
+          : '${StorageKeys.historyClearedLocally}_$_userId';
+
+  String get _clearedAtKey =>
+      _userId.isEmpty
+          ? StorageKeys.historyClearedAt
+          : '${StorageKeys.historyClearedAt}_$_userId';
+
   @override
   Future<ListeningHistoryState> build() async {
     _repository = ref.watch(playerRepositoryProvider);
     _getHistory = GetListeningHistoryUsecase(_repository);
+
+    // Scope every cache key to the signed-in user so account switches never
+    // bleed one user's history into another's.
+    _userId = (await const TokenStorage().getUser())?.id.trim() ?? '';
 
     // When the device comes back online, flush any queued playback events and
     // pull the latest history from the server so local and remote stay in sync.
@@ -467,13 +497,13 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     required bool wasClearedLocally,
   }) async {
     await _storage.write(
-      key: StorageKeys.cachedListeningHistory,
+      key: _historyKey,
       value: jsonEncode(tracks.map(_historyTrackToJson).toList()),
     );
 
     if (wasClearedLocally) {
       await _storage.write(
-        key: StorageKeys.historyClearedLocally,
+        key: _clearedLocallyKey,
         value: 'true',
       );
       // Watermark in lockstep with the flag so build()/refresh() can drop
@@ -481,20 +511,20 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       // backend's own clear request silently failed.
       if (_clearedAt != null) {
         await _storage.write(
-          key: StorageKeys.historyClearedAt,
+          key: _clearedAtKey,
           value: _clearedAt!.toIso8601String(),
         );
       }
     } else {
       // Resumed normal activity (e.g. a new trackPlayed) — drop both the
       // flag AND the watermark so future plays aren't filtered out.
-      await _storage.delete(key: StorageKeys.historyClearedLocally);
-      await _storage.delete(key: StorageKeys.historyClearedAt);
+      await _storage.delete(key: _clearedLocallyKey);
+      await _storage.delete(key: _clearedAtKey);
     }
   }
 
   Future<List<HistoryTrack>> _readCachedTracks() async {
-    final raw = await _storage.read(key: StorageKeys.cachedListeningHistory);
+    final raw = await _storage.read(key: _historyKey);
     if (raw == null || raw.isEmpty) {
       return const <HistoryTrack>[];
     }
@@ -506,18 +536,18 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
           .map(_historyTrackFromJson)
           .toList(growable: false);
     } catch (_) {
-      await _storage.delete(key: StorageKeys.cachedListeningHistory);
+      await _storage.delete(key: _historyKey);
       return const <HistoryTrack>[];
     }
   }
 
   Future<bool> _readClearedLocally() async {
-    final raw = await _storage.read(key: StorageKeys.historyClearedLocally);
+    final raw = await _storage.read(key: _clearedLocallyKey);
     return raw == 'true';
   }
 
   Future<DateTime?> _readClearedAt() async {
-    final raw = await _storage.read(key: StorageKeys.historyClearedAt);
+    final raw = await _storage.read(key: _clearedAtKey);
     if (raw == null || raw.isEmpty) return null;
     return DateTime.tryParse(raw);
   }

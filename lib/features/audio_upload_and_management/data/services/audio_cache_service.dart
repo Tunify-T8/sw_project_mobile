@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/cache/cache_directories.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../dto/upload_item_dto.dart';
 import '../services/global_track_store.dart';
 
@@ -27,6 +28,17 @@ class AudioCacheService {
   final GlobalTrackStore _store;
 
   static const _storage = FlutterSecureStorage();
+  static const _tokenStorage = TokenStorage();
+
+  /// Resolves the per-user uploads cache key at call time so it always matches
+  /// the currently signed-in user, even if the service was constructed before
+  /// the user was written to storage (e.g. right after a provider invalidation).
+  Future<String> _resolveUploadsKey() async {
+    final userId = (await _tokenStorage.getUser())?.id.trim() ?? '';
+    return userId.isEmpty
+        ? StorageKeys.cachedLibraryUploads
+        : '${StorageKeys.cachedLibraryUploads}_$userId';
+  }
 
   /// File extensions we check when we do not know the original audio format.
   static const List<String> _knownAudioExtensions = <String>[
@@ -292,7 +304,8 @@ class AudioCacheService {
     UploadItemDto Function(UploadItemDto) updater,
   ) async {
     try {
-      final raw = await _storage.read(key: StorageKeys.cachedLibraryUploads);
+      final key = await _resolveUploadsKey();
+      final raw = await _storage.read(key: key);
       if (raw == null || raw.isEmpty) return;
 
       final decoded = jsonDecode(raw) as List<dynamic>;
@@ -302,10 +315,7 @@ class AudioCacheService {
         return dto.id == trackId ? updater(dto).toJson() : e;
       }).toList();
 
-      await _storage.write(
-        key: StorageKeys.cachedLibraryUploads,
-        value: jsonEncode(updated),
-      );
+      await _storage.write(key: key, value: jsonEncode(updated));
     } catch (_) {
       // Cache metadata is an optimization. Do not fail audio caching because
       // secure-storage metadata failed.

@@ -22,6 +22,8 @@ import 'package:software_project/core/errors/failure.dart';
 import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 import 'package:software_project/features/auth/data/services/google_sign_in_service.dart';
+import 'package:software_project/features/audio_upload_and_management/data/services/global_track_store.dart';
+import 'package:software_project/features/audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/player_provider.dart';
 import 'auth_infrastructure_providers.dart';
@@ -313,9 +315,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     await _clearPlaybackBeforeAccountSwitch();
     await _logout();
     await _googleSignInService.signOut();
-    ref.invalidate(listeningHistoryProvider);
-    ref.invalidate(playerProvider);
-    ref.read(searchProvider.notifier).clearRecentResults();
+    _clearAccountScopedState();
     state = const AsyncData<AuthUserEntity?>(null);
   }
 
@@ -327,10 +327,24 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     await _clearPlaybackBeforeAccountSwitch();
     await _logoutAll();
     await _googleSignInService.signOut();
+    _clearAccountScopedState();
+    state = const AsyncData<AuthUserEntity?>(null);
+  }
+
+  /// Wipes all per-user in-memory and provider state so the next sign-in
+  /// starts with a clean slate. Called on every logout/account-switch path.
+  void _clearAccountScopedState() {
+    // Clear the in-memory track store so user B never sees user A's ownership
+    // info or cached uploads.
+    ref.read(globalTrackStoreProvider).clear();
+
+    // Invalidate providers that cache per-user data. Each will rebuild lazily
+    // the next time a widget watches them under the new identity.
+    ref.invalidate(libraryUploadsProvider);
     ref.invalidate(listeningHistoryProvider);
     ref.invalidate(playerProvider);
+
     ref.read(searchProvider.notifier).clearRecentResults();
-    state = const AsyncData<AuthUserEntity?>(null);
   }
 
   Future<void> _clearPlaybackBeforeAccountSwitch() async {
