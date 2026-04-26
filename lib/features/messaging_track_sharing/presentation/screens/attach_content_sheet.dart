@@ -59,8 +59,17 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.sizeOf(context).height * 0.65,
+    final size = MediaQuery.sizeOf(context);
+    final isDesktop = size.width >= 1024;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? 720 : double.infinity,
+        ),
+        child: Container(
+      height: isDesktop ? 620 : size.height * 0.65,
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A1A),
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -152,6 +161,8 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

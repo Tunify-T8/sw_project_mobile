@@ -28,6 +28,8 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final alignment = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final width = MediaQuery.sizeOf(context).width;
+    final maxBubbleWidth = width >= 1024 ? 540.0 : width * 0.74;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -35,9 +37,7 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment: alignment,
         children: [
           ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.74,
-            ),
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
             child: _Bubble(
               opacity: message.isPending ? 0.6 : 1.0,
               child: _BubbleContent(message: message),
