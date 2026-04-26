@@ -1,1 +1,0 @@
-enum SubscriptionPlan {free, artist, artistPro}
