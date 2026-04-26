@@ -18,12 +18,14 @@ class CreatePlaylistUseCase {
     required CollectionPrivacy privacy,
     String? description,
     File? cover,
+    String? coverUrl,
   }) => _repository.createCollection(
     title: title,
     type: type,
     privacy: privacy,
     description: description,
     cover: cover,
+    coverUrl: coverUrl,
   );
 }
 
@@ -39,12 +41,14 @@ class EditPlaylistUseCase {
     String? description,
     CollectionPrivacy? privacy,
     File? cover,
+    String? coverUrl,
   }) => _repository.updateCollection(
     id: id,
     title: title,
     description: description,
     privacy: privacy,
     cover: cover,
+    coverUrl: coverUrl,
   );
 }
 

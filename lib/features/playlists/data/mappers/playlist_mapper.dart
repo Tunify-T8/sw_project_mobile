@@ -27,6 +27,9 @@ class PlaylistMapper {
     coverUrl: d.coverUrl,
     trackCount: d.trackCount,
     likeCount: d.likeCount,
+    repostsCount: d.repostsCount,
+    ownerFollowerCount: d.ownerFollowerCount,
+    isLiked: d.isLiked,
     owner: d.owner != null ? _owner(d.owner!) : null,
     createdAt: DateTime.parse(d.createdAt),
     updatedAt: DateTime.parse(d.updatedAt),
@@ -37,6 +40,7 @@ class PlaylistMapper {
     username: d.username,
     displayName: d.displayName,
     avatarUrl: d.avatarUrl,
+    followerCount: d.followerCount,
   );
 
   // ─── Summary (list item) ──────────────────────────────────────────────────
@@ -51,6 +55,10 @@ class PlaylistMapper {
         coverUrl: d.coverUrl,
         trackCount: d.trackCount,
         likeCount: d.likeCount,
+        repostsCount: d.repostsCount,
+        ownerFollowerCount: d.ownerFollowerCount,
+        isMine: d.isMine,
+        isLiked: d.isLiked,
         createdAt: DateTime.parse(d.createdAt),
         updatedAt: DateTime.parse(d.updatedAt),
       );
@@ -66,6 +74,7 @@ class PlaylistMapper {
     coverUrl: d.coverUrl,
     genreId: d.genreId,
     isPublic: d.isPublic,
+    playCount: d.playCount,
     ownerId: d.ownerId,
     ownerUsername: d.ownerUsername,
     ownerDisplayName: d.ownerDisplayName,

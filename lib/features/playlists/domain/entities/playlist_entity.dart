@@ -2,10 +2,11 @@ import 'collection_type.dart';
 import 'collection_privacy.dart';
 import 'playlist_owner_entity.dart';
 
-/// Represents a fully loaded Collection (Playlist or Album) from the backend.
-///
-/// Used in detail screens, create/edit flows, and the playlist notifier.
-/// For lightweight list views, [PlaylistSummaryEntity] is preferred.
+/// Represents a fully loaded Collection returned by:
+///   GET /collections/:id
+///   GET /collections/token/:token
+///   POST /collections (201)
+///   PUT  /collections/:id (200)
 class PlaylistEntity {
   final String id;
   final String title;
@@ -14,12 +15,21 @@ class PlaylistEntity {
   final CollectionPrivacy privacy;
 
   /// Only present when [privacy] is [CollectionPrivacy.private].
-  /// Share this token to let non-owners access the collection.
   final String? secretToken;
 
   final String? coverUrl;
   final int trackCount;
   final int likeCount;
+
+  /// Number of times this collection has been reposted.
+  final int repostsCount;
+
+  /// Follower count of the collection's owner at response time.
+  final int ownerFollowerCount;
+
+  /// True when the authenticated user has liked this collection.
+  final bool isLiked;
+
   final PlaylistOwnerEntity? owner;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -34,6 +44,9 @@ class PlaylistEntity {
     this.coverUrl,
     required this.trackCount,
     required this.likeCount,
+    required this.repostsCount,
+    required this.ownerFollowerCount,
+    required this.isLiked,
     this.owner,
     required this.createdAt,
     required this.updatedAt,
@@ -49,6 +62,9 @@ class PlaylistEntity {
     String? coverUrl,
     int? trackCount,
     int? likeCount,
+    int? repostsCount,
+    int? ownerFollowerCount,
+    bool? isLiked,
     PlaylistOwnerEntity? owner,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -63,6 +79,9 @@ class PlaylistEntity {
       coverUrl: coverUrl ?? this.coverUrl,
       trackCount: trackCount ?? this.trackCount,
       likeCount: likeCount ?? this.likeCount,
+      repostsCount: repostsCount ?? this.repostsCount,
+      ownerFollowerCount: ownerFollowerCount ?? this.ownerFollowerCount,
+      isLiked: isLiked ?? this.isLiked,
       owner: owner ?? this.owner,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

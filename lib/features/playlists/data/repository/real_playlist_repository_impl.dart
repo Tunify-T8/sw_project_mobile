@@ -20,6 +20,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
     required CollectionPrivacy privacy,
     String? description,
     File? cover,
+    String? coverUrl,
   }) async {
     final dto = await _api.createCollection(
       title: title,
@@ -27,6 +28,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
       privacy: privacy,
       description: description,
       cover: cover,
+      coverUrl: coverUrl,
     );
     return PlaylistMapper.playlist(dto);
   }
@@ -64,6 +66,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
     String? description,
     CollectionPrivacy? privacy,
     File? cover,
+    String? coverUrl,
   }) async {
     final dto = await _api.updateCollection(
       id: id,
@@ -71,6 +74,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
       description: description,
       privacy: privacy,
       cover: cover,
+      coverUrl: coverUrl,
     );
     return PlaylistMapper.playlist(dto);
   }

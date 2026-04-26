@@ -6,10 +6,14 @@ class PlaylistOwnerEntity {
   final String? displayName;
   final String? avatarUrl;
 
+  /// Follower count of the owner at response time.
+  final int followerCount;
+
   const PlaylistOwnerEntity({
     required this.id,
     required this.username,
     this.displayName,
     this.avatarUrl,
+    required this.followerCount,
   });
 }

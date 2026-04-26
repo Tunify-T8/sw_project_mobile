@@ -14,6 +14,9 @@ class PlaylistTrackEntity {
   final String? genreId;
   final bool isPublic;
 
+  /// Total play count for this track.
+  final int playCount;
+
   // Owner of the track (not the playlist owner).
   final String ownerId;
   final String ownerUsername;
@@ -29,6 +32,7 @@ class PlaylistTrackEntity {
     this.coverUrl,
     this.genreId,
     required this.isPublic,
+    required this.playCount,
     required this.ownerId,
     required this.ownerUsername,
     this.ownerDisplayName,

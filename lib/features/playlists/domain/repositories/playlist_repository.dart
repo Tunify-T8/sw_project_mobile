@@ -4,6 +4,7 @@ import '../entities/collection_type.dart';
 import '../entities/collection_privacy.dart';
 import '../entities/paginated_playlists.dart';
 import '../entities/playlist_entity.dart';
+import '../entities/playlist_summary_entity.dart';
 
 /// Contract between domain use-cases and the data layer.
 /// Implemented by [MockPlaylistRepositoryImpl] and [RealPlaylistRepositoryImpl].
@@ -17,6 +18,7 @@ abstract class PlaylistRepository {
     required CollectionPrivacy privacy,
     String? description,
     File? cover,
+    String? coverUrl,
   });
 
   /// Returns all collections owned by the authenticated user.
@@ -40,6 +42,7 @@ abstract class PlaylistRepository {
     String? description,
     CollectionPrivacy? privacy,
     File? cover,
+    String? coverUrl,
   });
 
   /// Permanently deletes a collection.

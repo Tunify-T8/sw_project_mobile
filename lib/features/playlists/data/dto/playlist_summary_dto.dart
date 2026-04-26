@@ -10,6 +10,15 @@ class PlaylistSummaryDto {
   final String? coverUrl;
   final int trackCount;
   final int likeCount;
+  final int repostsCount;
+  final int ownerFollowerCount;
+
+  /// Only present in GET /collections/me — true if the current user owns it.
+  final bool isMine;
+
+  /// Only present in GET /collections/me — true if the current user liked it.
+  final bool isLiked;
+
   final String createdAt;
   final String updatedAt;
 
@@ -22,6 +31,10 @@ class PlaylistSummaryDto {
     this.coverUrl,
     required this.trackCount,
     required this.likeCount,
+    required this.repostsCount,
+    required this.ownerFollowerCount,
+    required this.isMine,
+    required this.isLiked,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +49,11 @@ class PlaylistSummaryDto {
         coverUrl: json['coverUrl'] as String?,
         trackCount: (json['trackCount'] as num?)?.toInt() ?? 0,
         likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
+        repostsCount: (json['repostsCount'] as num?)?.toInt() ?? 0,
+        ownerFollowerCount: (json['ownerFollowerCount'] as num?)?.toInt() ?? 0,
+        // Default false — field absent in non-/me endpoints.
+        isMine: json['isMine'] as bool? ?? false,
+        isLiked: json['isLiked'] as bool? ?? false,
         createdAt: json['createdAt'] as String,
         updatedAt: json['updatedAt'] as String,
       );

@@ -13,6 +13,9 @@ class PlaylistDto {
   final String? coverUrl;
   final int trackCount;
   final int likeCount;
+  final int repostsCount;
+  final int ownerFollowerCount;
+  final bool isLiked;
   final PlaylistOwnerDto? owner;
   final String createdAt;
   final String updatedAt;
@@ -27,6 +30,9 @@ class PlaylistDto {
     this.coverUrl,
     required this.trackCount,
     required this.likeCount,
+    required this.repostsCount,
+    required this.ownerFollowerCount,
+    required this.isLiked,
     this.owner,
     required this.createdAt,
     required this.updatedAt,
@@ -42,6 +48,9 @@ class PlaylistDto {
     coverUrl: json['coverUrl'] as String?,
     trackCount: (json['trackCount'] as num?)?.toInt() ?? 0,
     likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
+    repostsCount: (json['repostsCount'] as num?)?.toInt() ?? 0,
+    ownerFollowerCount: (json['ownerFollowerCount'] as num?)?.toInt() ?? 0,
+    isLiked: json['isLiked'] as bool? ?? false,
     owner: json['owner'] != null
         ? PlaylistOwnerDto.fromJson(json['owner'] as Map<String, dynamic>)
         : null,
@@ -56,12 +65,14 @@ class PlaylistOwnerDto {
   final String username;
   final String? displayName;
   final String? avatarUrl;
+  final int followerCount;
 
   const PlaylistOwnerDto({
     required this.id,
     required this.username,
     this.displayName,
     this.avatarUrl,
+    required this.followerCount,
   });
 
   factory PlaylistOwnerDto.fromJson(Map<String, dynamic> json) =>
@@ -70,5 +81,6 @@ class PlaylistOwnerDto {
         username: json['username'] as String,
         displayName: json['displayName'] as String?,
         avatarUrl: json['avatarUrl'] as String?,
+        followerCount: (json['followerCount'] as num?)?.toInt() ?? 0,
       );
 }

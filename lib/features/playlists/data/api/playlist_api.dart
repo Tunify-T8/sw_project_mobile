@@ -12,9 +12,11 @@ import '../dto/playlist_track_dto.dart';
 
 /// All 17 Module-7 endpoints wired to Dio.
 ///
-/// All path strings come from [ApiEndpoints] — no URLs are hardcoded here.
-/// Uses multipart/form-data for create and update (required by the API even
-/// when no file is uploaded).
+/// Cover image strategy (both create and update):
+///   - [cover] File  → multipart/form-data with 'cover' field (takes precedence)
+///   - [coverUrl] String → JSON payload with 'coverUrl' field
+///   - Both provided  → file wins; coverUrl is ignored
+///   - Neither        → no cover sent
 class PlaylistApi {
   PlaylistApi(this._dio);
   final Dio _dio;
@@ -27,18 +29,31 @@ class PlaylistApi {
     required CollectionPrivacy privacy,
     String? description,
     File? cover,
+    String? coverUrl,
   }) async {
-    final form = FormData.fromMap({
-      'title': title,
-      'type': type.toJson(),
-      'privacy': privacy.toJson(),
-      if (description != null) 'description': description,
-      if (cover != null) 'cover': await MultipartFile.fromFile(cover.path),
-    });
-    final res = await _dio.post<Map<String, dynamic>>(
-      ApiEndpoints.collections,
-      data: form,
-    );
+    final res = cover != null
+        // File upload path — multipart/form-data.
+        ? await _dio.post<Map<String, dynamic>>(
+            ApiEndpoints.collections,
+            data: FormData.fromMap({
+              'title': title,
+              'type': type.toJson(),
+              'privacy': privacy.toJson(),
+              if (description != null) 'description': description,
+              'cover': await MultipartFile.fromFile(cover.path),
+            }),
+          )
+        // JSON path — coverUrl or no cover.
+        : await _dio.post<Map<String, dynamic>>(
+            ApiEndpoints.collections,
+            data: {
+              'title': title,
+              'type': type.toJson(),
+              'privacy': privacy.toJson(),
+              if (description != null) 'description': description,
+              if (coverUrl != null) 'coverUrl': coverUrl,
+            },
+          );
     return PlaylistDto.fromJson(res.data!);
   }
 
@@ -86,17 +101,29 @@ class PlaylistApi {
     String? description,
     CollectionPrivacy? privacy,
     File? cover,
+    String? coverUrl,
   }) async {
-    final form = FormData.fromMap({
-      if (title != null) 'title': title,
-      if (description != null) 'description': description,
-      if (privacy != null) 'privacy': privacy.toJson(),
-      if (cover != null) 'cover': await MultipartFile.fromFile(cover.path),
-    });
-    final res = await _dio.put<Map<String, dynamic>>(
-      ApiEndpoints.collectionById(id),
-      data: form,
-    );
+    final res = cover != null
+        // File upload path — multipart/form-data.
+        ? await _dio.put<Map<String, dynamic>>(
+            ApiEndpoints.collectionById(id),
+            data: FormData.fromMap({
+              if (title != null) 'title': title,
+              if (description != null) 'description': description,
+              if (privacy != null) 'privacy': privacy.toJson(),
+              'cover': await MultipartFile.fromFile(cover.path),
+            }),
+          )
+        // JSON path — coverUrl or no cover.
+        : await _dio.put<Map<String, dynamic>>(
+            ApiEndpoints.collectionById(id),
+            data: {
+              if (title != null) 'title': title,
+              if (description != null) 'description': description,
+              if (privacy != null) 'privacy': privacy.toJson(),
+              if (coverUrl != null) 'coverUrl': coverUrl,
+            },
+          );
     return PlaylistDto.fromJson(res.data!);
   }
 

@@ -11,6 +11,9 @@ import 'playlist_providers.dart';
 import 'playlist_state.dart';
 
 /// Drives all playlist / collection UI through a single [PlaylistState].
+///
+/// Uses Riverpod 2.x [Notifier] — dependencies are resolved via [ref] in
+/// [build], matching the pattern used throughout this project.
 class PlaylistNotifier extends Notifier<PlaylistState> {
   late final CreatePlaylistUseCase _createPlaylist;
   late final EditPlaylistUseCase _editPlaylist;
@@ -109,6 +112,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     required CollectionPrivacy privacy,
     String? description,
     File? cover,
+    String? coverUrl,
   }) async {
     state = state.copyWith(isMutating: true, clearMutationError: true);
     try {
@@ -118,6 +122,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         privacy: privacy,
         description: description,
         cover: cover,
+        coverUrl: coverUrl,
       );
       state = state.copyWith(
         isMutating: false,
@@ -136,6 +141,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     String? description,
     CollectionPrivacy? privacy,
     File? cover,
+    String? coverUrl,
   }) async {
     state = state.copyWith(isMutating: true, clearMutationError: true);
     try {
@@ -145,6 +151,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         description: description,
         privacy: privacy,
         cover: cover,
+        coverUrl: coverUrl,
       );
       final refreshedActive = state.activePlaylist?.id == id
           ? updated
@@ -243,6 +250,10 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     coverUrl: e.coverUrl,
     trackCount: e.trackCount,
     likeCount: e.likeCount,
+    repostsCount: e.repostsCount,
+    ownerFollowerCount: e.ownerFollowerCount,
+    isMine: true, // created by current user
+    isLiked: e.isLiked,
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
   );

@@ -13,6 +13,7 @@ class PlaylistTrackDto {
   final String? coverUrl;
   final String? genreId;
   final bool isPublic;
+  final int playCount;
 
   // Flattened from json['track']['user']
   final String ownerId;
@@ -29,6 +30,7 @@ class PlaylistTrackDto {
     this.coverUrl,
     this.genreId,
     required this.isPublic,
+    required this.playCount,
     required this.ownerId,
     required this.ownerUsername,
     this.ownerDisplayName,
@@ -47,6 +49,7 @@ class PlaylistTrackDto {
       coverUrl: track['coverUrl'] as String?,
       genreId: track['genreId'] as String?,
       isPublic: track['isPublic'] as bool,
+      playCount: (track['playCount'] as num?)?.toInt() ?? 0,
       ownerId: user['id'] as String,
       ownerUsername: user['username'] as String,
       ownerDisplayName: user['displayName'] as String?,
