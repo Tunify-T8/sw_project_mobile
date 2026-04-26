@@ -151,6 +151,12 @@ class ApiEndpoints {
   static const String searchTracks = '/search/tracks';
   static const String searchCollections = '/search/collections';
   static const String searchPeople = '/search/people';
+
+  //Premuim
+  static const String getSubscriptionPlans = '/subscription/plans';
+  static const String getCurrentSubscription = '/subscription/me';
+  static const String subscribe = '/subscription/subscribe';
+  static const String cancelSubscription = '/subscription/cancel';
 }
 
 //profile

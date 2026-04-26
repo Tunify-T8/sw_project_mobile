@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:software_project/features/premium_subscription/presentation/widgets/subscription_restriction_menu.dart';
-import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_tier.dart';
 import 'subscription_plans_screen.dart';
 
 class UpgradeScreen extends StatelessWidget {
@@ -166,7 +166,7 @@ class UpgradeScreen extends StatelessWidget {
                             constraints: BoxConstraints(maxHeight: 250),
                             showDragHandle: true,
                             builder: (_) => SubscriptionRestrictionMenu(
-                              subscriptionPlan: SubscriptionPlan.artistPro,
+                              subscriptionPlan: SubscriptionTier.artistPro,
                             ),
                           );
                         },
