@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/router.dart';
+import '../../../../core/design_system/colors.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/screens/queue_screen.dart';
 import '../providers/track_detail_item_provider.dart';
@@ -71,9 +73,15 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final activePlayer = playerState;
     final isCurrentTrack = activePlayer?.bundle?.trackId == resolvedItem.id;
     final isPlaying = isCurrentTrack && activePlayer?.isPlaying == true;
-    final activeDurationSeconds = isCurrentTrack
-        ? (activePlayer?.visualDurationSeconds ?? resolvedItem.durationSeconds)
-        : resolvedItem.durationSeconds;
+    final isBuffering = isCurrentTrack && (activePlayer?.isBuffering ?? false);
+    final currentUser = ref.watch(authControllerProvider).asData?.value;
+    final showFollowAction = !_isOwnTrack(
+      resolvedItem,
+      activePlayer,
+      store,
+      currentUserId: currentUser?.id,
+      currentUsername: currentUser?.username,
+    );
     final progress = isCurrentTrack
         ? (activePlayer?.normalizedProgress ?? 0.0)
         : 0.0;
@@ -116,6 +124,7 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
                 ),
               );
             },
+            showFollowAction: showFollowAction,
           ),
           TrackDetailWaveformPanel(
             item: resolvedItem,
@@ -154,8 +163,30 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
               _allowPlayerTrackSwitchSync = true;
               await ref.read(playerProvider.notifier).next();
             },
-            onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
+            onSeekFraction: (fraction) =>
+                _seekToFraction(resolvedItem, fraction),
           ),
+          if (isBuffering)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2.8,
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -173,6 +204,47 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     }
 
     return uploadItemFromPlayerState(playerState, store);
+  }
+
+  bool _isOwnTrack(
+    UploadItem item,
+    PlayerState? playerState,
+    GlobalTrackStore store, {
+    required String? currentUserId,
+    required String? currentUsername,
+  }) {
+    final trimmedCurrentUserId = currentUserId?.trim();
+    final normalizedCurrentUsername = currentUsername?.trim().toLowerCase();
+    if (trimmedCurrentUserId == null || trimmedCurrentUserId.isEmpty) {
+      return false;
+    }
+
+    final bundle = playerState?.bundle;
+    if (bundle != null && bundle.trackId == item.id) {
+      final bundleArtistId = bundle.artist.id.trim();
+      if (bundleArtistId.isNotEmpty && bundleArtistId == trimmedCurrentUserId) {
+        return true;
+      }
+
+      final bundleUsername = bundle.artist.username?.trim().toLowerCase();
+      if (normalizedCurrentUsername != null &&
+          normalizedCurrentUsername.isNotEmpty &&
+          bundleUsername != null &&
+          bundleUsername.isNotEmpty &&
+          bundleUsername == normalizedCurrentUsername) {
+        return true;
+      }
+    }
+
+    final storeOwner = store.ownerUserIdForTrack(item.id)?.trim();
+    if (storeOwner != null &&
+        storeOwner.isNotEmpty &&
+        storeOwner != '__global__' &&
+        storeOwner == trimmedCurrentUserId) {
+      return true;
+    }
+
+    return false;
   }
 
   Future<void> _seekToFraction(UploadItem item, double fraction) async {

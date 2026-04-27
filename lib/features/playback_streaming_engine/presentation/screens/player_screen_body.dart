@@ -193,6 +193,7 @@ class _PlayerBody extends ConsumerWidget {
               ],
             ),
           ),
+          if (playerState.isBuffering) const _BufferingOverlay(),
           if (showMore) _MoreSheet(bundle: bundle, onClose: onToggleMore),
         ],
       ),

@@ -8,7 +8,8 @@ import '../../../audio_upload_and_management/data/services/global_track_store.da
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../audio_upload_and_management/presentation/utils/playback_surface_item_mapper.dart';
-//import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
+import '../../../audio_upload_and_management/presentation/providers/track_detail_item_provider.dart';
+import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_queue.dart';
 import '../../domain/entities/playback_status.dart';

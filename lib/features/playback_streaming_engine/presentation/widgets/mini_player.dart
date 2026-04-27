@@ -22,6 +22,7 @@ class MiniPlayer extends ConsumerWidget {
 
     final bundle = playerState.bundle!;
     final progress = playerState.normalizedProgress;
+    final isBuffering = playerState.isBuffering;
 
     return Padding(
       // Smaller outer padding for a more compact footprint.
@@ -62,7 +63,9 @@ class MiniPlayer extends ConsumerWidget {
               _RingPlayButton(
                 progress: progress,
                 isPlaying: playerState.isPlaying,
+                isBuffering: isBuffering,
                 onTap: () async {
+                  if (isBuffering) return;
                   if (playerState.isPlaying) {
                     await ref.read(playerProvider.notifier).pause();
                   } else {

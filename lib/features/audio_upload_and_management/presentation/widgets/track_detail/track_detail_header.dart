@@ -9,12 +9,14 @@ class TrackDetailHeader extends StatelessWidget {
     required this.onDismiss,
     required this.onArtistTap,
     required this.onTrackInfoTap,
+    required this.showFollowAction,
   });
 
   final UploadItem item;
   final VoidCallback onDismiss;
   final VoidCallback onArtistTap;
   final VoidCallback onTrackInfoTap;
+  final bool showFollowAction;
 
   @override
   Widget build(BuildContext context) {
@@ -82,8 +84,10 @@ class TrackDetailHeader extends StatelessWidget {
                   onTap: onDismiss,
                 ),
                 const SizedBox(height: 28),
-                const _SideIcon(icon: Icons.person_add_alt_1_outlined),
-                const SizedBox(height: 28),
+                if (showFollowAction) ...[
+                  const _SideIcon(icon: Icons.person_add_alt_1_outlined),
+                  const SizedBox(height: 28),
+                ],
                 const _SideIcon(icon: Icons.devices_outlined),
               ],
             ),

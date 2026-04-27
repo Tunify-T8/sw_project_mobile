@@ -39,7 +39,14 @@ extension TrackPlaybackBundleDtoMapper on TrackPlaybackBundleDto {
 
 extension TrackArtistSummaryDtoMapper on TrackArtistSummaryDto {
   TrackArtistSummary toEntity() {
-    return TrackArtistSummary(id: id, name: name, tier: tier);
+    return TrackArtistSummary(
+      id: id,
+      name: name,
+      tier: tier,
+      username: username,
+      displayName: displayName,
+      avatarUrl: avatarUrl,
+    );
   }
 }
 

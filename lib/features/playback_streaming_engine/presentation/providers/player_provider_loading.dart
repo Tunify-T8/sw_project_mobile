@@ -22,12 +22,18 @@ extension PlayerNotifierLoading on PlayerNotifier {
       final previous = _current;
 
       _progressReportTimer?.cancel();
-      try {
-        await _audioPlayer.stop();
-      } on just_audio.PlayerInterruptedException {
-        debugPrint('[M5 Player] stop ignored because loading was interrupted');
-      } catch (error) {
-        debugPrint('[M5 Player] stop failed safely: $error');
+      // Only stop the player when it actually has a source loaded.
+      // Calling stop() on a brand-new AudioPlayer (e.g. after a provider
+      // invalidation on sign-out/sign-in) can leave it in a state where a
+      // subsequent setAudioSource + play() produces no audio.
+      if (_loadedTrackId != null) {
+        try {
+          await _audioPlayer.stop();
+        } on just_audio.PlayerInterruptedException {
+          debugPrint('[M5 Player] stop ignored because loading was interrupted');
+        } catch (error) {
+          debugPrint('[M5 Player] stop failed safely: $error');
+        }
       }
 
       _loadedTrackId = null;

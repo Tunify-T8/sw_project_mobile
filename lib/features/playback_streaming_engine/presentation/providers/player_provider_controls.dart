@@ -269,6 +269,9 @@ extension PlayerNotifierControls on PlayerNotifier {
     _progressReportTimer?.cancel();
     _pendingHistoryTrackId = null;
     _completedTrackIds.clear();
+    // Reset load-lock so new tracks can be loaded immediately after sign-in.
+    _isLoadingTrack = false;
+    _isTransportBusy = false;
 
     try {
       await _audioPlayer.stop();

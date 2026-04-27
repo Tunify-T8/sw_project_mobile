@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/main_shell_screen.dart';
+import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 
 /// Bottom area shown on messaging screens — replicates the main shell layout:
@@ -19,6 +20,25 @@ class MessagingBottomShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AdaptiveBreakpoints.isExpanded(context)) {
+      return DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(0x1AFFFFFF))),
+          color: Color(0xFF090909),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ?above,
+              const MiniPlayer(),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: Color(0x1AFFFFFF))),

@@ -8,8 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
 // Post-delete cleanup imports: after a track is deleted we stop playback if
 // it's the currently playing track and scrub it from listening history.
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../data/dto/upload_item_dto.dart';
@@ -236,6 +238,21 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     visibility: visibility ?? state.visibilityFilter,
   );
 
+  /// Returns the storage key for the current user's uploads cache.
+  ///
+  /// Scoped per user so signing in as a different account never loads the
+  /// previous user's upload list from disk. Falls back to the bare key for
+  /// unauthenticated reads (should not normally occur, but safe to handle).
+  Future<String> _uploadsKey() async {
+    final userId =
+        ref.read(authControllerProvider).asData?.value?.id.trim() ??
+        (await const TokenStorage().getUser())?.id.trim() ??
+        '';
+    return userId.isEmpty
+        ? StorageKeys.cachedLibraryUploads
+        : '${StorageKeys.cachedLibraryUploads}_$userId';
+  }
+
   Future<void> _persistCachedUploads(List<UploadItem> uploads) async {
     final payload = uploads
         .map(
@@ -282,13 +299,14 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
         .toList(growable: false);
 
     await _storage.write(
-      key: StorageKeys.cachedLibraryUploads,
+      key: await _uploadsKey(),
       value: jsonEncode(payload),
     );
   }
 
   Future<List<UploadItem>> _readCachedUploads() async {
-    final raw = await _storage.read(key: StorageKeys.cachedLibraryUploads);
+    final key = await _uploadsKey();
+    final raw = await _storage.read(key: key);
     if (raw == null || raw.isEmpty) {
       return const <UploadItem>[];
     }
@@ -301,15 +319,22 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
           .map(_uploadItemFromDto)
           .toList(growable: false);
     } catch (_) {
-      await _storage.delete(key: StorageKeys.cachedLibraryUploads);
+      await _storage.delete(key: key);
       return const <UploadItem>[];
     }
   }
 
   void _syncGlobalTrackStore(List<UploadItem> uploads) {
     final store = ref.read(globalTrackStoreProvider);
+    final currentUserId =
+        ref.read(authControllerProvider).asData?.value?.id.trim();
     for (final item in uploads) {
-      store.update(item);
+      store.update(
+        item,
+        ownerUserId: currentUserId == null || currentUserId.isEmpty
+            ? null
+            : currentUserId,
+      );
     }
   }
 
