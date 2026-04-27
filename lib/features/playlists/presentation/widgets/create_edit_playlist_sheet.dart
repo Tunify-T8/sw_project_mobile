@@ -6,11 +6,11 @@ import '../../domain/entities/collection_type.dart';
 import '../providers/playlist_providers.dart';
 import 'playlist_form_fields.dart';
 
-void showCreatePlaylistSheet({
+Future<void> showCreatePlaylistSheet({
   required BuildContext context,
   required WidgetRef ref,
 }) {
-  showModalBottomSheet(
+  return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,

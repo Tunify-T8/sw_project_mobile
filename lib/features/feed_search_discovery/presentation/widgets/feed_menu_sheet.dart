@@ -8,6 +8,7 @@ import '../providers/feed_view_provider.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../../../core/utils/navigation_utils.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../playlists/presentation/widgets/select_playlist_sheet.dart';
 
 class FeedMenuSheet extends ConsumerWidget {
   // engagement modification — was StatelessWidget, converted to ConsumerWidget
@@ -65,7 +66,14 @@ class FeedMenuSheet extends ConsumerWidget {
       _createMenuItem(
         icon: Icons.playlist_add,
         label: 'Add to playlist',
-        onTap: () {},
+        onTap: () {
+          Navigator.pop(context);
+          showSelectPlaylistSheet(
+            context: context,
+            ref: ref,
+            trackId: track.trackId,
+          );
+        },
       ),
     ];
   }
