@@ -335,9 +335,10 @@ class AppRouter {
 
       case Routes.playlistDetail:
         final id = args['playlistId'] as String? ?? '';
+        final isMine = args['isMine'] as bool? ?? true;
         return _slide(
           AuthProtectedScreen(
-            child: PlaylistDetailScreen(playlistId: id),
+            child: PlaylistDetailScreen(playlistId: id, isMine: isMine),
           ),
           settings,
         );

@@ -124,6 +124,14 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
   Future<String> getEmbedCode(String id) => _api.getEmbedCode(id);
 
   @override
+  Future<String> getShareUrl(String id) async =>
+      (await _api.getShareUrl(id)).shareUrl;
+
+  @override
+  Future<String> resetShareToken(String id) async =>
+      (await _api.resetShareToken(id)).shareUrl;
+
+  @override
   Future<PaginatedPlaylists> getUserCollections({
     required String username,
     int page = 1,

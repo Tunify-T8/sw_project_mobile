@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/playlist_entity.dart';
-import '../../domain/usecases/playlist_helpers.dart';
+import '../providers/playlist_providers.dart';
 
-class SecretTokenSection extends StatelessWidget {
+class SecretTokenSection extends ConsumerWidget {
   const SecretTokenSection({super.key, required this.playlist});
 
   final PlaylistEntity playlist;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final token = playlist.secretToken;
     if (playlist.privacy != CollectionPrivacy.private || token == null) {
       return const SizedBox.shrink();
     }
-
-    final url = buildSecretTokenShareUrl(
-      secretToken: token,
-      baseUrl: ApiEndpoints.baseUrl,
-    );
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -54,53 +49,84 @@ class SecretTokenSection extends StatelessWidget {
             style: TextStyle(color: Colors.white38, fontSize: 12),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  url,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: url));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      backgroundColor: Color(0xFF1C1C1E),
-                      content: Text(
-                        'Secret link copied',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      duration: Duration(seconds: 2),
-                    ),
+          FutureBuilder<String>(
+            future: ref.read(playlistRepositoryProvider).getShareUrl(playlist.id),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                if (snapshot.hasError) {
+                  return const Text(
+                    'Could not load secret link.',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
                   );
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Copy',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                }
+                return const SizedBox(
+                  height: 18,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white54,
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                );
+              }
+
+              final url = snapshot.data!;
+              return Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      url,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: url));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          backgroundColor: Color(0xFF1C1C1E),
+                          content: Text(
+                            'Secret link copied',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Copy',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

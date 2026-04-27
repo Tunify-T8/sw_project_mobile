@@ -19,16 +19,17 @@ class PaginatedDto<T> {
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) fromJsonItem,
   ) {
-    final data = (json['data'] as List<dynamic>)
-        .cast<Map<String, dynamic>>()
+    final raw = json['data'] as List<dynamic>? ?? [];
+    final data = raw
+        .whereType<Map<String, dynamic>>()
         .map(fromJsonItem)
         .toList();
     return PaginatedDto(
       items: data,
-      total: (json['total'] as num).toInt(),
-      page: (json['page'] as num).toInt(),
-      limit: (json['limit'] as num).toInt(),
-      hasMore: json['hasMore'] as bool,
+      total: (json['total'] as num?)?.toInt() ?? data.length,
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      limit: (json['limit'] as num?)?.toInt() ?? data.length,
+      hasMore: json['hasMore'] as bool? ?? false,
     );
   }
 }
