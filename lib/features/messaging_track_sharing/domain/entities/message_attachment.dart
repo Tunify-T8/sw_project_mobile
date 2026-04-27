@@ -23,7 +23,7 @@ extension MessageAttachmentBackendKindX on MessageAttachmentBackendKind {
       case MessageAttachmentBackendKind.trackLike:
         return 'TRACK_LIKE';
       case MessageAttachmentBackendKind.trackUpload:
-        return 'UPLOAD';
+        return 'TRACK_UPLOAD';
       case MessageAttachmentBackendKind.playlist:
         return 'PLAYLIST';
       case MessageAttachmentBackendKind.album:
