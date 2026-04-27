@@ -10,7 +10,9 @@ import '../providers/playlist_providers.dart';
 import '../widgets/add_track_sheet.dart';
 import '../widgets/create_edit_playlist_sheet.dart';
 import '../widgets/playlist_options_sheet.dart';
+import '../widgets/playlist_share_sheet.dart';
 import '../widgets/playlist_tile.dart';
+
 
 class PlaylistsScreen extends ConsumerStatefulWidget {
   const PlaylistsScreen({super.key});
@@ -90,7 +92,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add, color: Colors.white),
-                  onPressed: () => showCreateEditPlaylistSheet(
+                  onPressed: () => showCreatePlaylistSheet(
                     context: context,
                     ref: ref,
                   ),
@@ -142,7 +144,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                       child: _ActionButton(
                         icon: Icons.add,
                         label: 'Create new',
-                        onTap: () => showCreateEditPlaylistSheet(
+                        onTap: () => showCreatePlaylistSheet(
                           context: context,
                           ref: ref,
                         ),
@@ -227,10 +229,13 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     onMoreTap: () => showPlaylistOptionsSheet(
                       context: context,
                       playlist: pl,
-                      onEdit: () => showCreateEditPlaylistSheet(
+                      onShare: () => showPlaylistShareSheet(
                         context: context,
-                        ref: ref,
-                        existing: pl,
+                        playlist: pl,
+                      ),
+                      onEdit: () => Navigator.of(context).pushNamed(
+                        Routes.playlistEdit,
+                        arguments: {'collectionId': pl.id},
                       ),
                       onTogglePrivacy: () {
                         final newPrivacy =
@@ -264,8 +269,6 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     );
   }
 }
-
-// ─── Action button (Import / Create new) ────────────────────────────────────
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({

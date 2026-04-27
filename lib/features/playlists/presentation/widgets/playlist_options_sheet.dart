@@ -2,13 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
-import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 
 void showPlaylistOptionsSheet({
   required BuildContext context,
@@ -17,8 +13,8 @@ void showPlaylistOptionsSheet({
   required VoidCallback onTogglePrivacy,
   required VoidCallback onAddMusic,
   required VoidCallback onDelete,
-  // Extra rows shown only when opened from the detail screen
   bool isDetailView = false,
+  VoidCallback? onShare,
   VoidCallback? onCopyPlaylist,
   VoidCallback? onShufflePlay,
 }) {
@@ -33,6 +29,7 @@ void showPlaylistOptionsSheet({
       onAddMusic: onAddMusic,
       onDelete: onDelete,
       isDetailView: isDetailView,
+      onShare: onShare,
       onCopyPlaylist: onCopyPlaylist,
       onShufflePlay: onShufflePlay,
     ),
@@ -47,6 +44,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
     required this.onAddMusic,
     required this.onDelete,
     this.isDetailView = false,
+    this.onShare,
     this.onCopyPlaylist,
     this.onShufflePlay,
   });
@@ -57,6 +55,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
   final VoidCallback onAddMusic;
   final VoidCallback onDelete;
   final bool isDetailView;
+  final VoidCallback? onShare;
   final VoidCallback? onCopyPlaylist;
   final VoidCallback? onShufflePlay;
 
@@ -75,8 +74,15 @@ class _PlaylistOptionsSheet extends StatelessWidget {
           const SizedBox(height: 8),
           _DragHandle(),
           _Header(playlist: playlist),
-          _ShareRow(playlist: playlist),
           const Divider(color: Colors.white12, height: 1),
+          _OptionRow(
+            icon: Icons.share_outlined,
+            label: 'Share',
+            onTap: () {
+              Navigator.pop(context);
+              onShare?.call();
+            },
+          ),
           _OptionRow(
             icon: Icons.edit_outlined,
             label: 'Edit',
@@ -182,8 +188,6 @@ class _PlaylistOptionsSheet extends StatelessWidget {
   }
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
 class _Header extends StatelessWidget {
   const _Header({required this.playlist});
   final PlaylistSummaryEntity playlist;
@@ -260,135 +264,6 @@ class _CoverArt extends StatelessWidget {
   }
 }
 
-// ─── Share row ────────────────────────────────────────────────────────────────
-
-class _ShareRow extends StatelessWidget {
-  const _ShareRow({required this.playlist});
-  final PlaylistSummaryEntity playlist;
-
-  String get _shareUrl =>
-      '${ApiEndpoints.shareBaseUrl}/playlists/${playlist.id}';
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 88,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          YourUploadsShareButton(
-            icon: Icons.send_outlined,
-            label: 'Message',
-            onTap: () async {
-              final text = Uri.encodeComponent(
-                  'Check out "${playlist.title}" on Tunify: $_shareUrl');
-              await launchUrl(Uri.parse('sms:?body=$text'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
-          YourUploadsShareButton(
-            icon: Icons.copy_outlined,
-            label: 'Copy link',
-            onTap: () => _copyLink(context),
-          ),
-          SocialShareButton(
-            faIcon: FontAwesomeIcons.whatsapp,
-            iconColor: const Color(0xFF25D366),
-            label: 'WhatsApp',
-            onTap: () async {
-              final msg = Uri.encodeComponent(
-                  'Check out "${playlist.title}" on Tunify: $_shareUrl');
-              await launchUrl(Uri.parse('https://wa.me/?text=$msg'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
-          SocialShareButton(
-            faIcon: FontAwesomeIcons.instagram,
-            iconColor: const Color(0xFFE1306C),
-            label: 'Stories',
-            onTap: () async {
-              await launchUrl(
-                Uri.parse(
-                    'instagram://sharesheet?text=${Uri.encodeComponent(_shareUrl)}'),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-          ),
-          SocialShareButton(
-            faIcon: FontAwesomeIcons.snapchat,
-            iconColor: const Color(0xFFFFFC00),
-            label: 'Snapchat',
-            onTap: () async {
-              await launchUrl(
-                Uri.parse(
-                    'snapchat://send?text=${Uri.encodeComponent(_shareUrl)}'),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-          ),
-          YourUploadsShareButton(
-            icon: Icons.sms_outlined,
-            label: 'SMS',
-            onTap: () async {
-              final text = Uri.encodeComponent(
-                  'Check out "${playlist.title}" on Tunify: $_shareUrl');
-              await launchUrl(Uri.parse('sms:?body=$text'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
-          SocialShareButton(
-            faIcon: FontAwesomeIcons.facebook,
-            iconColor: const Color(0xFF1877F2),
-            label: 'Facebook',
-            onTap: () async {
-              await launchUrl(
-                Uri.parse(
-                    'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(_shareUrl)}'),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-          ),
-          SocialShareButton(
-            faIcon: FontAwesomeIcons.xTwitter,
-            iconColor: Colors.white,
-            label: 'X',
-            onTap: () async {
-              final text = Uri.encodeComponent(
-                  'Check out "${playlist.title}" on Tunify: $_shareUrl');
-              await launchUrl(
-                  Uri.parse('https://twitter.com/intent/tweet?text=$text'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
-          YourUploadsShareButton(
-            icon: Icons.more_horiz,
-            label: 'More',
-            onTap: () async {
-              await launchUrl(Uri.parse(_shareUrl),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _copyLink(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: _shareUrl));
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Color(0xFF1C1C1E),
-        content: Text('Link copied', style: TextStyle(color: Colors.white)),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-}
-
-// ─── Option row ───────────────────────────────────────────────────────────────
-
 class _OptionRow extends StatelessWidget {
   const _OptionRow({
     required this.icon,
@@ -413,7 +288,7 @@ class _OptionRow extends StatelessWidget {
   }
 }
 
-// ─── Drag handle ──────────────────────────────────────────────────────────────
+//  Drag handle 
 
 class _DragHandle extends StatelessWidget {
   @override

@@ -174,8 +174,6 @@ class _AddTrackSheetState extends ConsumerState<_AddTrackSheet> {
   }
 }
 
-// ─── Track row ────────────────────────────────────────────────────────────────
-
 class _TrackRow extends StatelessWidget {
   const _TrackRow({
     required this.track,

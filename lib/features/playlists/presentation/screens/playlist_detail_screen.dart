@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../../../../shared/ui/widgets/play_button.dart';
 import '../widgets/add_track_sheet.dart';
-import '../widgets/create_edit_playlist_sheet.dart';
+import '../widgets/playlist_share_sheet.dart';
+import '../widgets/secret_token_section.dart';
 import '../widgets/track_in_playlist_options_sheet.dart';
 import '../../../../core/routing/routes.dart';
 import '../../domain/entities/collection_privacy.dart';
@@ -110,6 +114,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             ),
           ),
 
+          SliverToBoxAdapter(
+            child: SecretTokenSection(playlist: playlist),
+          ),
+
           // ── Action row ────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
@@ -122,10 +130,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       context: context,
                       playlist: _toSummary(playlist),
                       isDetailView: true,
-                      onEdit: () => showCreateEditPlaylistSheet(
-                        context: context,
-                        ref: ref,
-                        existing: _toSummary(playlist),
+                      onEdit: () => Navigator.of(context).pushNamed(
+                        Routes.playlistEdit,
+                        arguments: {'collectionId': playlist.id},
                       ),
                       onTogglePrivacy: () {
                         final newPrivacy =
@@ -150,26 +157,47 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             .deleteCollection(playlist.id);
                         Navigator.of(context).pop();
                       },
+                      onShare: () => showPlaylistShareSheet(
+                        context: context,
+                        playlist: _toSummary(playlist),
+                        secretToken: playlist.secretToken,
+                      ),
                       onCopyPlaylist: () {},
-                      onShufflePlay: () {},
+                      onShufflePlay: tracks.isEmpty
+                          ? null
+                          : () => ref
+                              .read(playerProvider.notifier)
+                              .buildAndLoadQueue(
+                                contextType: PlaybackContextType.playlist,
+                                contextId: playlist.id,
+                                startTrackId: tracks.first.trackId,
+                                shuffle: true,
+                              ),
                     ),
                   ),
                   const Spacer(),
-                  if (tracks.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.reorder, color: Colors.white),
-                      tooltip: 'Reorder',
-                      onPressed: () => Navigator.of(context).pushNamed(
-                        Routes.playlistReorder,
-                        arguments: {'collectionId': playlist.id},
-                      ),
+                  if (tracks.isNotEmpty) ...[
+                    ShuffleButton(
+                      onTap: () => ref
+                          .read(playerProvider.notifier)
+                          .buildAndLoadQueue(
+                            contextType: PlaybackContextType.playlist,
+                            contextId: playlist.id,
+                            startTrackId: tracks.first.trackId,
+                            shuffle: true,
+                          ),
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.shuffle, color: Colors.white),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 8),
-                  _PlayButton(onTap: () {}),
+                    const SizedBox(width: 8),
+                    PlayButton(
+                      onTap: () => ref
+                          .read(playerProvider.notifier)
+                          .buildAndLoadQueue(
+                            contextType: PlaybackContextType.playlist,
+                            contextId: playlist.id,
+                            startTrackId: tracks.first.trackId,
+                          ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -234,8 +262,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
 PlaylistSummaryEntity _toSummary(PlaylistEntity e) => PlaylistSummaryEntity(
       id: e.id,
       title: e.title,
@@ -252,8 +278,6 @@ PlaylistSummaryEntity _toSummary(PlaylistEntity e) => PlaylistSummaryEntity(
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
     );
-
-// ─── Cover image ──────────────────────────────────────────────────────────────
 
 class _CoverImage extends StatelessWidget {
   const _CoverImage({this.coverUrl});
@@ -275,8 +299,6 @@ class _CoverImage extends StatelessWidget {
     );
   }
 }
-
-// ─── Header info ─────────────────────────────────────────────────────────────
 
 class _HeaderInfo extends StatelessWidget {
   const _HeaderInfo({required this.playlist, required this.tracks});
@@ -362,25 +384,3 @@ class _HeaderInfo extends StatelessWidget {
   }
 }
 
-// ─── Play button ──────────────────────────────────────────────────────────────
-
-class _PlayButton extends StatelessWidget {
-  const _PlayButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.play_arrow, color: Colors.black, size: 30),
-      ),
-    );
-  }
-}

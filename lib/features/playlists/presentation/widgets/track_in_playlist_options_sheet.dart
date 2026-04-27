@@ -135,8 +135,6 @@ class _TrackInPlaylistOptionsSheet extends StatelessWidget {
   }
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
 class _Header extends StatelessWidget {
   const _Header({required this.track});
   final PlaylistTrackEntity track;
@@ -214,8 +212,6 @@ class _CoverArt extends StatelessWidget {
     );
   }
 }
-
-// ─── Share row ────────────────────────────────────────────────────────────────
 
 class _ShareRow extends StatelessWidget {
   const _ShareRow({required this.track});

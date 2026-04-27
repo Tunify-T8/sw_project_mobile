@@ -22,6 +22,7 @@ import '../../../followers_and_social_graph/presentation/providers/relationship_
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../../shared/ui/widgets/play_button.dart';
 import '../../../../shared/ui/patterns/error_retry_view.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
@@ -141,9 +142,8 @@ class _OtherUserProfileScreenState
                 : () => _openChat(displayName, avatarUrl),
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
-            onPressed: profileTracks.isEmpty
+          ShuffleButton(
+            onTap: profileTracks.isEmpty
                 ? null
                 : () {
                     final shuffled = List.of(profileTracks)..shuffle();
@@ -156,23 +156,16 @@ class _OtherUserProfileScreenState
                     );
                   },
           ),
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
-              onPressed: profileTracks.isEmpty
-                  ? null
-                  : () => openUploadItemPlayer(
-                        context,
-                        ref,
-                        profileTracks.first,
-                        queueItems: profileTracks,
-                        openScreen: false,
-                      ),
-            ),
+          PlayButton(
+            onTap: profileTracks.isEmpty
+                ? null
+                : () => openUploadItemPlayer(
+                      context,
+                      ref,
+                      profileTracks.first,
+                      queueItems: profileTracks,
+                      openScreen: false,
+                    ),
           ),
         ],
       ),

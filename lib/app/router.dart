@@ -28,8 +28,8 @@ import '../features/messaging_track_sharing/domain/entities/message_attachment.d
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
 import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
+import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
 import '../features/playlists/presentation/screens/playlist_screen.dart';
-import '../features/playlists/presentation/widgets/track_reorder_list.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
@@ -327,11 +327,11 @@ class AppRouter {
           settings,
         );
 
-      case Routes.playlistReorder:
+      case Routes.playlistEdit:
         final collectionId = args['collectionId'] as String? ?? '';
         return _slide(
           AuthProtectedScreen(
-            child: TrackReorderScreen(collectionId: collectionId),
+            child: PlaylistEditScreen(collectionId: collectionId),
           ),
           settings,
         );
