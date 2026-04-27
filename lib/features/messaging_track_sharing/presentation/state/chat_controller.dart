@@ -199,13 +199,6 @@ class ChatController extends Notifier<ChatState> {
     if (state.isSending) return;
 
     if (trimmedText.isNotEmpty && attachments.isNotEmpty) {
-      await _send(
-        SendMessageDraft(
-          type: MessageType.text,
-          text: trimmedText,
-          attachments: const [],
-        ),
-      );
       for (final attachment in attachments) {
         if (state.isSending) return;
         await _send(
@@ -215,6 +208,14 @@ class ChatController extends Notifier<ChatState> {
           ),
         );
       }
+      if (state.isSending) return;
+      await _send(
+        SendMessageDraft(
+          type: MessageType.text,
+          text: trimmedText,
+          attachments: const [],
+        ),
+      );
       return;
     }
 
