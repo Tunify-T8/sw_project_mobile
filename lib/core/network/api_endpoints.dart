@@ -159,7 +159,7 @@ class ApiEndpoints {
   static const String subscribe = '/subscription/subscribe';
   static const String cancelSubscription = '/subscription/cancel';
 
-  // ─── Collections & Playlists ──────────────────────────────────
+  //  Collections & Playlists
   static const String collections = '/collections';
   static const String myCollections = '/collections/me';
 
@@ -182,18 +182,3 @@ class ApiEndpoints {
   static String userAlbums(String username) => '/users/$username/albums';
   static String userPlaylists(String username) => '/users/$username/playlists';
 }
-//profile
-//when time comes to connect real backend
-//Reminder for darine:
-
-// Change this: (profile_api.dart)
-//static const String _baseUrl = 'https://69b5b11a583f543fbd9c3072.mockapi.io';
-// To this:
-//static const String _baseUrl = 'http://10.0.2.2:3000/api';
-
-// Change this:
-//final userRes = await _dio.get(r'$_baseUrl/users/1');
-// To this:
-//final userRes = await _dio.get(r'$_baseUrl/users/$userId');
-// In api_endpoints.dart add:
-///////////////////////////////////////////////

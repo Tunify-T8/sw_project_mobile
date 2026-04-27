@@ -11,17 +11,18 @@ import '../../domain/usecases/playlist_usecases.dart';
 import 'playlist_notifier.dart';
 import 'playlist_state.dart';
 
-// ─── Backend mode ─────────────────────────────────────────────────────────────
+
 // Flip to PlaylistBackendMode.real once the backend is ready.
 enum PlaylistBackendMode { mock, real }
 
-const PlaylistBackendMode _activeBackend = PlaylistBackendMode.mock;
+// const PlaylistBackendMode _activeBackend = PlaylistBackendMode.mock;
+const PlaylistBackendMode _activeBackend = PlaylistBackendMode.real;
 
 final playlistBackendModeProvider = Provider<PlaylistBackendMode>(
   (ref) => _activeBackend,
 );
 
-// ─── Infrastructure ───────────────────────────────────────────────────────────
+//  Infrastructure 
 
 final playlistDioProvider = Provider<Dio>((ref) => ref.watch(dioProvider));
 
@@ -34,7 +35,7 @@ final mockPlaylistStoreProvider = Provider<MockPlaylistStore>(
   (ref) => MockPlaylistStore(),
 );
 
-// ─── Repository ───────────────────────────────────────────────────────────────
+//  Repository
 
 final playlistRepositoryProvider = Provider<PlaylistRepository>((ref) {
   final mode = ref.watch(playlistBackendModeProvider);
@@ -44,7 +45,7 @@ final playlistRepositoryProvider = Provider<PlaylistRepository>((ref) {
   return MockPlaylistRepositoryImpl(ref.watch(mockPlaylistStoreProvider));
 });
 
-// ─── Use cases ────────────────────────────────────────────────────────────────
+//  Use cases 
 
 final createPlaylistUseCaseProvider = Provider<CreatePlaylistUseCase>(
   (ref) => CreatePlaylistUseCase(ref.watch(playlistRepositoryProvider)),
@@ -82,7 +83,7 @@ final removeTrackUseCaseProvider = Provider<RemoveTrackUseCase>(
   (ref) => RemoveTrackUseCase(ref.watch(playlistRepositoryProvider)),
 );
 
-// ─── Notifier ─────────────────────────────────────────────────────────────────
+// Notifier 
 
 final playlistNotifierProvider =
     NotifierProvider<PlaylistNotifier, PlaylistState>(PlaylistNotifier.new);

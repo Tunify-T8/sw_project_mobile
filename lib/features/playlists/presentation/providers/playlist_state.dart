@@ -2,14 +2,9 @@ import '../../domain/entities/playlist_entity.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/entities/playlist_track_entity.dart';
 
-/// Immutable state managed by [PlaylistNotifier].
-///
-/// Covers the three main views:
-///   - My collections list  → [myCollections]
-///   - Detail screen        → [activePlaylist] + [activeTracks]
-///   - Create / edit state  → mutated via notifier methods, reflected here
+
 class PlaylistState {
-  // ─── My collections list ─────────────────────────────────────────────────
+  // ─── My collections list 
   final List<PlaylistSummaryEntity> myCollections;
   final bool isMyCollectionsLoading;
   final String? myCollectionsError;

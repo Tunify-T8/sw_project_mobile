@@ -228,6 +228,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   onTap: () {},
                   onMoreTap: () => showTrackInPlaylistOptionsSheet(
                     context: context,
+                    ref: ref,
                     track: track,
                     onRemoveFromPlaylist: () => ref
                         .read(playlistNotifierProvider.notifier)

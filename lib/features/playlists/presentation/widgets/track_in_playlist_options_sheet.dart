@@ -2,40 +2,60 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_endpoints.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/playlist_track_entity.dart';
 
 void showTrackInPlaylistOptionsSheet({
   required BuildContext context,
+  required WidgetRef ref,
   required PlaylistTrackEntity track,
   required VoidCallback onRemoveFromPlaylist,
 }) {
+  if (ref.read(engagementProvider(track.trackId)).engagementStatus ==
+      EngagementStatus.initial) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(engagementProvider(track.trackId).notifier).loadEngagement();
+    });
+  }
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (_) => _TrackInPlaylistOptionsSheet(
+      outerRef: ref,
       track: track,
       onRemoveFromPlaylist: onRemoveFromPlaylist,
     ),
   );
 }
 
-class _TrackInPlaylistOptionsSheet extends StatelessWidget {
+class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
   const _TrackInPlaylistOptionsSheet({
+    required this.outerRef,
     required this.track,
     required this.onRemoveFromPlaylist,
   });
 
+  final WidgetRef outerRef;
   final PlaylistTrackEntity track;
   final VoidCallback onRemoveFromPlaylist;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final engState = ref.watch(engagementProvider(track.trackId));
+    final isLiked = engState.engagement?.isLiked ?? false;
+    final isReposted = engState.engagement?.isReposted ?? false;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
@@ -64,26 +84,50 @@ class _TrackInPlaylistOptionsSheet extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // ── Like ────────────────────────────────────────────────
                   YourUploadsOptionRow(
-                    icon: Icons.favorite_border,
-                    label: 'Like',
-                    onTap: () => Navigator.pop(context),
+                    icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                    label: isLiked ? 'Unlike' : 'Like',
+                    color: isLiked ? Colors.orange : Colors.white,
+                    onTap: () {
+                      Navigator.pop(context);
+                      ref
+                          .read(engagementProvider(track.trackId).notifier)
+                          .toggleLike();
+                    },
                   ),
+
+                  // ── Play Next ───────────────────────────────────────────
                   YourUploadsOptionRow(
                     icon: Icons.queue_play_next_outlined,
                     label: 'Play Next',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      outerRef
+                          .read(playerProvider.notifier)
+                          .addToQueueNext(track.trackId);
+                      Navigator.pop(context);
+                    },
                   ),
+
+                  // ── Play Last ───────────────────────────────────────────
                   YourUploadsOptionRow(
                     icon: Icons.add_to_queue_outlined,
                     label: 'Play Last',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      outerRef
+                          .read(playerProvider.notifier)
+                          .addToQueueLast(track.trackId);
+                      Navigator.pop(context);
+                    },
                   ),
+
                   YourUploadsOptionRow(
                     icon: Icons.playlist_add,
                     label: 'Add to playlist',
                     onTap: () => Navigator.pop(context),
                   ),
+
+                  // ── Remove from playlist ────────────────────────────────
                   YourUploadsOptionRow(
                     icon: Icons.playlist_remove,
                     label: 'Remove from playlist',
@@ -92,28 +136,77 @@ class _TrackInPlaylistOptionsSheet extends StatelessWidget {
                       onRemoveFromPlaylist();
                     },
                   ),
+
                   YourUploadsOptionRow(
                     icon: Icons.radio,
                     label: 'Start station',
                     onTap: () => Navigator.pop(context),
                   ),
+
                   const Divider(color: Colors.white12, height: 1),
+
+                  // ── Go to artist profile ────────────────────────────────
                   YourUploadsOptionRow(
                     icon: Icons.person_outline,
                     label: 'Go to artist profile',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => OtherUserProfileScreen(
+                            userId: track.ownerId,
+                          ),
+                        ),
+                      );
+                    },
                   ),
+
+                  // ── View comments ───────────────────────────────────────
                   YourUploadsOptionRow(
                     icon: Icons.comment_outlined,
                     label: 'View comments',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => CommentsScreen(
+                            trackId: track.trackId,
+                            coverUrl: track.coverUrl,
+                            trackTitle: track.title,
+                            artistName: track.ownerDisplayName ??
+                                track.ownerUsername,
+                          ),
+                        ),
+                      );
+                    },
                   ),
+
+                  // ── Repost ──────────────────────────────────────────────
                   YourUploadsOptionRow(
                     icon: Icons.repeat,
-                    label: 'Repost',
-                    onTap: () => Navigator.pop(context),
+                    label: isReposted ? 'Remove repost' : 'Repost',
+                    color: isReposted ? Colors.orange : Colors.white,
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (isReposted) {
+                        ref
+                            .read(engagementProvider(track.trackId).notifier)
+                            .removeRepost();
+                      } else {
+                        RepostCaptionSheet.show(
+                          context,
+                          trackId: track.trackId,
+                          trackTitle: track.title,
+                          artistName: track.ownerDisplayName ??
+                              track.ownerUsername,
+                          coverUrl: track.coverUrl,
+                        );
+                      }
+                    },
                   ),
+
                   const Divider(color: Colors.white12, height: 1),
+
                   YourUploadsOptionRow(
                     icon: Icons.graphic_eq,
                     label: 'Behind this track',
@@ -262,16 +355,6 @@ class _ShareRow extends StatelessWidget {
               final msg = Uri.encodeComponent(
                   'Check out "${track.title}" on Tunify: $_url');
               await launchUrl(Uri.parse('https://wa.me/?text=$msg'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
-          SocialShareButton(
-            faIcon: FontAwesomeIcons.whatsapp,
-            iconColor: const Color(0xFF25D366),
-            label: 'Status',
-            onTap: () async {
-              await launchUrl(
-                  Uri.parse('https://wa.me/?text=${Uri.encodeComponent(_url)}'),
                   mode: LaunchMode.externalApplication);
             },
           ),
