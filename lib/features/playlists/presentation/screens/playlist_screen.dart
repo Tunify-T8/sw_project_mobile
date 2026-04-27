@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/routes.dart';
 import '../../domain/entities/collection_privacy.dart';
+import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
@@ -23,14 +24,14 @@ class PlaylistsScreen extends ConsumerStatefulWidget {
 
 class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   final _searchController = TextEditingController();
+  final Map<String, String> _resolvedCoverUrls = {};
+  final Set<String> _resolvingCoverIds = {};
   String _query = '';
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(playlistNotifierProvider.notifier).loadMyCollections(),
-    );
+    Future.microtask(_reloadPlaylists);
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.toLowerCase());
     });
@@ -49,12 +50,81 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
         .toList();
   }
 
+  Future<void> _reloadPlaylists() async {
+    _resolvedCoverUrls.clear();
+    _resolvingCoverIds.clear();
+    await ref.read(playlistNotifierProvider.notifier).loadMyCollections();
+  }
+
+  Future<void> _resolvePlaylistCovers(
+    List<PlaylistSummaryEntity> playlists,
+  ) async {
+    final repo = ref.read(playlistRepositoryProvider);
+    final pending = playlists.where((playlist) {
+      return playlist.type == CollectionType.playlist &&
+          playlist.trackCount > 0 &&
+          !_resolvedCoverUrls.containsKey(playlist.id) &&
+          !_resolvingCoverIds.contains(playlist.id);
+    }).toList();
+
+    for (final playlist in pending) {
+      _resolvingCoverIds.add(playlist.id);
+      try {
+        final tracks = await repo.getCollectionTracks(
+          collectionId: playlist.id,
+          limit: 1,
+        );
+        final firstTrackCover =
+            tracks.items.isNotEmpty ? tracks.items.first.coverUrl : null;
+        if (!mounted) return;
+        if (firstTrackCover != null && firstTrackCover.isNotEmpty) {
+          setState(() => _resolvedCoverUrls[playlist.id] = firstTrackCover);
+        }
+      } catch (_) {
+        // Ignore fallback cover failures and keep the placeholder.
+      } finally {
+        _resolvingCoverIds.remove(playlist.id);
+      }
+    }
+  }
+
+  PlaylistSummaryEntity _playlistForDisplay(PlaylistSummaryEntity playlist) {
+    final resolvedCover = _resolvedCoverUrls[playlist.id];
+    if (resolvedCover == null || resolvedCover.isEmpty) {
+      return playlist;
+    }
+
+    return PlaylistSummaryEntity(
+      id: playlist.id,
+      title: playlist.title,
+      description: playlist.description,
+      type: playlist.type,
+      privacy: playlist.privacy,
+      coverUrl: resolvedCover,
+      trackCount: playlist.trackCount,
+      likeCount: playlist.likeCount,
+      repostsCount: playlist.repostsCount,
+      ownerFollowerCount: playlist.ownerFollowerCount,
+      isMine: playlist.isMine,
+      isLiked: playlist.isLiked,
+      createdAt: playlist.createdAt,
+      updatedAt: playlist.updatedAt,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(playlistNotifierProvider);
     final profile = ref.watch(profileProvider).profile;
     final ownerName = profile?.displayName ?? profile?.userName;
-    final visible = _filtered(state.myCollections);
+    final playlists = state.myCollections.map(_playlistForDisplay).toList();
+    final visible = _filtered(playlists);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _resolvePlaylistCovers(state.myCollections);
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -62,8 +132,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
       body: RefreshIndicator(
         color: Colors.white,
         backgroundColor: const Color(0xFF1C1C1E),
-        onRefresh: () =>
-            ref.read(playlistNotifierProvider.notifier).loadMyCollections(),
+        onRefresh: _reloadPlaylists,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
@@ -222,10 +291,14 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                   return PlaylistTile(
                     playlist: pl,
                     ownerName: ownerName,
-                    onTap: () => Navigator.of(context).pushNamed(
-                      Routes.playlistDetail,
-                      arguments: {'playlistId': pl.id},
-                    ),
+                    onTap: () async {
+                      await Navigator.of(context).pushNamed(
+                        Routes.playlistDetail,
+                        arguments: {'playlistId': pl.id},
+                      );
+                      if (!mounted) return;
+                      await _reloadPlaylists();
+                    },
                     onMoreTap: () => showPlaylistOptionsSheet(
                       context: context,
                       playlist: pl,
@@ -233,10 +306,14 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                         context: context,
                         playlist: pl,
                       ),
-                      onEdit: () => Navigator.of(context).pushNamed(
-                        Routes.playlistEdit,
-                        arguments: {'collectionId': pl.id},
-                      ),
+                      onEdit: () async {
+                        await Navigator.of(context).pushNamed(
+                          Routes.playlistEdit,
+                          arguments: {'collectionId': pl.id},
+                        );
+                        if (!mounted) return;
+                        await _reloadPlaylists();
+                      },
                       onTogglePrivacy: () {
                         final newPrivacy =
                             pl.privacy == CollectionPrivacy.private

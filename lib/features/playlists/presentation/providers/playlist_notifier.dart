@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/collection_privacy.dart';
@@ -119,7 +121,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
 
   // ─── Create ──────────────────────────────────────────────────────────────
 
-  Future<void> createCollection({
+  Future<PlaylistEntity?> createCollection({
     required String title,
     required CollectionType type,
     required CollectionPrivacy privacy,
@@ -141,8 +143,25 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         isMutating: false,
         myCollections: [_toSummary(created), ...state.myCollections],
       );
+      return created;
+    } on DioException catch (e) {
+      debugPrint('CREATE PLAYLIST URL: ${e.requestOptions.uri}');
+      debugPrint('CREATE PLAYLIST METHOD: ${e.requestOptions.method}');
+      debugPrint('CREATE PLAYLIST DATA: ${e.requestOptions.data}');
+      debugPrint('CREATE PLAYLIST QUERY: ${e.requestOptions.queryParameters}');
+      debugPrint('CREATE PLAYLIST RESPONSE: ${e.response?.data}');
+      final responseData = e.response?.data;
+      final responseMessage = responseData is Map<String, dynamic>
+          ? responseData['message']?.toString()
+          : null;
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: responseMessage ?? e.message ?? e.toString(),
+      );
+      return null;
     } catch (e) {
       state = state.copyWith(isMutating: false, mutationError: e.toString());
+      return null;
     }
   }
 
@@ -232,7 +251,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     }
   }
 
-  // ─── Reorder tracks ───────────────────────────────────────────────────────
+// ─── Reorder tracks ───────────────────────────────────────────────────────
 
   Future<void> reorderTracks({
     required String collectionId,
@@ -243,9 +262,44 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       for (final id in trackIds)
         if (byId.containsKey(id)) byId[id]!,
     ];
-    state = state.copyWith(activeTracks: reordered);
+    final firstTrackCoverUrl =
+        reordered.isNotEmpty ? reordered.first.coverUrl : null;
+    final optimisticPlaylist = state.activePlaylist?.id == collectionId
+        ? _copyPlaylistWithCover(state.activePlaylist!, firstTrackCoverUrl)
+        : state.activePlaylist;
+    final optimisticCollections = state.myCollections
+        .map(
+          (playlist) => playlist.id == collectionId
+              ? _copySummaryWithCover(playlist, firstTrackCoverUrl)
+              : playlist,
+        )
+        .toList();
+
+    state = state.copyWith(
+      activeTracks: reordered,
+      activePlaylist: optimisticPlaylist,
+      myCollections: optimisticCollections,
+    );
+
     try {
       await _reorderTracks(collectionId: collectionId, trackIds: trackIds);
+
+      final updatedPlaylist = await _getPlaylist(collectionId);
+      final syncedPlaylist =
+          _copyPlaylistWithCover(updatedPlaylist, firstTrackCoverUrl);
+      state = state.copyWith(
+        activePlaylist: syncedPlaylist,
+        myCollections: state.myCollections
+            .map(
+              (playlist) => playlist.id == collectionId
+                  ? _copySummaryWithCover(
+                      _toSummary(updatedPlaylist),
+                      firstTrackCoverUrl,
+                    )
+                  : playlist,
+            )
+            .toList(),
+      );
     } catch (e) {
       await openPlaylist(collectionId);
       state = state.copyWith(mutationError: e.toString());
@@ -270,4 +324,49 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
   );
+
+  PlaylistEntity _copyPlaylistWithCover(
+    PlaylistEntity playlist,
+    String? coverUrl,
+  ) {
+    return PlaylistEntity(
+      id: playlist.id,
+      title: playlist.title,
+      description: playlist.description,
+      type: playlist.type,
+      privacy: playlist.privacy,
+      secretToken: playlist.secretToken,
+      coverUrl: coverUrl,
+      trackCount: playlist.trackCount,
+      likeCount: playlist.likeCount,
+      repostsCount: playlist.repostsCount,
+      ownerFollowerCount: playlist.ownerFollowerCount,
+      isLiked: playlist.isLiked,
+      owner: playlist.owner,
+      createdAt: playlist.createdAt,
+      updatedAt: playlist.updatedAt,
+    );
+  }
+
+  PlaylistSummaryEntity _copySummaryWithCover(
+    PlaylistSummaryEntity playlist,
+    String? coverUrl,
+  ) {
+    return PlaylistSummaryEntity(
+      id: playlist.id,
+      title: playlist.title,
+      description: playlist.description,
+      type: playlist.type,
+      privacy: playlist.privacy,
+      coverUrl: coverUrl,
+      trackCount: playlist.trackCount,
+      likeCount: playlist.likeCount,
+      repostsCount: playlist.repostsCount,
+      ownerFollowerCount: playlist.ownerFollowerCount,
+      isMine: playlist.isMine,
+      isLiked: playlist.isLiked,
+      createdAt: playlist.createdAt,
+      updatedAt: playlist.updatedAt,
+    );
+  }
 }

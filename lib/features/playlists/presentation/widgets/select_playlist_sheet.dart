@@ -52,10 +52,14 @@ class _SelectPlaylistScreen extends ConsumerStatefulWidget {
 }
 
 class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
-  final Set<String> _addingIds = {};
+  static const int _membershipPageSize = 50;
+
+  final Set<String> _mutatingIds = {};
   final Set<String> _addedIds = {};
+  final Set<String> _resolvedMembershipIds = {};
   final Set<String> _resolvingCoverIds = {};
   final Map<String, String> _resolvedCoverUrls = {};
+  final Map<String, int> _trackCountOverrides = {};
   final TextEditingController _searchCtrl = TextEditingController();
 
   String _query = '';
@@ -70,10 +74,14 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
       final notifier = ref.read(playlistNotifierProvider.notifier);
       final state = ref.read(playlistNotifierProvider);
       if (state.myCollections.isEmpty && !state.isMyCollectionsLoading) {
-        await notifier.loadMyCollections(type: CollectionType.playlist);
+        await notifier.loadMyCollections();
       }
       if (!mounted) return;
       await _resolveMissingCovers(ref.read(playlistNotifierProvider).myCollections);
+      if (!mounted) return;
+      await _resolveExistingSelections(
+        ref.read(playlistNotifierProvider).myCollections,
+      );
     });
   }
 
@@ -116,10 +124,88 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
     }
   }
 
+  Future<void> _resolveExistingSelections(
+    List<PlaylistSummaryEntity> playlists,
+  ) async {
+    final pending = playlists.where((playlist) {
+      return playlist.type == CollectionType.playlist &&
+          !_resolvedMembershipIds.contains(playlist.id);
+    }).toList();
+
+    final existingIds = <String>{};
+    for (final playlist in pending) {
+      _resolvedMembershipIds.add(playlist.id);
+      if (playlist.trackCount <= 0) {
+        continue;
+      }
+
+      try {
+        if (await _playlistContainsTrack(playlist.id)) {
+          existingIds.add(playlist.id);
+        }
+      } catch (_) {
+        // Ignore membership lookup failures and leave the row unchecked.
+      }
+    }
+
+    if (!mounted || existingIds.isEmpty) return;
+    setState(() => _addedIds.addAll(existingIds));
+  }
+
+  Future<bool> _playlistContainsTrack(String playlistId) async {
+    final repo = ref.read(playlistRepositoryProvider);
+    var page = 1;
+
+    while (true) {
+      final tracks = await repo.getCollectionTracks(
+        collectionId: playlistId,
+        page: page,
+        limit: _membershipPageSize,
+      );
+
+      if (tracks.items.any((track) => track.trackId == widget.trackId)) {
+        return true;
+      }
+
+      if (!tracks.hasMore || tracks.items.isEmpty) {
+        return false;
+      }
+
+      page += 1;
+    }
+  }
+
+  bool _looksLikeDuplicateAddError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('already in collection') ||
+        message.contains('already exists') ||
+        message.contains('already added') ||
+        message.contains('duplicate');
+  }
+
   PlaylistSummaryEntity _playlistForDisplay(PlaylistSummaryEntity playlist) {
     final resolvedCover = _resolvedCoverUrls[playlist.id];
+    final trackCount = _trackCountOverrides[playlist.id] ?? playlist.trackCount;
     if (resolvedCover == null || resolvedCover.isEmpty) {
-      return playlist;
+      if (trackCount == playlist.trackCount) {
+        return playlist;
+      }
+      return PlaylistSummaryEntity(
+        id: playlist.id,
+        title: playlist.title,
+        description: playlist.description,
+        type: playlist.type,
+        privacy: playlist.privacy,
+        coverUrl: playlist.coverUrl,
+        trackCount: trackCount,
+        likeCount: playlist.likeCount,
+        repostsCount: playlist.repostsCount,
+        ownerFollowerCount: playlist.ownerFollowerCount,
+        isMine: playlist.isMine,
+        isLiked: playlist.isLiked,
+        createdAt: playlist.createdAt,
+        updatedAt: playlist.updatedAt,
+      );
     }
 
     return PlaylistSummaryEntity(
@@ -129,7 +215,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
       type: playlist.type,
       privacy: playlist.privacy,
       coverUrl: resolvedCover,
-      trackCount: playlist.trackCount,
+      trackCount: trackCount,
       likeCount: playlist.likeCount,
       repostsCount: playlist.repostsCount,
       ownerFollowerCount: playlist.ownerFollowerCount,
@@ -141,10 +227,10 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
   }
 
   Future<void> _addToPlaylist(PlaylistSummaryEntity playlist) async {
-    if (_addingIds.contains(playlist.id) || _addedIds.contains(playlist.id)) {
+    if (_mutatingIds.contains(playlist.id) || _addedIds.contains(playlist.id)) {
       return;
     }
-    setState(() => _addingIds.add(playlist.id));
+    setState(() => _mutatingIds.add(playlist.id));
     try {
       await ref.read(addTrackUseCaseProvider).call(
             collectionId: playlist.id,
@@ -152,26 +238,86 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
           );
       if (!mounted) return;
       setState(() {
-        _addingIds.remove(playlist.id);
+        _mutatingIds.remove(playlist.id);
         _addedIds.add(playlist.id);
+        _trackCountOverrides[playlist.id] =
+            (_trackCountOverrides[playlist.id] ?? playlist.trackCount) + 1;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _mutatingIds.remove(playlist.id);
+        if (_looksLikeDuplicateAddError(error)) {
+          _addedIds.add(playlist.id);
+        }
+      });
+    }
+  }
+
+  Future<void> _removeFromPlaylist(PlaylistSummaryEntity playlist) async {
+    if (_mutatingIds.contains(playlist.id) || !_addedIds.contains(playlist.id)) {
+      return;
+    }
+    setState(() => _mutatingIds.add(playlist.id));
+    try {
+      await ref.read(removeTrackUseCaseProvider).call(
+            collectionId: playlist.id,
+            trackId: widget.trackId,
+          );
+      if (!mounted) return;
+      setState(() {
+        _mutatingIds.remove(playlist.id);
+        _addedIds.remove(playlist.id);
+        final currentCount =
+            _trackCountOverrides[playlist.id] ?? playlist.trackCount;
+        _trackCountOverrides[playlist.id] =
+            currentCount > 0 ? currentCount - 1 : 0;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _addingIds.remove(playlist.id));
+      setState(() => _mutatingIds.remove(playlist.id));
     }
   }
 
   Future<void> _openCreatePlaylist() async {
-    await showCreatePlaylistSheet(
+    final created = await showCreatePlaylistSheet(
       context: context,
       ref: widget.outerRef,
     );
     if (!mounted) return;
-    await ref
-        .read(playlistNotifierProvider.notifier)
-        .loadMyCollections(type: CollectionType.playlist);
-    if (!mounted) return;
+    if (created == null) return;
+
     await _resolveMissingCovers(ref.read(playlistNotifierProvider).myCollections);
+    if (!mounted) return;
+
+    final createdSummary = PlaylistSummaryEntity(
+      id: created.id,
+      title: created.title,
+      description: created.description,
+      type: created.type,
+      privacy: created.privacy,
+      coverUrl: created.coverUrl,
+      trackCount: created.trackCount,
+      likeCount: created.likeCount,
+      repostsCount: created.repostsCount,
+      ownerFollowerCount: created.ownerFollowerCount,
+      isMine: true,
+      isLiked: created.isLiked,
+      createdAt: created.createdAt,
+      updatedAt: created.updatedAt,
+    );
+
+    await _addToPlaylist(createdSummary);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Track added to ${created.title}'),
+        backgroundColor: const Color(0xFF2A2A2A),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -190,6 +336,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _resolveMissingCovers(playlists);
+        _resolveExistingSelections(playlists);
       }
     });
 
@@ -326,10 +473,10 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 20),
-                                const Expanded(
+                                Expanded(
                                   child: Text(
                                     'Create playlist',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -367,9 +514,15 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                           ...filtered.map(
                             (playlist) => _PlaylistSelectRow(
                               playlist: playlist,
-                              isAdding: _addingIds.contains(playlist.id),
+                              isMutating: _mutatingIds.contains(playlist.id),
                               isAdded: _addedIds.contains(playlist.id),
-                              onTap: () => _addToPlaylist(playlist),
+                              onTap: () {
+                                if (_addedIds.contains(playlist.id)) {
+                                  _removeFromPlaylist(playlist);
+                                } else {
+                                  _addToPlaylist(playlist);
+                                }
+                              },
                             ),
                           ),
                       ],
@@ -416,13 +569,13 @@ class _CircleIconButton extends StatelessWidget {
 class _PlaylistSelectRow extends StatelessWidget {
   const _PlaylistSelectRow({
     required this.playlist,
-    required this.isAdding,
+    required this.isMutating,
     required this.isAdded,
     required this.onTap,
   });
 
   final PlaylistSummaryEntity playlist;
-  final bool isAdding;
+  final bool isMutating;
   final bool isAdded;
   final VoidCallback onTap;
 
@@ -432,7 +585,7 @@ class _PlaylistSelectRow extends StatelessWidget {
         'Playlist - ${playlist.trackCount} Track${playlist.trackCount == 1 ? '' : 's'}';
 
     return InkWell(
-      onTap: (isAdding || isAdded) ? null : onTap,
+      onTap: isMutating ? null : onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
@@ -503,7 +656,7 @@ class _PlaylistSelectRow extends StatelessWidget {
               width: 28,
               height: 28,
               child: Center(
-                child: isAdding
+                child: isMutating
                     ? const SizedBox(
                         width: 18,
                         height: 18,

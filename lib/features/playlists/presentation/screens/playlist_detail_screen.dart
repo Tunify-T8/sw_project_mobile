@@ -28,13 +28,17 @@ class PlaylistDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
+  Future<void> _reloadPlaylist() async {
+    await ref.read(playlistNotifierProvider.notifier).openPlaylist(
+          widget.playlistId,
+        );
+  }
+
   @override
   void initState() {
     super.initState();
     Future.microtask(
-      () => ref
-          .read(playlistNotifierProvider.notifier)
-          .openPlaylist(widget.playlistId),
+      _reloadPlaylist,
     );
   }
 
@@ -66,6 +70,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
         ),
       );
     }
+
+    final effectiveCoverUrl = (playlist.coverUrl != null &&
+            playlist.coverUrl!.isNotEmpty)
+        ? playlist.coverUrl
+        : (tracks.isNotEmpty ? tracks.first.coverUrl : null);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -101,7 +110,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _CoverImage(coverUrl: playlist.coverUrl),
+                  _CoverImage(coverUrl: effectiveCoverUrl),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _HeaderInfo(
@@ -130,10 +139,14 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       context: context,
                       playlist: _toSummary(playlist),
                       isDetailView: true,
-                      onEdit: () => Navigator.of(context).pushNamed(
-                        Routes.playlistEdit,
-                        arguments: {'collectionId': playlist.id},
-                      ),
+                      onEdit: () async {
+                        await Navigator.of(context).pushNamed(
+                          Routes.playlistEdit,
+                          arguments: {'collectionId': playlist.id},
+                        );
+                        if (!mounted) return;
+                        await _reloadPlaylist();
+                      },
                       onTogglePrivacy: () {
                         final newPrivacy =
                             playlist.privacy == CollectionPrivacy.private
@@ -295,7 +308,10 @@ class _CoverImage extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: coverUrl != null
-          ? Image.network(coverUrl!, fit: BoxFit.cover)
+          ? Image.network(
+            coverUrl!, 
+            key: ValueKey(coverUrl),
+            fit: BoxFit.cover)
           : const Icon(Icons.queue_music, color: Colors.white24, size: 48),
     );
   }
