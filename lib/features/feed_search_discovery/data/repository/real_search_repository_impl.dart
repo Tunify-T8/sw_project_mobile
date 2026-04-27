@@ -1,3 +1,4 @@
+import '../../domain/entities/autocomplete_result_entity.dart';
 import '../../domain/entities/search_all_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
@@ -9,17 +10,16 @@ import '../../domain/entities/search_filters_entity.dart';
 import '../../domain/entities/top_result_entity.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../api/discovery_api.dart';
-import '../dto/collection_dto.dart';
-import '../dto/user_preview_dto.dart';
 import '../dto/collection_search_response_dto.dart';
-import '../dto/user_search_response_dto.dart';
 import '../dto/trending_item_dto.dart';
-import '../dto/track_search_response_dto.dart';
+import '../dto/user_search_response_dto.dart';
 
 class RealSearchRepositoryImpl implements SearchRepository {
   RealSearchRepositoryImpl(this._api);
 
   final DiscoveryApi _api;
+
+  // ── searchAll ─────────────────────────────────────────────────────────────
 
   @override
   Future<SearchAllResultEntity> searchAll(String query) async {
@@ -68,10 +68,13 @@ class RealSearchRepositoryImpl implements SearchRepository {
         }
       } else if (item.user != null) {
         final u = item.user!;
+        // SearchUserItemDto.isFollowing is bool? — default to false when null.
         profiles.add(
           ProfileResultEntity(
             id: u.id,
             username: u.username,
+            // SearchUserItemDto does carry displayName from the /search endpoint.
+            displayName: u.displayName,
             avatarUrl: u.avatarUrl,
             location: u.location,
             followersCount: u.followersCount,
@@ -97,7 +100,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
       topResult = TopResultEntity(
         id: p.id,
         type: TopResultType.profile,
-        title: p.username,
+        title: p.displayLabel,
         subtitle: _formatFollowers(p.followersCount),
         artworkUrl: p.avatarUrl,
       );
@@ -111,6 +114,44 @@ class RealSearchRepositoryImpl implements SearchRepository {
       profiles: profiles,
     );
   }
+
+  // ── searchAutocomplete ────────────────────────────────────────────────────
+
+  @override
+  Future<AutocompleteResultEntity> searchAutocomplete(String query) async {
+    final dto = await _api.searchAutocomplete(q: query);
+    return AutocompleteResultEntity(
+      tracks: dto.tracks
+          .map(
+            (t) => AutocompleteTrackEntity(
+              id: t.id,
+              title: t.title,
+              artist: t.artist,
+            ),
+          )
+          .toList(),
+      users: dto.users
+          .map(
+            (u) => AutocompleteUserEntity(
+              id: u.id,
+              username: u.username,
+              displayName: u.displayName,
+            ),
+          )
+          .toList(),
+      collections: dto.collections
+          .map(
+            (c) => AutocompleteCollectionEntity(
+              id: c.id,
+              title: c.title,
+              artist: c.artist,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  // ── searchTracks ──────────────────────────────────────────────────────────
 
   @override
   Future<List<TrackResultEntity>> searchTracks(
@@ -143,6 +184,8 @@ class RealSearchRepositoryImpl implements SearchRepository {
         .toList();
   }
 
+  // ── searchProfiles ────────────────────────────────────────────────────────
+
   @override
   Future<List<ProfileResultEntity>> searchProfiles(
     String query, {
@@ -157,10 +200,25 @@ class RealSearchRepositoryImpl implements SearchRepository {
       location: filters.location,
       minFollowers: filters.minFollowers,
       verifiedOnly: filters.verifiedOnly,
-      sort: filters.sort.apiValue,
     );
-    return dto.items.map(_userDtoToEntity).toList();
+    // UserPreviewDto.isFollowing is non-nullable bool.
+    return dto.items
+        .map(
+          (u) => ProfileResultEntity(
+            id: u.id,
+            username: u.username,
+            // UserPreviewDto has no displayName field.
+            avatarUrl: u.avatarUrl,
+            location: u.location,
+            followersCount: u.followersCount,
+            isCertified: u.isCertified,
+            isFollowing: u.isFollowing,
+          ),
+        )
+        .toList();
   }
+
+  // ── searchPlaylists ───────────────────────────────────────────────────────
 
   @override
   Future<List<PlaylistResultEntity>> searchPlaylists(
@@ -177,9 +235,19 @@ class RealSearchRepositoryImpl implements SearchRepository {
     );
     return dto.items
         .where((c) => c.type.name == 'playlist')
-        .map(_collectionDtoToPlaylist)
+        .map(
+          (c) => PlaylistResultEntity(
+            id: c.id,
+            title: c.title,
+            creatorName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
   }
+
+  // ── searchAlbums ──────────────────────────────────────────────────────────
 
   @override
   Future<List<AlbumResultEntity>> searchAlbums(
@@ -196,11 +264,20 @@ class RealSearchRepositoryImpl implements SearchRepository {
     );
     return dto.items
         .where((c) => c.type.name == 'album')
-        .map(_collectionDtoToAlbum)
+        .map(
+          (c) => AlbumResultEntity(
+            id: c.id,
+            title: c.title,
+            artistName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
   }
 
-  // ── Genre list ─────────────────────────────────────────────────────────────
+  // ── getGenres ─────────────────────────────────────────────────────────────
+
   @override
   Future<List<SearchGenreEntity>> getGenres() async {
     return const [
@@ -321,10 +398,8 @@ class RealSearchRepositoryImpl implements SearchRepository {
     ];
   }
 
-  // ── Genre detail ───────────────────────────────────────────────────────────
-  //
-  // FIX: Now calls getTrending WITH genreId so the correct genre's trending
-  // tracks are returned. Previously genreId was omitted, returning global trending.
+  // ── getGenreDetail ────────────────────────────────────────────────────────
+
   @override
   Future<GenreDetailEntity> getGenreDetail(String genreId) async {
     final results = await Future.wait([
@@ -344,28 +419,44 @@ class RealSearchRepositoryImpl implements SearchRepository {
             title: i.name,
             artistName: i.artist,
             artworkUrl: i.coverUrl,
-            durationSeconds: 0, // backend does not return duration on trending
-            playCount: _formatCount(i.score),
+            durationSeconds: 0,
+            // TrendingItemDto.score is int (non-nullable) — cast directly.
+            playCount: i.score.toString(),
           ),
         )
         .toList();
 
-    // First half → trending section; second half → introducing / discover more
     final half = (allTracks.length / 2).ceil();
     final trendingTracks = allTracks.take(half).toList();
     final introducingTracks = allTracks.skip(half).toList();
 
     final playlists = collectionDto.items
         .where((c) => c.type.name == 'playlist')
-        .map(_collectionDtoToPlaylist)
+        .map(
+          (c) => PlaylistResultEntity(
+            id: c.id,
+            title: c.title,
+            creatorName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
 
-    final albums = collectionDto.items
-        .where((c) => c.type.name == 'album')
-        .map(_collectionDtoToAlbum)
+    // UserPreviewDto.isFollowing is non-nullable bool.
+    final profiles = profileDto.items
+        .map(
+          (u) => ProfileResultEntity(
+            id: u.id,
+            username: u.username,
+            avatarUrl: u.avatarUrl,
+            location: u.location,
+            followersCount: u.followersCount,
+            isCertified: u.isCertified,
+            isFollowing: u.isFollowing,
+          ),
+        )
         .toList();
-
-    final profiles = profileDto.items.map(_userDtoToEntity).toList();
 
     return GenreDetailEntity(
       genreId: genreId,
@@ -373,55 +464,22 @@ class RealSearchRepositoryImpl implements SearchRepository {
       trendingTracks: trendingTracks,
       introducingTracks: introducingTracks,
       playlists: playlists,
-      albums: albums,
       profiles: profiles,
     );
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
-  PlaylistResultEntity _collectionDtoToPlaylist(CollectionDto c) {
-    return PlaylistResultEntity(
-      id: c.id,
-      title: c.title,
-      creatorName: c.creatorName,
-      artworkUrl: c.coverUrl,
-      trackCount: c.trackCount,
-    );
+  String _formatCount(int? n) {
+    if (n == null || n == 0) return '0';
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
+    return n.toString();
   }
 
-  AlbumResultEntity _collectionDtoToAlbum(CollectionDto c) {
-    return AlbumResultEntity(
-      id: c.id,
-      title: c.title,
-      artistName: c.creatorName,
-      artworkUrl: c.coverUrl,
-      trackCount: c.trackCount,
-    );
-  }
-
-  ProfileResultEntity _userDtoToEntity(UserPreviewDto u) {
-    return ProfileResultEntity(
-      id: u.id,
-      username: u.username,
-      avatarUrl: u.avatarUrl,
-      location: u.location,
-      followersCount: u.followersCount,
-      isCertified: u.isCertified,
-      isFollowing: u.isFollowing,
-    );
-  }
-
-  String _formatCount(int count) {
-    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
-    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
-    return count.toString();
-  }
-
-  String _formatFollowers(int count) {
-    if (count >= 1000000)
-      return '${(count / 1000000).toStringAsFixed(1)}M followers';
-    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K followers';
-    return '$count followers';
+  String _formatFollowers(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M followers';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K followers';
+    return '$n followers';
   }
 }

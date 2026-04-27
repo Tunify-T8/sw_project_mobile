@@ -70,7 +70,9 @@ class _SuggestionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Find a profile recent result whose name matches the query
+    // Find a profile recent result whose name matches the query.
+    // The artworkUrl on RecentResultItem already carries the profile picture
+    // since recordResultTapped stores it when a profile tile is tapped.
     final profileMatch = recentResults
         .where(
           (r) =>
@@ -82,7 +84,7 @@ class _SuggestionsList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 8),
       children: [
-        // Profile row at top (if match exists)
+        // Profile row at top (if a recent profile matches the typed query)
         if (profileMatch != null)
           ListTile(
             contentPadding: const EdgeInsets.symmetric(
@@ -144,7 +146,7 @@ class _SuggestionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Bold the part that matches the query, normal weight for the rest
+    // Bold the part that matches the query, normal weight for the rest.
     final lower = suggestion.toLowerCase();
     final qLower = query.toLowerCase();
     final matchIdx = lower.indexOf(qLower);
@@ -179,12 +181,7 @@ class _SuggestionTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       title: titleWidget,
       trailing: GestureDetector(
-        // Arrow fills in the search bar with this suggestion (doesn't submit)
-        onTap: () {
-          // This is intentionally the same as onTap for now
-          // When backend has suggestions, this would fill bar without submitting
-          onTap();
-        },
+        onTap: () => onTap(),
         child: const Icon(Icons.north_west, color: Colors.white38, size: 18),
       ),
       onTap: onTap,
@@ -265,39 +262,35 @@ class _RecentResultTile extends StatelessWidget {
     Widget leading;
     if (item.artworkUrl != null) {
       leading = ClipRRect(
-        borderRadius: BorderRadius.circular(isProfile ? 24 : 4),
+        borderRadius: BorderRadius.circular(isProfile ? 20 : 4),
         child: Image.network(
           item.artworkUrl!,
-          width: 48,
-          height: 48,
+          width: 40,
+          height: 40,
           fit: BoxFit.cover,
-          errorBuilder: (c, e, s) => _PlaceholderLeading(isProfile: isProfile),
+          errorBuilder: (_, _, _) => _placeholderIcon(isProfile),
         ),
       );
     } else {
-      leading = _PlaceholderLeading(isProfile: isProfile);
+      leading = _placeholderIcon(isProfile);
     }
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: SizedBox(width: 48, height: 48, child: leading),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: SizedBox(width: 40, height: 40, child: leading),
       title: Row(
         children: [
           Flexible(
             child: Text(
               item.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (isProfile && item.isCertified) ...[
+          if (item.isCertified) ...[
             const SizedBox(width: 4),
-            const Icon(Icons.verified, color: Colors.blue, size: 14),
+            const Icon(Icons.verified, color: Colors.blue, size: 13),
           ],
         ],
       ),
@@ -314,34 +307,25 @@ class _RecentResultTile extends StatelessWidget {
       onTap: onTap,
     );
   }
-}
 
-class _PlaceholderLeading extends StatelessWidget {
-  const _PlaceholderLeading({required this.isProfile});
-  final bool isProfile;
-
-  @override
-  Widget build(BuildContext context) {
-    if (isProfile) {
-      return const CircleAvatar(
-        radius: 24,
-        backgroundColor: Color(0xFF2A2A2A),
-        child: Icon(Icons.person, color: Colors.white38, size: 22),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        width: 48,
-        height: 48,
+  Widget _placeholderIcon(bool isProfile) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
-        child: const Icon(Icons.music_note, color: Colors.white24, size: 20),
+        borderRadius: BorderRadius.circular(isProfile ? 20 : 4),
+      ),
+      child: Icon(
+        isProfile ? Icons.person : Icons.music_note,
+        color: Colors.white38,
+        size: 20,
       ),
     );
   }
 }
 
-// ─── Empty hint ───────────────────────────────────────────────────────────────
+// ─── Empty state hint ─────────────────────────────────────────────────────────
 
 class _SearchHint extends StatelessWidget {
   const _SearchHint();
@@ -349,30 +333,17 @@ class _SearchHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search, color: Colors.white24, size: 48),
-            SizedBox(height: 12),
-            Text(
-              'Search SoundCloud',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              'Find artists, tracks, albums, and playlists.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search, color: Colors.white24, size: 48),
+          SizedBox(height: 12),
+          Text(
+            'Search for tracks, artists,\nor playlists',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+        ],
       ),
     );
   }

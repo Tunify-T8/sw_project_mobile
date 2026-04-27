@@ -10,15 +10,15 @@ class ApiEndpoints {
   /// Builds a shareable track URL.
   /// Private tracks include [privateToken] as a query parameter.
   static String shareTrackUrl(String trackId, {String? privateToken}) {
-    final base = Uri.parse(shareBaseUrl).replace(
-      pathSegments: ['tracks', trackId],
-    );
+    final base = Uri.parse(
+      shareBaseUrl,
+    ).replace(pathSegments: ['tracks', trackId]);
     if (privateToken == null || privateToken.trim().isEmpty) {
       return base.toString();
     }
-    return base.replace(
-      queryParameters: {'privateToken': privateToken},
-    ).toString();
+    return base
+        .replace(queryParameters: {'privateToken': privateToken})
+        .toString();
   }
 
   /// Builds a shareable profile URL.
@@ -130,14 +130,16 @@ class ApiEndpoints {
   static const String legacyPlaybackContext = '/playback/context';
 
   // Engagement & Social Interactions
-  static String trackEngagement(String trackId) => '/tracks/$trackId/engagement';
+  static String trackEngagement(String trackId) =>
+      '/tracks/$trackId/engagement';
   static String likeTrack(String trackId) => '/tracks/$trackId/like';
   static String repostTrack(String trackId) => '/tracks/$trackId/repost';
   static String trackComments(String trackId) => '/tracks/$trackId/comments';
   static String trackLikers(String trackId) => '/tracks/$trackId/likes';
   static String trackReposters(String trackId) => '/tracks/$trackId/reposts';
   static String deleteComment(String commentId) => '/comments/$commentId';
-  static String commentReplies(String commentId) => '/comments/$commentId/replies';
+  static String commentReplies(String commentId) =>
+      '/comments/$commentId/replies';
   static String likeComment(String commentId) => '/comments/$commentId/like';
   static const String myLikedTracks = '/users/me/liked-tracks';
   static const String myReposts = '/users/me/reposts';
@@ -152,6 +154,7 @@ class ApiEndpoints {
   static const String searchTracks = '/search/tracks';
   static const String searchCollections = '/search/collections';
   static const String searchPeople = '/search/people';
+  static const String searchAutocomplete = '/search/autocomplete';
 
   // Premium
   static const String getSubscriptionPlans = '/subscription/plans';

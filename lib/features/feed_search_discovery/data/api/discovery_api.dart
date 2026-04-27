@@ -8,12 +8,15 @@ import '../dto/feed_item_dto.dart';
 import '../dto/track_search_response_dto.dart';
 import '../dto/collection_search_response_dto.dart';
 import '../dto/user_search_response_dto.dart';
+import '../dto/autocomplete_response_dto.dart';
 import '../../domain/entities/collection_type.dart';
 
 class DiscoveryApi {
+  DiscoveryApi(this.dio);
+
   final Dio dio;
 
-  DiscoveryApi(this.dio);
+  // ── Feed ──────────────────────────────────────────────────────────────────
 
   Future<PaginatedFeedResponseDto> getFollowingFeed({
     int page = 1,
@@ -107,6 +110,8 @@ class DiscoveryApi {
     );
   }
 
+  // ── Search ────────────────────────────────────────────────────────────────
+
   Future<PaginatedSearchResponseDto> search({
     required String q,
     int page = 1,
@@ -117,6 +122,23 @@ class DiscoveryApi {
       queryParameters: {'q': q, 'page': page, 'limit': limit},
     );
     return PaginatedSearchResponseDto.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  /// GET /search/autocomplete?q=...
+  ///
+  /// Returns up to 5 results per category (tracks, users, collections).
+  /// Matches from a single character; typo-tolerant.
+  /// Suspended users and deleted/hidden/private tracks excluded by backend.
+  Future<AutocompleteResponseDto> searchAutocomplete({
+    required String q,
+  }) async {
+    final response = await dio.get(
+      ApiEndpoints.searchAutocomplete,
+      queryParameters: {'q': q},
+    );
+    return AutocompleteResponseDto.fromJson(
       response.data as Map<String, dynamic>,
     );
   }
