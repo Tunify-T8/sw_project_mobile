@@ -2,16 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/routes.dart';
-import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../providers/playlist_providers.dart';
-import 'add_track_sheet.dart';
-import 'create_edit_playlist_sheet.dart';
-import 'playlist_options_sheet.dart';
-import 'playlist_share_sheet.dart';
-import 'playlist_tile.dart';
 
 class ProfilePlaylistsSection extends ConsumerStatefulWidget {
   const ProfilePlaylistsSection({
@@ -95,34 +89,6 @@ class _ProfilePlaylistsSectionState
     }
   }
 
-  Future<void> _openCreateSheet(BuildContext context) async {
-    await showCreatePlaylistSheet(context: context, ref: ref);
-    if (!mounted) return;
-    await _load();
-  }
-
-  Future<void> _deleteAndReload(String playlistId) async {
-    await ref.read(playlistNotifierProvider.notifier).deleteCollection(
-          playlistId,
-        );
-    if (!mounted) return;
-    await _load();
-  }
-
-  Future<void> _togglePrivacyAndReload(
-    PlaylistSummaryEntity playlist,
-  ) async {
-    final newPrivacy = playlist.privacy == CollectionPrivacy.private
-        ? CollectionPrivacy.public
-        : CollectionPrivacy.private;
-    await ref.read(playlistNotifierProvider.notifier).editCollection(
-          id: playlist.id,
-          privacy: newPrivacy,
-        );
-    if (!mounted) return;
-    await _load();
-  }
-
   Future<List<PlaylistSummaryEntity>> _resolvePlaylistCovers(
     PlaylistRepository repo,
     List<PlaylistSummaryEntity> playlists,
@@ -188,41 +154,16 @@ class _ProfilePlaylistsSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 9),
-                child: Text(
-                  'Playlists',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 9),
+            child: Text(
+              'Playlists',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-              const Spacer(),
-              if (widget.isCurrentUser)
-                TextButton(
-                  onPressed: () {
-                    _openCreateSheet(context);
-                  },
-                  child: const Text(
-                    'Create',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ),
-              if (widget.isCurrentUser)
-                TextButton(
-                  onPressed: () => Navigator.of(context).pushNamed(
-                    Routes.playlists,
-                  ),
-                  child: const Text(
-                    'See All',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ),
-            ],
+            ),
           ),
           const SizedBox(height: 4),
           if (_loading)
@@ -252,60 +193,102 @@ class _ProfilePlaylistsSectionState
               ),
             )
           else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _playlists.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(color: Colors.white10, height: 1),
-              itemBuilder: (context, index) {
-                final playlist = _playlists[index];
-                return PlaylistTile(
-                  playlist: playlist,
-                  ownerName: widget.isCurrentUser ? null : widget.ownerName,
-                  onTap: () => Navigator.of(context).pushNamed(
-                    Routes.playlistDetail,
-                    arguments: {'playlistId': playlist.id},
-                  ),
-                  onMoreTap: () => _showOptions(context, playlist),
-                );
-              },
+            SizedBox(
+              height: 248,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(9, 8, 9, 0),
+                itemCount: _playlists.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, index) {
+                  final playlist = _playlists[index];
+                  return _ProfilePlaylistCard(
+                    playlist: playlist,
+                    ownerName: widget.ownerName,
+                    onTap: () async {
+                      await Navigator.of(context).pushNamed(
+                        Routes.playlistDetail,
+                        arguments: {'playlistId': playlist.id},
+                      );
+                      if (!mounted) return;
+                      await _load();
+                    },
+                  );
+                },
+              ),
             ),
         ],
       ),
     );
   }
+}
 
-  void _showOptions(BuildContext context, PlaylistSummaryEntity playlist) {
-    if (!widget.isCurrentUser) {
-      showPlaylistShareSheet(
-        context: context,
-        playlist: playlist,
-      );
-      return;
-    }
+class _ProfilePlaylistCard extends StatelessWidget {
+  const _ProfilePlaylistCard({
+    required this.playlist,
+    required this.onTap,
+    this.ownerName,
+  });
 
-    showPlaylistOptionsSheet(
-      context: context,
-      playlist: playlist,
-      onShare: () => showPlaylistShareSheet(
-        context: context,
-        playlist: playlist,
+  final PlaylistSummaryEntity playlist;
+  final String? ownerName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayOwner = ownerName?.trim() ?? '';
+
+    return SizedBox(
+      width: 180,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: playlist.coverUrl != null && playlist.coverUrl!.isNotEmpty
+                  ? Image.network(
+                      playlist.coverUrl!,
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(
+                      Icons.queue_music,
+                      color: Colors.white24,
+                      size: 42,
+                    ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              playlist.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            if (displayOwner.isNotEmpty)
+              Text(
+                displayOwner,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+          ],
+        ),
       ),
-      onEdit: () => Navigator.of(
-        context,
-      ).pushNamed(Routes.playlistEdit, arguments: {'collectionId': playlist.id}),
-      onTogglePrivacy: () {
-        _togglePrivacyAndReload(playlist);
-      },
-      onAddMusic: () => showAddTrackSheet(
-        context: context,
-        ref: ref,
-        collectionId: playlist.id,
-      ),
-      onDelete: () {
-        _deleteAndReload(playlist.id);
-      },
     );
   }
 }

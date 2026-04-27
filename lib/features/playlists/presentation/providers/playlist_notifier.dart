@@ -1,11 +1,19 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/dio_client.dart';
+import '../../../premium_subscription/data/api/subscription_api.dart';
+import '../../../premium_subscription/data/repository/subscription_repository_impl.dart';
+import '../../../premium_subscription/domain/usecases/get_current_subscription_usecase.dart';
+import '../../domain/config/playlist_limits.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/paginated_playlists.dart';
 import '../../domain/entities/playlist_entity.dart';
+import '../../domain/repositories/playlist_repository.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/usecases/playlist_usecases.dart';
 import 'playlist_providers.dart';
@@ -16,6 +24,7 @@ import 'playlist_state.dart';
 /// Uses Riverpod 2.x [Notifier] — dependencies are resolved via [ref] in
 /// [build], matching the pattern used throughout this project.
 class PlaylistNotifier extends Notifier<PlaylistState> {
+  late final PlaylistRepository _repository;
   late final CreatePlaylistUseCase _createPlaylist;
   late final EditPlaylistUseCase _editPlaylist;
   late final DeletePlaylistUseCase _deletePlaylist;
@@ -28,6 +37,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
 
   @override
   PlaylistState build() {
+    _repository = ref.read(playlistRepositoryProvider);
     _createPlaylist = ref.read(createPlaylistUseCaseProvider);
     _editPlaylist = ref.read(editPlaylistUseCaseProvider);
     _deletePlaylist = ref.read(deletePlaylistUseCaseProvider);
@@ -117,9 +127,33 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     }
   }
 
+  Future<void> openPlaylistByToken(String token) async {
+    state = state.copyWith(
+      isDetailLoading: true,
+      clearDetailError: true,
+      activeTracks: [],
+      tracksPage: 1,
+    );
+    try {
+      final playlist = await _repository.getCollectionByToken(token);
+      final tracks = await _getTracksPerPlaylist(
+        playlistId: playlist.id,
+        limit: 50,
+      );
+      state = state.copyWith(
+        activePlaylist: playlist,
+        activeTracks: tracks.items,
+        hasMoreTracks: tracks.hasMore,
+        isDetailLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isDetailLoading: false, detailError: e.toString());
+    }
+  }
+
   // ─── Create ──────────────────────────────────────────────────────────────
 
-  Future<void> createCollection({
+  Future<PlaylistEntity?> createCollection({
     required String title,
     required CollectionType type,
     required CollectionPrivacy privacy,
@@ -129,6 +163,25 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
   }) async {
     state = state.copyWith(isMutating: true, clearMutationError: true);
     try {
+      if (type == CollectionType.playlist) {
+        final playlistLimit = await _getPlaylistLimit();
+        final latestPlaylists = await _getMyPlaylists(
+          page: 1,
+          limit: 1,
+          type: CollectionType.playlist,
+        );
+        if (latestPlaylists.total >= playlistLimit) {
+          state = state.copyWith(
+            isMutating: false,
+            mutationError: playlistLimitReachedMessage(
+              playlistLimit,
+              includeUpgradeHint: true,
+            ),
+          );
+          return null;
+        }
+      }
+
       final created = await _createPlaylist(
         title: title,
         type: type,
@@ -137,12 +190,32 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         cover: cover,
         coverUrl: coverUrl,
       );
+      final refreshedCollections = await _getMyPlaylists(page: 1, limit: 20);
       state = state.copyWith(
         isMutating: false,
-        myCollections: [_toSummary(created), ...state.myCollections],
+        myCollections: refreshedCollections.items,
+        hasMoreMyCollections: refreshedCollections.hasMore,
+        myCollectionsPage: refreshedCollections.page,
       );
+      return created;
+    } on DioException catch (e) {
+      debugPrint('CREATE PLAYLIST URL: ${e.requestOptions.uri}');
+      debugPrint('CREATE PLAYLIST METHOD: ${e.requestOptions.method}');
+      debugPrint('CREATE PLAYLIST DATA: ${e.requestOptions.data}');
+      debugPrint('CREATE PLAYLIST QUERY: ${e.requestOptions.queryParameters}');
+      debugPrint('CREATE PLAYLIST RESPONSE: ${e.response?.data}');
+      final responseData = e.response?.data;
+      final responseMessage = responseData is Map<String, dynamic>
+          ? responseData['message']?.toString()
+          : null;
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: responseMessage ?? e.message ?? e.toString(),
+      );
+      return null;
     } catch (e) {
       state = state.copyWith(isMutating: false, mutationError: e.toString());
+      return null;
     }
   }
 
@@ -232,7 +305,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     }
   }
 
-  // ─── Reorder tracks ───────────────────────────────────────────────────────
+// ─── Reorder tracks ───────────────────────────────────────────────────────
 
   Future<void> reorderTracks({
     required String collectionId,
@@ -243,9 +316,44 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       for (final id in trackIds)
         if (byId.containsKey(id)) byId[id]!,
     ];
-    state = state.copyWith(activeTracks: reordered);
+    final firstTrackCoverUrl =
+        reordered.isNotEmpty ? reordered.first.coverUrl : null;
+    final optimisticPlaylist = state.activePlaylist?.id == collectionId
+        ? _copyPlaylistWithCover(state.activePlaylist!, firstTrackCoverUrl)
+        : state.activePlaylist;
+    final optimisticCollections = state.myCollections
+        .map(
+          (playlist) => playlist.id == collectionId
+              ? _copySummaryWithCover(playlist, firstTrackCoverUrl)
+              : playlist,
+        )
+        .toList();
+
+    state = state.copyWith(
+      activeTracks: reordered,
+      activePlaylist: optimisticPlaylist,
+      myCollections: optimisticCollections,
+    );
+
     try {
       await _reorderTracks(collectionId: collectionId, trackIds: trackIds);
+
+      final updatedPlaylist = await _getPlaylist(collectionId);
+      final syncedPlaylist =
+          _copyPlaylistWithCover(updatedPlaylist, firstTrackCoverUrl);
+      state = state.copyWith(
+        activePlaylist: syncedPlaylist,
+        myCollections: state.myCollections
+            .map(
+              (playlist) => playlist.id == collectionId
+                  ? _copySummaryWithCover(
+                      _toSummary(updatedPlaylist),
+                      firstTrackCoverUrl,
+                    )
+                  : playlist,
+            )
+            .toList(),
+      );
     } catch (e) {
       await openPlaylist(collectionId);
       state = state.copyWith(mutationError: e.toString());
@@ -270,4 +378,63 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
   );
+
+  PlaylistEntity _copyPlaylistWithCover(
+    PlaylistEntity playlist,
+    String? coverUrl,
+  ) {
+    return PlaylistEntity(
+      id: playlist.id,
+      title: playlist.title,
+      description: playlist.description,
+      type: playlist.type,
+      privacy: playlist.privacy,
+      secretToken: playlist.secretToken,
+      coverUrl: coverUrl,
+      trackCount: playlist.trackCount,
+      likeCount: playlist.likeCount,
+      repostsCount: playlist.repostsCount,
+      ownerFollowerCount: playlist.ownerFollowerCount,
+      isLiked: playlist.isLiked,
+      owner: playlist.owner,
+      createdAt: playlist.createdAt,
+      updatedAt: playlist.updatedAt,
+    );
+  }
+
+  PlaylistSummaryEntity _copySummaryWithCover(
+    PlaylistSummaryEntity playlist,
+    String? coverUrl,
+  ) {
+    return PlaylistSummaryEntity(
+      id: playlist.id,
+      title: playlist.title,
+      description: playlist.description,
+      type: playlist.type,
+      privacy: playlist.privacy,
+      coverUrl: coverUrl,
+      trackCount: playlist.trackCount,
+      likeCount: playlist.likeCount,
+      repostsCount: playlist.repostsCount,
+      ownerFollowerCount: playlist.ownerFollowerCount,
+      isMine: playlist.isMine,
+      isLiked: playlist.isLiked,
+      createdAt: playlist.createdAt,
+      updatedAt: playlist.updatedAt,
+    );
+  }
+
+  Future<int> _getPlaylistLimit() async {
+    try {
+      final dio = ref.read(dioProvider);
+      final useCase = GetCurrentSubscriptionUseCase(
+        SubscriptionRepositoryImpl(SubscriptionApi(dio)),
+      );
+      final subscription = await useCase.call();
+      final playlistLimit = subscription.features.playlistLimit;
+      return playlistLimit > 0 ? playlistLimit : 2;
+    } catch (_) {
+      return 2;
+    }
+  }
 }

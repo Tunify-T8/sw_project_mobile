@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/features/notifications/data/services/push_notification_service.dart';
 import 'router.dart';
@@ -24,18 +22,10 @@ import 'router.dart';
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final platform = defaultTargetPlatform;
-  final isHandsetPlatform =
-      platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-  if (platform == TargetPlatform.windows || platform == TargetPlatform.linux) {
-    JustAudioMediaKit.ensureInitialized();
-  }
-
-  await SystemChrome.setPreferredOrientations(
-    isHandsetPlatform
-        ? [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]
-        : const [],
-  );
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

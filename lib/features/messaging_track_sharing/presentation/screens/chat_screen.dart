@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/design_system/app_loading_spinner.dart';
 import '../../../../core/design_system/colors.dart';
-import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
@@ -186,7 +184,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               Expanded(
                 child: chatState.isLoading
                     ? const Center(
-                        child: AppLoadingSpinner(label: 'Loading chat…'),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       )
                     : _MessageList(
                         messages: chatState.messages,

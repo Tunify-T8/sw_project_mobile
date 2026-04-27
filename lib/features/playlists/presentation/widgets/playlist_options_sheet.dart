@@ -23,6 +23,7 @@ void showPlaylistOptionsSheet({
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (_) => _PlaylistOptionsSheet(
+      hostContext: context,
       playlist: playlist,
       onEdit: onEdit,
       onTogglePrivacy: onTogglePrivacy,
@@ -38,6 +39,7 @@ void showPlaylistOptionsSheet({
 
 class _PlaylistOptionsSheet extends StatelessWidget {
   const _PlaylistOptionsSheet({
+    required this.hostContext,
     required this.playlist,
     required this.onEdit,
     required this.onTogglePrivacy,
@@ -49,6 +51,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
     this.onShufflePlay,
   });
 
+  final BuildContext hostContext;
   final PlaylistSummaryEntity playlist;
   final VoidCallback onEdit;
   final VoidCallback onTogglePrivacy;
@@ -76,6 +79,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
           _Header(playlist: playlist),
           const Divider(color: Colors.white12, height: 1),
           _OptionRow(
+            key: const Key('playlist_option_share'),
             icon: Icons.share_outlined,
             label: 'Share',
             onTap: () {
@@ -84,6 +88,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             },
           ),
           _OptionRow(
+            key: const Key('playlist_option_edit'),
             icon: Icons.edit_outlined,
             label: 'Edit',
             onTap: () {
@@ -92,6 +97,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             },
           ),
           _OptionRow(
+            key: const Key('playlist_option_toggle_privacy'),
             icon: playlist.privacy == CollectionPrivacy.private
                 ? Icons.lock_open_outlined
                 : Icons.lock_outline,
@@ -104,6 +110,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             },
           ),
           _OptionRow(
+            key: const Key('playlist_option_add_music'),
             icon: Icons.library_add_outlined,
             label: 'Add music',
             onTap: () {
@@ -112,12 +119,13 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             },
           ),
           _OptionRow(
+            key: const Key('playlist_option_delete'),
             icon: Icons.delete_outline,
             label: 'Delete',
             color: Colors.redAccent,
             onTap: () {
               Navigator.pop(context);
-              _confirmDelete(context);
+              _confirmDelete(hostContext);
             },
           ),
           if (isDetailView)
@@ -170,13 +178,13 @@ class _PlaylistOptionsSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             child: const Text('Cancel',
                 style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.of(context, rootNavigator: true).pop();
               onDelete();
             },
             child: const Text('Delete',
@@ -227,8 +235,8 @@ class _Header extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       playlist.privacy == CollectionPrivacy.private
-                          ? 'Private playlist'
-                          : 'Public playlist',
+                          ? 'Private'
+                          : 'Public',
                       style: const TextStyle(
                           color: Colors.white60, fontSize: 13),
                     ),
@@ -266,6 +274,7 @@ class _CoverArt extends StatelessWidget {
 
 class _OptionRow extends StatelessWidget {
   const _OptionRow({
+    super.key,
     required this.icon,
     required this.label,
     required this.onTap,

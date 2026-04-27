@@ -122,6 +122,10 @@ class _MiniPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final privacyLabel = playlist.privacy == CollectionPrivacy.private
+        ? 'Private'
+        : 'Public';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -147,17 +151,47 @@ class _MiniPreview extends StatelessWidget {
                   playlist.title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  playlist.privacy == CollectionPrivacy.private
-                      ? 'Private playlist'
-                      : 'Public playlist',
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Playlist',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6),
+                      child: Text(
+                        '·',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      playlist.privacy == CollectionPrivacy.private
+                          ? Icons.lock_rounded
+                          : Icons.public,
+                      color: Colors.white70,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      privacyLabel,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

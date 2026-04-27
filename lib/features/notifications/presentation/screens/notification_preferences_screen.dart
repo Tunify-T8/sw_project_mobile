@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/design_system/app_loading_spinner.dart';
 import '../../../../core/design_system/colors.dart';
 import '../../domain/entities/notification_preferences_entity.dart';
 import '../state/notification_preferences_controller.dart';
@@ -33,7 +32,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
       ),
       body: state.isLoading
           ? const Center(
-              child: AppLoadingSpinner(label: 'Loading preferences…'))
+              child: CircularProgressIndicator(color: AppColors.primary))
           : state.preferences == null
               ? const Center(
                   child: Text('Failed to load preferences',
