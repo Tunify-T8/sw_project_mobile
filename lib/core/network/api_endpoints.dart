@@ -153,10 +153,10 @@ class ApiEndpoints {
   static const String searchPeople = '/search/people';
 
   //Premuim
-  static const String getSubscriptionPlans = '/subscription/plans';
-  static const String getCurrentSubscription = '/subscription/me';
-  static const String subscribe = '/subscription/subscribe';
-  static const String cancelSubscription = '/subscription/cancel';
+  static const String getSubscriptionPlans = '/subscriptions/plans';
+  static const String getCurrentSubscription = '/subscriptions/me';
+  static const String subscribe = '/subscriptions/subscribe';
+  static const String cancelSubscription = '/subscriptions/cancel';
 }
 
 //profile

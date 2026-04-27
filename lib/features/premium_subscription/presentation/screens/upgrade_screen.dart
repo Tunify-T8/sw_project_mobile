@@ -166,7 +166,7 @@ class UpgradeScreen extends StatelessWidget {
                             constraints: BoxConstraints(maxHeight: 250),
                             showDragHandle: true,
                             builder: (_) => SubscriptionRestrictionMenu(
-                              subscriptionPlan: SubscriptionTier.artistPro,
+                              subscriptionPlan: SubscriptionTier.GOPLUS,
                             ),
                           );
                         },

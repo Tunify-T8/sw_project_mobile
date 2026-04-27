@@ -1,22 +1,60 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/billing_cycle.dart';
+import '../../domain/entities/payment_method_entity.dart';
+import 'payment_method_sheet.dart';
 import 'subscription_restriction_menu.dart';
 import '../../domain/entities/subscription_tier.dart';
+import '../../domain/entities/subscription_plan_entity.dart';
 
 class SubscriptionCard extends StatelessWidget {
-  static const yearlyPrice = 'EGP 1,055.00/year';
-  static const monthlyPrice = 'EGP 175.00/month';
-  static const List<String> features = [
-    'Unlock unlimited upload time',
-    'Get paid fairly for your plays',
-    'Access advanced audience insights',
-    'Replace your track without losing its stats',
-    'Pin your favorite tracks',
-  ];
+  final SubscriptionPlanEntity plan;
   final BillingCycle subscriptionPeriod;
-  const SubscriptionCard({super.key, required this.subscriptionPeriod});
+  final Future<String> Function(PaymentMethodEntity paymentMethod) onSubscribe;
 
-  Widget buildFeatures({required String feature}) {
+  const SubscriptionCard({
+    super.key,
+    required this.plan,
+    required this.subscriptionPeriod,
+    required this.onSubscribe,
+  });
+
+  String _getTitle() {
+    switch (plan.tier) {
+      case SubscriptionTier.FREE:
+        return 'Free';
+      case SubscriptionTier.PRO:
+        return 'Artist';
+      case SubscriptionTier.GOPLUS:
+        return 'Artist Pro';
+    }
+  }
+
+  String _getPrice() {
+    final amount = subscriptionPeriod == BillingCycle.yearly
+        ? plan.yearlyPrice
+        : plan.monthlyPrice;
+    final period = subscriptionPeriod == BillingCycle.yearly ? 'year' : 'month';
+
+    return '${plan.currency} ${amount.toStringAsFixed(2)}/$period';
+  }
+
+  List<String> _getFeatures() {
+    return [
+      (plan.features.uploadLimit > 0)
+          ? 'Upload up to ${plan.features.uploadLimit} tracks'
+          : 'Upload unlimited tracks',
+
+      if (plan.features.adFree) 'Ad-free listening',
+      if (plan.features.offlineListening) 'Offline listening',
+      if (plan.features.limitPlaybackAccess) 'Limit playback access',
+
+      (plan.features.playlistLimit > 0)
+          ? 'Create up to ${plan.features.playlistLimit} playlists'
+          : 'Create unlimited playlists',
+    ];
+  }
+
+  Widget buildFeatures(String feature) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,6 +72,9 @@ class SubscriptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final features = _getFeatures();
+    final price = _getPrice();
+
     return Container(
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -57,38 +98,60 @@ class SubscriptionCard extends StatelessWidget {
               ),
             ),
           ),
+
           SizedBox(height: 14),
+
           Row(
             children: [
               Text(
-                "Artist Pro",
+                _getTitle(),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
               ),
               SizedBox(width: 8),
               Icon(Icons.star, color: Color(0xFF988449)),
             ],
           ),
+
           Text(
-            (subscriptionPeriod == BillingCycle.yearly)
-                ? yearlyPrice
-                : monthlyPrice,
+            price,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
+
           SizedBox(height: 24),
+
           Column(
             children: features
                 .map(
                   (feature) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: buildFeatures(feature: feature),
+                    child: buildFeatures(feature),
                   ),
                 )
                 .toList(),
           ),
+
           SizedBox(
             width: double.infinity,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: const Color(0xFF121212),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(18),
+                    ),
+                  ),
+                  showDragHandle: true,
+                  builder: (_) => PaymentMethodSheet(
+                    price: price,
+                    onContinue: (paymentMethod) {
+                      return onSubscribe(paymentMethod);
+                    },
+                  ),
+                );
+              },
               style: TextButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
@@ -99,10 +162,15 @@ class SubscriptionCard extends StatelessWidget {
               ),
               child: const Text(
                 'Subscribe Now',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
+
           Row(
             children: [
               Text("Cancel anytime. "),
@@ -114,19 +182,19 @@ class SubscriptionCard extends StatelessWidget {
                 ),
                 onPressed: () {
                   showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Color(0xFF121212),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            constraints: BoxConstraints(maxHeight: 250),
-                            showDragHandle: true,
-                            builder: (_) => SubscriptionRestrictionMenu(
-                              subscriptionPlan: SubscriptionTier.artistPro,
-                            ),
-                          );
+                    context: context,
+                    backgroundColor: Color(0xFF121212),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
+                    ),
+                    constraints: BoxConstraints(maxHeight: 250),
+                    showDragHandle: true,
+                    builder: (_) => SubscriptionRestrictionMenu(
+                      subscriptionPlan: plan.tier,
+                    ),
+                  );
                 },
                 child: const Text(
                   "Restrictions apply",

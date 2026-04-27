@@ -30,9 +30,7 @@ class SubscriptionRestrictionMenu extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  (subscriptionPlan == SubscriptionTier.artist)
-                      ? 'Artist '
-                      : 'Artist Pro ',
+                  (subscriptionPlan == SubscriptionTier.PRO) ? 'Artist ' : 'Artist Pro ',
                 ),
                 TextButton(
                   style: TextButton.styleFrom(

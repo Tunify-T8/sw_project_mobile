@@ -221,6 +221,8 @@ class _LikedTrackTile extends ConsumerWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: () async {
+                print(track.artistId);
+
                 await showTrackOptionsMenu(
                   context: context,
                   trackId: track.trackId,

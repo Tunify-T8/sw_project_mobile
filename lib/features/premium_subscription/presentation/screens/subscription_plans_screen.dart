@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
-import '../widgets/subscription_card.dart';
-import '../../domain/entities/billing_cycle.dart';
-import '../widgets/faq_section.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SubscriptionPlansScreen extends StatefulWidget {
+import '../providers/subscription_notifier.dart';
+import '../widgets/faq_section.dart';
+import '../widgets/subscription_plan_content.dart';
+import '../widgets/subscription_testimonial.dart';
+import '../../domain/entities/subscription_tier.dart';
+
+class SubscriptionPlansScreen extends ConsumerStatefulWidget {
   const SubscriptionPlansScreen({super.key});
 
   @override
-  State<SubscriptionPlansScreen> createState() =>
+  ConsumerState<SubscriptionPlansScreen> createState() =>
       _SubscriptionPlansScreenState();
 }
 
-class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen>
+class _SubscriptionPlansScreenState
+    extends ConsumerState<SubscriptionPlansScreen>
     with TickerProviderStateMixin {
   late PageController _pageViewController;
-  late TabController _tabController;
+  TabController? _tabController;
+  int _tabCount = 0;
+
   static const TextStyle _titleTextStyle = TextStyle(
     color: Colors.white,
     fontSize: 28,
@@ -29,24 +36,39 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen>
   void initState() {
     super.initState();
     _pageViewController = PageController();
-    _tabController = TabController(length: 2, vsync: this);
+
+    Future.microtask(() {
+      ref.read(subscriptionNotifierProvider.notifier).loadPlans();
+    });
   }
 
   @override
   void dispose() {
     super.dispose();
     _pageViewController.dispose();
-    _tabController.dispose();
+    _tabController?.dispose();
   }
 
-  void _handlePageViewChanged(int index) {
-    setState(() {
-      _tabController.index = index;
-    });
+  void _syncTabController(int count) {
+    if (_tabCount == count) return;
+
+    _tabController?.dispose();
+    _tabController = TabController(length: count, vsync: this);
+    _tabCount = count;
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(subscriptionNotifierProvider);
+    final paidPlans = state.plans
+        .where((plan) => plan.tier != SubscriptionTier.FREE)
+        .toList();
+
+    final cardCount = paidPlans.length * 2;
+    if (cardCount > 0) {
+      _syncTabController(cardCount);
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: ListView(
@@ -92,38 +114,54 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen>
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 20),
 
                   Center(
                     child: SizedBox(
                       height: 450,
                       width: 380,
-                      child: PageView(
-                        controller: _pageViewController,
-                        onPageChanged: _handlePageViewChanged,
-                        children: const [
-                          SubscriptionCard(
-                            subscriptionPeriod: BillingCycle.yearly,
-                          ),
-                          SubscriptionCard(
-                            subscriptionPeriod: BillingCycle.monthly,
-                          ),
-                        ],
+                      child: SubscriptionPlanContent(
+                        state: state,
+                        paidPlans: paidPlans,
+                        pageViewController: _pageViewController,
+                        onRetry: () {
+                          ref
+                              .read(subscriptionNotifierProvider.notifier)
+                              .loadPlans();
+                        },
+                        onPageChanged: (index) {
+                          setState(() {
+                            _tabController?.index = index;
+                          });
+                        },
+                        onSubscribe: (plan, billingCycle, paymentMethod) {
+                          final notifier = ref.read(
+                            subscriptionNotifierProvider.notifier,
+                          );
+                          notifier.setBillingCycle(billingCycle);
+                          return notifier.subscribe(
+                            tier: plan.tier,
+                            paymentMethod: paymentMethod,
+                          );
+                        },
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  Center(
-                    child: TabPageSelector(
-                      controller: _tabController,
-                      color: const Color(0xFF7A2D63),
-                      selectedColor: const Color(0xFF111111),
-                      borderStyle: BorderStyle.none,
-                      indicatorSize: 8,
+                  if (_tabController != null)
+                    Center(
+                      child: TabPageSelector(
+                        controller: _tabController!,
+                        color: const Color(0xFF7A2D63),
+                        selectedColor: const Color(0xFF111111),
+                        borderStyle: BorderStyle.none,
+                        indicatorSize: 8,
+                      ),
                     ),
-                  ),
+
                   const SizedBox(height: 20),
                 ],
               ),
@@ -148,69 +186,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen>
               ],
             ),
           ),
+
           SizedBox(height: 8),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF5D0F97), Color(0xFF423BB3)],
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 200),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            "“It's such a simple idea. Your monthly fees get split up between the songs you actually listen to.”",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            "— RAC, musician and producer",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          SubscriptionTestimonial(),
 
-              Positioned(
-                left: 20,
-                top: 25,
-                bottom: -30,
-                child: Container(
-                  width: 170,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    image: const DecorationImage(
-                      image: NetworkImage(
-                        'https://specials-images.forbesimg.com/imageserve/6047077e9d0982ef2a4e2817/960x0.jpg',
-                      ),
-                      fit: BoxFit.cover,
-                      alignment: Alignment.centerLeft,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 60),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
