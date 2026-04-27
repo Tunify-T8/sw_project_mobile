@@ -13,6 +13,7 @@ import '../../../audio_upload_and_management/presentation/utils/upload_player_la
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../playlists/presentation/widgets/profile_playlists_section.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -202,6 +203,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         queueItems: uploadedTracks,
                       );
                     },
+                  ),
+                  ProfilePlaylistsSection(
+                    isCurrentUser: true,
+                    ownerName: profile?.displayName ?? profile?.userName,
                   ),
                   const ProfileLikesSection(),
                   const ProfileRepostsSection(),

@@ -27,6 +27,10 @@ import '../features/messaging_track_sharing/presentation/screens/messaging_activ
 import '../features/messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
 import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
+import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
+import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
+import '../features/playlists/presentation/screens/playlist_screen.dart';
+import '../features/playlists/presentation/utils/shared_playlist_link_parser.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
@@ -73,9 +77,23 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = _readArgs(settings.arguments);
+    final sharedPlaylistLink = settings.name == null
+        ? null
+        : parsePlaylistShareLink(settings.name!);
     final sharedTrackLink = settings.name == null
         ? null
         : parseTrackShareLink(settings.name!);
+    if (sharedPlaylistLink != null) {
+      return _slideUp(
+        AuthProtectedScreen(
+          child: PlaylistDetailScreen(
+            playlistId: sharedPlaylistLink.playlistId,
+            secretToken: sharedPlaylistLink.secretToken,
+          ),
+        ),
+        settings,
+      );
+    }
     if (sharedTrackLink != null) {
       return _slideUp(
         AuthProtectedScreen(
@@ -306,6 +324,30 @@ class AppRouter {
       case Routes.notificationPreferences:
         return _slide(
           const AuthProtectedScreen(child: NotificationPreferencesScreen()),
+          settings,
+        );
+
+      case Routes.playlists:
+        return _slide(
+          const AuthProtectedScreen(child: PlaylistsScreen()),
+          settings,
+        );
+
+      case Routes.playlistDetail:
+        final id = args['playlistId'] as String? ?? '';
+        return _slide(
+          AuthProtectedScreen(
+            child: PlaylistDetailScreen(playlistId: id),
+          ),
+          settings,
+        );
+
+      case Routes.playlistEdit:
+        final collectionId = args['collectionId'] as String? ?? '';
+        return _slide(
+          AuthProtectedScreen(
+            child: PlaylistEditScreen(collectionId: collectionId),
+          ),
           settings,
         );
 
