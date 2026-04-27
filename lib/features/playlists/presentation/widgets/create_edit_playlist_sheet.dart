@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/config/playlist_limits.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_entity.dart';
@@ -41,6 +42,15 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
   var _privacy = CollectionPrivacy.public;
   final _formKey = GlobalKey<FormState>();
   String? _lastShownError;
+  bool _isCheckingAvailability = true;
+  bool _canCreate = false;
+  String? _availabilityMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshCreateAvailability();
+  }
 
   @override
   void dispose() {
@@ -49,7 +59,41 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
     super.dispose();
   }
 
+  Future<void> _refreshCreateAvailability() async {
+    setState(() {
+      _isCheckingAvailability = true;
+      _availabilityMessage = null;
+    });
+
+    try {
+      final latestPlaylists = await widget.ref
+          .read(playlistRepositoryProvider)
+          .getMyCollections(
+            page: 1,
+            limit: 1,
+            type: CollectionType.playlist,
+          );
+      final reachedLimit = hasReachedFreeCollectionLimit(latestPlaylists.total);
+      if (!mounted) return;
+      setState(() {
+        _canCreate = !reachedLimit;
+        _availabilityMessage = reachedLimit
+            ? playlistLimitReachedMessage(kFreeCollectionLimit)
+            : null;
+        _isCheckingAvailability = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _canCreate = true;
+        _availabilityMessage = null;
+        _isCheckingAvailability = false;
+      });
+    }
+  }
+
   Future<void> _submit() async {
+    if (_isCheckingAvailability || !_canCreate) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final created = await widget.ref
         .read(playlistNotifierProvider.notifier)
@@ -62,6 +106,8 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
         );
     if (mounted && created != null) {
       Navigator.pop(context, created);
+    } else if (mounted) {
+      await _refreshCreateAvailability();
     }
   }
 
@@ -96,6 +142,9 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
         _lastShownError = error;
       });
     }
+
+    final createEnabled =
+        !_isCheckingAvailability && !isMutating && _canCreate;
 
     return Container(
       decoration: const BoxDecoration(
@@ -139,19 +188,32 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
                 value: _privacy,
                 onChanged: (v) => setState(() => _privacy = v),
               ),
+              if (_availabilityMessage != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  _availabilityMessage!,
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: isMutating ? null : _submit,
+                key: const Key('create_playlist_button'),
+                onPressed: createEnabled ? _submit : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2A2A2A),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
                   disabledBackgroundColor: const Color(0xFF232323),
+                  disabledForegroundColor: Colors.white54,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: isMutating
+                child: isMutating || _isCheckingAvailability
                     ? const SizedBox(
                         width: 20,
                         height: 20,

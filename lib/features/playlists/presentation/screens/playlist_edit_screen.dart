@@ -116,6 +116,66 @@ class _PlaylistEditScreenState extends ConsumerState<PlaylistEditScreen>
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _deletePlaylist() async {
+    final playlistTitle = _titleCtrl.text.trim();
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        title: const Text(
+          'Delete playlist',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          playlistTitle.isEmpty
+              ? 'This cannot be undone.'
+              : 'Delete "$playlistTitle"? This cannot be undone.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true || !mounted) return;
+
+    final notifier = ref.read(playlistNotifierProvider.notifier);
+    await notifier.deleteCollection(widget.collectionId);
+    if (!mounted) return;
+
+    final mutationError = ref.read(playlistNotifierProvider).mutationError;
+    if (mutationError != null && mutationError.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF1C1C1E),
+          content: Text(
+            mutationError,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.maybePop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMutating = ref.watch(
@@ -184,6 +244,24 @@ class _PlaylistEditScreenState extends ConsumerState<PlaylistEditScreen>
               _privacy = v;
               _detailsDirty = true;
             }),
+          ),
+          const SizedBox(height: 28),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            key: const Key('playlist_edit_delete_button'),
+            onPressed: ref.watch(
+              playlistNotifierProvider.select((s) => s.isMutating),
+            )
+                ? null
+                : _deletePlaylist,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.redAccent),
+              foregroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete playlist'),
           ),
         ],
       ),

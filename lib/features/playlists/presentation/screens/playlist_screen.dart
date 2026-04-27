@@ -160,6 +160,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                   onPressed: () {},
                 ),
                 IconButton(
+                  key: const Key('playlists_add_button'),
                   icon: const Icon(Icons.add, color: Colors.white),
                   onPressed: () => showCreatePlaylistSheet(
                     context: context,
@@ -174,6 +175,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: TextField(
+                  key: const Key('playlists_search_field'),
                   controller: _searchController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
@@ -211,6 +213,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _ActionButton(
+                        key: const Key('playlists_create_new_button'),
                         icon: Icons.add,
                         label: 'Create new',
                         onTap: () => showCreatePlaylistSheet(
@@ -349,6 +352,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onTap,

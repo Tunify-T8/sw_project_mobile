@@ -56,11 +56,11 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
 
   final Set<String> _mutatingIds = {};
   final Set<String> _addedIds = {};
-  final Set<String> _resolvedMembershipIds = {};
   final Set<String> _resolvingCoverIds = {};
   final Map<String, String> _resolvedCoverUrls = {};
   final Map<String, int> _trackCountOverrides = {};
   final TextEditingController _searchCtrl = TextEditingController();
+  bool _isResolvingSelections = false;
 
   String _query = '';
 
@@ -127,29 +127,43 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
   Future<void> _resolveExistingSelections(
     List<PlaylistSummaryEntity> playlists,
   ) async {
-    final pending = playlists.where((playlist) {
-      return playlist.type == CollectionType.playlist &&
-          !_resolvedMembershipIds.contains(playlist.id);
-    }).toList();
+    if (_isResolvingSelections) return;
+    _isResolvingSelections = true;
 
-    final existingIds = <String>{};
-    for (final playlist in pending) {
-      _resolvedMembershipIds.add(playlist.id);
-      if (playlist.trackCount <= 0) {
-        continue;
-      }
+    try {
+      final candidateIds = playlists
+          .where((playlist) => playlist.type == CollectionType.playlist)
+          .map((playlist) => playlist.id)
+          .toSet();
+      final existingIds = <String>{};
 
-      try {
-        if (await _playlistContainsTrack(playlist.id)) {
-          existingIds.add(playlist.id);
+      for (final playlist in playlists) {
+        if (playlist.type != CollectionType.playlist || playlist.trackCount <= 0) {
+          continue;
         }
-      } catch (_) {
-        // Ignore membership lookup failures and leave the row unchecked.
-      }
-    }
 
-    if (!mounted || existingIds.isEmpty) return;
-    setState(() => _addedIds.addAll(existingIds));
+        try {
+          if (await _playlistContainsTrack(playlist.id)) {
+            existingIds.add(playlist.id);
+          }
+        } catch (_) {
+          // Ignore membership lookup failures and keep the current row state.
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _addedIds.removeWhere(
+          (playlistId) =>
+              candidateIds.contains(playlistId) &&
+              !existingIds.contains(playlistId) &&
+              !_mutatingIds.contains(playlistId),
+        );
+        _addedIds.addAll(existingIds);
+      });
+    } finally {
+      _isResolvingSelections = false;
+    }
   }
 
   Future<bool> _playlistContainsTrack(String playlistId) async {
@@ -375,6 +389,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                   SizedBox(
                     height: 46,
                     child: FilledButton(
+                      key: const Key('select_playlist_done_button'),
                       onPressed: () => Navigator.of(context).pop(),
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -409,6 +424,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: TextField(
+                        key: const Key('select_playlist_search_field'),
                         controller: _searchCtrl,
                         style: const TextStyle(
                           color: Colors.white,
@@ -456,6 +472,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       children: [
                         InkWell(
+                          key: const Key('select_playlist_create_button'),
                           onTap: _openCreatePlaylist,
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(

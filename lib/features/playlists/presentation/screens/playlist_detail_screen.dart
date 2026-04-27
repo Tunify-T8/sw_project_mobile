@@ -19,8 +19,13 @@ import '../widgets/playlist_options_sheet.dart';
 import '../widgets/playlist_track_tile.dart';
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
-  const PlaylistDetailScreen({super.key, required this.playlistId});
-  final String playlistId;
+  const PlaylistDetailScreen({
+    super.key,
+    this.playlistId,
+    this.secretToken,
+  });
+  final String? playlistId;
+  final String? secretToken;
 
   @override
   ConsumerState<PlaylistDetailScreen> createState() =>
@@ -29,9 +34,15 @@ class PlaylistDetailScreen extends ConsumerStatefulWidget {
 
 class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   Future<void> _reloadPlaylist() async {
-    await ref.read(playlistNotifierProvider.notifier).openPlaylist(
-          widget.playlistId,
-        );
+    final notifier = ref.read(playlistNotifierProvider.notifier);
+    final secretToken = widget.secretToken?.trim();
+    if (secretToken != null && secretToken.isNotEmpty) {
+      await notifier.openPlaylistByToken(secretToken);
+      return;
+    }
+
+    final playlistId = widget.playlistId?.trim() ?? '';
+    await notifier.openPlaylist(playlistId);
   }
 
   @override
@@ -134,6 +145,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
               child: Row(
                 children: [
                   IconButton(
+                    key: const Key('playlist_detail_more_button'),
                     icon: const Icon(Icons.more_vert, color: Colors.white),
                     onPressed: () => showPlaylistOptionsSheet(
                       context: context,
@@ -345,6 +357,10 @@ class _HeaderInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final typeLabel = playlist.type.name[0].toUpperCase() +
         playlist.type.name.substring(1);
+    final privacyLabel = playlist.privacy == CollectionPrivacy.private
+        ? 'Private'
+        : 'Public';
+    final ownerName = playlist.owner?.displayName ?? playlist.owner?.username;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +382,29 @@ class _HeaderInfo extends StatelessWidget {
           ' · ${_timeAgo(playlist.createdAt)}',
           style: const TextStyle(color: Colors.white54, fontSize: 13),
         ),
-        if (playlist.owner != null) ...[
+        const SizedBox(height: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              playlist.privacy == CollectionPrivacy.private
+                  ? Icons.lock_rounded
+                  : Icons.public,
+              color: Colors.white70,
+              size: 14,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              privacyLabel,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        if (ownerName != null) ...[
           const SizedBox(height: 10),
           Row(
             children: [
@@ -381,16 +419,36 @@ class _HeaderInfo extends StatelessWidget {
                     : null,
               ),
               const SizedBox(width: 8),
-              Text(
-                'By ',
-                style: const TextStyle(color: Colors.white54, fontSize: 13),
-              ),
-              Text(
-                playlist.owner!.displayName ?? playlist.owner!.username,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  children: [
+                    Text(
+                      ownerName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Text(
+                      '·',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      privacyLabel,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
