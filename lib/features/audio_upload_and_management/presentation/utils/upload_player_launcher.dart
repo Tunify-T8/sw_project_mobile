@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/storage/storage_keys.dart';
-import '../../../../core/storage/token_storage.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playability_info.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
@@ -517,18 +515,8 @@ Future<void> _ensureCachedUploadsHydrated(WidgetRef ref) async {
   final store = ref.read(globalTrackStoreProvider);
   if (store.all.isNotEmpty) return;
 
-  // Resolve the user-scoped cache key so we never hydrate one user's offline
-  // uploads into another user's session.
-  final userId =
-      ref.read(authControllerProvider).asData?.value?.id.trim() ??
-      (await const TokenStorage().getUser())?.id.trim() ??
-      '';
-  final key = userId.isEmpty
-      ? StorageKeys.cachedLibraryUploads
-      : '${StorageKeys.cachedLibraryUploads}_$userId';
-
   const storage = FlutterSecureStorage();
-  final raw = await storage.read(key: key);
+  final raw = await storage.read(key: StorageKeys.cachedLibraryUploads);
   if (raw == null || raw.isEmpty) return;
 
   try {

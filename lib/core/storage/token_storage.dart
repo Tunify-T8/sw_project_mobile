@@ -104,25 +104,8 @@ class TokenStorage {
   Future<void> clearSession() async {
     await clearTokens();
     await clearUser();
-    // NOTE: cachedListeningHistory is now stored under per-user keys
-    // (e.g. "cached_listening_history_<userId>") so the bare key below is a
-    // no-op for any user who signed in after the per-user scoping change. It
-    // is kept only to clean up the old unscoped entry that may exist from
-    // earlier app versions.
     await _storage.delete(key: StorageKeys.cachedListeningHistory);
     await _storage.delete(key: StorageKeys.historyClearedLocally);
-    await _storage.delete(key: StorageKeys.historyClearedAt);
     await _storage.delete(key: StorageKeys.cachedPlayerSession);
-    // cachedLibraryUploads is intentionally NOT deleted here. Each user's
-    // uploads list is now stored under a per-user key
-    // ("cached_library_uploads_<userId>"), so no cross-account leak occurs.
-    // The bare key below is kept as a no-op cleanup for old app versions.
-    await _storage.delete(key: StorageKeys.cachedLibraryUploads);
-
-    // Offline play queues are tied to the signing-out user. Flushing them
-    // under a different user's token would attribute plays incorrectly.
-    // Clear both queues on logout so the next user starts with a clean slate.
-    await _storage.delete(key: StorageKeys.pendingOfflinePlays);
-    await _storage.delete(key: StorageKeys.pendingPlaybackEvents);
   }
 }

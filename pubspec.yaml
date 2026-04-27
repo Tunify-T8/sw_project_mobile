@@ -72,9 +72,6 @@ dependencies:
   google_sign_in: ^6.3.0
   flutter_recaptcha_v2_compat: ^1.0.5
   just_audio: ^0.10.5
-  just_audio_media_kit: ^2.1.0
-  media_kit_libs_linux: any
-  media_kit_libs_windows_audio: any
   connectivity_plus: ^6.0.5
   path_provider: ^2.1.5
   flutter_local_notifications: ^18.0.1

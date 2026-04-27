@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/design_system/app_loading_spinner.dart';
 import '../../../../core/design_system/colors.dart';
-import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
@@ -117,74 +115,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     });
 
-    final isDesktop = AdaptiveBreakpoints.isExpanded(context);
-    if (isDesktop) {
-      final chatContent = GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(
-          children: [
-            _ChatAppBar(
-              name: appBarName,
-              avatarUrl: appBarAvatar,
-              onBack: () => Navigator.of(context).pop(),
-              optionsButtonKey: _optionsKey,
-              onOptionsPressed: _showOptionsPopup,
-            ),
-            const Divider(height: 0.5, color: Color(0xFF1A1A1A)),
-            Expanded(
-              child: chatState.isLoading
-                  ? const Center(
-                      child: AppLoadingSpinner(label: 'Loading chat...'),
-                    )
-                  : _MessageList(
-                      messages: chatState.messages,
-                      scrollController: _scrollController,
-                      currentUserId: currentUserId,
-                    ),
-            ),
-            ChatInputBar(
-              isSending: chatState.isSending,
-              onSend: (text) {
-                ref
-                    .read(
-                      chatControllerProvider(widget.conversationId).notifier,
-                    )
-                    .sendText(text);
-              },
-              onAttachTap: () => _showAttachSheet(context),
-            ),
-          ],
-        ),
-      );
-
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        resizeToAvoidBottomInset: true,
-        bottomNavigationBar: keyboardOpen ? null : const MessagingBottomShell(),
-        body: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: AdaptiveBreakpoints.pagePadding(context),
-            child: AdaptiveCenter(
-              maxWidth: 980,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D0D0D),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF242424)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: chatContent,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
@@ -207,7 +137,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               Expanded(
                 child: chatState.isLoading
                     ? const Center(
-                        child: AppLoadingSpinner(label: 'Loading chat…'),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       )
                     : _MessageList(
                         messages: chatState.messages,

@@ -123,6 +123,12 @@ class ChatController extends Notifier<ChatState> {
       final repo = ref.read(messagingRepositoryProvider);
       await repo.connectRealtime();
       await repo.joinConversation(_conversationId);
+      // Unarchive silently — if this conversation was archived, opening it
+      // should bring it back to the active list.
+      unawaited(repo.unarchiveConversation(_conversationId).catchError((_) {}));
+      ref
+          .read(conversationsControllerProvider.notifier)
+          .unarchiveLocally(_conversationId);
       _bindRealtime();
 
       final page = await ref
@@ -227,11 +233,6 @@ class ChatController extends Notifier<ChatState> {
           .read(sendMessageUseCaseProvider)
           .call(_conversationId, draft);
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
-
-      // Sending to an archived conversation unarchives it so it reappears.
-      ref
-          .read(conversationsControllerProvider.notifier)
-          .unarchiveLocally(_conversationId);
 
       final attributed = _attributeToMe(message);
       final alreadyInList = state.messages.any((m) => m.id == attributed.id);
