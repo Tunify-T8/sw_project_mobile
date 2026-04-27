@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
+import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
@@ -38,33 +41,14 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _optionsKey = GlobalKey();
-  bool _pendingAttachmentSent = false;
+  final List<MessageAttachment> _pendingAttachments = [];
 
   @override
   void initState() {
     super.initState();
     if (widget.pendingAttachment != null) {
-      Future.microtask(_sendPendingAttachmentWhenReady);
+      _pendingAttachments.add(widget.pendingAttachment!);
     }
-  }
-
-  Future<void> _sendPendingAttachmentWhenReady() async {
-    if (_pendingAttachmentSent || widget.pendingAttachment == null) return;
-
-    // Wait up to ~3s for the chat to finish loading before sending so the
-    // attachment lands on top of the existing history in the UI.
-    for (var i = 0; i < 30; i++) {
-      if (!mounted) return;
-      final state = ref.read(chatControllerProvider(widget.conversationId));
-      if (!state.isLoading) break;
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    }
-
-    if (!mounted || _pendingAttachmentSent) return;
-    _pendingAttachmentSent = true;
-    ref
-        .read(chatControllerProvider(widget.conversationId).notifier)
-        .sendAttachments([widget.pendingAttachment!]);
   }
 
   @override
@@ -115,6 +99,72 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     });
 
+    final isDesktop = AdaptiveBreakpoints.isExpanded(context);
+    if (isDesktop) {
+      final chatContent = GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
+            _ChatAppBar(
+              name: appBarName,
+              avatarUrl: appBarAvatar,
+              onBack: () => Navigator.of(context).pop(),
+              optionsButtonKey: _optionsKey,
+              onOptionsPressed: _showOptionsPopup,
+            ),
+            const Divider(height: 0.5, color: Color(0xFF1A1A1A)),
+            Expanded(
+              child: chatState.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : _MessageList(
+                      messages: chatState.messages,
+                      scrollController: _scrollController,
+                      currentUserId: currentUserId,
+                    ),
+            ),
+            ChatInputBar(
+              isSending: chatState.isSending,
+              pendingAttachments: _pendingAttachments,
+              onRemoveAttachment: _removePendingAttachment,
+              onSend: _sendComposerMessage,
+              onAttachTap: () => _showAttachSheet(context),
+            ),
+          ],
+        ),
+      );
+
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        resizeToAvoidBottomInset: true,
+        bottomNavigationBar: keyboardOpen ? null : const MessagingBottomShell(),
+        body: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: AdaptiveBreakpoints.pagePadding(context),
+            child: AdaptiveCenter(
+              maxWidth: 980,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D0D0D),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF242424)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: chatContent,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
@@ -149,13 +199,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               ChatInputBar(
                 isSending: chatState.isSending,
-                onSend: (text) {
-                  ref
-                      .read(
-                        chatControllerProvider(widget.conversationId).notifier,
-                      )
-                      .sendText(text);
-                },
+                pendingAttachments: _pendingAttachments,
+                onRemoveAttachment: _removePendingAttachment,
+                onSend: _sendComposerMessage,
                 onAttachTap: () => _showAttachSheet(context),
               ),
             ],
@@ -191,10 +237,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ).then((attachments) {
       if (!mounted || attachments == null || attachments.isEmpty) return;
 
+      setState(() {
+        for (final attachment in attachments) {
+          final alreadyAdded = _pendingAttachments.any(
+            (pending) =>
+                pending.id == attachment.id &&
+                pending.backendKind == attachment.backendKind,
+          );
+          if (!alreadyAdded) {
+            _pendingAttachments.add(attachment);
+          }
+        }
+      });
+    });
+  }
+
+  void _removePendingAttachment(MessageAttachment attachment) {
+    setState(() {
+      _pendingAttachments.removeWhere(
+        (pending) =>
+            pending.id == attachment.id &&
+            pending.backendKind == attachment.backendKind,
+      );
+    });
+  }
+
+  void _sendComposerMessage(String text) {
+    final attachments = List<MessageAttachment>.of(_pendingAttachments);
+    if (text.trim().isEmpty && attachments.isEmpty) return;
+
+    setState(_pendingAttachments.clear);
+    unawaited(
       ref
           .read(chatControllerProvider(widget.conversationId).notifier)
-          .sendAttachments(attachments);
-    });
+          .sendDraft(text: text, attachments: attachments),
+    );
   }
 
   void _showOptionsPopup() {

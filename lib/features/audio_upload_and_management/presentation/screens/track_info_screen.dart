@@ -19,7 +19,6 @@ part 'track_info_screen_header.dart';
 part 'track_info_screen_main_card.dart';
 part 'track_info_screen_avatar.dart';
 part 'track_info_screen_uploader.dart';
-part 'track_info_screen_leaderboard.dart';
 part 'track_info_screen_playlists.dart';
 part 'track_info_screen_data.dart';
 
@@ -41,7 +40,6 @@ class TrackInfoScreen extends ConsumerWidget {
             SliverToBoxAdapter(child: _Header(item: resolvedItem)),
             SliverToBoxAdapter(child: _MainTrackCard(item: resolvedItem)),
             SliverToBoxAdapter(child: _UploaderCard(item: resolvedItem)),
-            SliverToBoxAdapter(child: _FanLeaderboard(item: resolvedItem)),
             SliverToBoxAdapter(child: _PlaylistsSection(item: resolvedItem)),
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],

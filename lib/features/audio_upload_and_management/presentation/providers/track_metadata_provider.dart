@@ -162,9 +162,13 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
 
   TrackMetadataState _effectiveAvailabilityStateForCurrentTier() {
     final isPro = ref.read(uploadProvider).quota?.isUnlimited ?? false;
-    if (isPro) return state;
+    final stateWithRequiredPermissions = state.copyWith(
+      allowDownloads: true,
+      error: null,
+    );
+    if (isPro) return stateWithRequiredPermissions;
 
-    return state.copyWith(
+    return stateWithRequiredPermissions.copyWith(
       availabilityType: 'worldwide',
       availabilityRegionsText: '',
       error: null,

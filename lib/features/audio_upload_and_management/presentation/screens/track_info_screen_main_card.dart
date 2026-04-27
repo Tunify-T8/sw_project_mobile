@@ -51,7 +51,7 @@ class _MainTrackCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '${stats.playCountText} plays  ${item.durationLabel}  ${stats.releaseDateText}',
+                        '${item.durationLabel}  ${stats.releaseDateText}',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 14,
@@ -134,38 +134,8 @@ class _MainTrackCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Text(
-            _buildTrackDescription(item),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Show more',
-            style: TextStyle(
-              color: Colors.blue.shade400,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
         ],
       ),
     );
-  }
-
-  String _buildTrackDescription(UploadItem item) {
-    final cleaned = item.description?.trim();
-    if (cleaned != null && cleaned.isNotEmpty) {
-      return cleaned;
-    }
-
-    return 'Lyrics: Ahmed Ali Mousa\n'
-        'Composition: Sherif Tag\n'
-        'Arrangement: Tarek Madkour\n\n'
-        'Lyrics:';
   }
 }
