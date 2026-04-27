@@ -153,11 +153,11 @@ class ApiEndpoints {
   static const String searchCollections = '/search/collections';
   static const String searchPeople = '/search/people';
 
-  // Premium
-  static const String getSubscriptionPlans = '/subscription/plans';
-  static const String getCurrentSubscription = '/subscription/me';
-  static const String subscribe = '/subscription/subscribe';
-  static const String cancelSubscription = '/subscription/cancel';
+  //Premuim
+  static const String getSubscriptionPlans = '/subscriptions/plans';
+  static const String getCurrentSubscription = '/subscriptions/me';
+  static const String subscribe = '/subscriptions/subscribe';
+  static const String cancelSubscription = '/subscriptions/cancel';
 
   //  Collections & Playlists
   static const String collections = '/collections';

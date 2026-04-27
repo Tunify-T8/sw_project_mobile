@@ -15,11 +15,17 @@ class SubscriptionFeaturesDto {
 
   factory SubscriptionFeaturesDto.fromJson(Map<String, dynamic> json) {
     return SubscriptionFeaturesDto(
-      maxUploads: json['maxUploads'],
+      maxUploads: _parseLimit(json['maxUploads'], defaultValue: 180),
       adFree: json['adFree'] ?? false,
       offlineListening: json['offlineListening'] ?? false,
       playbackAccess: json['playbackAccess'] ?? false,
-      playlistLimit: json['playlistLimit'],
+      playlistLimit: _parseLimit(json['playlistLimit'], defaultValue: 3),
     );
+  }
+
+  static int _parseLimit(dynamic value, {required int defaultValue}) {
+    if (value is num) return value.toInt();
+    if (value is String && value.toLowerCase() == 'unlimited') return -1;
+    return defaultValue;
   }
 }

@@ -13,12 +13,14 @@ class MetadataPermissionToggleRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.locked = false,
   });
 
   final String title;
   final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +40,16 @@ class MetadataPermissionToggleRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: _activeSelectionGreen,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFF2F2F2F),
+          IgnorePointer(
+            ignoring: locked,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: _activeSelectionGreen,
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: const Color(0xFF2F2F2F),
+            ),
           ),
         ],
       ),
@@ -72,10 +77,10 @@ class MetadataPermissionRadioRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = disabled ? const Color(0xFF5E5E5E) : Colors.white;
     final borderColor = disabled
-        ? const Color(0xFF3A3A3A)
+        ? (selected ? _activeSelectionGreen : const Color(0xFF3A3A3A))
         : (selected ? _activeSelectionGreen : Colors.white70);
     final fillColor = disabled
-        ? const Color(0xFF2A2A2A)
+        ? (selected ? _activeSelectionGreen : const Color(0xFF2A2A2A))
         : (selected ? _activeSelectionGreen : Colors.transparent);
 
     return IgnorePointer(
@@ -106,7 +111,7 @@ class MetadataPermissionRadioRow extends StatelessWidget {
                   border: Border.all(color: borderColor, width: 1.5),
                   color: fillColor,
                 ),
-                child: (selected && !disabled)
+                child: selected
                     ? const Icon(Icons.check, color: Colors.white, size: 18)
                     : null,
               ),

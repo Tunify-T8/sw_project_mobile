@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/network_list_type.dart';
 import 'package:software_project/features/followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import 'package:software_project/features/premium_subscription/domain/entities/subscription_tier.dart';
+import 'package:software_project/features/premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../../../premium_subscription/presentation/screens/upgrade_screen.dart';
 import '../../../../core/design_system/colors.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
@@ -58,7 +60,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(profileProvider.notifier).loadProfile());
+    Future.microtask(() {
+      ref.read(profileProvider.notifier).loadProfile();
+      ref.read(subscriptionNotifierProvider.notifier).loadCurrentSubscription();
+    });
   }
 
   @override
@@ -68,6 +73,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         .watch(profileProvider)
         .profile
         ?.profileImagePath;
+    final currentSubscription = ref
+        .watch(subscriptionNotifierProvider)
+        .currentSubscription;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -90,28 +98,30 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                     ),
                     const Spacer(),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const UpgradeScreen(popUp: true),
+                    if (currentSubscription?.tier == SubscriptionTier.free) ...[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const UpgradeScreen(popUp: true),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          overlayColor: Colors.transparent,
+                        ),
+                        child: const Text(
+                          "GET PRO",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        overlayColor: Colors.transparent,
-                      ),
-                      child: Text(
-                        "GET PRO",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
+                    ],
                     IconButton(
                       onPressed: widget.onOpenSettings,
                       icon: const Icon(Icons.settings_outlined),

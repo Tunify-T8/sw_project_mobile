@@ -103,7 +103,7 @@ mixin TrackMetadataNotifierFields on Notifier<TrackMetadataState> {
       state = state.copyWith(contentWarning: value, error: null);
 
   void setAllowDownloads(bool value) =>
-      state = state.copyWith(allowDownloads: value, error: null);
+      state = state.copyWith(allowDownloads: true, error: null);
 
   void setOfflineListening(bool value) =>
       state = state.copyWith(offlineListening: value, error: null);

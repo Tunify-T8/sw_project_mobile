@@ -69,20 +69,10 @@ class ArtistHomeDashboardSection extends StatelessWidget {
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              const Expanded(
-                child: _DarkCard(icon: Icons.show_chart, label: 'Insights'),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _DarkCard(
-                  icon: Icons.graphic_eq,
-                  label: 'Uploads',
-                  onTap: onOpenUploads,
-                ),
-              ),
-            ],
+          child: _DarkCard(
+            icon: Icons.graphic_eq,
+            label: 'Uploads',
+            onTap: onOpenUploads,
           ),
         ),
       ],

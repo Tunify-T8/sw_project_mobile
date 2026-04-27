@@ -7,11 +7,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../domain/entities/message_attachment.dart';
 
-/// Bottom sheet with four tabs (Likes · Playlists · Albums · Uploads)
-/// for choosing content to attach to a message.
-///
-/// This version fixes the uploads tab by actively loading the user's uploads
-/// when the sheet opens instead of assuming some other screen already loaded them.
+/// Bottom sheet for choosing content to attach to a message.
 class AttachContentSheet extends ConsumerStatefulWidget {
   const AttachContentSheet({super.key});
 
@@ -28,7 +24,7 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     Future.microtask(() async {
       final uploadsState = ref.read(libraryUploadsProvider);
@@ -127,7 +123,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
             tabs: const [
               Tab(text: 'Likes'),
               Tab(text: 'Playlists'),
-              Tab(text: 'Albums'),
               Tab(text: 'Uploads'),
             ],
           ),
@@ -143,7 +138,6 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
                   isSelected: _isSelected,
                   onToggle: _toggle,
                 ),
-                const _EmptyTab(label: 'No albums yet'),
                 _UploadsTab(
                   isSelected: _isSelected,
                   onToggle: _toggle,

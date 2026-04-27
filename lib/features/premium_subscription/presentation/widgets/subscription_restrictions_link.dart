@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/subscription_tier.dart';
 
-class SubscriptionRestrictionMenu extends StatelessWidget {
+class SubscriptionRestrictionsLink extends StatelessWidget {
   final SubscriptionTier subscriptionPlan;
-  const SubscriptionRestrictionMenu({
+
+  const SubscriptionRestrictionsLink({
     super.key,
     required this.subscriptionPlan,
   });
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildMenu() {
     return SizedBox(
       width: double.infinity,
       child: Padding(
@@ -48,7 +48,7 @@ class SubscriptionRestrictionMenu extends StatelessWidget {
                   ),
                 ),
                 Text(' & '),
-                 TextButton(
+                TextButton(
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
@@ -66,6 +66,39 @@ class SubscriptionRestrictionMenu extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text("Cancel anytime. "),
+        TextButton(
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            overlayColor: Colors.transparent,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: const Color(0xFF121212),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              constraints: const BoxConstraints(maxHeight: 250),
+              showDragHandle: true,
+              builder: (_) => _buildMenu(),
+            );
+          },
+          child: const Text(
+            "Restrictions apply",
+            style: TextStyle(color: Color(0xFF4D70AC)),
+          ),
+        ),
+      ],
     );
   }
 }
