@@ -2,14 +2,12 @@ part of 'track_info_screen.dart';
 
 class _MockTrackStats {
   const _MockTrackStats({
-    required this.playCountText,
     required this.likeCountText,
     required this.commentCountText,
     required this.repostCountText,
     required this.releaseDateText,
   });
 
-  final String playCountText;
   final String likeCountText;
   final String commentCountText;
   final String repostCountText;
@@ -17,14 +15,12 @@ class _MockTrackStats {
 
   factory _MockTrackStats.fromItem(UploadItem item) {
     final seed = item.id.hashCode.abs();
-    final playCount = 450000 + (seed % 900000);
     final likes = 14000 + (seed % 22000);
     final comments = 70 + (seed % 300);
     final reposts = 40 + (seed % 220);
     final date = item.createdAt;
 
     return _MockTrackStats(
-      playCountText: _compactNumber(playCount),
       likeCountText: _compactNumber(likes),
       commentCountText: '$comments',
       repostCountText: '$reposts',
@@ -59,29 +55,6 @@ class _MockTrackStats {
     ];
     return months[((month - 1).clamp(0, 11) as num).toInt()];
   }
-}
-
-class _LeaderboardEntry {
-  const _LeaderboardEntry({required this.name, required this.plays});
-
-  final String name;
-  final int plays;
-}
-
-List<_LeaderboardEntry> _mockLeaderboard(UploadItem item) {
-  final seed = item.id.hashCode.abs();
-  const names = [
-    'Mody Mohamed',
-    'Reham Kareem',
-    'User 921620114',
-    'Adam Sharif',
-    'Abdalrahman Ahmed',
-  ];
-
-  return List.generate(names.length, (index) {
-    final plays = 110 + ((seed + index * 29) % 140);
-    return _LeaderboardEntry(name: names[index], plays: plays);
-  });
 }
 
 class _PlaylistCardData {
