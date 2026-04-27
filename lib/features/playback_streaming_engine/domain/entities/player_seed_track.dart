@@ -23,6 +23,7 @@ class PlayerSeedTrack {
     this.directAudioUrl,
     this.localFilePath,
     this.resumePositionSeconds = 0,
+    this.playability,
   });
 
   final String trackId;
@@ -34,6 +35,7 @@ class PlayerSeedTrack {
   final String? directAudioUrl;
   final String? localFilePath;
   final int resumePositionSeconds;
+  final PlayabilityInfo? playability;
 
   TrackPlaybackBundle toPlaybackBundle() {
     return TrackPlaybackBundle(
@@ -55,7 +57,7 @@ class PlayerSeedTrack {
         isReposted: false,
         isSaved: false,
       ),
-      playability: const PlayabilityInfo(
+      playability: playability ?? const PlayabilityInfo(
         status: PlaybackStatus.playable,
         regionBlocked: false,
         tierBlocked: false,

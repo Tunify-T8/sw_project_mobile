@@ -21,6 +21,7 @@ class ConversationDto {
   final DateTime? lastMessageAt;
   final int unreadCount;
   final bool isBlocked;
+  final bool isArchived;
 
   /// Last message DTO straight from the backend, if present.
   /// The mapper uses this to build the preview text when we don't yet
@@ -36,6 +37,7 @@ class ConversationDto {
     this.lastMessageAt,
     this.unreadCount = 0,
     this.isBlocked = false,
+    this.isArchived = false,
     this.lastMessage,
   });
 
@@ -164,6 +166,7 @@ class ConversationDto {
         j['unreadCount'] ?? j['unread_count'] ?? j['unreadMessages'],
       ),
       isBlocked: status == 'BLOCKED' || ((j['isBlocked'] as bool?) ?? false),
+      isArchived: status == 'ARCHIVED',
       lastMessage: lastMessage,
     );
   }

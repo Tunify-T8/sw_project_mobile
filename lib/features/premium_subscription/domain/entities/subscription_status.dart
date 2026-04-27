@@ -1,0 +1,1 @@
+enum SubscriptionStatus { active, expired, cancelled, trial }

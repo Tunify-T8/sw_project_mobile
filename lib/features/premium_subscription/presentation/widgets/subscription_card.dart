@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/subscription_period.dart';
+import '../../domain/entities/billing_cycle.dart';
 import 'subscription_restriction_menu.dart';
-import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_tier.dart';
 
 class SubscriptionCard extends StatelessWidget {
   static const yearlyPrice = 'EGP 1,055.00/year';
@@ -13,7 +13,7 @@ class SubscriptionCard extends StatelessWidget {
     'Replace your track without losing its stats',
     'Pin your favorite tracks',
   ];
-  final SubscriptionPeriod subscriptionPeriod;
+  final BillingCycle subscriptionPeriod;
   const SubscriptionCard({super.key, required this.subscriptionPeriod});
 
   Widget buildFeatures({required String feature}) {
@@ -69,7 +69,7 @@ class SubscriptionCard extends StatelessWidget {
             ],
           ),
           Text(
-            (subscriptionPeriod == SubscriptionPeriod.yearly)
+            (subscriptionPeriod == BillingCycle.yearly)
                 ? yearlyPrice
                 : monthlyPrice,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -124,7 +124,7 @@ class SubscriptionCard extends StatelessWidget {
                             constraints: BoxConstraints(maxHeight: 250),
                             showDragHandle: true,
                             builder: (_) => SubscriptionRestrictionMenu(
-                              subscriptionPlan: SubscriptionPlan.artistPro,
+                              subscriptionPlan: SubscriptionTier.artistPro,
                             ),
                           );
                 },

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_tier.dart';
 
 class SubscriptionRestrictionMenu extends StatelessWidget {
-  final SubscriptionPlan subscriptionPlan;
+  final SubscriptionTier subscriptionPlan;
   const SubscriptionRestrictionMenu({
     super.key,
     required this.subscriptionPlan,
@@ -30,7 +30,7 @@ class SubscriptionRestrictionMenu extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  (subscriptionPlan == SubscriptionPlan.artist)
+                  (subscriptionPlan == SubscriptionTier.artist)
                       ? 'Artist '
                       : 'Artist Pro ',
                 ),

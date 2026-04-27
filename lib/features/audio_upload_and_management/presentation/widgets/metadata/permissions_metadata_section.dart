@@ -3,7 +3,9 @@
 // Used by: track_metadata_body
 // Concerns: Metadata engine.
 import 'package:flutter/material.dart';
+import 'package:country_picker/country_picker.dart';
 
+import '../../utils/country_code_utils.dart';
 import 'metadata_input_decoration.dart';
 import 'metadata_permission_rows.dart';
 import 'metadata_section_title.dart';
@@ -50,6 +52,9 @@ class PermissionsMetadataSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedCountryCodes = CountryCodeUtils.parseCountryCodes(
+      availabilityRegionsController.text,
+    );
     final showRegionsField = availabilityType != 'worldwide';
 
     return Column(
@@ -124,14 +129,18 @@ class PermissionsMetadataSection extends StatelessWidget {
         ),
         if (showRegionsField && isPro) ...[
           const SizedBox(height: 12),
-          TextField(
-            controller: availabilityRegionsController,
-            style: const TextStyle(color: Colors.white, fontSize: 17),
-            decoration: buildMetadataInputDecoration(
-              'Regions',
-              hintText: 'Comma separated ISO codes, e.g. EG, US, DE',
+          _CountryDropdownField(
+            selectedCountryCodes: selectedCountryCodes,
+            onAddCountry: () => _showCountryPicker(
+              context,
+              selectedCountryCodes,
             ),
-            onChanged: onAvailabilityRegionsChanged,
+            onRemoveCountry: (code) {
+              final next = selectedCountryCodes
+                  .where((countryCode) => countryCode != code)
+                  .toList();
+              _setRegionsText(next.join(', '));
+            },
           ),
         ],
         const SizedBox(height: 26),
@@ -151,6 +160,39 @@ class PermissionsMetadataSection extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _showCountryPicker(
+    BuildContext context,
+    List<String> selectedCountryCodes,
+  ) {
+    showCountryPicker(
+      context: context,
+      favorite: const ['EG', 'US', 'GB', 'SA', 'AE'],
+      countryListTheme: CountryListThemeData(
+        backgroundColor: const Color(0xFF111111),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        textStyle: const TextStyle(color: Colors.white, fontSize: 16),
+        searchTextStyle: const TextStyle(color: Colors.white, fontSize: 16),
+        inputDecoration: buildMetadataInputDecoration(
+          'Search countries',
+          hintText: 'Egypt, United States...',
+        ),
+      ),
+      onSelect: (country) {
+        final next = <String>{...selectedCountryCodes, country.countryCode}
+            .toList();
+        _setRegionsText(next.join(', '));
+      },
+    );
+  }
+
+  void _setRegionsText(String value) {
+    availabilityRegionsController.text = value;
+    availabilityRegionsController.selection = TextSelection.collapsed(
+      offset: value.length,
+    );
+    onAvailabilityRegionsChanged(value);
   }
 }
 
@@ -182,6 +224,78 @@ class _ArtistProBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CountryDropdownField extends StatelessWidget {
+  const _CountryDropdownField({
+    required this.selectedCountryCodes,
+    required this.onAddCountry,
+    required this.onRemoveCountry,
+  });
+
+  final List<String> selectedCountryCodes;
+  final VoidCallback onAddCountry;
+  final ValueChanged<String> onRemoveCountry;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCountries = selectedCountryCodes.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onAddCountry,
+          child: InputDecorator(
+            decoration: buildMetadataInputDecoration(
+              'Countries',
+              hintText: 'Choose countries',
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    hasCountries
+                        ? '${selectedCountryCodes.length} selected'
+                        : 'Choose countries',
+                    style: TextStyle(
+                      color: hasCountries ? Colors.white : Colors.white38,
+                      fontSize: 17,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white70,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (hasCountries) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: selectedCountryCodes.map((code) {
+              return InputChip(
+                label: Text(CountryCodeUtils.labelForCode(code)),
+                onDeleted: () => onRemoveCountry(code),
+                deleteIconColor: Colors.white70,
+                backgroundColor: const Color(0xFF1E1E1E),
+                side: const BorderSide(color: Color(0xFF3A3A3A)),
+                labelStyle: const TextStyle(color: Colors.white),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
     );
   }
 }

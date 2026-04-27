@@ -19,6 +19,8 @@ abstract class MessagingRepository {
 
   Future<void> markConversationRead(String conversationId);
   Future<int> getUnreadCount();
+  Future<void> archiveConversation(String conversationId);
+  Future<void> unarchiveConversation(String conversationId);
   Future<void> blockConversation(String conversationId);
 
   /// Joins the websocket room for a conversation so that `message:received`

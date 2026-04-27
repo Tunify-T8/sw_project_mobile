@@ -192,6 +192,18 @@ class MockMessagingRepository implements MessagingRepository {
       .fold<int>(0, (sum, conversation) => sum + conversation.unreadCount);
 
   @override
+  Future<void> archiveConversation(String conversationId) async {
+    if (_store.conversations.containsKey(conversationId)) {
+      _store.archivedConversationIds.add(conversationId);
+    }
+  }
+
+  @override
+  Future<void> unarchiveConversation(String conversationId) async {
+    _store.archivedConversationIds.remove(conversationId);
+  }
+
+  @override
   Future<void> blockConversation(String conversationId) async {
     final conversation = _store.conversations[conversationId];
     if (conversation != null) {
