@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../../features/playlists/presentation/widgets/select_playlist_sheet.dart';
 import 'track_option_menu_item.dart';
 
 class TrackActions extends ConsumerWidget {
@@ -51,7 +52,14 @@ class TrackActions extends ConsumerWidget {
         TrackOptionMenuItem(
           icon: Icons.playlist_add,
           label: 'Add to playlist',
-          onTap: () {},
+          onTap: () {
+            Navigator.pop(context);
+            showSelectPlaylistSheet(
+              context: context,
+              ref: ref,
+              trackId: trackId,
+            );
+          },
         ),
 
         if (!isDiscoverFeed && !isFollowingFeed && !isMyTrack)

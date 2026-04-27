@@ -16,6 +16,7 @@ import '../../../../features/engagements_social_interactions/presentation/widget
 import '../../../../core/utils/navigation_utils.dart';
 import '../../../../features/messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
+import '../../../../features/playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
 import '../../../../features/feed_search_discovery/presentation/providers/feed_view_provider.dart';
 import '../../../../features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 import '../../../../features/audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
@@ -92,9 +93,17 @@ class TrackOptionsMenu extends ConsumerStatefulWidget {
 }
 
 class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
+  late String _resolvedArtistId;
+
   @override
   void initState() {
     super.initState();
+    _resolvedArtistId = resolveArtistIdForTrackLocally(
+          ref,
+          widget.trackId,
+          fallbackArtistId: widget.artistId,
+        ) ??
+        widget.artistId;
 
     if (widget.initialIsLiked == null || widget.initialIsReposted == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -109,6 +118,22 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
         }
       });
     }
+
+    if (_resolvedArtistId.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resolveArtistId());
+    }
+  }
+
+  Future<void> _resolveArtistId() async {
+    final artistId = await resolveArtistIdForTrack(
+      ref,
+      widget.trackId,
+      fallbackArtistId: widget.artistId,
+    );
+    if (!mounted || artistId == null || artistId == _resolvedArtistId) {
+      return;
+    }
+    setState(() => _resolvedArtistId = artistId);
   }
 
   @override
@@ -128,13 +153,13 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
       trackId: widget.trackId,
       title: widget.title,
       artist: widget.artistName,
-      artistId: widget.artistId,
+      artistId: _resolvedArtistId,
       coverUrl: widget.coverUrl,
       localArtworkPath: widget.localArtworkPath,
     );
 
     final String? myId = ref.read(authControllerProvider).value?.id;
-    final isMyTrack = (myId == widget.artistId);
+    final isMyTrack = (myId == _resolvedArtistId);
 
     return ListView(
       children: [
@@ -179,7 +204,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
         if (!isMyTrack) ...[
           TrackSocialActions(
             trackId: widget.trackId,
-            artistId: widget.artistId,
+            artistId: _resolvedArtistId,
             title: widget.title,
             artistName: widget.artistName,
             coverUrl: widget.coverUrl,

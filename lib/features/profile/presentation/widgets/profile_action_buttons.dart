@@ -4,6 +4,7 @@ import '../../data/dto/profile_dto.dart';
 import '../screens/edit_profile_screen.dart';
 import '../providers/profile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/ui/widgets/play_button.dart';
 
 class ProfileActionButtons extends ConsumerWidget {
   final File? profileImage;
@@ -90,20 +91,8 @@ class ProfileActionButtons extends ConsumerWidget {
             },
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
-            onPressed: onShuffle,
-          ),
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
-              onPressed: onPlay,
-            ),
-          ),
+          ShuffleButton(onTap: onShuffle),
+          PlayButton(onTap: onPlay),
         ],
       ),
     );
