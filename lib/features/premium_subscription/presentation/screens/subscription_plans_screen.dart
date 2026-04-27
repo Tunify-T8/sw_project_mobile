@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/subscription_card.dart';
-import '../../domain/entities/subscription_period.dart';
+import '../../domain/entities/billing_cycle.dart';
 import '../widgets/faq_section.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
@@ -103,10 +103,10 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen>
                         onPageChanged: _handlePageViewChanged,
                         children: const [
                           SubscriptionCard(
-                            subscriptionPeriod: SubscriptionPeriod.yearly,
+                            subscriptionPeriod: BillingCycle.yearly,
                           ),
                           SubscriptionCard(
-                            subscriptionPeriod: SubscriptionPeriod.monthly,
+                            subscriptionPeriod: BillingCycle.monthly,
                           ),
                         ],
                       ),

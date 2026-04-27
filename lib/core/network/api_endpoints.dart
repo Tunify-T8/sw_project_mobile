@@ -89,7 +89,8 @@ class ApiEndpoints {
 
   // Profile
   static const String getProfile = '/users/me';
-  static String getUserProfile(String userIdOrUsername) => '/users/$userIdOrUsername';
+  static String getUserProfile(String userIdOrUsername) =>
+      '/users/$userIdOrUsername';
   // Public tracks for any user — used to build the "Next up" queue from the
   // playing artist's catalog without needing the current user to have played
   // those tracks before. Mirrors the /tracks/me response shape.
@@ -105,29 +106,29 @@ class ApiEndpoints {
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';
   static String trackPlayed(String trackId) => '/tracks/$trackId/played';
- 
+
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String playbackEvents = '/me/playback/events';
- 
+
   /// Current backend contract (v1.1.0).
   static const String listeningHistory = '/tracks/me/listening-history';
- 
+
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyListeningHistory = '/me/listening-history';
- 
+
   /// Current backend contract (v1.1.0).
   static const String clearListeningHistory = '/tracks/me/listening-history';
 
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyClearListeningHistory = '/me/listening-history';
- 
+
   /// Batch-reports plays that occurred while the device was offline.
   /// Body: `{ "plays": [{ "trackId", "playedAt", "completed" }] }`
   static const String batchPlays = '/tracks/plays/batch';
- 
+
   /// Current backend contract (v1.1.0).
   static const String playbackContext = '/tracks/playback-context';
- 
+
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String legacyPlaybackContext = '/playback/context';
 
@@ -154,20 +155,33 @@ class ApiEndpoints {
   static const String searchTracks = '/search/tracks';
   static const String searchCollections = '/search/collections';
   static const String searchPeople = '/search/people';
+
+  // Premium
+  static const String getSubscriptionPlans = '/subscription/plans';
+  static const String getCurrentSubscription = '/subscription/me';
+  static const String subscribe = '/subscription/subscribe';
+  static const String cancelSubscription = '/subscription/cancel';
+
+  //  Collections & Playlists
+  static const String collections = '/collections';
+  static const String myCollections = '/collections/me';
+
+  static String collectionByToken(String token) => '/collections/token/$token';
+
+  static String collectionById(String id) => '/collections/$id';
+
+  static String collectionTracks(String id) => '/collections/$id/tracks';
+  static String collectionTracksAdd(String id) => '/collections/$id/tracks/add';
+  static String collectionTracksRemove(String id) =>
+      '/collections/$id/tracks/remove';
+  static String collectionTracksReorder(String id) =>
+      '/collections/$id/tracks/reorder';
+
+  static String collectionLike(String id) => '/collections/$id/like';
+  static String collectionEmbed(String id) => '/collections/$id/embed';
+
+  static String userCollections(String username) =>
+      '/users/$username/collections';
+  static String userAlbums(String username) => '/users/$username/albums';
+  static String userPlaylists(String username) => '/users/$username/playlists';
 }
-
-//profile
-//when time comes to connect real backend
-//Reminder for darine:
-
-// Change this: (profile_api.dart)
-//static const String _baseUrl = 'https://69b5b11a583f543fbd9c3072.mockapi.io';
-// To this:
-//static const String _baseUrl = 'http://10.0.2.2:3000/api';
-
-// Change this:
-//final userRes = await _dio.get(r'$_baseUrl/users/1');
-// To this:
-//final userRes = await _dio.get(r'$_baseUrl/users/$userId');
-// In api_endpoints.dart add:
-///////////////////////////////////////////////

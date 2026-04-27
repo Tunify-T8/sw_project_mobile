@@ -8,6 +8,7 @@ import '../../../engagements_social_interactions/presentation/screens/comments_s
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
 import '../../../engagements_social_interactions/presentation/screens/reposters_screen.dart';
+import '../../../playlists/presentation/widgets/select_playlist_sheet.dart';
 
 class FeedInteractionButtons extends ConsumerStatefulWidget {
   final String trackId;
@@ -70,8 +71,9 @@ class _FeedInteractionButtonsState
     final state = ref.watch(engagementProvider(widget.trackId));
     final isLiked = state.engagement?.isLiked ?? widget.fallbackIsLiked;
     final likesCount = state.engagement?.likeCount ?? widget.fallbackLikesCount;
-    final commentsCount =
-        state.engagement?.commentCount ?? widget.fallbackCommentsCount;
+    final commentsCount = state.engagementStatus == EngagementStatus.initial
+        ? widget.fallbackCommentsCount
+        : state.totalCommentsCount;
 
     final children = [
       IconButton(
@@ -131,7 +133,11 @@ class _FeedInteractionButtonsState
       (widget.feedViewMode == FeedViewMode.discover)
           ? IconButton(
               key: const Key('feed_playlist_add_button'),
-              onPressed: () {},
+              onPressed: () => showSelectPlaylistSheet(
+                context: context,
+                ref: ref,
+                trackId: widget.trackId,
+              ),
               icon: const Icon(Icons.playlist_add, color: Colors.white),
               padding: EdgeInsets.zero,
               splashColor: Colors.transparent,

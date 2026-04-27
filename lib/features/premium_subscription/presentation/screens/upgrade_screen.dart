@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:software_project/features/premium_subscription/presentation/widgets/subscription_restriction_menu.dart';
-import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_tier.dart';
 import 'subscription_plans_screen.dart';
 
 class UpgradeScreen extends StatelessWidget {
@@ -254,7 +254,103 @@ class UpgradeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 18),
+
+                  const Text(
+                    'For EGP 175.00, billed monthly.',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Row(
+                    children: [
+                      Text("Cancel anytime. "),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          overlayColor: Colors.transparent,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Color(0xFF121212),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                            constraints: BoxConstraints(maxHeight: 250),
+                            showDragHandle: true,
+                            builder: (_) => SubscriptionRestrictionMenu(
+                              subscriptionPlan: SubscriptionTier.artistPro,
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Restrictions apply",
+                          style: TextStyle(color: Color(0xFF4D70AC)),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                      ),
+                      child: const Text(
+                        'Get Artist Pro',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SubscriptionPlansScreen(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                      ),
+                      child: const Text(
+                        'See all plans',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
