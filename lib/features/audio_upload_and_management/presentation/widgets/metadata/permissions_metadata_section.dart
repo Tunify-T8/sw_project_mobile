@@ -55,7 +55,8 @@ class PermissionsMetadataSection extends StatelessWidget {
     final selectedCountryCodes = CountryCodeUtils.parseCountryCodes(
       availabilityRegionsController.text,
     );
-    final showRegionsField = availabilityType != 'worldwide';
+    final effectiveAvailabilityType = isPro ? availabilityType : 'worldwide';
+    final showRegionsField = effectiveAvailabilityType != 'worldwide';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,8 +66,9 @@ class PermissionsMetadataSection extends StatelessWidget {
         MetadataPermissionToggleRow(
           title: 'Enable direct downloads',
           subtitle: 'Allow listeners to download the original audio file.',
-          value: allowDownloads,
-          onChanged: onAllowDownloadsChanged,
+          value: true,
+          onChanged: (_) => onAllowDownloadsChanged(true),
+          locked: true,
         ),
         MetadataPermissionToggleRow(
           title: 'Offline listening',
@@ -105,14 +107,14 @@ class PermissionsMetadataSection extends StatelessWidget {
         MetadataPermissionRadioRow(
           title: 'Worldwide',
           subtitle: 'Track is available in all regions.',
-          selected: availabilityType == 'worldwide',
+          selected: effectiveAvailabilityType == 'worldwide',
           onTap: isPro ? () => onAvailabilityTypeChanged('worldwide') : null,
           disabled: !isPro,
         ),
         MetadataPermissionRadioRow(
           title: 'Exclusive regions',
           subtitle: 'Only selected regions can access this track.',
-          selected: availabilityType == 'exclusive_regions',
+          selected: effectiveAvailabilityType == 'exclusive_regions',
           onTap: isPro
               ? () => onAvailabilityTypeChanged('exclusive_regions')
               : null,
@@ -121,7 +123,7 @@ class PermissionsMetadataSection extends StatelessWidget {
         MetadataPermissionRadioRow(
           title: 'Blocked regions',
           subtitle: 'Selected regions are blocked.',
-          selected: availabilityType == 'excluded_regions',
+          selected: effectiveAvailabilityType == 'excluded_regions',
           onTap: isPro
               ? () => onAvailabilityTypeChanged('excluded_regions')
               : null,

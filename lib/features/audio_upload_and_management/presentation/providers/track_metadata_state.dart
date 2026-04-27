@@ -55,7 +55,7 @@ class TrackMetadataState {
     this.hasScheduledRelease = false,
     this.scheduledReleaseDate,
     this.contentWarning = false,
-    this.allowDownloads = false,
+    this.allowDownloads = true,
     this.offlineListening = true,
     this.includeInRss = true,
     this.displayEmbedCode = true,

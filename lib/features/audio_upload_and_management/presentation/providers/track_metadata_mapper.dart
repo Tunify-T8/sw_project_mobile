@@ -30,7 +30,7 @@ class TrackMetadataMapper {
       scheduledReleaseDate: state.hasScheduledRelease
           ? state.scheduledReleaseDate
           : null,
-      allowDownloads: state.allowDownloads,
+      allowDownloads: true,
       offlineListening: state.offlineListening,
       includeInRss: state.includeInRss,
       displayEmbedCode: state.displayEmbedCode,
