@@ -110,8 +110,6 @@ class FeedNotifier extends Notifier<FeedState> {
     }
   }
 
-  // UI-only preview flag used by FeedTrackCard to show/hide the preview overlay.
-  // Actual audio is handled by FeedPreviewPlaybackController.
   void togglePreview() {
     state = state.copyWith(isPreviewing: !state.isPreviewing);
   }

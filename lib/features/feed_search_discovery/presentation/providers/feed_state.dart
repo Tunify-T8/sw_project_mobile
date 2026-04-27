@@ -7,8 +7,6 @@ class FeedState {
   final bool isFollowingLoading;
   final bool hasLoadedDiscover;
   final bool hasLoadedFollowing;
-  // True while the current feed card preview is active. This only drives feed
-  // UI; preview audio is controlled by FeedPreviewPlaybackController.
   final bool isPreviewing;
   final String? discoverError;
   final String? followingError;

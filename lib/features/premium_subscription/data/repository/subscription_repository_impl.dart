@@ -35,9 +35,16 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     required PaymentMethodEntity paymentMethod,
     int trialDays = 0,
   }) {
+    final String planName;
+    if (tier == SubscriptionTier.artistpro) {
+      planName = 'artist-pro';
+    } else {
+      planName = tier.name;
+    }
+    print(planName);
     return api.subscribe(
       request: SubscribeRequestDto(
-        plan: tier.name,
+        plan: planName,
         billingCycle: billingCycle.name,
         paymentMethod: paymentMethod.type.name,
         card: paymentMethod.type.name == 'card'

@@ -7,10 +7,12 @@ import 'subscription_features_mapper.dart';
 extension CurrentSubscriptionMapper on CurrentSubscriptionDto {
   CurrentSubscriptionEntity toEntity() {
     return CurrentSubscriptionEntity(
-      tier: SubscriptionTier.values.byName(plan),
-      status: SubscriptionStatus.values.byName(status),
+      tier: SubscriptionTier.values.byName(
+        plan.toLowerCase().replaceAll('-', ''),
+      ),
+      status: SubscriptionStatus.values.byName(status.toLowerCase()),
       startedAt: (startedAt == null) ? null : DateTime.tryParse(startedAt!),
-      expiresAt: (expiresAt == null )? null : DateTime.tryParse(expiresAt!),
+      expiresAt: (expiresAt == null) ? null : DateTime.tryParse(expiresAt!),
       autoRenew: autoRenew,
       features: features.toEntity(),
     );
