@@ -99,9 +99,6 @@ class ApiEndpoints {
   static const String getSocialLinks = '/users/me/social-links';
   static const String updateSocialLinks = '/users/me/social-links';
 
-  // Download
-  static String trackDownload(String trackId) => '/tracks/$trackId/download';
-
   // Playback
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';

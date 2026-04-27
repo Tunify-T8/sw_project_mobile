@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/design_system/app_loading_spinner.dart';
 import '../../../../core/design_system/colors.dart';
-import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../../core/routing/routes.dart';
 import '../../../notifications/presentation/state/notification_filter.dart';
 import '../../../notifications/presentation/state/notifications_controller.dart';
@@ -31,79 +29,6 @@ class _MessagingActivityScreenState
     final notifState = ref.watch(notificationsControllerProvider);
     final hasUnread = convState.totalUnread > 0;
     final hasUnreadNotifs = notifState.unreadCount > 0;
-    final isDesktop = AdaptiveBreakpoints.isExpanded(context);
-
-    if (isDesktop) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        bottomNavigationBar: const MessagingBottomShell(),
-        body: SafeArea(
-          child: Padding(
-            padding: AdaptiveBreakpoints.pagePadding(context),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Back',
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Activity',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _DesktopActivityPane(
-                          title: 'Notifications',
-                          showDot: hasUnreadNotifs,
-                          trailing: _NotificationFilterButton(
-                            currentFilter: notifState.filter,
-                            onChanged: (f) => ref
-                                .read(
-                                  notificationsControllerProvider.notifier,
-                                )
-                                .setFilter(f),
-                          ),
-                          child: const NotificationsTab(),
-                        ),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: _DesktopActivityPane(
-                          title: 'Messages',
-                          showDot: hasUnread,
-                          trailing: _FilterButton(
-                            currentFilter: convState.filter,
-                            onChanged: (f) => ref
-                                .read(conversationsControllerProvider.notifier)
-                                .setFilter(f),
-                          ),
-                          child: _MessagesList(state: convState),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -265,58 +190,6 @@ class _UnreadDot extends StatelessWidget {
   }
 }
 
-class _DesktopActivityPane extends StatelessWidget {
-  const _DesktopActivityPane({
-    required this.title,
-    required this.child,
-    required this.trailing,
-    required this.showDot,
-  });
-
-  final String title;
-  final Widget child;
-  final Widget trailing;
-  final bool showDot;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF242424)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 12, 12),
-            child: Row(
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if (showDot) ...[
-                  const SizedBox(width: 10),
-                  const _UnreadDot(),
-                ],
-                const Spacer(),
-                trailing,
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFF242424)),
-          Expanded(child: child),
-        ],
-      ),
-    );
-  }
-}
-
 class _MessagesList extends ConsumerWidget {
   const _MessagesList({required this.state});
 
@@ -326,7 +199,7 @@ class _MessagesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (state.isLoading) {
       return const Center(
-        child: AppLoadingSpinner(label: 'Loading messages…'),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 

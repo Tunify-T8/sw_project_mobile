@@ -220,37 +220,23 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   /// Reorders a queued track.
   ///
-  /// Both indexes are relative to the visible "Playing next" list, not the
-  /// full underlying queue. The visible list is circular: it starts after the
-  /// current track and wraps around to the beginning when needed.
+  /// Both indexes are relative to the visible "Playing next" list,
+  /// not the full underlying queue. So we offset them by the current track.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    if (queue.trackIds.length <= 1) return;
-    if (oldIndex == newIndex) return;
+    final offset = queue.currentIndex + 1;
+    final absOld = offset + oldIndex;
+    final absNew = offset + newIndex;
 
-    final visibleIds = <String>[];
-    for (var offset = 1; offset < queue.trackIds.length; offset++) {
-      final absoluteIndex =
-          (queue.currentIndex + offset) % queue.trackIds.length;
-      visibleIds.add(queue.trackIds[absoluteIndex]);
-    }
+    if (absOld < offset || absOld >= queue.trackIds.length) return;
+    if (absNew < offset || absNew > queue.trackIds.length) return;
 
-    if (oldIndex < 0 || oldIndex >= visibleIds.length) return;
-    if (newIndex < 0 || newIndex > visibleIds.length) return;
-
-    final movedId = visibleIds.removeAt(oldIndex);
-    visibleIds.insert(newIndex, movedId);
-
-    final newIds = List<String>.filled(queue.trackIds.length, '');
-    newIds[queue.currentIndex] = queue.trackIds[queue.currentIndex];
-    for (var offset = 1; offset < queue.trackIds.length; offset++) {
-      final absoluteIndex =
-          (queue.currentIndex + offset) % queue.trackIds.length;
-      newIds[absoluteIndex] = visibleIds[offset - 1];
-    }
+    final newIds = List<String>.from(queue.trackIds);
+    final item = newIds.removeAt(absOld);
+    newIds.insert(absNew, item);
 
     final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
     _setPlayerState(next);

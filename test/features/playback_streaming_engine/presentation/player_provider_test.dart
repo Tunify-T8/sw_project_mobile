@@ -252,38 +252,6 @@ void main() {
     expect(state.queue!.currentIndex, 2);
   });
 
-  test('reorderQueue persists visible circular next-up order', () async {
-    final container = buildContainer(mode: PlayerBackendMode.mock);
-    addTearDown(container.dispose);
-    await container.read(playerProvider.future);
-    final notifier = container.read(playerProvider.notifier);
-
-    await notifier.loadTrack(
-      'track-3',
-      autoPlay: false,
-      seedTrack: const PlayerSeedTrack(
-        trackId: 'track-3',
-        title: 'Track Three',
-        artistName: 'Artist',
-        durationSeconds: 120,
-      ),
-      queue: sampleQueue(
-        trackIds: const <String>['track-1', 'track-2', 'track-3', 'track-4'],
-        currentIndex: 2,
-      ),
-    );
-
-    notifier.reorderQueue(1, 0);
-
-    final queue = container.read(playerProvider).requireValue.queue!;
-    expect(queue.currentIndex, 2);
-    expect(queue.trackIds[queue.currentIndex], 'track-3');
-    expect(
-      queue.trackIds,
-      const <String>['track-4', 'track-2', 'track-3', 'track-1'],
-    );
-  });
-
   test('preview tracks stop automatically at preview end', () async {
     repository.getPlaybackBundleHandler = (trackId, {String? privateToken}) async {
       return sampleBundle(
