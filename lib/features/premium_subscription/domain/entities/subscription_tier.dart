@@ -1,1 +1,1 @@
-enum SubscriptionTier {FREE, PRO, GOPLUS}
+enum SubscriptionTier { free, artist, artistpro }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/entities/payment_method_entity.dart';
-import '../../domain/entities/payment_method_type.dart';
+import '../../../domain/entities/payment_method_entity.dart';
+import '../../../domain/entities/payment_method_type.dart';
 import 'payment_fields.dart';
 import 'payment_option.dart';
 

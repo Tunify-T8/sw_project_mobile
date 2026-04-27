@@ -1,21 +1,110 @@
 import 'package:flutter/material.dart';
-import 'package:software_project/features/premium_subscription/presentation/widgets/subscription_restriction_menu.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/premium_subscription/presentation/widgets/subscription_restrictions_link.dart';
+import '../../domain/entities/billing_cycle.dart';
+import '../../domain/entities/subscription_plan_entity.dart';
 import '../../domain/entities/subscription_tier.dart';
+import '../providers/subscription_notifier.dart';
+import '../widgets/payment/payment_method_sheet.dart';
+import '../widgets/upgrade_image.dart';
 import 'subscription_plans_screen.dart';
 
-class UpgradeScreen extends StatelessWidget {
+class UpgradeScreen extends ConsumerStatefulWidget {
   final bool popUp;
   const UpgradeScreen({super.key, required this.popUp});
 
   @override
+  ConsumerState<UpgradeScreen> createState() => _UpgradeScreenState();
+}
+
+class _UpgradeScreenState extends ConsumerState<UpgradeScreen> {
+  Future<void> _openArtistProMonthlyPayment() async {
+    final notifier = ref.read(subscriptionNotifierProvider.notifier);
+    var state = ref.read(subscriptionNotifierProvider);
+    if (state.isPlansLoading) return;
+
+    if (state.plans.isEmpty) {
+      await notifier.loadPlans();
+      state = ref.read(subscriptionNotifierProvider);
+    }
+
+    if (!mounted) return;
+
+    final artistProPlan = _findArtistProPlan(state.plans);
+    if (artistProPlan == null) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: const Color(0xFF1C1C1C),
+          title: const Text(
+            'Artist Pro unavailable',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Artist Pro is not available right now.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final price =
+        '${artistProPlan.currency} ${artistProPlan.monthlyPrice.toStringAsFixed(2)}/month';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF121212),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      showDragHandle: true,
+      builder: (_) => PaymentMethodSheet(
+        price: price,
+        onContinue: (paymentMethod) {
+          notifier.setBillingCycle(BillingCycle.monthly);
+          return notifier.subscribe(
+            tier: artistProPlan.tier,
+            paymentMethod: paymentMethod,
+          );
+        },
+      ),
+    );
+  }
+
+  SubscriptionPlanEntity? _findArtistProPlan(
+    List<SubscriptionPlanEntity> plans,
+  ) {
+    for (final plan in plans) {
+      if (plan.tier == SubscriptionTier.artistpro) return plan;
+    }
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final subscriptionState = ref.watch(subscriptionNotifierProvider);
+    final plans = subscriptionState.plans;
+    final artistProPlan = _findArtistProPlan(plans);
+    final isOpeningPayment = subscriptionState.isPlansLoading;
+    final monthlyPriceText = (artistProPlan == null)
+        ? 'For EGP 175.00, billed monthly.'
+        : 'For ${artistProPlan.currency} ${artistProPlan.monthlyPrice.toStringAsFixed(2)}, billed monthly.';
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (popUp)
+            if (widget.popUp)
               Align(
                 alignment: Alignment.topRight,
                 child: IconButton(
@@ -24,50 +113,7 @@ class UpgradeScreen extends StatelessWidget {
                 ),
               ),
 
-            Center(
-              child: SizedBox(
-                width: 240,
-                height: 300,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Container(
-                        width: 200,
-                        height: 260,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Color(0xFF1B3A6B), Color(0xFF071530)],
-                          ),
-                          borderRadius: BorderRadius.all(Radius.circular(5)),
-                        ),
-                      ),
-                    ),
-
-                    Positioned(
-                      top: 16,
-                      left: 0,
-                      child: Container(
-                        width: 200,
-                        height: 260,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5),
-                          image: const DecorationImage(
-                            image: NetworkImage(
-                              'https://images.unsplash.com/photo-1575285113814-f770cb8c796e?fm=jpg&q=60&w=3000&auto=format&fit=crop',
-                            ),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const UpgradeImage(),
 
             const SizedBox(height: 20),
 
@@ -137,45 +183,15 @@ class UpgradeScreen extends StatelessWidget {
 
                   const SizedBox(height: 18),
 
-                  const Text(
-                    'For EGP 175.00, billed monthly.',
+                  Text(
+                    monthlyPriceText,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
 
                   const SizedBox(height: 4),
 
-                  Row(
-                    children: [
-                      Text("Cancel anytime. "),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          overlayColor: Colors.transparent,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Color(0xFF121212),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            constraints: BoxConstraints(maxHeight: 250),
-                            showDragHandle: true,
-                            builder: (_) => SubscriptionRestrictionMenu(
-                              subscriptionPlan: SubscriptionTier.GOPLUS,
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "Restrictions apply",
-                          style: TextStyle(color: Color(0xFF4D70AC)),
-                        ),
-                      ),
-                    ],
+                  const SubscriptionRestrictionsLink(
+                    subscriptionPlan: SubscriptionTier.artistpro,
                   ),
 
                   const SizedBox(height: 24),
@@ -183,7 +199,9 @@ class UpgradeScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: isOpeningPayment
+                          ? null
+                          : _openArtistProMonthlyPayment,
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
@@ -192,9 +210,9 @@ class UpgradeScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(26),
                         ),
                       ),
-                      child: const Text(
-                        'Get Artist Pro',
-                        style: TextStyle(
+                      child: Text(
+                        isOpeningPayment ? 'Loading...' : 'Get Artist Pro',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),

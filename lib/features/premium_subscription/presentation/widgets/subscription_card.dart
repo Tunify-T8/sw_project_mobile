@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/billing_cycle.dart';
 import '../../domain/entities/payment_method_entity.dart';
-import 'payment_method_sheet.dart';
-import 'subscription_restriction_menu.dart';
+import '../providers/subscription_notifier.dart';
+import 'payment/payment_method_sheet.dart';
+import 'subscription_restrictions_link.dart';
 import '../../domain/entities/subscription_tier.dart';
 import '../../domain/entities/subscription_plan_entity.dart';
 
-class SubscriptionCard extends StatelessWidget {
+class SubscriptionCard extends ConsumerWidget {
   final SubscriptionPlanEntity plan;
   final BillingCycle subscriptionPeriod;
   final Future<String> Function(PaymentMethodEntity paymentMethod) onSubscribe;
@@ -20,11 +22,11 @@ class SubscriptionCard extends StatelessWidget {
 
   String _getTitle() {
     switch (plan.tier) {
-      case SubscriptionTier.FREE:
+      case SubscriptionTier.free:
         return 'Free';
-      case SubscriptionTier.PRO:
+      case SubscriptionTier.artist:
         return 'Artist';
-      case SubscriptionTier.GOPLUS:
+      case SubscriptionTier.artistpro:
         return 'Artist Pro';
     }
   }
@@ -41,8 +43,8 @@ class SubscriptionCard extends StatelessWidget {
   List<String> _getFeatures() {
     return [
       (plan.features.uploadLimit > 0)
-          ? 'Upload up to ${plan.features.uploadLimit} tracks'
-          : 'Upload unlimited tracks',
+          ? 'Up to ${plan.features.uploadLimit} minutes of uploads'
+          : 'Unlimited uploads',
 
       if (plan.features.adFree) 'Ad-free listening',
       if (plan.features.offlineListening) 'Offline listening',
@@ -71,9 +73,13 @@ class SubscriptionCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final features = _getFeatures();
     final price = _getPrice();
+    final currentSubscription = ref
+        .watch(subscriptionNotifierProvider)
+        .currentSubscription;
+    final canSubscribe = (currentSubscription?.tier == SubscriptionTier.free);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -130,79 +136,50 @@ class SubscriptionCard extends StatelessWidget {
                 .toList(),
           ),
 
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: const Color(0xFF121212),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(18),
-                    ),
-                  ),
-                  showDragHandle: true,
-                  builder: (_) => PaymentMethodSheet(
-                    price: price,
-                    onContinue: (paymentMethod) {
-                      return onSubscribe(paymentMethod);
-                    },
-                  ),
-                );
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
-                ),
-              ),
-              child: const Text(
-                'Subscribe Now',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          Row(
-            children: [
-              Text("Cancel anytime. "),
-              TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  overlayColor: Colors.transparent,
-                ),
+          if (canSubscribe) ...[
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
                 onPressed: () {
                   showModalBottomSheet(
                     context: context,
-                    backgroundColor: Color(0xFF121212),
+                    isScrollControlled: true,
+                    backgroundColor: const Color(0xFF121212),
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+                        top: Radius.circular(18),
                       ),
                     ),
-                    constraints: BoxConstraints(maxHeight: 250),
                     showDragHandle: true,
-                    builder: (_) => SubscriptionRestrictionMenu(
-                      subscriptionPlan: plan.tier,
+                    builder: (_) => PaymentMethodSheet(
+                      price: price,
+                      onContinue: (paymentMethod) {
+                        return onSubscribe(paymentMethod);
+                      },
                     ),
                   );
                 },
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                ),
                 child: const Text(
-                  "Restrictions apply",
-                  style: TextStyle(color: Color(0xFF4D70AC)),
+                  'Subscribe Now',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 15),
+            SubscriptionRestrictionsLink(subscriptionPlan: plan.tier),
+          ],
         ],
       ),
     );

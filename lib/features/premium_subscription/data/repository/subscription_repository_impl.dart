@@ -36,10 +36,10 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     int trialDays = 0,
   }) {
     final String planName;
-    if (tier == SubscriptionTier.PRO) {
-      planName = 'artist';
-    } else {
+    if (tier == SubscriptionTier.artistpro) {
       planName = 'artist-pro';
+    } else {
+      planName = tier.name;
     }
     print(planName);
     return api.subscribe(

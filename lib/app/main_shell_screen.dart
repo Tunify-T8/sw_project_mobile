@@ -10,6 +10,9 @@ import '../features/feed_search_discovery/presentation/screens/classic_feed_scre
 import '../features/feed_search_discovery/presentation/screens/feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/search_screen.dart';
 import '../features/playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../features/premium_subscription/domain/entities/subscription_tier.dart';
+import '../features/premium_subscription/presentation/providers/subscription_notifier.dart';
+import '../features/premium_subscription/presentation/screens/current_subscription_screen.dart';
 import '../features/premium_subscription/presentation/screens/upgrade_screen.dart';
 import 'router.dart';
 
@@ -30,13 +33,23 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const UpgradeScreen(popUp: true),
-        ),
-      );
+
+      final notifier = ref.read(subscriptionNotifierProvider.notifier);
+      await notifier.loadCurrentSubscription();
+
+      if (!mounted) return;
+
+      final currentSubscription = ref
+          .read(subscriptionNotifierProvider)
+          .currentSubscription;
+
+      if (currentSubscription?.tier == SubscriptionTier.free) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const UpgradeScreen(popUp: true)),
+        );
+      }
     });
     MainShellScreen.tabNotifier.addListener(_onExternalTabChange);
   }
@@ -54,6 +67,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentSubscription = ref
+        .watch(subscriptionNotifierProvider)
+        .currentSubscription;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: DecoratedBox(
@@ -80,7 +97,10 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               onOpenYourUploads: () =>
                   Navigator.of(context).pushNamed(Routes.yourUploads),
             ),
-            const UpgradeScreen(popUp: false,),
+            
+            (currentSubscription?.tier == SubscriptionTier.free)
+                ? const UpgradeScreen(popUp: false)
+                : const CurrentSubscriptionScreen(),
           ],
         ),
       ),

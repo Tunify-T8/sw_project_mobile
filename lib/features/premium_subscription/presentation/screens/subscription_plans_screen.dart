@@ -61,7 +61,7 @@ class _SubscriptionPlansScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(subscriptionNotifierProvider);
     final paidPlans = state.plans
-        .where((plan) => plan.tier != SubscriptionTier.FREE)
+        .where((plan) => plan.tier != SubscriptionTier.free)
         .toList();
 
     final cardCount = paidPlans.length * 2;
