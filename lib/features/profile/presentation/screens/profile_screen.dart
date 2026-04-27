@@ -204,7 +204,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       );
                     },
                   ),
-                  const ProfilePlaylistsSection(isCurrentUser: true),
+                  ProfilePlaylistsSection(
+                    isCurrentUser: true,
+                    ownerName: profile?.displayName ?? profile?.userName,
+                  ),
                   const ProfileLikesSection(),
                   const ProfileRepostsSection(),
                 ],
