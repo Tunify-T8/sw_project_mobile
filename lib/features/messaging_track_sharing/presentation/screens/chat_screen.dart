@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,33 +42,14 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _optionsKey = GlobalKey();
-  bool _pendingAttachmentSent = false;
+  final List<MessageAttachment> _pendingAttachments = [];
 
   @override
   void initState() {
     super.initState();
     if (widget.pendingAttachment != null) {
-      Future.microtask(_sendPendingAttachmentWhenReady);
+      _pendingAttachments.add(widget.pendingAttachment!);
     }
-  }
-
-  Future<void> _sendPendingAttachmentWhenReady() async {
-    if (_pendingAttachmentSent || widget.pendingAttachment == null) return;
-
-    // Wait up to ~3s for the chat to finish loading before sending so the
-    // attachment lands on top of the existing history in the UI.
-    for (var i = 0; i < 30; i++) {
-      if (!mounted) return;
-      final state = ref.read(chatControllerProvider(widget.conversationId));
-      if (!state.isLoading) break;
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    }
-
-    if (!mounted || _pendingAttachmentSent) return;
-    _pendingAttachmentSent = true;
-    ref
-        .read(chatControllerProvider(widget.conversationId).notifier)
-        .sendAttachments([widget.pendingAttachment!]);
   }
 
   @override
@@ -145,13 +128,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             ChatInputBar(
               isSending: chatState.isSending,
-              onSend: (text) {
-                ref
-                    .read(
-                      chatControllerProvider(widget.conversationId).notifier,
-                    )
-                    .sendText(text);
-              },
+              pendingAttachments: _pendingAttachments,
+              onRemoveAttachment: _removePendingAttachment,
+              onSend: _sendComposerMessage,
               onAttachTap: () => _showAttachSheet(context),
             ),
           ],
@@ -217,13 +196,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               ChatInputBar(
                 isSending: chatState.isSending,
-                onSend: (text) {
-                  ref
-                      .read(
-                        chatControllerProvider(widget.conversationId).notifier,
-                      )
-                      .sendText(text);
-                },
+                pendingAttachments: _pendingAttachments,
+                onRemoveAttachment: _removePendingAttachment,
+                onSend: _sendComposerMessage,
                 onAttachTap: () => _showAttachSheet(context),
               ),
             ],
@@ -259,10 +234,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ).then((attachments) {
       if (!mounted || attachments == null || attachments.isEmpty) return;
 
+      setState(() {
+        for (final attachment in attachments) {
+          final alreadyAdded = _pendingAttachments.any(
+            (pending) =>
+                pending.id == attachment.id &&
+                pending.backendKind == attachment.backendKind,
+          );
+          if (!alreadyAdded) {
+            _pendingAttachments.add(attachment);
+          }
+        }
+      });
+    });
+  }
+
+  void _removePendingAttachment(MessageAttachment attachment) {
+    setState(() {
+      _pendingAttachments.removeWhere(
+        (pending) =>
+            pending.id == attachment.id &&
+            pending.backendKind == attachment.backendKind,
+      );
+    });
+  }
+
+  void _sendComposerMessage(String text) {
+    final attachments = List<MessageAttachment>.of(_pendingAttachments);
+    if (text.trim().isEmpty && attachments.isEmpty) return;
+
+    setState(_pendingAttachments.clear);
+    unawaited(
       ref
           .read(chatControllerProvider(widget.conversationId).notifier)
-          .sendAttachments(attachments);
-    });
+          .sendDraft(text: text, attachments: attachments),
+    );
   }
 
   void _showOptionsPopup() {

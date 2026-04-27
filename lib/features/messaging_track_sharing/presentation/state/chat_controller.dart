@@ -198,6 +198,39 @@ class ChatController extends Notifier<ChatState> {
     if (trimmedText.isEmpty && attachments.isEmpty) return;
     if (state.isSending) return;
 
+    if (trimmedText.isNotEmpty && attachments.isNotEmpty) {
+      await _send(
+        SendMessageDraft(
+          type: MessageType.text,
+          text: trimmedText,
+          attachments: const [],
+        ),
+      );
+      for (final attachment in attachments) {
+        if (state.isSending) return;
+        await _send(
+          SendMessageDraft(
+            type: MessageType.attachment,
+            attachments: [attachment],
+          ),
+        );
+      }
+      return;
+    }
+
+    if (attachments.length > 1) {
+      for (final attachment in attachments) {
+        if (state.isSending) return;
+        await _send(
+          SendMessageDraft(
+            type: MessageType.attachment,
+            attachments: [attachment],
+          ),
+        );
+      }
+      return;
+    }
+
     await _send(
       SendMessageDraft(
         type: attachments.isNotEmpty
