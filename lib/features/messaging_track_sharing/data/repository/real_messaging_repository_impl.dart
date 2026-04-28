@@ -80,7 +80,7 @@ class RealMessagingRepository implements MessagingRepository {
   ) async {
     // The backend models messages polymorphically — one `type` per message
     // with a type-specific fk. Attachments that arrive as a list from the UI
-    // are sent as separate messages (text goes out as a TEXT message first).
+    // are sent as separate messages before the typed text message.
     final trimmedText = (draft.text ?? '').trim();
     final hasText = trimmedText.isNotEmpty;
     final attachments = draft.attachments;
@@ -90,16 +90,6 @@ class RealMessagingRepository implements MessagingRepository {
     }
 
     MessageEntity? last;
-
-    if (hasText) {
-      last = MessagingMapper.message(
-        await _socket.sendMessage(<String, dynamic>{
-          'conversationId': conversationId,
-          'type': 'TEXT',
-          'content': trimmedText,
-        }),
-      );
-    }
 
     for (final attachment in attachments) {
       final kind = attachment.backendKind;
@@ -129,6 +119,16 @@ class RealMessagingRepository implements MessagingRepository {
           break;
       }
       last = MessagingMapper.message(await _socket.sendMessage(payload));
+    }
+
+    if (hasText) {
+      last = MessagingMapper.message(
+        await _socket.sendMessage(<String, dynamic>{
+          'conversationId': conversationId,
+          'type': 'TEXT',
+          'content': trimmedText,
+        }),
+      );
     }
 
     return last!;
