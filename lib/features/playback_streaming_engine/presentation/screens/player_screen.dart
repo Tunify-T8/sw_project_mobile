@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +10,7 @@ import '../providers/player_provider.dart';
 import '../widgets/blocked_track_view.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_waveform_bar.dart';
+import '../widgets/track_options_sheet.dart';
 import 'queue_screen.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
@@ -56,7 +57,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       if (playerState?.isPlaying == true) _artworkController.forward();
       final trackId = playerState?.bundle?.trackId;
       if (trackId != null) {
-        ref.read(engagementProvider(trackId).notifier).loadEngagement(); // engagement addition — load engagement for the initial track on screen open
+        ref
+            .read(engagementProvider(trackId).notifier)
+            .loadEngagement(); // engagement addition — load engagement for the initial track on screen open
       }
     });
   }

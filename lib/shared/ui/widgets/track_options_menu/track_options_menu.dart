@@ -12,14 +12,11 @@ import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../../features/engagements_social_interactions/presentation/screens/comments_screen.dart';
-import '../../../../features/engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
-import '../../../../core/utils/navigation_utils.dart';
 import '../../../../features/messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../../../../features/playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
-import '../../../../features/feed_search_discovery/presentation/providers/feed_view_provider.dart';
-import '../../../../features/feed_search_discovery/domain/entities/feed_view_mode.dart';
-import '../../../../features/audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
+import '../../../../features/premium_subscription/domain/entities/subscription_tier.dart';
+import '../../../../features/premium_subscription/presentation/providers/subscription_notifier.dart';
 
 Future<void> showTrackOptionsMenu({
   required BuildContext context,
@@ -35,27 +32,65 @@ Future<void> showTrackOptionsMenu({
   bool isFollowingFeed = false,
   bool isBehindTrack = false,
 }) {
+  final isFeedMenu =
+      isDiscoverFeed ||
+      isFollowingFeed ||
+      (initialIsLiked != null && initialIsReposted != null);
+
+  if (isFeedMenu) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF121212),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (_) => TrackOptionsMenu(
+        trackId: trackId,
+        title: title,
+        artistId: artistId,
+        artistName: artistName,
+        coverUrl: coverUrl,
+        localArtworkPath: localArtworkPath,
+        initialIsLiked: initialIsLiked,
+        initialIsReposted: initialIsReposted,
+        isDiscoverFeed: isDiscoverFeed,
+        isFollowingFeed: isFollowingFeed,
+        isBehindTrack: isBehindTrack,
+        allowDownloadAction: false,
+      ),
+    );
+  }
+
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF121212),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    showDragHandle: true,
-    useSafeArea: true,
-    builder: (_) => TrackOptionsMenu(
-      trackId: trackId,
-      title: title,
-      artistId: artistId,
-      artistName: artistName,
-      coverUrl: coverUrl,
-      localArtworkPath: localArtworkPath,
-      initialIsLiked: initialIsLiked,
-      initialIsReposted: initialIsReposted,
-      isDiscoverFeed: isDiscoverFeed,
-      isFollowingFeed: isFollowingFeed,
-      isBehindTrack: isBehindTrack,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Consumer(
+      builder: (context, ref, _) {
+        final resolvedArtistId =
+            resolveArtistIdForTrackLocally(
+              ref,
+              trackId,
+              fallbackArtistId: artistId,
+            ) ??
+            artistId;
+        final currentUserId = ref.read(authControllerProvider).value?.id;
+        final info = TrackOptionInfo.fromTrackId(
+          trackId,
+          ref,
+          fallbackTitle: title,
+          fallbackArtist: artistName,
+          fallbackArtistId: resolvedArtistId,
+          fallbackCoverUrl: coverUrl,
+          fallbackLocalArtworkPath: localArtworkPath,
+          fallbackIsOwned: currentUserId == resolvedArtistId,
+        );
+
+        return TrackOptionsSheetContent(info: info, ref: ref);
+      },
     ),
   );
 }
@@ -72,6 +107,7 @@ class TrackOptionsMenu extends ConsumerStatefulWidget {
   final bool isDiscoverFeed;
   final bool isFollowingFeed;
   final bool isBehindTrack;
+  final bool allowDownloadAction;
 
   const TrackOptionsMenu({
     super.key,
@@ -86,6 +122,7 @@ class TrackOptionsMenu extends ConsumerStatefulWidget {
     this.isDiscoverFeed = false,
     this.isFollowingFeed = false,
     this.isBehindTrack = false,
+    this.allowDownloadAction = true,
   });
 
   @override
@@ -98,7 +135,8 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
   @override
   void initState() {
     super.initState();
-    _resolvedArtistId = resolveArtistIdForTrackLocally(
+    _resolvedArtistId =
+        resolveArtistIdForTrackLocally(
           ref,
           widget.trackId,
           fallbackArtistId: widget.artistId,
@@ -156,10 +194,24 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
       artistId: _resolvedArtistId,
       coverUrl: widget.coverUrl,
       localArtworkPath: widget.localArtworkPath,
+      isOwned: ref.read(authControllerProvider).value?.id == _resolvedArtistId,
     );
 
     final String? myId = ref.read(authControllerProvider).value?.id;
     final isMyTrack = (myId == _resolvedArtistId);
+    final subscriptionState = ref.watch(subscriptionNotifierProvider);
+    final currentSubscription = subscriptionState.currentSubscription;
+    final canDownload = currentSubscription?.tier != SubscriptionTier.free;
+
+    if (!subscriptionState.hasLoadedCurrent &&
+        !subscriptionState.isCurrentLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(subscriptionNotifierProvider.notifier)
+            .loadCurrentSubscription();
+      });
+    }
 
     return ListView(
       children: [
@@ -182,11 +234,20 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
 
         const Divider(color: Colors.white12, height: 1),
 
+        if (canDownload && widget.allowDownloadAction) ...[
+          TrackOptionMenuItem(
+            icon: Icons.download_outlined,
+            label: 'Download track',
+            onTap: () => downloadTrackFromOptions(context, ref, info),
+          ),
+          const Divider(color: Colors.white12, height: 1),
+        ],
+
         if (isMyTrack) ...[
           TrackOptionMenuItem(
             icon: Icons.edit,
             label: 'Edit track',
-            onTap: () {},
+            onTap: () => editTrackFromOptions(context, ref, info),
           ),
           const Divider(color: Colors.white12, height: 1),
         ],
@@ -228,9 +289,9 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
             icon: Icons.comment_outlined,
             label: 'View comments',
             onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              navigator.push(
                 MaterialPageRoute(
                   builder: (_) => CommentsScreen(trackId: widget.trackId),
                 ),
@@ -242,7 +303,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
             icon: Icons.delete,
             color: Colors.red,
             label: 'Delete track',
-            onTap: () {},
+            onTap: () => deleteTrackFromOptions(context, ref, info),
           ),
         ],
       ],
