@@ -14,6 +14,7 @@ import '../utils/messaging_time_format.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/message_buble.dart';
 import '../widgets/messaging_bottom_shell.dart';
+import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import 'attach_content_sheet.dart';
 import 'report_contact_screen.dart';
 
@@ -21,12 +22,14 @@ class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
     super.key,
     required this.conversationId,
+    this.otherUserId,
     required this.otherUserName,
     this.otherUserAvatar,
     this.pendingAttachment,
   });
 
   final String conversationId;
+  final String? otherUserId;
   final String otherUserName;
   final String? otherUserAvatar;
 
@@ -92,6 +95,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       widget.otherUserAvatar,
       conversation?.otherUser.avatarUrl,
     );
+    final appBarUserId = _bestUserId(
+      widget.otherUserId,
+      conversation?.otherUser.id,
+      currentUserId,
+    );
 
     ref.listen(chatControllerProvider(widget.conversationId), (previous, next) {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
@@ -110,6 +118,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               name: appBarName,
               avatarUrl: appBarAvatar,
               onBack: () => Navigator.of(context).pop(),
+              onProfileTap: appBarUserId == null
+                  ? null
+                  : () => _openOtherUserProfile(appBarUserId),
               optionsButtonKey: _optionsKey,
               onOptionsPressed: _showOptionsPopup,
             ),
@@ -180,6 +191,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 name: appBarName,
                 avatarUrl: appBarAvatar,
                 onBack: () => Navigator.of(context).pop(),
+                onProfileTap: appBarUserId == null
+                    ? null
+                    : () => _openOtherUserProfile(appBarUserId),
                 optionsButtonKey: _optionsKey,
                 onOptionsPressed: _showOptionsPopup,
               ),
@@ -224,6 +238,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (hydrated.isNotEmpty) return hydrated;
     final route = routeAvatar?.trim() ?? '';
     return route.isEmpty ? null : route;
+  }
+
+  String? _bestUserId(
+    String? routeUserId,
+    String? hydratedUserId,
+    String currentUserId,
+  ) {
+    final route = routeUserId?.trim() ?? '';
+    if (route.isNotEmpty && route != currentUserId) return route;
+    final hydrated = hydratedUserId?.trim() ?? '';
+    if (hydrated.isNotEmpty && hydrated != currentUserId) return hydrated;
+    return null;
+  }
+
+  void _openOtherUserProfile(String userId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OtherUserProfileScreen(userId: userId),
+      ),
+    );
   }
 
   void _showAttachSheet(BuildContext context) {
@@ -418,6 +452,7 @@ class _ChatAppBar extends StatelessWidget {
     required this.name,
     this.avatarUrl,
     required this.onBack,
+    this.onProfileTap,
     required this.optionsButtonKey,
     required this.onOptionsPressed,
   });
@@ -425,6 +460,7 @@ class _ChatAppBar extends StatelessWidget {
   final String name;
   final String? avatarUrl;
   final VoidCallback onBack;
+  final VoidCallback? onProfileTap;
   final GlobalKey optionsButtonKey;
   final VoidCallback onOptionsPressed;
 
@@ -439,26 +475,40 @@ class _ChatAppBar extends StatelessWidget {
             onPressed: onBack,
           ),
           const SizedBox(width: 4),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.blue.withValues(alpha: 0.24),
-            backgroundImage: avatarUrl != null
-                ? NetworkImage(avatarUrl!)
-                : null,
-            child: avatarUrl == null
-                ? const Icon(Icons.person, color: Color(0xFF64B5F6), size: 22)
-                : null,
-          ),
-          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onProfileTap,
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.blue.withValues(alpha: 0.24),
+                    backgroundImage: avatarUrl != null
+                        ? NetworkImage(avatarUrl!)
+                        : null,
+                    child: avatarUrl == null
+                        ? const Icon(
+                            Icons.person,
+                            color: Color(0xFF64B5F6),
+                            size: 22,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -122,7 +122,8 @@ class TrackOptionInfo {
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
       isPrivate:
-          fallbackPrivateToken != null && fallbackPrivateToken.trim().isNotEmpty,
+          fallbackPrivateToken != null &&
+          fallbackPrivateToken.trim().isNotEmpty,
       privateToken: fallbackPrivateToken,
     );
   }
@@ -140,7 +141,8 @@ Future<void> showTrackOptionsSheet(
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (ctx) {
-      if (ref.read(engagementProvider(info.trackId)).engagementStatus == EngagementStatus.initial) {
+      if (ref.read(engagementProvider(info.trackId)).engagementStatus ==
+          EngagementStatus.initial) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ref.read(engagementProvider(info.trackId).notifier).loadEngagement();
         });
@@ -174,8 +176,12 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
     final uploaderId = info.artistId?.trim();
     if (uploaderId == null || uploaderId.isEmpty) return false;
 
-    final currentUserId =
-        ref.read(authControllerProvider).asData?.value?.id.trim();
+    final currentUserId = ref
+        .read(authControllerProvider)
+        .asData
+        ?.value
+        ?.id
+        .trim();
     if (currentUserId == null || currentUserId.isEmpty) return false;
 
     return currentUserId == uploaderId;
@@ -184,8 +190,7 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef watchRef) {
     final isOwned = _resolveIsOwned();
-    final conversations =
-        watchRef.watch(conversationsControllerProvider).items;
+    final conversations = watchRef.watch(conversationsControllerProvider).items;
 
     return Container(
       decoration: const BoxDecoration(
@@ -217,10 +222,7 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
               // ── Send To ──────────────────────────────────────────────
               if (conversations.isNotEmpty) ...[
                 SectionLabel(label: 'SEND TO'),
-                SendToRow(
-                  info: info,
-                  conversations: conversations,
-                ),
+                SendToRow(info: info, conversations: conversations),
               ],
 
               // ── Share ────────────────────────────────────────────────
@@ -389,9 +391,9 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   void _navigateToEditTrack(BuildContext context) {
     final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
     if (stored == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)));
   }
 
   void _navigateToUploaderProfile(BuildContext context) {
@@ -435,7 +437,8 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   void _navigateToBehindThisTrack(BuildContext context) {
     final store = ref.read(globalTrackStoreProvider);
     final stored = store.find(info.trackId);
-    final item = stored ??
+    final item =
+        stored ??
         UploadItem(
           id: info.trackId,
           title: info.title,
@@ -457,9 +460,9 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
           createdAt: DateTime.now(),
         );
 
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TrackInfoScreen(item: item)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => TrackInfoScreen(item: item)));
   }
 }
 
@@ -505,8 +508,10 @@ class FrostedTrackHeader extends StatelessWidget {
               ),
 
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     UploadArtworkView(
@@ -666,6 +671,7 @@ class SendToAvatar extends StatelessWidget {
       Routes.chat,
       arguments: {
         'conversationId': conversation.conversationId,
+        'otherUserId': conversation.otherUser.id,
         'otherUserName': conversation.otherUser.displayName,
         'otherUserAvatar': conversation.otherUser.avatarUrl,
         'pendingAttachment': MessageAttachment(
@@ -711,7 +717,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final text = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('sms:?body=$text'),
                 mode: LaunchMode.externalApplication,
@@ -743,10 +750,7 @@ class ShareRow extends StatelessWidget {
           ),
 
           // QR code (placeholder)
-          const YourUploadsShareButton(
-            icon: Icons.qr_code_2,
-            label: 'QR code',
-          ),
+          const YourUploadsShareButton(icon: Icons.qr_code_2, label: 'QR code'),
 
           // WhatsApp
           SocialShareButton(
@@ -757,7 +761,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final msg = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('https://wa.me/?text=$msg'),
                 mode: LaunchMode.externalApplication,
@@ -773,7 +778,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final text = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('sms:?body=$text'),
                 mode: LaunchMode.externalApplication,
@@ -791,7 +797,9 @@ class ShareRow extends StatelessWidget {
               if (url == null) return;
               // Instagram deep-link: opens the app
               await launchUrl(
-                Uri.parse('instagram://sharesheet?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}'),
+                Uri.parse(
+                  'instagram://sharesheet?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -806,7 +814,9 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await launchUrl(
-                Uri.parse('snapchat://send?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}'),
+                Uri.parse(
+                  'snapchat://send?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -821,7 +831,9 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await launchUrl(
-                Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(url)}'),
+                Uri.parse(
+                  'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(url)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -836,7 +848,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final text = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('https://twitter.com/intent/tweet?text=$text'),
                 mode: LaunchMode.externalApplication,
@@ -853,7 +866,9 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await launchUrl(
-                Uri.parse('fb-messenger://share?link=${Uri.encodeComponent(url)}'),
+                Uri.parse(
+                  'fb-messenger://share?link=${Uri.encodeComponent(url)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -877,7 +892,6 @@ class ShareRow extends StatelessWidget {
     );
   }
 }
-
 
 // ── Share URL builder ───────────────────────────────────────────────────────
 
@@ -912,7 +926,8 @@ Future<String?> _buildTrackOptionShareUrl(
   }
 
   final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-  final shouldUsePrivateLink = detailPrivacy == 'private' ||
+  final shouldUsePrivateLink =
+      detailPrivacy == 'private' ||
       stored?.visibility == UploadVisibility.private ||
       (privateToken != null && privateToken.isNotEmpty);
 

@@ -319,10 +319,11 @@ class AppRouter {
           AuthProtectedScreen(
             child: ChatScreen(
               conversationId: args['conversationId'] as String? ?? '',
+              otherUserId: args['otherUserId'] as String?,
               otherUserName: args['otherUserName'] as String? ?? '',
               otherUserAvatar: args['otherUserAvatar'] as String?,
-              pendingAttachment: args['pendingAttachment']
-                  as MessageAttachment?,
+              pendingAttachment:
+                  args['pendingAttachment'] as MessageAttachment?,
             ),
           ),
           settings,
