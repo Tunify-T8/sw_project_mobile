@@ -34,6 +34,7 @@ class StorageKeys {
 
   static const String cachedLibraryUploads = 'cached_library_uploads';
   static const String cachedPlayerSession = 'cached_player_session';
+  static const String messagingReadWatermarks = 'messaging_read_watermarks';
 
   /// Plays that happened while offline, waiting to be sent via
   /// `POST /tracks/plays/batch` when the device comes back online.

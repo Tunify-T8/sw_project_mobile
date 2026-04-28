@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
+import '../../../../core/storage/storage_keys.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/realtime_event.dart';
@@ -67,6 +70,9 @@ class ConversationsController extends Notifier<ConversationsState> {
   /// Client-side unarchive set — conversations explicitly re-opened by the
   /// user that should appear even if the backend still says ARCHIVED.
   final Set<String> _localUnarchivedIds = {};
+  final Map<String, DateTime> _localReadWatermarks = {};
+  bool _loadedReadWatermarks = false;
+  String? _loadedReadWatermarksUserId;
 
   @override
   ConversationsState build() {
@@ -81,17 +87,71 @@ class ConversationsController extends Notifier<ConversationsState> {
     return const ConversationsState(isLoading: true);
   }
 
-  /// Merges backend items with the local archive/unarchive overrides.
-  List<ConversationEntity> _applyLocalArchive(List<ConversationEntity> items) {
+  String _readWatermarksKey(String userId) =>
+      '${StorageKeys.messagingReadWatermarks}_$userId';
+
+  /// Merges backend items with local overrides that must survive refreshes.
+  List<ConversationEntity> _applyLocalOverrides(List<ConversationEntity> items) {
     return items.map((c) {
+      var next = c;
       if (_localUnarchivedIds.contains(c.conversationId)) {
-        return c.copyWith(isArchived: false);
+        next = next.copyWith(isArchived: false);
       }
       if (_localArchivedIds.contains(c.conversationId)) {
-        return c.copyWith(isArchived: true);
+        next = next.copyWith(isArchived: true);
       }
-      return c;
+
+      final readAt = _localReadWatermarks[c.conversationId];
+      final lastMessageAt = c.lastMessageAt;
+      if (readAt != null &&
+          (lastMessageAt == null || !lastMessageAt.isAfter(readAt))) {
+        next = next.copyWith(unreadCount: 0);
+      }
+
+      return next;
     }).toList();
+  }
+
+  Future<void> _ensureReadWatermarksLoaded(String userId) async {
+    if (_loadedReadWatermarksUserId != userId) {
+      _loadedReadWatermarks = false;
+      _loadedReadWatermarksUserId = userId;
+      _localReadWatermarks.clear();
+    }
+    if (_loadedReadWatermarks) return;
+    _loadedReadWatermarks = true;
+
+    final raw = await SafeSecureStorage.read(_readWatermarksKey(userId));
+    if (raw == null || raw.isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      _localReadWatermarks
+        ..clear()
+        ..addEntries(
+          decoded.entries
+              .map((entry) {
+                final parsed = DateTime.tryParse(entry.value.toString());
+                if (parsed == null) return null;
+                return MapEntry(entry.key, parsed);
+              })
+              .whereType<MapEntry<String, DateTime>>(),
+        );
+    } catch (_) {
+      await SafeSecureStorage.delete(_readWatermarksKey(userId));
+    }
+  }
+
+  Future<void> _persistReadWatermarks(String userId) {
+    final encoded = jsonEncode(
+      _localReadWatermarks.map(
+        (key, value) => MapEntry(key, value.toIso8601String()),
+      ),
+    );
+    return SafeSecureStorage.write(
+      key: _readWatermarksKey(userId),
+      value: encoded,
+    );
   }
 
   Future<void> load() async {
@@ -102,6 +162,7 @@ class ConversationsController extends Notifier<ConversationsState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      await _ensureReadWatermarksLoaded(userId);
       await ref.read(messagingRepositoryProvider).connectRealtime();
       _bindRealtime();
 
@@ -109,7 +170,7 @@ class ConversationsController extends Notifier<ConversationsState> {
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
       state = state.copyWith(
         isLoading: false,
-        items: _applyLocalArchive(page.items),
+        items: _applyLocalOverrides(page.items),
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -121,11 +182,12 @@ class ConversationsController extends Notifier<ConversationsState> {
     if (userId == null || userId.isEmpty) return;
     state = state.copyWith(isRefreshing: true, clearError: true);
     try {
+      await _ensureReadWatermarksLoaded(userId);
       final page = await ref.read(getConversationsUseCaseProvider).call();
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
       state = state.copyWith(
         isRefreshing: false,
-        items: _applyLocalArchive(page.items),
+        items: _applyLocalOverrides(page.items),
       );
     } catch (e) {
       state = state.copyWith(isRefreshing: false, error: e.toString());
@@ -138,7 +200,25 @@ class ConversationsController extends Notifier<ConversationsState> {
   }
 
   Future<void> markRead(String conversationId) async {
-    await ref.read(markConversationReadUseCaseProvider).call(conversationId);
+    final userId = ref.read(messagingSessionUserIdProvider);
+    DateTime? lastMessageAt;
+    for (final conversation in state.items) {
+      if (conversation.conversationId == conversationId) {
+        lastMessageAt = conversation.lastMessageAt;
+        break;
+      }
+    }
+
+    if (userId != null && userId.isNotEmpty) {
+      await _ensureReadWatermarksLoaded(userId);
+      final now = DateTime.now();
+      _localReadWatermarks[conversationId] =
+          lastMessageAt != null && lastMessageAt.isAfter(now)
+              ? lastMessageAt
+              : now;
+      unawaited(_persistReadWatermarks(userId));
+    }
+
     // Update locally so the UI reflects the read state immediately.
     state = state.copyWith(
       items: state.items
@@ -149,6 +229,14 @@ class ConversationsController extends Notifier<ConversationsState> {
           )
           .toList(),
     );
+
+    try {
+      await ref.read(markConversationReadUseCaseProvider).call(conversationId);
+    } catch (_) {
+      // Keep the local read state. If the backend returns stale unread counts
+      // on the next refresh, the persisted watermark will still suppress them
+      // until a newer message appears.
+    }
   }
 
   void handleLocalMessageSent(MessageEntity message) {

@@ -147,8 +147,8 @@ class ChatController extends Notifier<ChatState> {
 
       if (ref.read(messagingSessionUserIdProvider) == userId) {
         await ref
-            .read(markConversationReadUseCaseProvider)
-            .call(_conversationId);
+            .read(conversationsControllerProvider.notifier)
+            .markRead(_conversationId);
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -177,9 +177,11 @@ class ChatController extends Notifier<ChatState> {
                 return true;
               }).toList();
               state = state.copyWith(messages: [...filtered, attributed]);
-              ref
-                  .read(markConversationReadUseCaseProvider)
-                  .call(_conversationId);
+              unawaited(
+                ref
+                    .read(conversationsControllerProvider.notifier)
+                    .markRead(_conversationId),
+              );
             case MessageReadEvent():
             case ConversationBlockedEvent():
             case TypingEvent():
