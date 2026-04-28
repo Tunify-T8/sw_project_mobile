@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/routing/routes.dart';
+import '../../../../core/utils/navigation_utils.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/search_provider.dart';
+import '../utils/search_track_playback.dart';
 import '../widgets/search/search_bar_widget.dart';
 import '../widgets/search/search_genre_grid.dart';
 import '../widgets/search/search_typing_suggestions.dart';
@@ -17,6 +21,30 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+
+  void _openRecentResult(RecentResultItem item) {
+    switch (item.kind) {
+      case RecentResultKind.track:
+        final track = item.track;
+        if (track != null) {
+          playSearchTrack(context, ref, track);
+        }
+        break;
+      case RecentResultKind.profile:
+        navigateToProfile(
+          context,
+          item.id,
+          currentUserId: ref.read(authControllerProvider).value?.id,
+        );
+        break;
+      case RecentResultKind.playlist:
+      case RecentResultKind.album:
+        Navigator.of(
+          context,
+        ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': item.id});
+        break;
+    }
+  }
 
   @override
   void initState() {
@@ -94,10 +122,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       _focusNode.unfocus();
                       ref.read(searchProvider.notifier).onQuerySubmitted(q);
                     },
-                    onRecentTap: (q) {
-                      _controller.text = q;
+                    onRecentTap: (item) {
+                      _controller.text = item.title;
                       _focusNode.unfocus();
-                      ref.read(searchProvider.notifier).onRecentSearchTapped(q);
+                      _openRecentResult(item);
                     },
                     onRecentRemove: (result) {
                       ref

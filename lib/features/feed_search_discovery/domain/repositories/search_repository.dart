@@ -1,3 +1,4 @@
+import '../entities/autocomplete_result_entity.dart';
 import '../entities/search_all_result_entity.dart';
 import '../entities/album_result_entity.dart';
 import '../entities/genre_detail_entity.dart';
@@ -10,6 +11,10 @@ import '../entities/search_filters_entity.dart';
 abstract class SearchRepository {
   /// Global search — powers the "All" tab aggregate view.
   Future<SearchAllResultEntity> searchAll(String query);
+
+  /// Autocomplete — up to 5 results per category, from 1 char, typo-tolerant.
+  /// Suspended users and deleted/hidden/private tracks are excluded by backend.
+  Future<AutocompleteResultEntity> searchAutocomplete(String query);
 
   /// Track search with optional filters.
   Future<List<TrackResultEntity>> searchTracks(
