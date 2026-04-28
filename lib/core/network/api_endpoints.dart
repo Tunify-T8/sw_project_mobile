@@ -176,6 +176,8 @@ class ApiEndpoints {
 
   static String collectionLike(String id) => '/collections/$id/like';
   static String collectionEmbed(String id) => '/collections/$id/embed';
+  static String collectionShare(String id) => '/collections/$id/share';
+  static String collectionShareReset(String id) => '/collections/$id/share/reset';
 
   static String userCollections(String username) =>
       '/users/$username/collections';

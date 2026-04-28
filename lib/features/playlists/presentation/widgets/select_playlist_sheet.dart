@@ -338,7 +338,8 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(playlistNotifierProvider);
     final playlists = state.myCollections
-        .where((playlist) => playlist.type == CollectionType.playlist)
+        .where((playlist) =>
+            playlist.type == CollectionType.playlist && playlist.isMine)
         .map(_playlistForDisplay)
         .toList();
     final filtered = _query.isEmpty
@@ -685,7 +686,7 @@ class _PlaylistSelectRow extends StatelessWidget {
                     : isAdded
                         ? const Icon(
                             Icons.check_circle,
-                            color: Colors.white70,
+                            color: Colors.orangeAccent,
                             size: 28,
                           )
                         : Container(

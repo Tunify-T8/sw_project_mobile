@@ -41,20 +41,19 @@ class PlaylistSummaryDto {
 
   factory PlaylistSummaryDto.fromJson(Map<String, dynamic> json) =>
       PlaylistSummaryDto(
-        id: json['id'] as String,
-        title: json['title'] as String,
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
         description: json['description'] as String?,
-        type: json['type'] as String,
-        privacy: json['privacy'] as String,
+        type: json['type'] as String? ?? 'playlist',
+        privacy: json['privacy'] as String? ?? 'public',
         coverUrl: json['coverUrl'] as String?,
         trackCount: (json['trackCount'] as num?)?.toInt() ?? 0,
         likeCount: (json['likeCount'] as num?)?.toInt() ?? 0,
         repostsCount: (json['repostsCount'] as num?)?.toInt() ?? 0,
         ownerFollowerCount: (json['ownerFollowerCount'] as num?)?.toInt() ?? 0,
-        // Default false — field absent in non-/me endpoints.
         isMine: json['isMine'] as bool? ?? false,
         isLiked: json['isLiked'] as bool? ?? false,
-        createdAt: json['createdAt'] as String,
-        updatedAt: json['updatedAt'] as String,
+        createdAt: json['createdAt'] as String? ?? '',
+        updatedAt: json['updatedAt'] as String? ?? '',
       );
 }
