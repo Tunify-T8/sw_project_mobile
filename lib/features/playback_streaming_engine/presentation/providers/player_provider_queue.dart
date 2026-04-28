@@ -73,8 +73,9 @@ extension PlayerNotifierQueue on PlayerNotifier {
     RepeatMode repeat = RepeatMode.none,
     String? privateToken,
     bool autoPlay = true,
+    PlayerSeedTrack? seedTrack,
   }) async {
-    final queue = await _buildQueue(
+    final queue = (await _buildQueue(
       PlaybackContextRequest(
         contextType: contextType,
         contextId: contextId,
@@ -82,14 +83,15 @@ extension PlayerNotifierQueue on PlayerNotifier {
         shuffle: shuffle,
         repeat: repeat,
       ),
-    );
+    ))
+        .copyWith(source: _queueSourceForContext(contextType));
 
     await loadTrack(
       startTrackId,
       privateToken: privateToken,
       queue: queue,
       autoPlay: autoPlay,
-      seedTrack: _seedTrackForTrackId(startTrackId),
+      seedTrack: seedTrack ?? _seedTrackForTrackId(startTrackId),
     );
   }
 
@@ -267,7 +269,8 @@ extension PlayerNotifierQueue on PlayerNotifier {
     // Listening history and expects "next" to mean "next in history",
     // NOT "more by this artist". Skip enrichment entirely.
     final currentBeforeFetch = _current;
-    if (currentBeforeFetch?.queue?.source == QueueSource.history) {
+    if (currentBeforeFetch?.queue?.source == QueueSource.history ||
+        currentBeforeFetch?.queue?.source == QueueSource.playlist) {
       return;
     }
 
@@ -281,7 +284,10 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     // Double-check source after the async gap — the user may have tapped
     // a history track while the fetch was in flight.
-    if (after.queue?.source == QueueSource.history) return;
+    if (after.queue?.source == QueueSource.history ||
+        after.queue?.source == QueueSource.playlist) {
+      return;
+    }
 
     final existingQueue = after.queue;
     final existingIds = existingQueue?.trackIds ?? <String>[];
@@ -368,5 +374,19 @@ extension PlayerNotifierQueue on PlayerNotifier {
       durationSeconds: historyTrack.durationSeconds,
       coverUrl: historyTrack.coverUrl,
     );
+  }
+
+  QueueSource _queueSourceForContext(PlaybackContextType contextType) {
+    switch (contextType) {
+      case PlaybackContextType.history:
+        return QueueSource.history;
+      case PlaybackContextType.playlist:
+        return QueueSource.playlist;
+      case PlaybackContextType.feed:
+      case PlaybackContextType.profile:
+        return QueueSource.explicit;
+      case PlaybackContextType.track:
+        return QueueSource.singleTrack;
+    }
   }
 }
