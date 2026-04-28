@@ -161,11 +161,7 @@ class _ActivityTabButton extends StatelessWidget {
                 ),
               ),
               if (showDot)
-                const Positioned(
-                  right: -12,
-                  top: -1,
-                  child: _UnreadDot(),
-                ),
+                const Positioned(right: -12, top: -1, child: _UnreadDot()),
             ],
           ),
         ),
@@ -239,6 +235,7 @@ class _MessagesList extends ConsumerWidget {
                 Routes.chat,
                 arguments: {
                   'conversationId': convo.conversationId,
+                  'otherUserId': convo.otherUser.id,
                   'otherUserName': convo.otherUser.displayName,
                   'otherUserAvatar': convo.otherUser.avatarUrl,
                 },
@@ -283,22 +280,37 @@ class _NotificationFilterButton extends StatelessWidget {
               else
                 const SizedBox(width: 26),
               if (f == NotificationFilter.all)
-                const Icon(Icons.notifications_none,
-                    color: Colors.white70, size: 18)
+                const Icon(
+                  Icons.notifications_none,
+                  color: Colors.white70,
+                  size: 18,
+                )
               else if (f == NotificationFilter.reposts)
                 const Icon(Icons.repeat, color: Colors.white70, size: 18)
               else if (f == NotificationFilter.likes)
-                const Icon(Icons.favorite_border,
-                    color: Colors.white70, size: 18)
+                const Icon(
+                  Icons.favorite_border,
+                  color: Colors.white70,
+                  size: 18,
+                )
               else if (f == NotificationFilter.comments)
-                const Icon(Icons.chat_bubble_outline,
-                    color: Colors.white70, size: 18)
+                const Icon(
+                  Icons.chat_bubble_outline,
+                  color: Colors.white70,
+                  size: 18,
+                )
               else if (f == NotificationFilter.followings)
-                const Icon(Icons.person_add_alt,
-                    color: Colors.white70, size: 18)
+                const Icon(
+                  Icons.person_add_alt,
+                  color: Colors.white70,
+                  size: 18,
+                )
               else if (f == NotificationFilter.reactions)
-                const Icon(Icons.emoji_emotions_outlined,
-                    color: Colors.white70, size: 18),
+                const Icon(
+                  Icons.emoji_emotions_outlined,
+                  color: Colors.white70,
+                  size: 18,
+                ),
               const SizedBox(width: 10),
               Text(
                 f.label,
@@ -319,10 +331,7 @@ class _NotificationFilterButton extends StatelessWidget {
 // ── Messages filter dropdown ────────────────────────────────────────────────
 
 class _FilterButton extends StatelessWidget {
-  const _FilterButton({
-    required this.currentFilter,
-    required this.onChanged,
-  });
+  const _FilterButton({required this.currentFilter, required this.onChanged});
 
   final MessagesFilter currentFilter;
   final ValueChanged<MessagesFilter> onChanged;

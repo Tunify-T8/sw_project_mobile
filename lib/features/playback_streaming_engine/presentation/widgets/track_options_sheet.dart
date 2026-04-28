@@ -30,6 +30,7 @@ import '../../../engagements_social_interactions/presentation/screens/comments_s
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../messaging_track_sharing/domain/entities/conversation_entity.dart';
 import '../../../messaging_track_sharing/domain/entities/message_attachment.dart';
+import '../../../messaging_track_sharing/presentation/state/chat_controller.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../premium_subscription/domain/entities/subscription_tier.dart';
 import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
@@ -247,6 +248,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
 
     final uploaderId = info.artistId?.trim();
     if (uploaderId == null || uploaderId.isEmpty) return false;
+
     return currentUserId == uploaderId;
   }
 
@@ -1062,18 +1064,10 @@ class SendToAvatar extends StatelessWidget {
       Routes.chat,
       arguments: {
         'conversationId': conversation.conversationId,
+        'otherUserId': conversation.otherUser.id,
         'otherUserName': conversation.otherUser.displayName,
         'otherUserAvatar': conversation.otherUser.avatarUrl,
-        'pendingAttachment': MessageAttachment(
-          id: info.trackId,
-          type: MessageAttachmentType.track,
-          backendKind: info.isOwned
-              ? MessageAttachmentBackendKind.trackUpload
-              : MessageAttachmentBackendKind.trackLike,
-          title: info.title,
-          subtitle: info.artist,
-          artworkUrl: info.coverUrl,
-        ),
+        'pendingAttachment': _trackMessageAttachment(info),
       },
     );
   }
@@ -1103,15 +1097,13 @@ class ShareRow extends StatelessWidget {
           YourUploadsShareButton(
             icon: Icons.send_outlined,
             label: 'Message',
-            onTap: () async {
-              final url = await _buildTrackOptionShareUrl(context, info, ref);
-              if (url == null) return;
-              final text = Uri.encodeComponent(
-                'Check out "${info.title}" on Tunify: $url',
-              );
-              await launchUrl(
-                Uri.parse('sms:?body=$text'),
-                mode: LaunchMode.externalApplication,
+            onTap: () {
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              navigator.push(
+                MaterialPageRoute<void>(
+                  builder: (_) => TrackShareToScreen(info: info),
+                ),
               );
             },
           ),
@@ -1286,6 +1278,256 @@ class ShareRow extends StatelessWidget {
 }
 
 // ── Share URL builder ───────────────────────────────────────────────────────
+
+class TrackShareToScreen extends ConsumerStatefulWidget {
+  const TrackShareToScreen({super.key, required this.info});
+
+  final TrackOptionInfo info;
+
+  @override
+  ConsumerState<TrackShareToScreen> createState() => _TrackShareToScreenState();
+}
+
+class _TrackShareToScreenState extends ConsumerState<TrackShareToScreen> {
+  String? _sendingConversationId;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(conversationsControllerProvider);
+    final conversations = state.visible;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 12, 10),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: _sendingConversationId == null
+                        ? () => Navigator.of(context).pop()
+                        : null,
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Share To',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFF1F1F1F)),
+            if (state.isLoading)
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              )
+            else if (state.error != null && conversations.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'Could not load chats',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              )
+            else if (conversations.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'No chats yet',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: RefreshIndicator(
+                  color: Colors.white,
+                  onRefresh: () => ref
+                      .read(conversationsControllerProvider.notifier)
+                      .refresh(),
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    itemCount: conversations.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, color: Color(0xFF1A1A1A)),
+                    itemBuilder: (context, index) {
+                      final conversation = conversations[index];
+                      final isSending =
+                          _sendingConversationId == conversation.conversationId;
+                      return _ShareConversationTile(
+                        conversation: conversation,
+                        isSending: isSending,
+                        enabled: _sendingConversationId == null,
+                        onTap: () => _sendToConversation(conversation),
+                      );
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendToConversation(ConversationEntity conversation) async {
+    if (_sendingConversationId != null) return;
+    setState(() => _sendingConversationId = conversation.conversationId);
+
+    try {
+      final chatProvider = chatControllerProvider(conversation.conversationId);
+      await ref.read(chatProvider.notifier).sendAttachments([
+        _trackMessageAttachment(widget.info),
+      ]);
+      final sendError = ref.read(chatProvider).error;
+      if (sendError != null) {
+        throw Exception(sendError);
+      }
+
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacementNamed(
+        Routes.chat,
+        arguments: {
+          'conversationId': conversation.conversationId,
+          'otherUserId': conversation.otherUser.id,
+          'otherUserName': conversation.otherUser.displayName,
+          'otherUserAvatar': conversation.otherUser.avatarUrl,
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not send track. Please try again.'),
+        ),
+      );
+      setState(() => _sendingConversationId = null);
+    }
+  }
+}
+
+class _ShareConversationTile extends StatelessWidget {
+  const _ShareConversationTile({
+    required this.conversation,
+    required this.isSending,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final ConversationEntity conversation;
+  final bool isSending;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = conversation.otherUser;
+    final avatar = user.avatarUrl?.trim();
+    final preview = conversation.lastMessagePreview?.trim() ?? '';
+
+    return Material(
+      color: Colors.black,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        splashColor: Colors.white10,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFF2A2A2A),
+                backgroundImage: avatar != null && avatar.isNotEmpty
+                    ? NetworkImage(avatar)
+                    : null,
+                child: avatar == null || avatar.isEmpty
+                    ? Text(
+                        user.displayName.isNotEmpty
+                            ? user.displayName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (preview.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        preview,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF8A8A8A),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (isSending)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              else
+                const Icon(Icons.chevron_right, color: Colors.white38),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+MessageAttachment _trackMessageAttachment(TrackOptionInfo info) {
+  return MessageAttachment(
+    id: info.trackId,
+    type: MessageAttachmentType.track,
+    backendKind: info.isOwned
+        ? MessageAttachmentBackendKind.trackUpload
+        : MessageAttachmentBackendKind.trackLike,
+    title: info.title,
+    subtitle: info.artist,
+    artworkUrl: info.coverUrl,
+  );
+}
 
 Future<String?> _buildTrackOptionShareUrl(
   BuildContext context,

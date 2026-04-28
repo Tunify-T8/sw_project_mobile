@@ -321,6 +321,7 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.on('error', (data) {
       final m = _safeMap(data);
       debugPrint('[MessagingSocket] server error: ${m['message']}');
+      _completePendingWithServerError(m);
     });
 
     _socket!.connect();
@@ -330,6 +331,18 @@ class RealMessagingSocket implements MessagingSocket {
     if (_pending.isEmpty) return null;
     final key = _pending.keys.first;
     return _pending.remove(key);
+  }
+
+  void _completePendingWithServerError(Map<String, dynamic> envelope) {
+    final tempId = (envelope['tempId'] ?? '').toString();
+    final pending = tempId.isNotEmpty
+        ? _pending.remove(tempId)
+        : _takeOldestPending();
+    if (pending == null || pending.completer.isCompleted) return;
+
+    final message = (envelope['message'] ?? 'Messaging server rejected send')
+        .toString();
+    pending.completer.completeError(StateError(message));
   }
 
   void _resolvePendingFrom(MessageDto dto, Map<String, dynamic> envelope) {
@@ -347,8 +360,7 @@ class RealMessagingSocket implements MessagingSocket {
     for (final entry in _pending.entries) {
       final p = entry.value;
       if (p.conversationId != dto.conversationId) continue;
-      final sent = p.payload['content'] ?? p.payload['text'];
-      if (sent == dto.text) {
+      if (_matchesPendingPayload(p.payload, dto)) {
         match = p;
         break;
       }
@@ -357,6 +369,22 @@ class RealMessagingSocket implements MessagingSocket {
       _pending.remove(match.payload['tempId']);
       match.completer.complete(dto);
     }
+  }
+
+  bool _matchesPendingPayload(Map<String, dynamic> payload, MessageDto dto) {
+    final sent = payload['content'] ?? payload['text'];
+    if (sent != null || dto.text != null) {
+      return sent == dto.text;
+    }
+
+    if (dto.attachments.isEmpty) return false;
+    final sentAttachmentId =
+        (payload['trackId'] ?? payload['collectionId'] ?? payload['userId'])
+            ?.toString();
+    if (sentAttachmentId == null || sentAttachmentId.isEmpty) return false;
+    return dto.attachments.any(
+      (attachment) => attachment.id == sentAttachmentId,
+    );
   }
 
   MessageDto _optimisticDtoFromPayload(

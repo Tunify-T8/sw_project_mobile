@@ -79,7 +79,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           LibraryMenuTile(
             label: 'Inbox',
-            onTap: () => _showComingSoon(context, 'Inbox'),
+            onTap: () => Navigator.of(context).pushNamed(Routes.inboxSettings),
           ),
           LibraryMenuTile(
             label: 'Social',

@@ -48,11 +48,13 @@ extension MessageAttachmentBackendKindX on MessageAttachmentBackendKind {
 
   static MessageAttachmentBackendKind? fromWire(String? raw) {
     switch ((raw ?? '').toUpperCase()) {
+      case 'TRACK':
       case 'TRACK_LIKE':
         return MessageAttachmentBackendKind.trackLike;
       case 'TRACK_UPLOAD':
       case 'UPLOAD':
         return MessageAttachmentBackendKind.trackUpload;
+      case 'COLLECTION':
       case 'PLAYLIST':
         return MessageAttachmentBackendKind.playlist;
       case 'ALBUM':
@@ -85,10 +87,11 @@ class MessageAttachment {
     this.subtitle,
     this.artworkUrl,
     MessageAttachmentBackendKind? backendKind,
-  }) : backendKind = backendKind ??
-            (type == MessageAttachmentType.track
-                ? MessageAttachmentBackendKind.trackLike
-                : type == MessageAttachmentType.collection
-                    ? MessageAttachmentBackendKind.playlist
-                    : MessageAttachmentBackendKind.user);
+  }) : backendKind =
+           backendKind ??
+           (type == MessageAttachmentType.track
+               ? MessageAttachmentBackendKind.trackLike
+               : type == MessageAttachmentType.collection
+               ? MessageAttachmentBackendKind.playlist
+               : MessageAttachmentBackendKind.user);
 }
