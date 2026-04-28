@@ -5,12 +5,12 @@ class SubscriptionFeaturesEntity {
   final bool limitPlaybackAccess;
   final int playlistLimit;
 
-  SubscriptionFeaturesEntity({
-    required this.uploadLimit,
-    required this.adFree,
-    required this.offlineListening,
-    required this.limitPlaybackAccess,
-    required this.playlistLimit,
+  const SubscriptionFeaturesEntity({
+    this.uploadLimit = 180,
+    this.adFree = false,
+    this.offlineListening = false,
+    this.limitPlaybackAccess = false,
+    this.playlistLimit = 3,
   });
 
   SubscriptionFeaturesEntity copyWith({

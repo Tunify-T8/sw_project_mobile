@@ -1,4 +1,4 @@
-const int kFreeCollectionLimit = 2;
+const int kFreeCollectionLimit = 3;
 
 String freeCollectionLimitMessage([int limit = kFreeCollectionLimit]) {
   return 'Free users can only create up to $limit playlists.';

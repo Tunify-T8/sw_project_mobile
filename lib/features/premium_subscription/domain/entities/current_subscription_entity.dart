@@ -10,16 +10,16 @@ class CurrentSubscriptionEntity {
   final bool autoRenew;
   final SubscriptionFeaturesEntity features;
 
-  CurrentSubscriptionEntity({
+  const CurrentSubscriptionEntity({
     this.tier = SubscriptionTier.free,
-    required this.status,
-    required this.startedAt,
-    required this.expiresAt,
-    required this.autoRenew,
-    required this.features,
+    this.status = SubscriptionStatus.active,
+    this.startedAt,
+    this.expiresAt,
+    this.autoRenew = true,
+    this.features = const SubscriptionFeaturesEntity(),
   });
 
-   CurrentSubscriptionEntity copyWith({
+  CurrentSubscriptionEntity copyWith({
     SubscriptionTier? tier,
     SubscriptionStatus? status,
     DateTime? startedAt,

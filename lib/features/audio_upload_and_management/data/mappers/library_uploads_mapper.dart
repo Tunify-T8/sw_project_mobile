@@ -74,11 +74,10 @@ extension UploadItemDtoMapper on UploadItemDto {
 extension ArtistToolsQuotaDtoMapper on ArtistToolsQuotaDto {
   ArtistToolsQuota toEntity() {
     return ArtistToolsQuota(
-      tier: tier == 'pro' ? ArtistTier.pro : ArtistTier.free,
+      tier: ArtistTier.values.byName(tier.replaceAll('-', '')),
       uploadMinutesLimit: uploadMinutesLimit,
       uploadMinutesUsed: uploadMinutesUsed,
       canReplaceFiles: canReplaceFiles,
-      canUpgrade: canUpgrade,
     );
   }
 }

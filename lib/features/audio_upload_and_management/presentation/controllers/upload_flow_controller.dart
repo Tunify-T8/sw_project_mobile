@@ -9,6 +9,7 @@ import '../providers/library_uploads_provider.dart';
 import '../providers/track_metadata_provider.dart';
 import '../providers/upload_dependencies_provider.dart';
 import '../providers/upload_provider.dart';
+import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../utils/upload_auth_guard.dart';
 import '../screens/track_metadata_screen.dart';
 import '../widgets/artist_tool_paywall_data.dart';
@@ -38,7 +39,13 @@ Future<bool> maybeShowUploadQuotaLimitPrompt(
     return false;
   }
 
-  final remainingMinutes = quota?.uploadMinutesRemaining ?? 0;
+  final subscription = ref
+      .read(subscriptionNotifierProvider)
+      .currentSubscription;
+  final subscriptionUploadLimit = subscription.features.uploadLimit;
+  final remainingMinutes = subscriptionUploadLimit > 0
+      ? subscriptionUploadLimit - (quota?.uploadMinutesUsed ?? 0)
+      : quota?.uploadMinutesRemaining ?? 0;
 
   final shouldUpgrade = await showDialog<bool>(
     context: context,
@@ -75,8 +82,8 @@ Future<bool> maybeShowUploadQuotaLimitPrompt(
     await showArtistToolPaywallSheet(
       context: context,
       kind: ArtistToolKind.uploadTime,
-      uploadMinutesRemaining: quota?.uploadMinutesRemaining,
-      uploadMinutesLimit: quota?.uploadMinutesLimit,
+      uploadMinutesRemaining: remainingMinutes,
+      uploadMinutesLimit: subscriptionUploadLimit,
     );
   }
 

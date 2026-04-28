@@ -29,7 +29,7 @@ import '../helpers/upload_test_data.dart';
 void main() {
   test('artist tools quota entity exposes derived getters', () {
     const quota = ArtistToolsQuota(
-      tier: ArtistTier.pro,
+      tier: ArtistTier.artist,
       uploadMinutesLimit: 180,
       uploadMinutesUsed: 30,
       canReplaceFiles: true,
