@@ -4,8 +4,7 @@ enum NotificationFilter {
   reposts('Reposts', 'track_reposted'),
   likes('Likes', 'track_liked'),
   comments('Comments', 'track_commented'),
-  followings('Followings', 'user_followed'),
-  reactions('Reactions', 'track_liked,track_commented');
+  followings('Followings', 'user_followed');
 
   const NotificationFilter(this.label, this.apiType);
 
@@ -28,8 +27,6 @@ enum NotificationFilter {
         return 'comments';
       case NotificationFilter.followings:
         return 'followers';
-      case NotificationFilter.reactions:
-        return 'reactions';
     }
   }
 }
