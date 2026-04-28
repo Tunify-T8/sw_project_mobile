@@ -7,6 +7,7 @@ import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../dto/paginated_dto.dart';
 import '../dto/playlist_dto.dart';
+import '../dto/playlist_share_link_dto.dart';
 import '../dto/playlist_summary_dto.dart';
 import '../dto/playlist_track_dto.dart';
 
@@ -197,6 +198,20 @@ class PlaylistApi {
   }
 
   // ─── GET /users/:username/collections|albums|playlists ───────────────────
+
+  Future<PlaylistShareLinkDto> getShareUrl(String id) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      ApiEndpoints.collectionShare(id),
+    );
+    return PlaylistShareLinkDto.fromJson(res.data!);
+  }
+
+  Future<PlaylistShareLinkDto> resetShareToken(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      ApiEndpoints.collectionShareReset(id),
+    );
+    return PlaylistShareLinkDto.fromJson(res.data!);
+  }
 
   Future<PaginatedDto<PlaylistSummaryDto>> getUserCollections({
     required String username,

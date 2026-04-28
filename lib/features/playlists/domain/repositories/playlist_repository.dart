@@ -85,6 +85,8 @@ abstract class PlaylistRepository {
 
   /// Returns the raw iframe HTML string for a public collection.
   Future<String> getEmbedCode(String id);
+  Future<String> getShareUrl(String id);
+  Future<String> resetShareToken(String id);
 
   // ─── User collections ────────────────────────────────────────────────────
 

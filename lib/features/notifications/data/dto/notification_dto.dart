@@ -11,7 +11,14 @@ class NotificationActorDto {
 
   factory NotificationActorDto.fromJson(Map<String, dynamic> json) =>
       NotificationActorDto(
-        id: _string(json['id'] ?? json['_id'] ?? json['userId']),
+        id: _string(
+          json['id'] ??
+              json['_id'] ??
+              json['userId'] ??
+              json['actorId'] ??
+              json['senderId'] ??
+              json['fromUserId'],
+        ),
         username: _string(
           json['username'] ??
               json['userName'] ??
@@ -55,22 +62,17 @@ class NotificationDto {
     final actorJson = _mapOrNull(
       json['actor'] ?? json['user'] ?? json['sender'] ?? json['fromUser'],
     );
+    final type = _string(json['type'] ?? json['notificationType']);
+    final normalizedType = _normalizedType(type);
 
     return NotificationDto(
       id: _string(json['id'] ?? json['_id']),
-      type: _string(json['type'] ?? json['notificationType']),
+      type: type,
       actor: actorJson != null
           ? NotificationActorDto.fromJson(actorJson)
-          : null,
-      referenceType: _nullableString(
-        json['referenceType'] ?? json['reference_type'] ?? json['targetType'],
-      ),
-      referenceId: _nullableString(
-        json['referenceId'] ??
-            json['reference_id'] ??
-            json['targetId'] ??
-            json['trackId'],
-      ),
+          : _actorFromFlatJson(json),
+      referenceType: _referenceTypeFor(json, normalizedType),
+      referenceId: _referenceIdFor(json, normalizedType),
       message: _string(json['message'] ?? json['body'] ?? json['text']),
       isRead: _bool(json['isRead'] ?? json['is_read'] ?? json['read']),
       readAt: _dateOrNull(json['readAt'] ?? json['read_at']),
@@ -91,6 +93,218 @@ class NotificationDto {
     if (readAt != null) 'readAt': readAt!.toIso8601String(),
     'createdAt': createdAt.toIso8601String(),
   };
+}
+
+String _normalizedType(String raw) {
+  return raw
+      .trim()
+      .replaceAll('-', '_')
+      .replaceAllMapped(
+        RegExp(r'(?<=[a-z0-9])[A-Z]'),
+        (match) => '_${match.group(0)}',
+      )
+      .toLowerCase();
+}
+
+NotificationActorDto? _actorFromFlatJson(Map<String, dynamic> json) {
+  final id = _nullableString(
+    json['actorId'] ??
+        json['senderId'] ??
+        json['fromUserId'] ??
+        json['userId'],
+  );
+  if (id == null) return null;
+
+  return NotificationActorDto(
+    id: id,
+    username: _string(
+      json['actorUsername'] ??
+          json['actorName'] ??
+          json['senderUsername'] ??
+          json['senderName'] ??
+          json['fromUserName'] ??
+          json['username'] ??
+          id,
+    ),
+    avatarUrl: _nullableString(
+      json['actorAvatarUrl'] ??
+          json['senderAvatarUrl'] ??
+          json['fromUserAvatarUrl'] ??
+          json['avatarUrl'],
+    ),
+  );
+}
+
+String? _referenceTypeFor(Map<String, dynamic> json, String type) {
+  final hasTrackReference = _findTrackId(json) != null;
+  if (hasTrackReference &&
+      (type == 'track_commented' ||
+          type == 'track_liked' ||
+          type == 'track_reposted' ||
+          type == 'new_release')) {
+    return 'track';
+  }
+
+  final explicit = _nullableString(
+    json['referenceType'] ??
+        json['reference_type'] ??
+        json['targetType'] ??
+        json['entityType'] ??
+        json['resourceType'],
+  );
+  if (explicit != null) return explicit;
+
+  if (hasTrackReference) return 'track';
+  if (_findUserId(json) != null || type == 'user_followed') return 'user';
+  return null;
+}
+
+String? _referenceIdFor(Map<String, dynamic> json, String type) {
+  if (type == 'track_commented' ||
+      type == 'track_liked' ||
+      type == 'track_reposted' ||
+      type == 'new_release') {
+    final trackId = _findTrackId(json);
+    if (trackId != null) return trackId;
+  }
+
+  if (type == 'user_followed') {
+    final userId = _findUserId(json);
+    if (userId != null) return userId;
+  }
+
+  return _nullableString(
+    json['referenceId'] ??
+        json['reference_id'] ??
+        json['targetId'] ??
+        json['entityId'] ??
+        json['resourceId'] ??
+        json['objectId'] ??
+        json['object_id'] ??
+        json['relatedId'] ??
+        json['related_id'],
+  );
+}
+
+String? _findTrackId(Map<String, dynamic> json) {
+  final direct = _nullableString(
+    json['trackId'] ??
+        json['track_id'] ??
+        json['songId'] ??
+        json['song_id'] ??
+        json['audioId'] ??
+        json['audio_id'] ??
+        json['postId'] ??
+        json['post_id'] ??
+        json['contentId'] ??
+        json['content_id'] ??
+        json['itemId'] ??
+        json['item_id'] ??
+        json['mediaId'] ??
+        json['media_id'] ??
+        json['musicId'] ??
+        json['music_id'] ??
+        json['uploadId'] ??
+        json['upload_id'] ??
+        json['objectId'] ??
+        json['object_id'] ??
+        json['relatedId'] ??
+        json['related_id'] ??
+        json['targetTrackId'] ??
+        json['target_track_id'] ??
+        json['referenceTrackId'] ??
+        json['reference_track_id'],
+  );
+  if (direct != null) return direct;
+
+  for (final key in const [
+    'track',
+    'target',
+    'reference',
+    'resource',
+    'entity',
+    'metadata',
+    'meta',
+    'payload',
+    'data',
+    'extra',
+    'details',
+    'context',
+    'comment',
+  ]) {
+    final nested = _mapOrNull(json[key]);
+    if (nested == null) continue;
+    final nestedId = _nullableString(
+      nested['trackId'] ??
+          nested['track_id'] ??
+          nested['id'] ??
+          nested['_id'],
+    );
+    if (nestedId != null &&
+        (key == 'track' ||
+            nested['type']?.toString().toLowerCase().contains('track') ==
+                true ||
+            nested.containsKey('trackId') ||
+            nested.containsKey('track_id'))) {
+      return nestedId;
+    }
+    final recursive = _findTrackId(nested);
+    if (recursive != null) return recursive;
+  }
+
+  return null;
+}
+
+String? _findUserId(Map<String, dynamic> json) {
+  final direct = _nullableString(
+    json['userId'] ??
+        json['user_id'] ??
+        json['actorId'] ??
+        json['senderId'] ??
+        json['fromUserId'] ??
+        json['referenceUserId'] ??
+        json['targetUserId'],
+  );
+  if (direct != null) return direct;
+
+  for (final key in const [
+    'actor',
+    'user',
+    'sender',
+    'fromUser',
+    'target',
+    'reference',
+    'resource',
+    'entity',
+    'metadata',
+    'meta',
+    'payload',
+    'data',
+  ]) {
+    final nested = _mapOrNull(json[key]);
+    if (nested == null) continue;
+    final nestedId = _nullableString(
+      nested['userId'] ??
+          nested['user_id'] ??
+          nested['id'] ??
+          nested['_id'],
+    );
+    if (nestedId != null &&
+        (key == 'user' ||
+            key == 'actor' ||
+            key == 'sender' ||
+            key == 'fromUser' ||
+            nested['type']?.toString().toLowerCase().contains('user') ==
+                true ||
+            nested.containsKey('userId') ||
+            nested.containsKey('user_id'))) {
+      return nestedId;
+    }
+    final recursive = _findUserId(nested);
+    if (recursive != null) return recursive;
+  }
+
+  return null;
 }
 
 class NotificationPreferencesDto {

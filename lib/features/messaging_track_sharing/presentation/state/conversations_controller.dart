@@ -160,11 +160,15 @@ class ConversationsController extends Notifier<ConversationsState> {
       return;
     }
 
+    _localUnarchivedIds.add(message.conversationId);
+    _localArchivedIds.remove(message.conversationId);
+
     final next = [...state.items];
     next[index] = next[index].copyWith(
       lastMessagePreview: _previewFor(message),
       lastMessageAt: message.createdAt,
       unreadCount: 0,
+      isArchived: false,
     );
     next.sort((a, b) {
       final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);

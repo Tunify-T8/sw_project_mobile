@@ -23,6 +23,8 @@ class MessagingEndpoints {
   static String block(String id) => '/conversations/$id/block';
   static String unblock(String blockedUserId) =>
       '/conversations/unblock/$blockedUserId';
+
+  static const String allowAll = '/conversations/allowAll';
 }
 
 class MessagingApi {
@@ -114,6 +116,12 @@ class MessagingApi {
 
   Future<void> unblock(String blockedUserId) =>
       _dio.post(MessagingEndpoints.unblock(blockedUserId));
+
+  Future<void> enableAllowAll() =>
+      _dio.post(MessagingEndpoints.allowAll);
+
+  Future<void> disableAllowAll() =>
+      _dio.delete(MessagingEndpoints.allowAll);
 
   /// Backend responses often come wrapped in `{ data: {...} }`. Unwrap when
   /// present and fail loudly for anything non-object.

@@ -59,6 +59,7 @@ extension TrackResponseDtoMapper on TrackResponseDto {
       errorCode: errorCode,
       errorMessage: errorMessage,
       privateToken: _readPrivateToken(this),
+      ownerUserId: ownerUserId,
     );
   }
 

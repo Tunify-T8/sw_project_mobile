@@ -10,6 +10,7 @@ import '../widgets/playlist_share_sheet.dart';
 import '../widgets/secret_token_section.dart';
 import '../widgets/track_in_playlist_options_sheet.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/playlist_entity.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
@@ -23,9 +24,11 @@ class PlaylistDetailScreen extends ConsumerStatefulWidget {
     super.key,
     this.playlistId,
     this.secretToken,
+    this.isMine = true,
   });
   final String? playlistId;
   final String? secretToken;
+  final bool isMine;
 
   @override
   ConsumerState<PlaylistDetailScreen> createState() =>
@@ -138,6 +141,15 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             child: SecretTokenSection(playlist: playlist),
           ),
 
+          // ── Description ───────────────────────────────────────────────────
+          if (playlist.description != null &&
+              playlist.description!.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _DescriptionSection(
+                description: playlist.description!,
+              ),
+            ),
+
           // ── Action row ────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
@@ -149,45 +161,75 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     icon: const Icon(Icons.more_vert, color: Colors.white),
                     onPressed: () => showPlaylistOptionsSheet(
                       context: context,
-                      playlist: _toSummary(playlist),
+                      playlist: _toSummary(playlist, isMine: widget.isMine),
                       isDetailView: true,
-                      onEdit: () async {
-                        await Navigator.of(context).pushNamed(
-                          Routes.playlistEdit,
-                          arguments: {'collectionId': playlist.id},
-                        );
-                        if (!mounted) return;
-                        await _reloadPlaylist();
-                      },
-                      onTogglePrivacy: () {
-                        final newPrivacy =
-                            playlist.privacy == CollectionPrivacy.private
-                                ? CollectionPrivacy.public
-                                : CollectionPrivacy.private;
-                        ref
-                            .read(playlistNotifierProvider.notifier)
-                            .editCollection(
-                              id: playlist.id,
-                              privacy: newPrivacy,
-                            );
-                      },
-                      onAddMusic: () => showAddTrackSheet(
-                        context: context,
-                        ref: ref,
-                        collectionId: playlist.id,
-                      ),
-                      onDelete: () {
-                        ref
-                            .read(playlistNotifierProvider.notifier)
-                            .deleteCollection(playlist.id);
-                        Navigator.of(context).pop();
-                      },
+                      // Own-playlist actions
+                      onEdit: widget.isMine
+                          ? () async {
+                              await Navigator.of(context).pushNamed(
+                                Routes.playlistEdit,
+                                arguments: {'collectionId': playlist.id},
+                              );
+                              if (!mounted) return;
+                              await _reloadPlaylist();
+                            }
+                          : null,
+                      onTogglePrivacy: widget.isMine
+                          ? () {
+                              final newPrivacy =
+                                  playlist.privacy == CollectionPrivacy.private
+                                      ? CollectionPrivacy.public
+                                      : CollectionPrivacy.private;
+                              ref
+                                  .read(playlistNotifierProvider.notifier)
+                                  .editCollection(
+                                    id: playlist.id,
+                                    privacy: newPrivacy,
+                                  );
+                            }
+                          : null,
+                      onAddMusic: widget.isMine
+                          ? () => showAddTrackSheet(
+                              context: context,
+                              ref: ref,
+                              collectionId: playlist.id,
+                            )
+                          : null,
+                      onDelete: widget.isMine
+                          ? () {
+                              ref
+                                  .read(playlistNotifierProvider.notifier)
+                                  .deleteCollection(playlist.id);
+                              Navigator.of(context).pop();
+                            }
+                          : null,
+                      // Other-user actions
+                      onLike: widget.isMine
+                          ? null
+                          : () => ref
+                              .read(playlistNotifierProvider.notifier)
+                              .toggleLike(
+                                playlist.id,
+                                currentlyLiked: playlist.isLiked,
+                              ),
+                      onRepost: widget.isMine ? null : () {},
+                      onGoToArtistProfile:
+                          (widget.isMine || playlist.owner == null)
+                              ? null
+                              : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => OtherUserProfileScreen(
+                                      userId: playlist.owner!.id,
+                                    ),
+                                  ),
+                                ),
+                      // Shared
                       onShare: () => showPlaylistShareSheet(
                         context: context,
-                        playlist: _toSummary(playlist),
+                        playlist: _toSummary(playlist, isMine: widget.isMine),
                         secretToken: playlist.secretToken,
                       ),
-                      onCopyPlaylist: () {},
+                      onCopyPlaylist: widget.isMine ? () {} : null,
                       onShufflePlay: tracks.isEmpty
                           ? null
                           : () => ref
@@ -200,6 +242,39 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               ),
                     ),
                   ),
+                  if (!widget.isMine) ...[
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(playlistNotifierProvider.notifier)
+                          .toggleLike(
+                            playlist.id,
+                            currentlyLiked: playlist.isLiked,
+                          ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            playlist.isLiked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: playlist.isLiked
+                                ? Colors.redAccent
+                                : Colors.white70,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            _formatCount(playlist.likeCount),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const Spacer(),
                   if (tracks.isNotEmpty) ...[
                     ShuffleButton(
@@ -288,7 +363,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 }
 
-PlaylistSummaryEntity _toSummary(PlaylistEntity e) => PlaylistSummaryEntity(
+PlaylistSummaryEntity _toSummary(PlaylistEntity e, {bool isMine = true}) =>
+    PlaylistSummaryEntity(
       id: e.id,
       title: e.title,
       description: e.description,
@@ -299,7 +375,7 @@ PlaylistSummaryEntity _toSummary(PlaylistEntity e) => PlaylistSummaryEntity(
       likeCount: e.likeCount,
       repostsCount: e.repostsCount,
       ownerFollowerCount: e.ownerFollowerCount,
-      isMine: true,
+      isMine: isMine,
       isLiked: e.isLiked,
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
@@ -459,3 +535,94 @@ class _HeaderInfo extends StatelessWidget {
   }
 }
 
+String _formatCount(int n) {
+  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+  return n.toString();
+}
+
+class _DescriptionSection extends StatelessWidget {
+  const _DescriptionSection({required this.description});
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            description,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          GestureDetector(
+            onTap: () => _showFull(context),
+            child: const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Show more',
+                style: TextStyle(
+                  color: Colors.lightBlueAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFull(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF111111),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 4),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                    const Text(
+                      'Description',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: Text(
+                  description,
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

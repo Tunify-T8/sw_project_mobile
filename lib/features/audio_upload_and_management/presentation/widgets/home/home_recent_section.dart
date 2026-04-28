@@ -27,6 +27,14 @@ class HomeRecentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final crossAxisCount = width >= 1280
+        ? 4
+        : width >= 900
+            ? 3
+            : 2;
+    final horizontalPadding = width >= 1024 ? 28.0 : 16.0;
+    final childAspectRatio = width >= 1024 ? 3.2 : 2.85;
     final cards = <Widget>[];
 
     final recentHistoryItems = historyTracks.take(4).toList();

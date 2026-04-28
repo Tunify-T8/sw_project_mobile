@@ -17,6 +17,7 @@ import '../../../../../core/network/api_endpoints.dart';
 import '../../../domain/entities/upload_item.dart';
 import '../../providers/track_detail_item_provider.dart';
 import '../../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../upload_artwork_view.dart';
 import 'your_uploads_options_actions.dart';
 
@@ -125,18 +126,26 @@ class YourUploadsTrackOptionsSheet extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  const YourUploadsShareButton(
+                  YourUploadsShareButton(
                     icon: Icons.send_outlined,
                     label: 'Message',
+                    onTap: () {
+                      final navigator = Navigator.of(context);
+                      navigator.pop();
+                      navigator.push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => TrackShareToScreen(
+                            info: TrackOptionInfo.fromUploadItem(resolvedItem),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   YourUploadsShareButton(
                     icon: Icons.copy_outlined,
                     label: 'Copy link',
-                    onTap: () => _copyUploadShareLink(
-                      context,
-                      ref,
-                      resolvedItem,
-                    ),
+                    onTap: () =>
+                        _copyUploadShareLink(context, ref, resolvedItem),
                   ),
                   const YourUploadsShareButton(
                     icon: Icons.qr_code_2,
@@ -183,7 +192,9 @@ class YourUploadsTrackOptionsSheet extends ConsumerWidget {
               icon: Icons.queue_play_next,
               label: 'Play next',
               onTap: () {
-                ref.read(playerProvider.notifier).addToQueueNext(resolvedItem.id);
+                ref
+                    .read(playerProvider.notifier)
+                    .addToQueueNext(resolvedItem.id);
                 Navigator.pop(context);
               },
             ),
@@ -191,7 +202,9 @@ class YourUploadsTrackOptionsSheet extends ConsumerWidget {
               icon: Icons.playlist_play,
               label: 'Play last',
               onTap: () {
-                ref.read(playerProvider.notifier).addToQueueLast(resolvedItem.id);
+                ref
+                    .read(playerProvider.notifier)
+                    .addToQueueLast(resolvedItem.id);
                 Navigator.pop(context);
               },
             ),
@@ -261,12 +274,12 @@ Future<String?> _buildUploadShareUrl(
       .timeout(const Duration(seconds: 5), onTimeout: () => item);
 
   final privateToken = shareItem.privateToken?.trim();
-  final shouldUsePrivateLink = item.visibility == UploadVisibility.private ||
+  final shouldUsePrivateLink =
+      item.visibility == UploadVisibility.private ||
       shareItem.visibility == UploadVisibility.private ||
       (privateToken != null && privateToken.isNotEmpty);
 
-  if (shouldUsePrivateLink &&
-      (privateToken == null || privateToken.isEmpty)) {
+  if (shouldUsePrivateLink && (privateToken == null || privateToken.isEmpty)) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

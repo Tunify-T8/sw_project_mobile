@@ -27,7 +27,11 @@ class SuggestedUserItem extends StatelessWidget {
                     ? NetworkImage(user.avatarUrl!)
                     : null,
                 child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                    ? const Icon(Icons.person, size: 40)
+                    ? const Icon(
+                        Icons.person,
+                        color: Color(0xFF6A8AAA),
+                        size: 40,
+                      )
                     : null,
               ),
 

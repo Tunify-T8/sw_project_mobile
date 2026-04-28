@@ -145,9 +145,6 @@ class _ProfilePlaylistsSectionState
 
   @override
   Widget build(BuildContext context) {
-    if (!_loading && _playlists.isEmpty && !widget.isCurrentUser) {
-      return const SizedBox.shrink();
-    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -208,7 +205,10 @@ class _ProfilePlaylistsSectionState
                     onTap: () async {
                       await Navigator.of(context).pushNamed(
                         Routes.playlistDetail,
-                        arguments: {'playlistId': playlist.id},
+                        arguments: {
+                          'playlistId': playlist.id,
+                          'isMine': playlist.isMine,
+                        },
                       );
                       if (!mounted) return;
                       await _load();

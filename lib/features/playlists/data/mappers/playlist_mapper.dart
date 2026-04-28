@@ -59,8 +59,8 @@ class PlaylistMapper {
         ownerFollowerCount: d.ownerFollowerCount,
         isMine: d.isMine,
         isLiked: d.isLiked,
-        createdAt: DateTime.parse(d.createdAt),
-        updatedAt: DateTime.parse(d.updatedAt),
+        createdAt: DateTime.tryParse(d.createdAt) ?? DateTime.now(),
+        updatedAt: DateTime.tryParse(d.updatedAt) ?? DateTime.now(),
       );
 
   // ─── Track ────────────────────────────────────────────────────────────────

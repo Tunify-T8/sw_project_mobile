@@ -359,6 +359,31 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     }
   }
 
+  // ─── Like / Unlike ──────────────────────────────────────────────────────────
+
+  Future<void> toggleLike(String id, {required bool currentlyLiked}) async {
+    final playlist = state.activePlaylist;
+    if (playlist?.id == id) {
+      state = state.copyWith(
+        activePlaylist: _withIsLiked(playlist!, !currentlyLiked),
+      );
+    }
+    try {
+      if (currentlyLiked) {
+        await _repository.unlikeCollection(id);
+      } else {
+        await _repository.likeCollection(id);
+      }
+    } catch (e) {
+      if (state.activePlaylist?.id == id) {
+        state = state.copyWith(
+          activePlaylist: _withIsLiked(state.activePlaylist!, currentlyLiked),
+          mutationError: e.toString(),
+        );
+      }
+    }
+  }
+
   // ─── Private helpers ──────────────────────────────────────────────────────
 
   PlaylistSummaryEntity _toSummary(PlaylistEntity e) => PlaylistSummaryEntity(
@@ -422,6 +447,11 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       updatedAt: playlist.updatedAt,
     );
   }
+
+  PlaylistEntity _withIsLiked(PlaylistEntity p, bool isLiked) => p.copyWith(
+    isLiked: isLiked,
+    likeCount: isLiked ? p.likeCount + 1 : (p.likeCount - 1).clamp(0, 999999),
+  );
 
   Future<int> _getPlaylistLimit() async {
     try {

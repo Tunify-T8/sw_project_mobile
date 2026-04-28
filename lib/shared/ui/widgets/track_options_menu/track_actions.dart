@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../../features/playlists/presentation/widgets/select_playlist_sheet.dart';
+import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
 import 'track_option_menu_item.dart';
 
 class TrackActions extends ConsumerWidget {
@@ -40,22 +41,30 @@ class TrackActions extends ConsumerWidget {
         TrackOptionMenuItem(
           icon: Icons.queue_play_next,
           label: 'Play next',
-          onTap: () {},
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueueNext(trackId);
+            Navigator.pop(context);
+          },
         ),
 
         TrackOptionMenuItem(
           icon: Icons.add_to_queue,
           label: 'Play last',
-          onTap: () {},
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueueLast(trackId);
+            Navigator.pop(context);
+          },
         ),
 
         TrackOptionMenuItem(
           icon: Icons.playlist_add,
           label: 'Add to playlist',
           onTap: () {
-            Navigator.pop(context);
+            final navigator = Navigator.of(context);
+            final targetContext = navigator.context;
+            navigator.pop();
             showSelectPlaylistSheet(
-              context: context,
+              context: targetContext,
               ref: ref,
               trackId: trackId,
             );

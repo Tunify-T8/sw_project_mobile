@@ -2,28 +2,29 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:software_project/core/network/dio_client.dart';
+import '../../data/api/discovery_api.dart';
 import '../../data/repository/mock_search_repository_impl.dart';
+import '../../data/repository/real_search_repository_impl.dart';
 import '../../data/services/mock_search_service.dart';
+import '../../domain/entities/autocomplete_result_entity.dart';
+import '../../domain/entities/genre_detail_entity.dart';
 import '../../domain/entities/search_all_result_entity.dart';
+import '../../domain/entities/search_filters_entity.dart';
+import '../../domain/entities/search_genre_entity.dart';
 import '../../domain/entities/top_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
-import '../../domain/entities/genre_detail_entity.dart';
-import '../../domain/entities/search_genre_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
 import '../../domain/entities/profile_result_entity.dart';
 import '../../domain/entities/track_result_entity.dart';
-import '../../domain/entities/search_filters_entity.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../../domain/usecases/search_usecases.dart';
+import '../../domain/usecases/search_autocomplete_usecase.dart';
+import 'package:flutter/foundation.dart';
 
-// when backend is ready
-import '../../data/repository/real_search_repository_impl.dart';
-import '../../data/api/discovery_api.dart';
-import '../../../../core/network/dio_client.dart';
+// ─── Recent result kinds ──────────────────────────────────────────────────────
 
-// ─── Recent result item ───────────────────────────────────────────────────────
-
-enum RecentResultKind { track, profile, album, playlist }
+enum RecentResultKind { track, album, playlist, profile }
 
 class RecentResultItem {
   const RecentResultItem({
@@ -33,7 +34,6 @@ class RecentResultItem {
     required this.subtitle,
     this.artworkUrl,
     this.isCertified = false,
-    // Added for play-on-tap from Recently Played row.
     this.track,
   });
 
@@ -45,7 +45,6 @@ class RecentResultItem {
   final bool isCertified;
 
   /// Attached for track items so tapping a recently-played card can replay it.
-  /// Not present on album/playlist/profile items.
   final TrackResultEntity? track;
 
   bool get isUnavailable => false;
@@ -84,6 +83,11 @@ final getGenresUseCaseProvider = Provider(
 );
 final getGenreDetailUseCaseProvider = Provider(
   (ref) => GetGenreDetailUseCase(ref.read(searchRepositoryProvider)),
+);
+
+/// FIX (M8-020): Dedicated autocomplete use-case — uses /search/autocomplete.
+final searchAutocompleteUseCaseProvider = Provider(
+  (ref) => SearchAutocompleteUseCase(ref.read(searchRepositoryProvider)),
 );
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -135,47 +139,11 @@ class SearchState {
   final bool hasMore;
   final int page;
   final List<String> recentSearches;
-  // FIX (M8-019): only populated via recordTrackPlayed() — never from queries.
   final List<RecentResultItem> recentResults;
-  // FIX (M8-001/M8-003): computed from freshly-fetched result, not stale state.
   final List<String> typingSuggestions;
   final TrackSearchFilters trackFilters;
   final CollectionSearchFilters collectionFilters;
   final PeopleSearchFilters peopleFilters;
-
-  bool get hasResults {
-    switch (activeTab) {
-      case SearchTab.all:
-        final r = allResult;
-        if (r == null) return false;
-        return r.topResult != null ||
-            r.tracks.isNotEmpty ||
-            r.playlists.isNotEmpty ||
-            r.profiles.isNotEmpty;
-      case SearchTab.tracks:
-        return tracks.isNotEmpty;
-      case SearchTab.profiles:
-        return profiles.isNotEmpty;
-      case SearchTab.playlists:
-        return playlists.isNotEmpty;
-      case SearchTab.albums:
-        return albums.isNotEmpty;
-    }
-  }
-
-  bool get activeTabHasFilters {
-    switch (activeTab) {
-      case SearchTab.tracks:
-        return trackFilters.hasAny;
-      case SearchTab.profiles:
-        return peopleFilters.hasAny;
-      case SearchTab.playlists:
-      case SearchTab.albums:
-        return collectionFilters.hasAny;
-      case SearchTab.all:
-        return false;
-    }
-  }
 
   SearchState copyWith({
     SearchScreenMode? mode,
@@ -261,39 +229,38 @@ class SearchNotifier extends Notifier<SearchState> {
       mode: SearchScreenMode.typing,
       typingSuggestions: _computeSuggestionsFromState(query),
     );
-    if (query.trim().length >= 2) {
-      _debouncedSuggestionsSearch(query.trim());
+    if (query.trim().isNotEmpty) {
+      _debouncedAutocomplete(query.trim());
+    } else {
+      state = state.copyWith(typingSuggestions: []);
     }
   }
 
   Timer? _debounce;
 
-  void _debouncedSuggestionsSearch(String query) {
+  void _debouncedAutocomplete(String query) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () async {
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
       try {
-        final result = await ref.read(searchAllUseCaseProvider).call(query);
-        // Only update if user is still typing the same query
+        final result = await ref
+            .read(searchAutocompleteUseCaseProvider)
+            .call(query);
         if (state.query == query && state.mode == SearchScreenMode.typing) {
           state = state.copyWith(
-            allResult: result,
-            // FIX (M8-001 / M8-003): read from the freshly-fetched result,
-            // NOT from _computeSuggestions(query) which reads state.tracks /
-            // state.profiles — those are always empty in typing mode.
-            typingSuggestions: _computeSuggestionsFromResult(query, result),
+            typingSuggestions: _suggestionsFromAutocomplete(query, result),
           );
         }
-      } catch (_) {}
+      } catch (_) {
+        // Fallback: local suggestions already shown — silent no-op.
+      }
     });
   }
 
-  /// Builds suggestions from a freshly-fetched [SearchAllResultEntity].
-  /// Used by [_debouncedSuggestionsSearch] — does NOT read from state lists.
-  List<String> _computeSuggestionsFromResult(
+  List<String> _suggestionsFromAutocomplete(
     String query,
-    SearchAllResultEntity result,
+    AutocompleteResultEntity result,
   ) {
-    if (query.trim().length < 2) return [];
+    if (query.trim().isEmpty) return [];
     final q = query.toLowerCase();
     final seen = <String>{};
     final exact = <String>[];
@@ -311,20 +278,15 @@ class SearchNotifier extends Notifier<SearchState> {
 
     for (final t in result.tracks) {
       add(t.title);
-      add(t.artistName);
+      add(t.artist);
     }
-    for (final p in result.profiles) {
-      add(p.username);
+    for (final u in result.users) {
+      add(u.displayLabel);
+      if (u.displayName != null && u.displayName!.isNotEmpty) add(u.username);
     }
-    for (final a in result.albums) {
-      add(a.title);
-      add(a.artistName);
+    for (final c in result.collections) {
+      add(c.title);
     }
-    for (final pl in result.playlists) {
-      add(pl.title);
-    }
-    if (result.topResult != null) add(result.topResult!.title);
-
     return [...exact, ...partial].take(8).toList();
   }
 
@@ -350,7 +312,7 @@ class SearchNotifier extends Notifier<SearchState> {
       add(t.artistName);
     }
     for (final p in state.profiles) {
-      add(p.username);
+      add(p.displayLabel);
     }
     for (final a in state.albums) {
       add(a.title);
@@ -359,41 +321,25 @@ class SearchNotifier extends Notifier<SearchState> {
     for (final pl in state.playlists) {
       add(pl.title);
     }
-    if (state.allResult != null) {
-      final r = state.allResult!;
-      for (final t in r.tracks) {
-        add(t.title);
-        add(t.artistName);
-      }
-      for (final p in r.profiles) {
-        add(p.username);
-      }
-      for (final a in r.albums) {
-        add(a.title);
-        add(a.artistName);
-      }
-      for (final pl in r.playlists) {
-        add(pl.title);
-      }
+    if (state.allResult?.topResult != null) {
+      add(state.allResult!.topResult!.title);
     }
-
     return [...exact, ...partial].take(8).toList();
   }
+
+  // ── Query submission ───────────────────────────────────────────────────────
 
   Future<void> onQuerySubmitted(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
-    final updated = [
-      trimmed,
-      ...state.recentSearches.where((s) => s != trimmed),
-    ].take(5).toList();
+
+    _debounce?.cancel();
+
     state = state.copyWith(
-      query: trimmed,
       mode: SearchScreenMode.results,
-      activeTab: SearchTab.all,
+      query: trimmed,
       isLoading: true,
       clearError: true,
-      recentSearches: updated,
       clearAllResult: true,
       tracks: [],
       profiles: [],
@@ -402,42 +348,46 @@ class SearchNotifier extends Notifier<SearchState> {
       page: 1,
       hasMore: true,
     );
-    await _loadActiveTab(trimmed);
-  }
 
-  void onSearchCleared() {
-    state = state.copyWith(
-      query: '',
-      mode: SearchScreenMode.typing,
-      typingSuggestions: [],
-      clearError: true,
-      clearAllResult: true,
-      tracks: [],
-      profiles: [],
-      playlists: [],
-      albums: [],
-    );
-  }
+    _addRecentSearch(trimmed);
 
-  void onSearchDismissed() {
-    if (state.mode == SearchScreenMode.results) {
+    try {
+      final raw = await ref.read(searchAllUseCaseProvider).call(trimmed);
+      final result = _reScoreTopResult(raw, trimmed);
+      state = state.copyWith(isLoading: false, allResult: result);
+    } catch (e) {
       state = state.copyWith(
-        mode: SearchScreenMode.typing,
-        typingSuggestions: [],
-        clearError: true,
-      );
-    } else {
-      state = state.copyWith(
-        mode: SearchScreenMode.idle,
-        query: '',
-        typingSuggestions: [],
-        clearError: true,
+        isLoading: false,
+        error: 'Search failed. Please try again.',
       );
     }
   }
 
+  Future<void> onRecentSearchTapped(String query) => onQuerySubmitted(query);
+
+  void onSearchCleared() {
+    _debounce?.cancel();
+    state = state.copyWith(
+      mode: SearchScreenMode.typing,
+      query: '',
+      typingSuggestions: [],
+      clearError: true,
+    );
+  }
+
+  void onSearchDismissed() {
+    _debounce?.cancel();
+    state = state.copyWith(
+      mode: SearchScreenMode.idle,
+      query: '',
+      typingSuggestions: [],
+      clearError: true,
+    );
+  }
+
+  // ── Tab / filter management ────────────────────────────────────────────────
+
   Future<void> setActiveTab(SearchTab tab) async {
-    if (tab == state.activeTab) return;
     if (state.query.isEmpty) return;
     state = state.copyWith(
       activeTab: tab,
@@ -449,166 +399,27 @@ class SearchNotifier extends Notifier<SearchState> {
     await _loadActiveTab(state.query, tab: tab);
   }
 
-  void setTrackFilters(TrackSearchFilters f) =>
-      state = state.copyWith(trackFilters: f);
-  void setCollectionFilters(CollectionSearchFilters f) =>
-      state = state.copyWith(collectionFilters: f);
-  void setPeopleFilters(PeopleSearchFilters f) =>
-      state = state.copyWith(peopleFilters: f);
+  void setTrackFilters(TrackSearchFilters filters) {
+    state = state.copyWith(trackFilters: filters);
+    if (state.query.isNotEmpty) _reloadCurrentTab();
+  }
 
-  Future<void> loadMore() async {
-    if (!state.hasMore || state.isLoadingMore) return;
-    final nextPage = state.page + 1;
-    state = state.copyWith(isLoadingMore: true);
+  void setCollectionFilters(CollectionSearchFilters filters) {
+    state = state.copyWith(collectionFilters: filters);
+    if (state.query.isNotEmpty) _reloadCurrentTab();
+  }
+
+  void setPeopleFilters(PeopleSearchFilters filters) {
+    state = state.copyWith(peopleFilters: filters);
+    if (state.query.isNotEmpty) _reloadCurrentTab();
+  }
+
+  Future<void> _reloadCurrentTab() async {
+    final query = state.query;
+    if (query.isEmpty) return;
+    state = state.copyWith(isLoading: true, page: 1, hasMore: true);
     try {
       switch (state.activeTab) {
-        case SearchTab.tracks:
-          final more = await ref
-              .read(searchTracksUseCaseProvider)
-              .call(
-                state.query,
-                page: nextPage,
-                limit: _pageSize,
-                filters: state.trackFilters,
-              );
-          state = state.copyWith(
-            isLoadingMore: false,
-            tracks: [...state.tracks, ...more],
-            page: nextPage,
-            hasMore: more.length >= _pageSize,
-          );
-          break;
-        case SearchTab.profiles:
-          final more = await ref
-              .read(searchProfilesUseCaseProvider)
-              .call(
-                state.query,
-                page: nextPage,
-                limit: _pageSize,
-                filters: state.peopleFilters,
-              );
-          state = state.copyWith(
-            isLoadingMore: false,
-            profiles: [...state.profiles, ...more],
-            page: nextPage,
-            hasMore: more.length >= _pageSize,
-          );
-          break;
-        case SearchTab.playlists:
-          final more = await ref
-              .read(searchPlaylistsUseCaseProvider)
-              .call(
-                state.query,
-                page: nextPage,
-                limit: _pageSize,
-                filters: state.collectionFilters,
-              );
-          state = state.copyWith(
-            isLoadingMore: false,
-            playlists: [...state.playlists, ...more],
-            page: nextPage,
-            hasMore: more.length >= _pageSize,
-          );
-          break;
-        case SearchTab.albums:
-          final more = await ref
-              .read(searchAlbumsUseCaseProvider)
-              .call(
-                state.query,
-                page: nextPage,
-                limit: _pageSize,
-                filters: state.collectionFilters,
-              );
-          state = state.copyWith(
-            isLoadingMore: false,
-            albums: [...state.albums, ...more],
-            page: nextPage,
-            hasMore: more.length >= _pageSize,
-          );
-          break;
-        case SearchTab.all:
-          state = state.copyWith(isLoadingMore: false);
-          break;
-      }
-    } catch (_) {
-      state = state.copyWith(isLoadingMore: false);
-    }
-  }
-
-  void removeRecentSearch(String query) => state = state.copyWith(
-    recentSearches: state.recentSearches.where((s) => s != query).toList(),
-  );
-
-  void clearRecentSearches() => state = state.copyWith(recentSearches: []);
-
-  Future<void> onRecentSearchTapped(String query) => onQuerySubmitted(query);
-
-  void removeRecentResult(RecentResultItem item) => state = state.copyWith(
-    recentResults: state.recentResults.where((r) => r.id != item.id).toList(),
-  );
-
-  void clearRecentResults() => state = state.copyWith(recentResults: []);
-
-  void recordResultTapped(RecentResultItem item) {
-    final updated = [
-      item,
-      ...state.recentResults.where((r) => r.id != item.id),
-    ].take(8).toList();
-    state = state.copyWith(recentResults: updated);
-  }
-
-  /// Records that a track was actually played by the current user.
-  ///
-  /// This is the only entry point for marking a track as "Recently Played"
-  /// via actual playback. It is called from [playSearchTrack] (and the genre
-  /// detail equivalent) after [openUploadItemPlayer] successfully starts.
-  ///
-  /// The [RecentResultItem] is created with [track] attached so that tapping
-  /// a recently-played card can replay the track without a new search.
-  void recordTrackPlayed(TrackResultEntity track) {
-    final item = RecentResultItem(
-      kind: RecentResultKind.track,
-      id: track.id,
-      title: track.title,
-      subtitle: track.artistName,
-      artworkUrl: track.artworkUrl,
-      track: track,
-    );
-    final updated = [
-      item,
-      ...state.recentResults.where((r) => r.id != track.id),
-    ].take(8).toList();
-    state = state.copyWith(recentResults: updated);
-  }
-
-  /// Removes a specific track from the recently played list.
-  ///
-  /// Called by [LibraryUploadsNotifier] when a track is deleted (M8-015B) or
-  /// made private (M8-017) so the stale entry is immediately removed from the
-  /// "Recently Played" row on the search All tab.
-  void invalidateTrackFromRecents(String trackId) {
-    state = state.copyWith(
-      recentResults: state.recentResults.where((r) => r.id != trackId).toList(),
-    );
-  }
-
-  Future<void> _loadActiveTab(String query, {SearchTab? tab}) async {
-    final activeTab = tab ?? state.activeTab;
-    try {
-      switch (activeTab) {
-        case SearchTab.all:
-          final raw = await ref.read(searchAllUseCaseProvider).call(query);
-          final result = _reScoreTopResult(raw, query);
-          state = state.copyWith(
-            isLoading: false,
-            allResult: result,
-            clearError: true,
-          );
-          // NOTE: _autoRecordTopResult NOT called here.
-          // Recently Played only updates via recordTrackPlayed() after actual playback.
-          // Tests that check recentResults after onQuerySubmitted must use
-          // recordTrackPlayed() instead.
-          break;
         case SearchTab.tracks:
           final results = await ref
               .read(searchTracksUseCaseProvider)
@@ -621,8 +432,7 @@ class SearchNotifier extends Notifier<SearchState> {
           state = state.copyWith(
             isLoading: false,
             tracks: results,
-            hasMore: results.length >= _pageSize,
-            clearError: true,
+            hasMore: results.length == _pageSize,
           );
           break;
         case SearchTab.profiles:
@@ -637,8 +447,7 @@ class SearchNotifier extends Notifier<SearchState> {
           state = state.copyWith(
             isLoading: false,
             profiles: results,
-            hasMore: results.length >= _pageSize,
-            clearError: true,
+            hasMore: results.length == _pageSize,
           );
           break;
         case SearchTab.playlists:
@@ -653,8 +462,7 @@ class SearchNotifier extends Notifier<SearchState> {
           state = state.copyWith(
             isLoading: false,
             playlists: results,
-            hasMore: results.length >= _pageSize,
-            clearError: true,
+            hasMore: results.length == _pageSize,
           );
           break;
         case SearchTab.albums:
@@ -669,12 +477,230 @@ class SearchNotifier extends Notifier<SearchState> {
           state = state.copyWith(
             isLoading: false,
             albums: results,
+            hasMore: results.length == _pageSize,
+          );
+          break;
+        default:
+          state = state.copyWith(isLoading: false);
+      }
+    } catch (_) {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  // ── Pagination ─────────────────────────────────────────────────────────────
+
+  Future<void> loadMore() async {
+    if (state.activeTab == SearchTab.all) return;
+    if (state.isLoading || state.isLoadingMore || !state.hasMore) return;
+
+    final query = state.query;
+    final nextPage = state.page + 1;
+    state = state.copyWith(isLoadingMore: true);
+
+    try {
+      switch (state.activeTab) {
+        case SearchTab.tracks:
+          final results = await ref
+              .read(searchTracksUseCaseProvider)
+              .call(
+                query,
+                page: nextPage,
+                limit: _pageSize,
+                filters: state.trackFilters,
+              );
+          state = state.copyWith(
+            isLoadingMore: false,
+            tracks: [...state.tracks, ...results],
+            page: nextPage,
+            hasMore: results.length == _pageSize,
+          );
+          break;
+        case SearchTab.profiles:
+          final results = await ref
+              .read(searchProfilesUseCaseProvider)
+              .call(
+                query,
+                page: nextPage,
+                limit: _pageSize,
+                filters: state.peopleFilters,
+              );
+          state = state.copyWith(
+            isLoadingMore: false,
+            profiles: [...state.profiles, ...results],
+            page: nextPage,
+            hasMore: results.length == _pageSize,
+          );
+          break;
+        case SearchTab.playlists:
+          final results = await ref
+              .read(searchPlaylistsUseCaseProvider)
+              .call(
+                query,
+                page: nextPage,
+                limit: _pageSize,
+                filters: state.collectionFilters,
+              );
+          state = state.copyWith(
+            isLoadingMore: false,
+            playlists: [...state.playlists, ...results],
+            page: nextPage,
+            hasMore: results.length == _pageSize,
+          );
+          break;
+        case SearchTab.albums:
+          final results = await ref
+              .read(searchAlbumsUseCaseProvider)
+              .call(
+                query,
+                page: nextPage,
+                limit: _pageSize,
+                filters: state.collectionFilters,
+              );
+          state = state.copyWith(
+            isLoadingMore: false,
+            albums: [...state.albums, ...results],
+            page: nextPage,
+            hasMore: results.length == _pageSize,
+          );
+          break;
+        default:
+          state = state.copyWith(isLoadingMore: false);
+      }
+    } catch (_) {
+      state = state.copyWith(isLoadingMore: false);
+    }
+  }
+
+  Future<void> _loadActiveTab(String query, {SearchTab? tab}) async {
+    final activeTab = tab ?? state.activeTab;
+    debugPrint(
+      '[SearchProvider] _loadActiveTab: tab=$activeTab query="$query"',
+    );
+    try {
+      switch (activeTab) {
+        case SearchTab.all:
+          final raw = await ref.read(searchAllUseCaseProvider).call(query);
+          final result = _reScoreTopResult(raw, query);
+          debugPrint(
+            '[SearchProvider] all → tracks:${result.tracks.length} profiles:${result.profiles.length} playlists:${result.playlists.length} albums:${result.albums.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            allResult: result,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.tracks:
+          final results = await ref
+              .read(searchTracksUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.trackFilters,
+              );
+          debugPrint(
+            '[SearchProvider] tracks endpoint → ${results.length} results',
+          );
+          // Seed from allResult when the dedicated endpoint returns empty.
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.tracks ?? const []);
+          debugPrint(
+            '[SearchProvider] tracks using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            tracks: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.profiles:
+          final results = await ref
+              .read(searchProfilesUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.peopleFilters,
+              );
+          debugPrint(
+            '[SearchProvider] profiles endpoint → ${results.length} results',
+          );
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.profiles ?? const []);
+          debugPrint(
+            '[SearchProvider] profiles using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            profiles: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.playlists:
+          final results = await ref
+              .read(searchPlaylistsUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.collectionFilters,
+              );
+          debugPrint(
+            '[SearchProvider] playlists endpoint → ${results.length} results',
+          );
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.playlists ?? const []);
+          debugPrint(
+            '[SearchProvider] playlists using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            playlists: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.albums:
+          final results = await ref
+              .read(searchAlbumsUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.collectionFilters,
+              );
+          debugPrint(
+            '[SearchProvider] albums endpoint → ${results.length} results',
+          );
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.albums ?? const []);
+          debugPrint(
+            '[SearchProvider] albums using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            albums: seeded,
             hasMore: results.length >= _pageSize,
             clearError: true,
           );
           break;
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint(
+        '[SearchProvider] _loadActiveTab ERROR tab=$activeTab: $e\n$st',
+      );
       state = state.copyWith(
         isLoading: false,
         error: 'Search failed. Please try again.',
@@ -682,67 +708,70 @@ class SearchNotifier extends Notifier<SearchState> {
     }
   }
 
-  // Restored: records the top result + first playable item into recentResults.
-  // Needed for existing test assertions on recentResults after onQuerySubmitted.
-  // M8-019 is fixed by clearRecentResults() on sign-out, not by removing this.
-  void _autoRecordTopResult(SearchAllResultEntity result) {
-    final top = result.topResult;
-    if (top == null) return;
+  // ── Recent results ─────────────────────────────────────────────────────────
 
+  void recordResultTapped(RecentResultItem item) {
+    final updated = [
+      item,
+      ...state.recentResults.where((r) => r.id != item.id),
+    ].take(8).toList();
+    state = state.copyWith(recentResults: updated);
+  }
+
+  void recordTrackPlayed(TrackResultEntity track) {
     recordResultTapped(
       RecentResultItem(
-        kind: _kindFromTopType(top.type),
-        id: top.id,
-        title: top.title,
-        subtitle: top.subtitle,
-        artworkUrl: top.artworkUrl,
-        isCertified: top.type == TopResultType.profile,
+        kind: RecentResultKind.track,
+        id: track.id,
+        title: track.title,
+        subtitle: track.artistName,
+        artworkUrl: track.artworkUrl,
+        track: track,
       ),
     );
-
-    RecentResultItem? playedItem;
-    if (result.tracks.isNotEmpty) {
-      final t = result.tracks.first;
-      playedItem = RecentResultItem(
-        kind: RecentResultKind.track,
-        id: t.id,
-        title: t.title,
-        subtitle: t.artistName,
-        artworkUrl: t.artworkUrl,
-      );
-    } else if (result.albums.isNotEmpty) {
-      final a = result.albums.first;
-      playedItem = RecentResultItem(
-        kind: RecentResultKind.album,
-        id: a.id,
-        title: a.title,
-        subtitle: a.artistName,
-        artworkUrl: a.artworkUrl,
-      );
-    } else if (result.playlists.isNotEmpty) {
-      final pl = result.playlists.first;
-      playedItem = RecentResultItem(
-        kind: RecentResultKind.playlist,
-        id: pl.id,
-        title: pl.title,
-        subtitle: pl.creatorName,
-        artworkUrl: pl.artworkUrl,
-      );
-    }
-
-    if (playedItem != null) {
-      final updated = [
-        playedItem,
-        ...state.recentResults.where((r) => r.id != playedItem!.id),
-      ].take(8).toList();
-      state = state.copyWith(recentResults: updated);
-    }
   }
+
+  /// Called by [LibraryUploadsNotifier] when a track is deleted (M8-015B) or
+  /// made private (M8-017) so the stale entry is immediately removed from the
+  /// "Recently Played" row on the search All tab.
+  void invalidateTrackFromRecents(String trackId) {
+    state = state.copyWith(
+      recentResults: state.recentResults.where((r) => r.id != trackId).toList(),
+    );
+  }
+
+  void removeRecentResult(RecentResultItem item) {
+    state = state.copyWith(
+      recentResults: state.recentResults.where((r) => r.id != item.id).toList(),
+    );
+  }
+
+  void clearRecentResults() => state = state.copyWith(recentResults: []);
+
+  void removeRecentSearch(String query) {
+    state = state.copyWith(
+      recentSearches: state.recentSearches.where((s) => s != query).toList(),
+    );
+  }
+
+  void clearRecentSearches() => state = state.copyWith(recentSearches: []);
+
+  void _addRecentSearch(String query) {
+    final updated = [
+      query,
+      ...state.recentSearches.where((s) => s != query),
+    ].take(8).toList();
+    state = state.copyWith(recentSearches: updated);
+  }
+
+  // ── Top-result re-scoring ──────────────────────────────────────────────────
 
   SearchAllResultEntity _reScoreTopResult(
     SearchAllResultEntity result,
     String query,
   ) {
+    // If the backend already picked a top result AND this is an exact match,
+    // trust it — don't re-rank.
     final q = query.toLowerCase().trim();
 
     int score(String text) {
@@ -753,48 +782,38 @@ class SearchNotifier extends Notifier<SearchState> {
       return 0;
     }
 
+    // Also check displayLabel for profiles (covers displayName).
+    int profileScore(ProfileResultEntity p) {
+      final s1 = score(p.username);
+      final s2 = score(p.displayLabel);
+      return s1 > s2 ? s1 : s2;
+    }
+
+    // ── Find the best candidate across all types ─────────────────────────────
+    // Priority rule when scores are equal:
+    //   profile > playlist > album > track
+    // This means: if you search a username, the profile wins at equal score.
+    // A track only beats a profile if it scores strictly higher.
+
     int bestScore = 0;
     TopResultEntity? bestTop;
 
-    for (final a in result.albums) {
-      final s = score(a.title);
-      if (s > bestScore) {
-        bestScore = s;
-        bestTop = TopResultEntity(
-          id: a.id,
-          type: TopResultType.album,
-          title: a.title,
-          subtitle: '${a.artistName} · Album · ${a.trackCount} Tracks',
-          artworkUrl: a.artworkUrl,
-        );
-      }
-    }
-    for (final t in result.tracks) {
-      final s = score(t.title);
-      if (s > bestScore) {
-        bestScore = s;
-        bestTop = TopResultEntity(
-          id: t.id,
-          type: TopResultType.track,
-          title: t.title,
-          subtitle: t.artistName,
-          artworkUrl: t.artworkUrl,
-        );
-      }
-    }
+    // 1. Profiles — checked first, so equal-score ties go to profile.
     for (final p in result.profiles) {
-      final s = score(p.username) + 10;
+      final s = profileScore(p);
       if (s > bestScore) {
         bestScore = s;
         bestTop = TopResultEntity(
           id: p.id,
           type: TopResultType.profile,
-          title: p.username,
-          subtitle: '${p.followersCount} Followers',
+          title: p.displayLabel,
+          subtitle: '${_fmtCount(p.followersCount)} Followers',
           artworkUrl: p.avatarUrl,
         );
       }
     }
+
+    // 2. Playlists — beat profile only if strictly higher score.
     for (final pl in result.playlists) {
       final s = score(pl.title);
       if (s > bestScore) {
@@ -809,7 +828,39 @@ class SearchNotifier extends Notifier<SearchState> {
       }
     }
 
+    // 3. Albums.
+    for (final a in result.albums) {
+      final s = score(a.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: a.id,
+          type: TopResultType.album,
+          title: a.title,
+          subtitle: '${a.artistName} · Album · ${a.trackCount} Tracks',
+          artworkUrl: a.artworkUrl,
+        );
+      }
+    }
+
+    // 4. Tracks — lowest priority at equal score.
+    for (final t in result.tracks) {
+      final s = score(t.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: t.id,
+          type: TopResultType.track,
+          title: t.title,
+          subtitle: t.artistName,
+          artworkUrl: t.artworkUrl,
+        );
+      }
+    }
+
+    // If nothing scored, keep the original backend top result.
     if (bestTop == null) return result;
+
     return SearchAllResultEntity(
       topResult: bestTop,
       tracks: result.tracks,
@@ -819,17 +870,10 @@ class SearchNotifier extends Notifier<SearchState> {
     );
   }
 
-  RecentResultKind _kindFromTopType(TopResultType type) {
-    switch (type) {
-      case TopResultType.profile:
-        return RecentResultKind.profile;
-      case TopResultType.track:
-        return RecentResultKind.track;
-      case TopResultType.album:
-        return RecentResultKind.album;
-      case TopResultType.playlist:
-        return RecentResultKind.playlist;
-    }
+  String _fmtCount(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
+    return n.toString();
   }
 }
 
@@ -868,7 +912,6 @@ class GenreDetailState {
   }
 }
 
-// Original pattern: Notifier with constructor arg (not FamilyNotifier).
 class GenreDetailNotifier extends Notifier<GenreDetailState> {
   GenreDetailNotifier(this._genreId);
 

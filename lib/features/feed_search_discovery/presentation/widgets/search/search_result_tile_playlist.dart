@@ -1,14 +1,27 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/routing/routes.dart';
 import '../../../domain/entities/playlist_result_entity.dart';
 import 'search_artwork_placeholder.dart';
 
 class SearchResultTilePlaylist extends StatelessWidget {
-  const SearchResultTilePlaylist({super.key, required this.playlist});
+  const SearchResultTilePlaylist({
+    super.key,
+    required this.playlist,
+    this.onTap,
+  });
+
   final PlaylistResultEntity playlist;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap:
+          onTap ??
+          () => Navigator.of(context).pushNamed(
+            Routes.playlistDetail,
+            arguments: {'playlistId': playlist.id},
+          ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(4),
@@ -18,6 +31,7 @@ class SearchResultTilePlaylist extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => SearchArtworkPlaceholder(size: 48),
               )
             : SearchArtworkPlaceholder(size: 48),
       ),

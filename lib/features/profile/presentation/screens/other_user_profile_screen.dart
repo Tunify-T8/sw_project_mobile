@@ -7,7 +7,6 @@ import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
-import '../../../messaging_track_sharing/domain/usecases/open_conversation_usecase.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
 import '../providers/profile_provider.dart';
@@ -17,8 +16,10 @@ import '../widgets/profile_info.dart';
 import '../widgets/profile_share_sheet.dart';
 import '../widgets/profile_tracks_section.dart';
 import '../widgets/user_options_sheet.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
+import '../../../followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
@@ -68,12 +69,28 @@ class _OtherUserProfileScreenState
   }
 
   /// Opens an existing or new chat with this user.
-  /// Uses [OpenConversationUseCase] which calls createOrGetConversation,
-  /// then navigates to the ChatScreen.
+  /// Enforces the privacy rule client-side: by default a user only accepts
+  /// messages from people they follow. We check whether the target follows
+  /// us before creating the conversation, and show a friendly popup if not.
   Future<void> _openChat(String displayName, String? avatarUrl) async {
     if (_openingChat) return;
     setState(() => _openingChat = true);
     try {
+      final myUserId = ref.read(authControllerProvider).value?.id;
+      if (myUserId == null || myUserId.isEmpty) {
+        throw StateError('Not signed in');
+      }
+
+      final theyFollowMe = await ref
+          .read(socialGraphRepositoryProvider)
+          .doesUserFollowMe(widget.userId, myUserId);
+
+      if (!theyFollowMe) {
+        if (!mounted) return;
+        _showCannotMessageDialog(displayName);
+        return;
+      }
+
       ref
           .read(mockMessagingStoreProvider)
           .registerUserPreview(
@@ -97,15 +114,61 @@ class _OtherUserProfileScreenState
       );
     } catch (e) {
       if (!mounted) return;
+      final message = _friendlyConversationError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not open chat: $e'),
+          content: Text(message),
           backgroundColor: const Color(0xFF2A2A2A),
+          duration: const Duration(seconds: 4),
         ),
       );
     } finally {
       if (mounted) setState(() => _openingChat = false);
     }
+  }
+
+  void _showCannotMessageDialog(String displayName) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Can\'t send message',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          '$displayName only accepts messages from people they follow.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _friendlyConversationError(Object e) {
+    final raw = e.toString().toLowerCase();
+    if (raw.contains('403') ||
+        raw.contains('forbidden') ||
+        raw.contains('not follow') ||
+        raw.contains('blocked')) {
+      return 'You can\'t message this user. They only accept messages from people they follow.';
+    }
+    if (raw.contains('404') || raw.contains('not found')) {
+      return 'Could not find this user. Please try again.';
+    }
+    return 'Could not open chat. Please try again.';
   }
 
   Widget _buildActionButtons(

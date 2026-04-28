@@ -117,7 +117,10 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
     final state = ref.watch(playlistNotifierProvider);
     final profile = ref.watch(profileProvider).profile;
     final ownerName = profile?.displayName ?? profile?.userName;
-    final playlists = state.myCollections.map(_playlistForDisplay).toList();
+    final playlists = state.myCollections
+        .where((p) => p.isMine)
+        .map(_playlistForDisplay)
+        .toList();
     final visible = _filtered(playlists);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -180,7 +183,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText:
-                        'Search ${state.myCollections.length} playlist${state.myCollections.length != 1 ? 's' : ''}',
+                        'Search ${playlists.length} playlist${playlists.length != 1 ? 's' : ''}',
                     hintStyle: const TextStyle(color: Colors.white38),
                     prefixIcon:
                         const Icon(Icons.search, color: Colors.white38),
@@ -297,7 +300,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     onTap: () async {
                       await Navigator.of(context).pushNamed(
                         Routes.playlistDetail,
-                        arguments: {'playlistId': pl.id},
+                        arguments: {'playlistId': pl.id, 'isMine': pl.isMine},
                       );
                       if (!mounted) return;
                       await _reloadPlaylists();

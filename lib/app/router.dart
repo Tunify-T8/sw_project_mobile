@@ -26,6 +26,7 @@ import '../features/auth/presentation/screens/google_account_linking_screen.dart
 import '../features/messaging_track_sharing/presentation/screens/messaging_activity_screen.dart';
 import '../features/messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
+import '../features/messaging_track_sharing/presentation/screens/inbox_settings_screen.dart';
 import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
 import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
@@ -307,15 +308,22 @@ class AppRouter {
           settings,
         );
 
+      case Routes.inboxSettings:
+        return _slide(
+          const AuthProtectedScreen(child: InboxSettingsScreen()),
+          settings,
+        );
+
       case Routes.chat:
         return _slide(
           AuthProtectedScreen(
             child: ChatScreen(
               conversationId: args['conversationId'] as String? ?? '',
+              otherUserId: args['otherUserId'] as String?,
               otherUserName: args['otherUserName'] as String? ?? '',
               otherUserAvatar: args['otherUserAvatar'] as String?,
-              pendingAttachment: args['pendingAttachment']
-                  as MessageAttachment?,
+              pendingAttachment:
+                  args['pendingAttachment'] as MessageAttachment?,
             ),
           ),
           settings,
@@ -335,9 +343,10 @@ class AppRouter {
 
       case Routes.playlistDetail:
         final id = args['playlistId'] as String? ?? '';
+        final isMine = args['isMine'] as bool? ?? true;
         return _slide(
           AuthProtectedScreen(
-            child: PlaylistDetailScreen(playlistId: id),
+            child: PlaylistDetailScreen(playlistId: id, isMine: isMine),
           ),
           settings,
         );

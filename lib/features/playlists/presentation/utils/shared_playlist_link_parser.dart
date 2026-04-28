@@ -17,18 +17,19 @@ SharedPlaylistLink? parsePlaylistShareLink(String rawLink) {
 
   final isRelativePlaylistPath =
       !uri.hasScheme && _playlistIdFromSegments(uri.pathSegments) != null;
-  final isRelativeSecretPath =
-      !uri.hasScheme && _secretTokenFromSegments(uri.pathSegments) != null;
   final isTunifyUrl =
       (uri.scheme == 'https' || uri.scheme == 'http') &&
       uri.host.toLowerCase() == 'tunify.duckdns.org';
+  final isTunifyAppLink =
+      uri.scheme.toLowerCase() == 'tunify' &&
+      _playlistIdFromSegments(uri.pathSegments) != null;
 
-  if (!isRelativePlaylistPath && !isRelativeSecretPath && !isTunifyUrl) {
+  if (!isRelativePlaylistPath && !isTunifyUrl && !isTunifyAppLink) {
     return null;
   }
 
   final playlistId = _playlistIdFromSegments(uri.pathSegments);
-  final secretToken = _secretTokenFromSegments(uri.pathSegments);
+  final secretToken = _readPlaylistToken(uri);
 
   if ((playlistId == null || playlistId.isEmpty) &&
       (secretToken == null || secretToken.isEmpty)) {
@@ -44,7 +45,7 @@ SharedPlaylistLink? parsePlaylistShareLink(String rawLink) {
 String _extractPlaylistUrl(String rawLink) {
   final trimmed = rawLink.trim();
   final match = RegExp(
-    r'https?://tunify\.duckdns\.org/(playlists|s)/[^\s]+',
+    r'(https?://tunify\.duckdns\.org/playlist/[^\s]+|tunify://playlist/[^\s]+)',
     caseSensitive: false,
   ).firstMatch(trimmed);
   return match?.group(0) ?? trimmed;
@@ -52,18 +53,31 @@ String _extractPlaylistUrl(String rawLink) {
 
 String? _playlistIdFromSegments(List<String> segments) {
   final normalized = segments.where((segment) => segment.isNotEmpty).toList();
-  final playlistsIndex = normalized.indexOf('playlists');
-  if (playlistsIndex < 0 || playlistsIndex >= normalized.length - 1) {
+  final playlistIndex = normalized.indexOf('playlist');
+  if (playlistIndex < 0 || playlistIndex >= normalized.length - 1) {
     return null;
   }
-  return normalized[playlistsIndex + 1];
+  return normalized[playlistIndex + 1];
 }
 
-String? _secretTokenFromSegments(List<String> segments) {
-  final normalized = segments.where((segment) => segment.isNotEmpty).toList();
-  final secretIndex = normalized.indexOf('s');
-  if (secretIndex < 0 || secretIndex >= normalized.length - 1) {
-    return null;
+String? _readPlaylistToken(Uri uri) {
+  for (final entry in uri.queryParameters.entries) {
+    final key = entry.key.toLowerCase();
+    if (key == 'token') {
+      return entry.value.trim();
+    }
   }
-  return normalized[secretIndex + 1];
+
+  final rawQuery = uri.query;
+  if (rawQuery.isEmpty) return null;
+
+  for (final part in rawQuery.split('&')) {
+    final index = part.indexOf('=');
+    if (index <= 0) continue;
+    final key = Uri.decodeQueryComponent(part.substring(0, index)).toLowerCase();
+    if (key != 'token') continue;
+    return Uri.decodeQueryComponent(part.substring(index + 1)).trim();
+  }
+
+  return null;
 }
