@@ -17,6 +17,7 @@ abstract class Routes {
   // Module 9 — Messaging
   static const String messagingActivity = '/messaging-activity';
   static const String chat = '/chat';
+  static const String inboxSettings = '/inbox-settings';
 
   // Module 10 — Notifications
   static const String notificationPreferences = '/notification-preferences';

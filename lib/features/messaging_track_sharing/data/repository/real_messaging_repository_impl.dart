@@ -154,6 +154,12 @@ class RealMessagingRepository implements MessagingRepository {
       _api.block(conversationId);
 
   @override
+  Future<void> enableReceiveFromAnyone() => _api.enableAllowAll();
+
+  @override
+  Future<void> disableReceiveFromAnyone() => _api.disableAllowAll();
+
+  @override
   Future<void> joinConversation(String conversationId) =>
       _socket.joinConversation(conversationId);
 

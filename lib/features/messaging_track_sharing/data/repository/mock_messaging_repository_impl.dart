@@ -236,6 +236,12 @@ class MockMessagingRepository implements MessagingRepository {
   @override
   Future<void> leaveConversation(String conversationId) async {}
 
+  @override
+  Future<void> enableReceiveFromAnyone() async {}
+
+  @override
+  Future<void> disableReceiveFromAnyone() async {}
+
   String _previewFor(MessageDto dto) {
     if (dto.type == 'ATTACHMENT' || dto.attachments.isNotEmpty) {
       final firstTitle = dto.attachments.isNotEmpty

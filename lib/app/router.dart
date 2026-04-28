@@ -26,6 +26,7 @@ import '../features/auth/presentation/screens/google_account_linking_screen.dart
 import '../features/messaging_track_sharing/presentation/screens/messaging_activity_screen.dart';
 import '../features/messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
+import '../features/messaging_track_sharing/presentation/screens/inbox_settings_screen.dart';
 import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
 import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
@@ -304,6 +305,12 @@ class AppRouter {
       case Routes.messagingActivity:
         return _slide(
           const AuthProtectedScreen(child: MessagingActivityScreen()),
+          settings,
+        );
+
+      case Routes.inboxSettings:
+        return _slide(
+          const AuthProtectedScreen(child: InboxSettingsScreen()),
           settings,
         );
 

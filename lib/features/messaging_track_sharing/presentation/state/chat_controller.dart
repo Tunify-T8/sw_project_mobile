@@ -63,6 +63,10 @@ class ChatController extends Notifier<ChatState> {
             .read(messagingRepositoryProvider)
             .leaveConversation(_conversationId);
       } catch (_) {}
+      // Re-sync conversation list so the unarchived state is reflected.
+      try {
+        ref.read(conversationsControllerProvider.notifier).refresh();
+      } catch (_) {}
     });
     if (userId == null || userId.isEmpty || _conversationId.isEmpty) {
       return const ChatState();
@@ -123,9 +127,8 @@ class ChatController extends Notifier<ChatState> {
       final repo = ref.read(messagingRepositoryProvider);
       await repo.connectRealtime();
       await repo.joinConversation(_conversationId);
-      // Unarchive silently — if this conversation was archived, opening it
-      // should bring it back to the active list.
-      unawaited(repo.unarchiveConversation(_conversationId).catchError((_) {}));
+      // Unarchive locally — no backend unarchive endpoint exists, so we
+      // update the in-memory state so the conversation reappears in the list.
       ref
           .read(conversationsControllerProvider.notifier)
           .unarchiveLocally(_conversationId);
