@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/routing/routes.dart';
 import '../../../../core/utils/navigation_utils.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/followers_and_social_graph/presentation/widgets/relationship_button.dart';
@@ -24,8 +25,6 @@ class GenreDetailScreen extends ConsumerWidget {
     required this.genreId,
     required this.genreLabel,
     required this.genreColor,
-    // Optional local asset path — e.g. 'assets/genres/hip_hop_rap.jpg'
-    // When null or the file is missing, genreColor is used as fallback.
     this.genreImageAsset,
   });
 
@@ -81,7 +80,6 @@ class GenreDetailScreen extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                // Background: local asset → remote URL → solid color.
                 background: _GenreHeader(
                   genreColor: genreColor,
                   imageAsset: genreImageAsset,
@@ -160,17 +158,29 @@ class _GenreAllTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (detail == null) return const SizedBox.shrink();
+    if (detail == null) {
+      return const _GenreEmptyState(message: 'Nothing here yet.');
+    }
 
-    // Zero-duration tracks are still shown — SearchResultTileTrack hides
-    // the timer text when durationSeconds == 0.
     final trendingTracks = detail!.trendingTracks;
     final introducingTracks = detail!.introducingTracks;
+    final playlists = detail!.playlists;
+    final albums = detail!.albums;
+
+    if (trendingTracks.isEmpty &&
+        introducingTracks.isEmpty &&
+        playlists.isEmpty &&
+        albums.isEmpty &&
+        detail!.profiles.isEmpty) {
+      return const _GenreEmptyState(
+        message: 'No content in this genre yet.\nCheck back soon.',
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        // Trending — 3 tracks per column, horizontal scroll (original layout)
+        // ── Trending tracks ─────────────────────────────────────────────────
         if (trendingTracks.isNotEmpty) ...[
           SearchSectionHeader(
             title: 'Trending',
@@ -219,17 +229,27 @@ class _GenreAllTab extends StatelessWidget {
           ),
         ],
 
-        // Introducing — horizontal art cards
+        // ── Introducing tracks ──────────────────────────────────────────────
         if (introducingTracks.isNotEmpty) ...[
           const SizedBox(height: 16),
-          const SearchSectionHeader(title: 'Introducing'),
+          SearchSectionHeader(
+            title: 'Introducing',
+            onSeeAll: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SearchSeeAllScreen(
+                  title: 'Introducing in $genreLabel',
+                  tracks: introducingTracks,
+                ),
+              ),
+            ),
+          ),
           SizedBox(
             height: 192,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: introducingTracks.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, i) => _IntroducingCard(
                 track: introducingTracks[i],
                 allTracks: introducingTracks,
@@ -238,8 +258,8 @@ class _GenreAllTab extends StatelessWidget {
           ),
         ],
 
-        // Playlists — horizontal cards
-        if (detail!.playlists.isNotEmpty) ...[
+        // ── Playlists ───────────────────────────────────────────────────────
+        if (playlists.isNotEmpty) ...[
           const SizedBox(height: 16),
           SearchSectionHeader(
             title: 'Playlists',
@@ -247,55 +267,85 @@ class _GenreAllTab extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => SearchSeeAllScreen(
                   title: 'Playlists in $genreLabel',
-                  playlists: detail!.playlists,
+                  playlists: playlists,
                 ),
               ),
             ),
           ),
           SizedBox(
-            height: 178,
+            height: 192,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: detail!.playlists.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (context, i) =>
-                  _PlaylistCard(playlist: detail!.playlists[i]),
+              itemCount: playlists.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) => _CollectionCard(
+                title: playlists[i].title,
+                subtitle: playlists[i].creatorName,
+                artworkUrl: playlists[i].artworkUrl,
+                onTap: () => Navigator.of(context).pushNamed(
+                  Routes.playlistDetail,
+                  arguments: {'playlistId': playlists[i].id},
+                ),
+              ),
             ),
           ),
         ],
 
-        // Profiles — horizontal avatar cards
-        if (detail!.profiles.isNotEmpty) ...[
+        // ── Albums ──────────────────────────────────────────────────────────
+        if (albums.isNotEmpty) ...[
           const SizedBox(height: 16),
           SearchSectionHeader(
-            title: 'Profiles',
+            title: 'Albums',
             onSeeAll: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => SearchSeeAllScreen(
-                  title: 'Profiles in $genreLabel',
-                  profiles: detail!.profiles,
+                  title: 'Albums in $genreLabel',
+                  albums: albums,
                 ),
               ),
             ),
           ),
           SizedBox(
-            height: 128,
+            height: 192,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: albums.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) => _CollectionCard(
+                title: albums[i].title,
+                subtitle: albums[i].artistName,
+                artworkUrl: albums[i].artworkUrl,
+                onTap: () => Navigator.of(context).pushNamed(
+                  Routes.playlistDetail,
+                  arguments: {'playlistId': albums[i].id},
+                ),
+              ),
+            ),
+          ),
+        ],
+
+        // ── Artists ─────────────────────────────────────────────────────────
+        if (detail!.profiles.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const SearchSectionHeader(title: 'Artists'),
+          SizedBox(
+            height: 150,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: detail!.profiles.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 16),
-              itemBuilder: (context, i) =>
-                  _ProfileCard(
-                    profile: detail!.profiles[i],
-                    currentUserId: currentUserId,
-                  ),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) => _GenreProfileTile(
+                profile: detail!.profiles[i],
+                currentUserId: currentUserId,
+              ),
             ),
           ),
         ],
 
-        // Discover More — same shape as Introducing
+        // ── Discover More ───────────────────────────────────────────────────
         if (introducingTracks.isNotEmpty) ...[
           const SizedBox(height: 16),
           SearchSectionHeader(
@@ -315,7 +365,7 @@ class _GenreAllTab extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: introducingTracks.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, i) => _IntroducingCard(
                 track: introducingTracks[i],
                 allTracks: introducingTracks,
@@ -323,6 +373,7 @@ class _GenreAllTab extends StatelessWidget {
             ),
           ),
         ],
+
         const SizedBox(height: 32),
       ],
     );
@@ -337,19 +388,18 @@ class _GenreTrackList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final visible = tracks;
-    if (visible.isEmpty) {
+    if (tracks.isEmpty) {
       return const _GenreEmptyState(message: 'No trending tracks yet.');
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: visible.length,
+      itemCount: tracks.length,
       itemBuilder: (context, i) {
-        final track = visible[i];
+        final track = tracks[i];
         return SearchResultTileTrack(
           track: track,
           onTap: () =>
-              playSearchTrack(context, ref, track, queueTracks: visible),
+              playSearchTrack(context, ref, track, queueTracks: tracks),
         );
       },
     );
@@ -386,7 +436,13 @@ class _GenreAlbumList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: albums.length,
-      itemBuilder: (context, i) => SearchResultTileAlbum(album: albums[i]),
+      itemBuilder: (context, i) => SearchResultTileAlbum(
+        album: albums[i],
+        onTap: () => Navigator.of(context).pushNamed(
+          Routes.playlistDetail,
+          arguments: {'playlistId': albums[i].id},
+        ),
+      ),
     );
   }
 }
@@ -417,16 +473,20 @@ class _IntroducingCard extends ConsumerWidget {
                       height: 140,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
-                          SearchArtworkPlaceholder(size: 140),
+                          const SearchArtworkPlaceholder(size: 140),
                     )
-                  : SearchArtworkPlaceholder(size: 140),
+                  : const SearchArtworkPlaceholder(size: 140),
             ),
             const SizedBox(height: 6),
             Text(
               track.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             Text(
               track.artistName,
@@ -441,47 +501,55 @@ class _IntroducingCard extends ConsumerWidget {
   }
 }
 
-class _PlaylistCard extends StatelessWidget {
-  const _PlaylistCard({required this.playlist});
-  final PlaylistResultEntity playlist;
+/// Shared horizontal card for playlists and albums in the All tab.
+class _CollectionCard extends StatelessWidget {
+  const _CollectionCard({
+    required this.title,
+    required this.subtitle,
+    this.artworkUrl,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? artworkUrl;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${playlist.title} — playlist detail coming soon'),
-          duration: const Duration(seconds: 2),
-          backgroundColor: const Color(0xFF222222),
-        ),
-      ),
+      onTap: onTap,
       child: SizedBox(
-        width: 130,
+        width: 140,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: playlist.artworkUrl != null
+              child: artworkUrl != null
                   ? Image.network(
-                      playlist.artworkUrl!,
-                      width: 130,
-                      height: 130,
+                      artworkUrl!,
+                      width: 140,
+                      height: 140,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
-                          SearchArtworkPlaceholder(size: 130),
+                          const SearchArtworkPlaceholder(size: 140),
                     )
-                  : SearchArtworkPlaceholder(size: 130),
+                  : const SearchArtworkPlaceholder(size: 140),
             ),
             const SizedBox(height: 6),
             Text(
-              playlist.title,
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             Text(
-              playlist.creatorName,
+              subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: Colors.white54, fontSize: 12),
@@ -493,8 +561,9 @@ class _PlaylistCard extends StatelessWidget {
   }
 }
 
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.profile, this.currentUserId});
+class _GenreProfileTile extends StatelessWidget {
+  const _GenreProfileTile({required this.profile, this.currentUserId});
+
   final ProfileResultEntity profile;
   final String? currentUserId;
 
@@ -509,6 +578,7 @@ class _ProfileCard extends StatelessWidget {
       child: SizedBox(
         width: 80,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             CircleAvatar(
               radius: 36,
@@ -522,7 +592,7 @@ class _ProfileCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              profile.username,
+              profile.displayLabel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -541,7 +611,6 @@ class _ProfileCard extends StatelessWidget {
 
 // ─── Genre header background ──────────────────────────────────────────────────
 
-/// Priority: local imageAsset → remote artworkUrl → solid genreColor.
 class _GenreHeader extends StatelessWidget {
   const _GenreHeader({
     required this.genreColor,
@@ -580,7 +649,7 @@ class _GenreHeader extends StatelessWidget {
   }
 }
 
-// ─── Error / empty states ──────────────────────────────────────────────────────
+// ─── Error / empty states ─────────────────────────────────────────────────────
 
 class _GenreErrorState extends StatelessWidget {
   const _GenreErrorState({required this.error, required this.onRetry});
@@ -600,7 +669,7 @@ class _GenreErrorState extends StatelessWidget {
         const SizedBox(height: 16),
         TextButton(
           onPressed: onRetry,
-          child: const Text('Retry', style: TextStyle(color: Colors.white)),
+          child: const Text('Try again', style: TextStyle(color: Colors.white)),
         ),
       ],
     ),
@@ -613,6 +682,10 @@ class _GenreEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Text(message, style: const TextStyle(color: Colors.white54)),
+    child: Text(
+      message,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: Colors.white54),
+    ),
   );
 }

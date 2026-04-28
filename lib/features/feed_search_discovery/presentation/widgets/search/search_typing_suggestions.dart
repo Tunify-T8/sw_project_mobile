@@ -19,7 +19,7 @@ class SearchTypingSuggestions extends StatelessWidget {
   final String query;
   final List<String> suggestions;
   final ValueChanged<String> onSuggestionTap;
-  final ValueChanged<String> onRecentTap;
+  final ValueChanged<RecentResultItem> onRecentTap;
   final ValueChanged<RecentResultItem> onRecentRemove;
   final VoidCallback onClearAll;
 
@@ -41,7 +41,7 @@ class SearchTypingSuggestions extends StatelessWidget {
     if (recentResults.isNotEmpty) {
       return _RecentResultsList(
         results: recentResults,
-        onTap: (item) => onRecentTap(item.title),
+        onTap: onRecentTap,
         onRemove: onRecentRemove,
         onClearAll: onClearAll,
       );

@@ -20,6 +20,7 @@ import '../../domain/entities/track_result_entity.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../../domain/usecases/search_usecases.dart';
 import '../../domain/usecases/search_autocomplete_usecase.dart';
+import 'package:flutter/foundation.dart';
 
 // ─── Recent result kinds ──────────────────────────────────────────────────────
 
@@ -386,7 +387,17 @@ class SearchNotifier extends Notifier<SearchState> {
 
   // ── Tab / filter management ────────────────────────────────────────────────
 
-  void setActiveTab(SearchTab tab) => state = state.copyWith(activeTab: tab);
+  Future<void> setActiveTab(SearchTab tab) async {
+    if (state.query.isEmpty) return;
+    state = state.copyWith(
+      activeTab: tab,
+      isLoading: true,
+      clearError: true,
+      page: 1,
+      hasMore: true,
+    );
+    await _loadActiveTab(state.query, tab: tab);
+  }
 
   void setTrackFilters(TrackSearchFilters filters) {
     state = state.copyWith(trackFilters: filters);
@@ -561,25 +572,135 @@ class SearchNotifier extends Notifier<SearchState> {
     }
   }
 
-  // ── Active-tab loader (used internally after submit) ───────────────────────
-
   Future<void> _loadActiveTab(String query, {SearchTab? tab}) async {
     final activeTab = tab ?? state.activeTab;
+    debugPrint(
+      '[SearchProvider] _loadActiveTab: tab=$activeTab query="$query"',
+    );
     try {
       switch (activeTab) {
         case SearchTab.all:
           final raw = await ref.read(searchAllUseCaseProvider).call(query);
           final result = _reScoreTopResult(raw, query);
+          debugPrint(
+            '[SearchProvider] all → tracks:${result.tracks.length} profiles:${result.profiles.length} playlists:${result.playlists.length} albums:${result.albums.length}',
+          );
           state = state.copyWith(
             isLoading: false,
             allResult: result,
             clearError: true,
           );
           break;
-        default:
-          state = state.copyWith(isLoading: false);
+
+        case SearchTab.tracks:
+          final results = await ref
+              .read(searchTracksUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.trackFilters,
+              );
+          debugPrint(
+            '[SearchProvider] tracks endpoint → ${results.length} results',
+          );
+          // Seed from allResult when the dedicated endpoint returns empty.
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.tracks ?? const []);
+          debugPrint(
+            '[SearchProvider] tracks using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            tracks: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.profiles:
+          final results = await ref
+              .read(searchProfilesUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.peopleFilters,
+              );
+          debugPrint(
+            '[SearchProvider] profiles endpoint → ${results.length} results',
+          );
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.profiles ?? const []);
+          debugPrint(
+            '[SearchProvider] profiles using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            profiles: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.playlists:
+          final results = await ref
+              .read(searchPlaylistsUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.collectionFilters,
+              );
+          debugPrint(
+            '[SearchProvider] playlists endpoint → ${results.length} results',
+          );
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.playlists ?? const []);
+          debugPrint(
+            '[SearchProvider] playlists using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            playlists: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
+
+        case SearchTab.albums:
+          final results = await ref
+              .read(searchAlbumsUseCaseProvider)
+              .call(
+                query,
+                page: 1,
+                limit: _pageSize,
+                filters: state.collectionFilters,
+              );
+          debugPrint(
+            '[SearchProvider] albums endpoint → ${results.length} results',
+          );
+          final seeded = results.isNotEmpty
+              ? results
+              : (state.allResult?.albums ?? const []);
+          debugPrint(
+            '[SearchProvider] albums using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+          );
+          state = state.copyWith(
+            isLoading: false,
+            albums: seeded,
+            hasMore: results.length >= _pageSize,
+            clearError: true,
+          );
+          break;
       }
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint(
+        '[SearchProvider] _loadActiveTab ERROR tab=$activeTab: $e\n$st',
+      );
       state = state.copyWith(
         isLoading: false,
         error: 'Search failed. Please try again.',
@@ -649,59 +770,50 @@ class SearchNotifier extends Notifier<SearchState> {
     SearchAllResultEntity result,
     String query,
   ) {
-    if (result.topResult != null) return result;
+    // If the backend already picked a top result AND this is an exact match,
+    // trust it — don't re-rank.
+    final q = query.toLowerCase().trim();
 
-    int score(String title) {
-      final t = title.toLowerCase();
-      final q = query.toLowerCase();
+    int score(String text) {
+      final t = text.toLowerCase();
       if (t == q) return 100;
-      if (t.startsWith(q)) return 50;
-      if (t.contains(q)) return 25;
+      if (t.startsWith(q)) return 70;
+      if (t.contains(q)) return 40;
       return 0;
     }
 
-    TopResultEntity? bestTop;
-    int bestScore = -1;
+    // Also check displayLabel for profiles (covers displayName).
+    int profileScore(ProfileResultEntity p) {
+      final s1 = score(p.username);
+      final s2 = score(p.displayLabel);
+      return s1 > s2 ? s1 : s2;
+    }
 
-    for (final a in result.albums) {
-      final s = score(a.title);
-      if (s > bestScore) {
-        bestScore = s;
-        bestTop = TopResultEntity(
-          id: a.id,
-          type: TopResultType.album,
-          title: a.title,
-          subtitle: '${a.artistName} · Album · ${a.trackCount} Tracks',
-          artworkUrl: a.artworkUrl,
-        );
-      }
-    }
-    for (final t in result.tracks) {
-      final s = score(t.title);
-      if (s > bestScore) {
-        bestScore = s;
-        bestTop = TopResultEntity(
-          id: t.id,
-          type: TopResultType.track,
-          title: t.title,
-          subtitle: t.artistName,
-          artworkUrl: t.artworkUrl,
-        );
-      }
-    }
+    // ── Find the best candidate across all types ─────────────────────────────
+    // Priority rule when scores are equal:
+    //   profile > playlist > album > track
+    // This means: if you search a username, the profile wins at equal score.
+    // A track only beats a profile if it scores strictly higher.
+
+    int bestScore = 0;
+    TopResultEntity? bestTop;
+
+    // 1. Profiles — checked first, so equal-score ties go to profile.
     for (final p in result.profiles) {
-      final s = score(p.displayLabel) + 10;
+      final s = profileScore(p);
       if (s > bestScore) {
         bestScore = s;
         bestTop = TopResultEntity(
           id: p.id,
           type: TopResultType.profile,
           title: p.displayLabel,
-          subtitle: '${p.followersCount} Followers',
+          subtitle: '${_fmtCount(p.followersCount)} Followers',
           artworkUrl: p.avatarUrl,
         );
       }
     }
+
+    // 2. Playlists — beat profile only if strictly higher score.
     for (final pl in result.playlists) {
       final s = score(pl.title);
       if (s > bestScore) {
@@ -716,7 +828,39 @@ class SearchNotifier extends Notifier<SearchState> {
       }
     }
 
+    // 3. Albums.
+    for (final a in result.albums) {
+      final s = score(a.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: a.id,
+          type: TopResultType.album,
+          title: a.title,
+          subtitle: '${a.artistName} · Album · ${a.trackCount} Tracks',
+          artworkUrl: a.artworkUrl,
+        );
+      }
+    }
+
+    // 4. Tracks — lowest priority at equal score.
+    for (final t in result.tracks) {
+      final s = score(t.title);
+      if (s > bestScore) {
+        bestScore = s;
+        bestTop = TopResultEntity(
+          id: t.id,
+          type: TopResultType.track,
+          title: t.title,
+          subtitle: t.artistName,
+          artworkUrl: t.artworkUrl,
+        );
+      }
+    }
+
+    // If nothing scored, keep the original backend top result.
     if (bestTop == null) return result;
+
     return SearchAllResultEntity(
       topResult: bestTop,
       tracks: result.tracks,
@@ -724,6 +868,12 @@ class SearchNotifier extends Notifier<SearchState> {
       albums: result.albums,
       profiles: result.profiles,
     );
+  }
+
+  String _fmtCount(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
+    return n.toString();
   }
 }
 

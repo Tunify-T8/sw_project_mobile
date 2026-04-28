@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/routing/routes.dart';
 import '../../../domain/entities/album_result_entity.dart';
 import 'search_artwork_placeholder.dart';
 
 class SearchResultTileAlbum extends StatelessWidget {
-  const SearchResultTileAlbum({super.key, required this.album});
+  const SearchResultTileAlbum({super.key, required this.album, this.onTap});
+
   final AlbumResultEntity album;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap:
+          onTap ??
+          () => Navigator.of(context).pushNamed(
+            Routes.playlistDetail,
+            arguments: {'playlistId': album.id},
+          ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(4),
@@ -18,6 +27,7 @@ class SearchResultTileAlbum extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => SearchArtworkPlaceholder(size: 48),
               )
             : SearchArtworkPlaceholder(size: 48),
       ),
