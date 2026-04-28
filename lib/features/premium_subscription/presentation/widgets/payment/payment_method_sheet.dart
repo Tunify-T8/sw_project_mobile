@@ -4,6 +4,7 @@ import '../../../domain/entities/payment_method_entity.dart';
 import '../../../domain/entities/payment_method_type.dart';
 import 'payment_fields.dart';
 import 'payment_option.dart';
+import 'payment_result.dart';
 
 class PaymentMethodSheet extends StatefulWidget {
   const PaymentMethodSheet({
@@ -27,7 +28,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
   final _cardholderNameController = TextEditingController();
   PaymentMethodType _selectedMethod = PaymentMethodType.card;
   bool _isProcessing = false;
-  bool _isSuccess = false;
+  bool _isSuccessful = false;
   String? _resultMessage;
   String? _errorMessage;
 
@@ -96,7 +97,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
 
       setState(() {
         _isProcessing = false;
-        _isSuccess = true;
+        _isSuccessful = true;
         _resultMessage = message;
       });
     } catch (error) {
@@ -113,7 +114,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
     setState(() {
       _errorMessage = null;
       _resultMessage = null;
-      _isSuccess = false;
+      _isSuccessful = false;
       _isProcessing = false;
     });
   }
@@ -148,7 +149,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
             const SizedBox(height: 8),
 
             Text(
-              _isSuccess
+              _isSuccessful
                   ? 'Payment Successful'
                   : _errorMessage != null
                       ? 'Payment Failed'
@@ -162,12 +163,13 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
 
             const SizedBox(height: 16),
 
-            if (_isSuccess)
-              _PaymentSuccessView(
-                message: _resultMessage ?? 'Subscription activated',
+            if (_isSuccessful)
+              PaymentResult(
+                responseMessage: _resultMessage ?? 'Subscription activated',
+                isSuccessful: true,
               )
             else if (_errorMessage != null)
-              _PaymentErrorView(message: _errorMessage!)
+              PaymentResult(responseMessage: _errorMessage!, isSuccessful: false,)
             else ...[
               Row(
                 children: PaymentMethodType.values
@@ -238,7 +240,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
               child: TextButton(
                 onPressed: _isProcessing
                     ? null
-                    : _isSuccess
+                    : _isSuccessful
                         ? () => Navigator.of(context).pop()
                         : _errorMessage != null
                             ? _tryAgain
@@ -276,7 +278,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
                         ],
                       )
                     : Text(
-                        _isSuccess
+                        _isSuccessful
                             ? 'Start Exploring'
                             : _errorMessage != null
                                 ? 'Try Again'
@@ -291,94 +293,6 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _PaymentSuccessView extends StatelessWidget {
-  const _PaymentSuccessView({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    const features = [
-      'Ad-free listening',
-      'Offline listening',
-      'Expanded upload limits',
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Center(
-          child: Icon(
-            Icons.check_circle,
-            color: Color(0xFF2ECC71),
-            size: 54,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          message,
-          style: const TextStyle(color: Colors.white70, fontSize: 15),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Unlocked features',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        for (final feature in features)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.check,
-                  color: Color(0xFFFF5500),
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  feature,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _PaymentErrorView extends StatelessWidget {
-  const _PaymentErrorView({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Center(
-          child: Icon(
-            Icons.error,
-            color: Color(0xFFFF6B6B),
-            size: 54,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          message,
-          style: const TextStyle(color: Colors.white70, fontSize: 15),
-        ),
-      ],
     );
   }
 }
