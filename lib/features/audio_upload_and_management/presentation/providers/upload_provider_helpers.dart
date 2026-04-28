@@ -15,15 +15,28 @@ extension _UploadNotifierHelpers on UploadNotifier {
     final quota = state.quota;
     final durationSeconds = file.durationSeconds;
 
-    if (quota == null || durationSeconds == null || durationSeconds <= 0) {
+    if (durationSeconds == null || durationSeconds <= 0) {
       return null;
     }
 
-    if (quota.canUploadDuration(durationSeconds)) {
+    final subscription = ref
+        .read(subscriptionNotifierProvider)
+        .currentSubscription;
+    final uploadLimit = subscription.features.uploadLimit;
+
+    if (uploadLimit < 0) {
       return null;
     }
 
-    return quota.minutesRequiredForDuration(durationSeconds);
+    final uploadMinutesUsed = quota?.uploadMinutesUsed ?? 0;
+    final requiredMinutes = quota?.minutesRequiredForDuration(durationSeconds) ??
+        ((durationSeconds + 59) ~/ 60);
+
+    if (uploadMinutesUsed + requiredMinutes <= uploadLimit) {
+      return null;
+    }
+
+    return requiredMinutes;
   }
 
   UploadQuota? _consumeQuotaForNewUpload(

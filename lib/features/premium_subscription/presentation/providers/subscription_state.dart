@@ -4,7 +4,7 @@ import '../../domain/entities/subscription_plan_entity.dart';
 
 class SubscriptionState {
   final List<SubscriptionPlanEntity> plans;
-  final CurrentSubscriptionEntity? currentSubscription;
+  final CurrentSubscriptionEntity currentSubscription;
 
   final bool isPlansLoading;
   final bool isCurrentLoading;
@@ -23,7 +23,7 @@ class SubscriptionState {
 
   SubscriptionState({
     this.plans = const [],
-    this.currentSubscription,
+    this.currentSubscription = const CurrentSubscriptionEntity(),
     this.isPlansLoading = false,
     this.isCurrentLoading = false,
     this.isSubscribing = false,

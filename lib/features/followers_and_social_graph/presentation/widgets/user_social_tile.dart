@@ -34,8 +34,8 @@ class UserSocialTile extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              //check if back end will have default value
               radius: 30.0,
+              backgroundColor: Color(0xFF2A2A2A),
               backgroundImage: avatar != null && avatar.isNotEmpty
                   ? NetworkImage(avatar)
                   : null,

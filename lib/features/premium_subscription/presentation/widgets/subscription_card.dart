@@ -79,7 +79,7 @@ class SubscriptionCard extends ConsumerWidget {
     final currentSubscription = ref
         .watch(subscriptionNotifierProvider)
         .currentSubscription;
-    final canSubscribe = (currentSubscription?.tier == SubscriptionTier.free);
+    final canSubscribe = (currentSubscription.tier == SubscriptionTier.free);
 
     return Container(
       padding: const EdgeInsets.all(20),

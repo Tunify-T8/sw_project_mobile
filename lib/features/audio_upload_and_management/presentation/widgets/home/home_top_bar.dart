@@ -56,7 +56,7 @@ class HomeTopBar extends ConsumerWidget {
             ),
           ),
           const Spacer(),
-          if (currentSubscription?.tier == SubscriptionTier.free) ...[
+          if (currentSubscription.tier == SubscriptionTier.free) ...[
             TextButton(
               onPressed: () {
                 Navigator.of(context).push(

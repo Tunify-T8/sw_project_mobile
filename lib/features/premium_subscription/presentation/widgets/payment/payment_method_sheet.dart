@@ -38,7 +38,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
       case PaymentMethodType.paypal:
         return 'Paypal';
       case PaymentMethodType.apple:
-        return 'Apple Pay';
+        return 'Google Pay';
     }
   }
 
@@ -49,7 +49,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
       case PaymentMethodType.paypal:
         return Icons.paypal;
       case PaymentMethodType.apple:
-        return Icons.apple;
+        return Icons.payments;
     }
   }
 
