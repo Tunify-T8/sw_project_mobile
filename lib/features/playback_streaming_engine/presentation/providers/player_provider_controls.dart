@@ -282,9 +282,7 @@ extension PlayerNotifierControls on PlayerNotifier {
     _lastKnownState = const PlayerState();
     _setAsyncState(const AsyncData(PlayerState()));
 
-    await PlayerNotifier._storage.delete(
-      key: StorageKeys.cachedPlayerSession,
-    );
+    await _deleteCachedPlayerSession();
   }
 
   void toggleRepeat() {

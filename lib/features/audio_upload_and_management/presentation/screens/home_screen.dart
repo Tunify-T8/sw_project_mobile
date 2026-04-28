@@ -43,6 +43,7 @@ class HomeScreen extends ConsumerWidget {
         ? null
         : (libraryState.items.isNotEmpty ? libraryState.items.first : null);
     final isDesktop = AdaptiveBreakpoints.isExpanded(context);
+    final greeting = _homeGreeting(DateTime.now());
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -64,6 +65,7 @@ class HomeScreen extends ConsumerWidget {
                 isDesktop: isDesktop,
                 isBusy: uploadState.isBusy,
                 hasUnreadActivity: hasUnreadActivity,
+                greeting: greeting,
                 trackCount: libraryState.totalCount,
                 recentCount: historyTracks.length,
                 onOpenArtistHome: () {
@@ -83,9 +85,9 @@ class HomeScreen extends ConsumerWidget {
               child: AdaptiveCenter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    isDesktop ? 0 : 18,
+                    isDesktop ? 28 : 18,
                     isDesktop ? 18 : 6,
-                    isDesktop ? 0 : 18,
+                    isDesktop ? 28 : 18,
                     12,
                   ),
                   child: const Text(
@@ -137,6 +139,7 @@ class _HomeHeader extends StatelessWidget {
     required this.isDesktop,
     required this.isBusy,
     required this.hasUnreadActivity,
+    required this.greeting,
     required this.trackCount,
     required this.recentCount,
     required this.onOpenArtistHome,
@@ -147,6 +150,7 @@ class _HomeHeader extends StatelessWidget {
   final bool isDesktop;
   final bool isBusy;
   final bool hasUnreadActivity;
+  final String greeting;
   final int trackCount;
   final int recentCount;
   final VoidCallback onOpenArtistHome;
@@ -182,20 +186,21 @@ class _HomeHeader extends StatelessWidget {
               ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  isDesktop ? 0 : 18,
+                  isDesktop ? 28 : 18,
                   isDesktop ? 18 : 8,
-                  isDesktop ? 0 : 18,
+                  isDesktop ? 28 : 18,
                   4,
                 ),
                 child: isDesktop
                     ? _DesktopWelcome(
+                        greeting: greeting,
                         trackCount: trackCount,
                         recentCount: recentCount,
                         onStartUpload: onStartUpload,
                       )
-                    : const Text(
-                        'Good evening',
-                        style: TextStyle(
+                    : Text(
+                        greeting,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -212,11 +217,13 @@ class _HomeHeader extends StatelessWidget {
 
 class _DesktopWelcome extends StatelessWidget {
   const _DesktopWelcome({
+    required this.greeting,
     required this.trackCount,
     required this.recentCount,
     required this.onStartUpload,
   });
 
+  final String greeting;
   final int trackCount;
   final int recentCount;
   final VoidCallback onStartUpload;
@@ -226,22 +233,22 @@ class _DesktopWelcome extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good evening',
-                style: TextStyle(
+                greeting,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 34,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'Jump back into playback, manage uploads, and keep an eye on your activity.',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white60,
                   fontSize: 15,
                   height: 1.35,
@@ -279,6 +286,15 @@ class _DesktopWelcome extends StatelessWidget {
       ],
     );
   }
+}
+
+String _homeGreeting(DateTime now) {
+  final hour = now.hour;
+  if (hour < 5) return 'Good night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 22) return 'Good evening';
+  return 'Good night';
 }
 
 class _DesktopStatCard extends StatelessWidget {

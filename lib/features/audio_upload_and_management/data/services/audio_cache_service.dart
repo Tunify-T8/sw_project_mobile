@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/cache/cache_directories.dart';
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../dto/upload_item_dto.dart';
@@ -27,7 +27,6 @@ class AudioCacheService {
 
   final GlobalTrackStore _store;
 
-  static const _storage = FlutterSecureStorage();
   static const _tokenStorage = TokenStorage();
 
   /// Resolves the per-user uploads cache key at call time so it always matches
@@ -305,7 +304,7 @@ class AudioCacheService {
   ) async {
     try {
       final key = await _resolveUploadsKey();
-      final raw = await _storage.read(key: key);
+      final raw = await SafeSecureStorage.read(key);
       if (raw == null || raw.isEmpty) return;
 
       final decoded = jsonDecode(raw) as List<dynamic>;
@@ -315,7 +314,7 @@ class AudioCacheService {
         return dto.id == trackId ? updater(dto).toJson() : e;
       }).toList();
 
-      await _storage.write(key: key, value: jsonEncode(updated));
+      await SafeSecureStorage.write(key: key, value: jsonEncode(updated));
     } catch (_) {
       // Cache metadata is an optimization. Do not fail audio caching because
       // secure-storage metadata failed.

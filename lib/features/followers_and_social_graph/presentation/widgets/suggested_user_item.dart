@@ -23,12 +23,17 @@ class SuggestedUserItem extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 50,
+                backgroundColor: const Color(0xFF3A4A5A),
                 backgroundImage:
                     user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                     ? NetworkImage(user.avatarUrl!)
                     : null,
                 child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                    ? const Icon(Icons.person, size: 40)
+                    ? const Icon(
+                        Icons.person,
+                        color: Color(0xFF6A8AAA),
+                        size: 40,
+                      )
                     : null,
               ),
 

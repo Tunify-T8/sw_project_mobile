@@ -36,6 +36,7 @@ void main() {
 
   setUp(() {
     environment = createPlaybackTestEnvironment();
+    environment.storage.seed(StorageKeys.user, jsonEncode({'id': 'user-1'}));
     repository = FakePlayerRepository();
     historyNotifier = TestListeningHistoryNotifier(
       const ListeningHistoryState(),
@@ -348,6 +349,69 @@ void main() {
       isNotNull,
     );
     expect(repository.reportedEvents, isNotEmpty);
+  });
+
+  test('session persistence retries transient secure storage write locks', () async {
+    final container = buildContainer(mode: PlayerBackendMode.mock);
+    addTearDown(container.dispose);
+    await container.read(playerProvider.future);
+    final notifier = container.read(playerProvider.notifier);
+
+    await notifier.loadTrack(
+      'locked-write-track',
+      autoPlay: false,
+      seedTrack: const PlayerSeedTrack(
+        trackId: 'locked-write-track',
+        title: 'Locked Write',
+        artistName: 'Artist',
+        durationSeconds: 120,
+        directAudioUrl: 'https://example.com/locked.m3u8',
+      ),
+    );
+
+    environment.storage.failNextWrites(
+      Exception('PathAccessException: file is being used by another process'),
+    );
+
+    await notifier.pause();
+
+    expect(
+      environment.storage.values[StorageKeys.cachedPlayerSession],
+      isNotNull,
+    );
+  });
+
+  test('session persistence ignores permanent secure storage delete failure', () async {
+    final container = buildContainer(mode: PlayerBackendMode.mock);
+    addTearDown(container.dispose);
+    await container.read(playerProvider.future);
+
+    environment.storage.failNextDeletes(
+      StateError('delete failed'),
+      count: 3,
+    );
+
+    await expectLater(
+      container.read(playerProvider.notifier).clearPlaybackSession(),
+      completes,
+    );
+  });
+
+  test('restore ignores unreadable secure storage cache', () async {
+    environment.storage.seed(
+      StorageKeys.cachedPlayerSession,
+      jsonEncode(encodePlayerSession()),
+    );
+    environment.storage.failNextReads(
+      StateError('CryptUnprotectData failed'),
+      count: 3,
+    );
+    final container = buildContainer();
+    addTearDown(container.dispose);
+
+    final state = await container.read(playerProvider.future);
+
+    expect(state.bundle, isNull);
   });
 
   test('real mode falls back to seed bundle when repository bundle request fails', () async {

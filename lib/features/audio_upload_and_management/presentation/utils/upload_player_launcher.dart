@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -54,8 +54,8 @@ Future<void> openUploadItemPlayer(
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -124,8 +124,8 @@ Future<void> openHistorySourcedPlayer(
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -398,8 +398,8 @@ Future<void> openCurrentPlaybackTrackSurface(
   if (!context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: hydratedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -527,8 +527,7 @@ Future<void> _ensureCachedUploadsHydrated(WidgetRef ref) async {
       ? StorageKeys.cachedLibraryUploads
       : '${StorageKeys.cachedLibraryUploads}_$userId';
 
-  const storage = FlutterSecureStorage();
-  final raw = await storage.read(key: key);
+  final raw = await SafeSecureStorage.read(key);
   if (raw == null || raw.isEmpty) return;
 
   try {

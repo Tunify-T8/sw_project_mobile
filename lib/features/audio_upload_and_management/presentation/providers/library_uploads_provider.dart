@@ -5,8 +5,8 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/storage/token_storage.dart';
 // Post-delete cleanup imports: after a track is deleted we stop playback if
@@ -29,8 +29,6 @@ final libraryUploadsProvider =
     );
 
 class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
-
   @override
   LibraryUploadsState build() => const LibraryUploadsState();
 
@@ -298,7 +296,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
         )
         .toList(growable: false);
 
-    await _storage.write(
+    await SafeSecureStorage.write(
       key: await _uploadsKey(),
       value: jsonEncode(payload),
     );
@@ -306,7 +304,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
 
   Future<List<UploadItem>> _readCachedUploads() async {
     final key = await _uploadsKey();
-    final raw = await _storage.read(key: key);
+    final raw = await SafeSecureStorage.read(key);
     if (raw == null || raw.isEmpty) {
       return const <UploadItem>[];
     }
@@ -319,7 +317,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
           .map(_uploadItemFromDto)
           .toList(growable: false);
     } catch (_) {
-      await _storage.delete(key: key);
+      await SafeSecureStorage.delete(key);
       return const <UploadItem>[];
     }
   }

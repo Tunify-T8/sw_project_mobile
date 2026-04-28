@@ -33,7 +33,7 @@ class HomeRecentSection extends StatelessWidget {
         : width >= 900
             ? 3
             : 2;
-    final horizontalPadding = width >= 1024 ? 0.0 : 16.0;
+    final horizontalPadding = width >= 1024 ? 28.0 : 16.0;
     final childAspectRatio = width >= 1024 ? 3.2 : 2.85;
     final cards = <Widget>[];
 
