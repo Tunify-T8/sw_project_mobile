@@ -5,26 +5,29 @@ import '../providers/notification_providers.dart';
 
 class NotificationPreferencesState {
   final bool isLoading;
+  final bool isSaving;
   final NotificationPreferencesEntity? preferences;
   final String? error;
 
   const NotificationPreferencesState({
     this.isLoading = false,
+    this.isSaving = false,
     this.preferences,
     this.error,
   });
 
   NotificationPreferencesState copyWith({
     bool? isLoading,
+    bool? isSaving,
     NotificationPreferencesEntity? preferences,
     String? error,
     bool clearError = false,
-  }) =>
-      NotificationPreferencesState(
-        isLoading: isLoading ?? this.isLoading,
-        preferences: preferences ?? this.preferences,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => NotificationPreferencesState(
+    isLoading: isLoading ?? this.isLoading,
+    isSaving: isSaving ?? this.isSaving,
+    preferences: preferences ?? this.preferences,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class NotificationPreferencesController
@@ -38,78 +41,105 @@ class NotificationPreferencesController
   Future<void> load() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final prefs =
-          await ref.read(getNotificationPreferencesUseCaseProvider).call();
+      final prefs = await ref
+          .read(getNotificationPreferencesUseCaseProvider)
+          .call();
       state = state.copyWith(isLoading: false, preferences: prefs);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  Future<void> togglePush(String key, bool value) async {
+  Future<void> togglePush(String key, bool value) => _updatePush({key: value});
+
+  Future<void> toggleEmail(String key, bool value) =>
+      _updateEmail({key: value});
+
+  Future<void> setAllPush(bool value) => _updatePush(_allKeys(value));
+
+  Future<void> setAllEmail(bool value) => _updateEmail(_allKeys(value));
+
+  Future<void> _updatePush(Map<String, bool> changes) async {
     final current = state.preferences;
-    if (current == null) return;
+    if (current == null || changes.isEmpty) return;
+
+    final nextPush = _channelWithChanges(current.push, changes);
+    state = state.copyWith(
+      isSaving: true,
+      preferences: current.copyWith(push: nextPush),
+      clearError: true,
+    );
 
     try {
       await ref
           .read(updateNotificationPreferencesUseCaseProvider)
-          .call(push: {key: value});
-
-      final updatedMap = Map<String, bool>.from(current.push.toMap());
-      updatedMap[key] = value;
-
-      state = state.copyWith(
-        preferences: current.copyWith(
-          push: PreferenceChannel(
-            trackLiked: updatedMap['trackLiked'] ?? true,
-            trackCommented: updatedMap['trackCommented'] ?? true,
-            trackReposted: updatedMap['trackReposted'] ?? true,
-            userFollowed: updatedMap['userFollowed'] ?? true,
-            newRelease: updatedMap['newRelease'] ?? true,
-            newMessage: updatedMap['newMessage'] ?? true,
-            system: updatedMap['system'] ?? true,
-            subscription: updatedMap['subscription'] ?? true,
-          ),
-        ),
-      );
+          .call(push: changes);
+      state = state.copyWith(isSaving: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(
+        isSaving: false,
+        preferences: current,
+        error: e.toString(),
+      );
     }
   }
 
-  Future<void> toggleEmail(String key, bool value) async {
+  Future<void> _updateEmail(Map<String, bool> changes) async {
     final current = state.preferences;
-    if (current == null) return;
+    if (current == null || changes.isEmpty) return;
+
+    final nextEmail = _channelWithChanges(current.email, changes);
+    state = state.copyWith(
+      isSaving: true,
+      preferences: current.copyWith(email: nextEmail),
+      clearError: true,
+    );
 
     try {
       await ref
           .read(updateNotificationPreferencesUseCaseProvider)
-          .call(email: {key: value});
-
-      final updatedMap = Map<String, bool>.from(current.email.toMap());
-      updatedMap[key] = value;
-
-      state = state.copyWith(
-        preferences: current.copyWith(
-          email: PreferenceChannel(
-            trackLiked: updatedMap['trackLiked'] ?? true,
-            trackCommented: updatedMap['trackCommented'] ?? true,
-            trackReposted: updatedMap['trackReposted'] ?? true,
-            userFollowed: updatedMap['userFollowed'] ?? true,
-            newRelease: updatedMap['newRelease'] ?? true,
-            newMessage: updatedMap['newMessage'] ?? true,
-            system: updatedMap['system'] ?? true,
-            subscription: updatedMap['subscription'] ?? true,
-          ),
-        ),
-      );
+          .call(email: changes);
+      state = state.copyWith(isSaving: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(
+        isSaving: false,
+        preferences: current,
+        error: e.toString(),
+      );
     }
+  }
+
+  Map<String, bool> _allKeys(bool value) => {
+    'trackLiked': value,
+    'trackCommented': value,
+    'trackReposted': value,
+    'userFollowed': value,
+    'newRelease': value,
+    'newMessage': value,
+    'system': value,
+    'subscription': value,
+  };
+
+  PreferenceChannel _channelWithChanges(
+    PreferenceChannel channel,
+    Map<String, bool> changes,
+  ) {
+    final updated = Map<String, bool>.from(channel.toMap())..addAll(changes);
+    return PreferenceChannel(
+      trackLiked: updated['trackLiked'] ?? true,
+      trackCommented: updated['trackCommented'] ?? true,
+      trackReposted: updated['trackReposted'] ?? true,
+      userFollowed: updated['userFollowed'] ?? true,
+      newRelease: updated['newRelease'] ?? true,
+      newMessage: updated['newMessage'] ?? true,
+      system: updated['system'] ?? true,
+      subscription: updated['subscription'] ?? true,
+    );
   }
 }
 
-final notificationPreferencesControllerProvider = NotifierProvider<
-    NotificationPreferencesController, NotificationPreferencesState>(
-  NotificationPreferencesController.new,
-);
+final notificationPreferencesControllerProvider =
+    NotifierProvider<
+      NotificationPreferencesController,
+      NotificationPreferencesState
+    >(NotificationPreferencesController.new);

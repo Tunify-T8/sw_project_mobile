@@ -304,12 +304,6 @@ class _NotificationFilterButton extends StatelessWidget {
                   Icons.person_add_alt,
                   color: Colors.white70,
                   size: 18,
-                )
-              else if (f == NotificationFilter.reactions)
-                const Icon(
-                  Icons.emoji_emotions_outlined,
-                  color: Colors.white70,
-                  size: 18,
                 ),
               const SizedBox(width: 10),
               Text(

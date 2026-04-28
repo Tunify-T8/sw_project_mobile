@@ -19,7 +19,7 @@ class PlaybackContextResponseDto {
     final trackIds = queueJson.map((e) {
       if (e is String) return e;
       if (e is Map<String, dynamic>) {
-        return (e['trackId'] ?? '') as String;
+        return (e['trackId'] ?? e['id'] ?? '').toString();
       }
       return e.toString();
     }).toList();

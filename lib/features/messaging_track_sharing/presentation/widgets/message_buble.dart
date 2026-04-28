@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/routing/routes.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
@@ -40,7 +41,7 @@ class MessageBubble extends StatelessWidget {
             ),
             child: _Bubble(
               opacity: message.isPending ? 0.6 : 1.0,
-              child: _BubbleContent(message: message),
+              child: _BubbleContent(message: message, isMine: isMine),
             ),
           ),
           const SizedBox(height: 4),
@@ -98,9 +99,10 @@ class _Bubble extends StatelessWidget {
 }
 
 class _BubbleContent extends StatelessWidget {
-  const _BubbleContent({required this.message});
+  const _BubbleContent({required this.message, required this.isMine});
 
   final MessageEntity message;
+  final bool isMine;
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +119,7 @@ class _BubbleContent extends StatelessWidget {
     if (hasAttachments) {
       if (children.isNotEmpty) children.add(const SizedBox(height: 8));
       for (final att in message.attachments) {
-        children.add(_AttachmentCard(attachment: att));
+        children.add(_AttachmentCard(attachment: att, isMine: isMine));
       }
     }
 
@@ -130,9 +132,10 @@ class _BubbleContent extends StatelessWidget {
 }
 
 class _AttachmentCard extends ConsumerWidget {
-  const _AttachmentCard({required this.attachment});
+  const _AttachmentCard({required this.attachment, required this.isMine});
 
   final MessageAttachment attachment;
+  final bool isMine;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -220,12 +223,15 @@ class _AttachmentCard extends ConsumerWidget {
 
   Future<void> _open(BuildContext context, WidgetRef ref) async {
     if (attachment.type == MessageAttachmentType.collection) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Collection preview ready for "${attachment.title}".'),
-          backgroundColor: const Color(0xFF2A2A2A),
-          duration: const Duration(seconds: 2),
-        ),
+      final collectionId = attachment.id.trim();
+      if (collectionId.isEmpty) return;
+
+      await Navigator.of(context).pushNamed(
+        Routes.playlistDetail,
+        arguments: {
+          'playlistId': collectionId,
+          'isMine': isMine,
+        },
       );
       return;
     }

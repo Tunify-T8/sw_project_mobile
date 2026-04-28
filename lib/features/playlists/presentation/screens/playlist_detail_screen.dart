@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
+import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../../shared/ui/widgets/play_button.dart';
@@ -16,6 +18,7 @@ import '../../domain/entities/playlist_entity.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/entities/playlist_track_entity.dart';
 import '../providers/playlist_providers.dart';
+import '../providers/recent_playlists_provider.dart';
 import '../widgets/playlist_options_sheet.dart';
 import '../widgets/playlist_track_tile.dart';
 
@@ -53,6 +56,74 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     super.initState();
     Future.microtask(
       _reloadPlaylist,
+    );
+  }
+
+  Future<void> _playPlaylistTrack({
+    required PlaylistEntity playlist,
+    required PlaylistTrackEntity track,
+    required List<PlaylistTrackEntity> tracks,
+    bool shuffle = false,
+  }) async {
+    await ref.read(recentPlaylistsProvider.notifier).record(
+          playlist,
+          isMine: widget.isMine,
+          coverUrl: playlist.coverUrl?.trim().isNotEmpty == true
+              ? playlist.coverUrl
+              : track.coverUrl,
+        );
+
+    try {
+      await ref.read(playerProvider.notifier).buildAndLoadQueue(
+            contextType: PlaybackContextType.playlist,
+            contextId: playlist.id,
+            startTrackId: track.trackId,
+            shuffle: shuffle,
+            privateToken: widget.secretToken,
+            seedTrack: _seedTrack(track),
+          );
+      return;
+    } catch (_) {
+      final queueTrackIds = tracks
+          .map((item) => item.trackId.trim())
+          .where((id) => id.isNotEmpty)
+          .toList(growable: true);
+
+      if (!queueTrackIds.contains(track.trackId)) {
+        queueTrackIds.insert(0, track.trackId);
+      }
+
+      var currentIndex = queueTrackIds.indexOf(track.trackId);
+      if (shuffle && queueTrackIds.length > 1) {
+        final rest = queueTrackIds
+            .where((id) => id != track.trackId)
+            .toList(growable: true)
+          ..shuffle();
+        queueTrackIds
+          ..clear()
+          ..add(track.trackId)
+          ..addAll(rest);
+        currentIndex = 0;
+      }
+
+      await ref.read(playerProvider.notifier).loadTrackWithQueue(
+            trackId: track.trackId,
+            trackIds: queueTrackIds,
+            currentIndex: currentIndex < 0 ? 0 : currentIndex,
+            privateToken: widget.secretToken,
+            seedTrack: _seedTrack(track),
+            source: QueueSource.playlist,
+          );
+    }
+  }
+
+  PlayerSeedTrack _seedTrack(PlaylistTrackEntity track) {
+    return PlayerSeedTrack(
+      trackId: track.trackId,
+      title: track.title,
+      artistName: track.ownerDisplayName ?? track.ownerUsername,
+      durationSeconds: track.durationSeconds,
+      coverUrl: track.coverUrl,
     );
   }
 
@@ -232,12 +303,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       onCopyPlaylist: widget.isMine ? () {} : null,
                       onShufflePlay: tracks.isEmpty
                           ? null
-                          : () => ref
-                              .read(playerProvider.notifier)
-                              .buildAndLoadQueue(
-                                contextType: PlaybackContextType.playlist,
-                                contextId: playlist.id,
-                                startTrackId: tracks.first.trackId,
+                          : () => _playPlaylistTrack(
+                                playlist: playlist,
+                                track: tracks.first,
+                                tracks: tracks,
                                 shuffle: true,
                               ),
                     ),
@@ -278,23 +347,19 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   const Spacer(),
                   if (tracks.isNotEmpty) ...[
                     ShuffleButton(
-                      onTap: () => ref
-                          .read(playerProvider.notifier)
-                          .buildAndLoadQueue(
-                            contextType: PlaybackContextType.playlist,
-                            contextId: playlist.id,
-                            startTrackId: tracks.first.trackId,
+                      onTap: () => _playPlaylistTrack(
+                            playlist: playlist,
+                            track: tracks.first,
+                            tracks: tracks,
                             shuffle: true,
                           ),
                     ),
                     const SizedBox(width: 8),
                     PlayButton(
-                      onTap: () => ref
-                          .read(playerProvider.notifier)
-                          .buildAndLoadQueue(
-                            contextType: PlaybackContextType.playlist,
-                            contextId: playlist.id,
-                            startTrackId: tracks.first.trackId,
+                      onTap: () => _playPlaylistTrack(
+                            playlist: playlist,
+                            track: tracks.first,
+                            tracks: tracks,
                           ),
                     ),
                   ],
@@ -325,7 +390,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 final track = tracks[i];
                 return PlaylistTrackTile(
                   track: track,
-                  onTap: () {},
+                  onTap: () => _playPlaylistTrack(
+                    playlist: playlist,
+                    track: track,
+                    tracks: tracks,
+                  ),
                   onMoreTap: () => showTrackInPlaylistOptionsSheet(
                     context: context,
                     ref: ref,

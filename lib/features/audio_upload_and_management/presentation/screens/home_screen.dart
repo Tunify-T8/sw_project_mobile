@@ -8,25 +8,43 @@ import '../../../messaging_track_sharing/presentation/state/conversations_contro
 import '../../../notifications/presentation/state/notifications_controller.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import '../controllers/upload_flow_controller.dart';
+import '../providers/home_tracks_provider.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
 import '../utils/upload_error_snackbar.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
+import '../widgets/home/home_track_highlights.dart';
 import '../widgets/home/home_top_bar.dart';
 import 'artist_home_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _showAllTracks = false;
+
+  @override
+  Widget build(BuildContext context) {
     ref.listen(uploadProvider, (_, next) {
       if (next.error != null && context.mounted) {
         showUploadErrorSnackBar(context, next.error!);
       }
     });
+
+    if (_showAllTracks) {
+      return HomeAllTracksView(
+        onBack: () => setState(() => _showAllTracks = false),
+        onOpenTrack: (item, queue) async {
+          await openUploadItemPlayer(context, ref, item, queueItems: queue);
+        },
+      );
+    }
 
     final libraryState = ref.watch(libraryUploadsProvider);
     final uploadState = ref.watch(uploadProvider);
@@ -54,8 +72,11 @@ class HomeScreen extends ConsumerWidget {
           await ref.read(listeningHistoryProvider.notifier).refresh();
           await ref.read(networkListsProvider.notifier).loadSuggestedUsers();
           await ref.read(networkListsProvider.notifier).loadSuggestedArtists();
+          ref.invalidate(homeTracksProvider);
+          await ref.read(homeTracksProvider.future);
         },
         child: CustomScrollView(
+          key: const PageStorageKey('home-scroll-v2'),
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
@@ -120,6 +141,21 @@ class HomeScreen extends ConsumerWidget {
             ),
             SliverToBoxAdapter(
               child: AdaptiveCenter(
+                child: HomeTrackHighlights(
+                  onSeeAll: () => setState(() => _showAllTracks = true),
+                  onOpenTrack: (item, queue) async {
+                    await openUploadItemPlayer(
+                      context,
+                      ref,
+                      item,
+                      queueItems: queue,
+                    );
+                  },
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: AdaptiveCenter(
                 child: CustomScrollView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -173,6 +209,7 @@ class _HomeHeader extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
+        minimum: const EdgeInsets.only(top: 10),
         child: AdaptiveCenter(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +224,7 @@ class _HomeHeader extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   isDesktop ? 28 : 18,
-                  isDesktop ? 18 : 8,
+                  isDesktop ? 20 : 14,
                   isDesktop ? 28 : 18,
                   4,
                 ),
