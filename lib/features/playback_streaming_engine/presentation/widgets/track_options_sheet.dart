@@ -1,29 +1,40 @@
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/routing/routes.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
+import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
+import '../../../audio_upload_and_management/presentation/providers/track_detail_item_provider.dart';
 import '../../../audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
-import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../audio_upload_and_management/presentation/screens/edit_track_screen.dart';
 import '../../../audio_upload_and_management/presentation/screens/track_info_screen.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
+import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_dialogs.dart';
 import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../messaging_track_sharing/domain/entities/conversation_entity.dart';
 import '../../../messaging_track_sharing/domain/entities/message_attachment.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
+import '../../../premium_subscription/domain/entities/subscription_tier.dart';
+import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../playlists/presentation/widgets/select_playlist_sheet.dart';
 import '../../domain/entities/history_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
@@ -52,14 +63,18 @@ class TrackOptionInfo {
   final bool isPrivate;
   final String? privateToken;
 
-  factory TrackOptionInfo.fromUploadItem(UploadItem item, {String? artistId}) {
+  factory TrackOptionInfo.fromUploadItem(
+    UploadItem item, {
+    String? artistId,
+    bool isOwned = true,
+  }) {
     return TrackOptionInfo(
       trackId: item.id,
       title: item.title,
       artist: item.artistDisplay,
       coverUrl: item.artworkUrl,
       localArtworkPath: item.localArtworkPath,
-      isOwned: true,
+      isOwned: isOwned,
       artistId: artistId,
       isPrivate: item.visibility == UploadVisibility.private,
       privateToken: item.privateToken,
@@ -87,9 +102,32 @@ class TrackOptionInfo {
     bool fallbackIsOwned = false,
     String? fallbackPrivateToken,
   }) {
-    final stored = ref.read(globalTrackStoreProvider).find(trackId);
+    final store = ref.read(globalTrackStoreProvider);
+    final stored = store.find(trackId);
     if (stored != null) {
-      return TrackOptionInfo.fromUploadItem(stored, artistId: fallbackArtistId);
+      final currentUserId = ref
+          .read(authControllerProvider)
+          .asData
+          ?.value
+          ?.id
+          .trim();
+      final ownerUserId = store.ownerUserIdForTrack(trackId);
+      final isDefinitelyOwned =
+          currentUserId != null &&
+          currentUserId.isNotEmpty &&
+          ownerUserId != null &&
+          ownerUserId != '__global__' &&
+          ownerUserId == currentUserId;
+      final isFallbackOwned =
+          fallbackIsOwned ||
+          (currentUserId != null &&
+              currentUserId.isNotEmpty &&
+              fallbackArtistId == currentUserId);
+      return TrackOptionInfo.fromUploadItem(
+        stored,
+        artistId: fallbackArtistId,
+        isOwned: isDefinitelyOwned || isFallbackOwned,
+      );
     }
 
     final historyTracks =
@@ -122,7 +160,8 @@ class TrackOptionInfo {
       localArtworkPath: fallbackLocalArtworkPath,
       isOwned: fallbackIsOwned,
       isPrivate:
-          fallbackPrivateToken != null && fallbackPrivateToken.trim().isNotEmpty,
+          fallbackPrivateToken != null &&
+          fallbackPrivateToken.trim().isNotEmpty,
       privateToken: fallbackPrivateToken,
     );
   }
@@ -140,12 +179,13 @@ Future<void> showTrackOptionsSheet(
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (ctx) {
-      if (ref.read(engagementProvider(info.trackId)).engagementStatus == EngagementStatus.initial) {
+      if (ref.read(engagementProvider(info.trackId)).engagementStatus ==
+          EngagementStatus.initial) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ref.read(engagementProvider(info.trackId).notifier).loadEngagement();
         });
       }
-      return _TrackOptionsSheetContent(
+      return TrackOptionsSheetContent(
         info: info,
         ref: ref,
         onEditTap: onEditTap,
@@ -155,8 +195,25 @@ Future<void> showTrackOptionsSheet(
   );
 }
 
-class _TrackOptionsSheetContent extends ConsumerWidget {
-  const _TrackOptionsSheetContent({
+final _trackOptionsOwnerProvider = FutureProvider.autoDispose
+    .family<String?, String>((ref, trackId) async {
+      final details = await ref
+          .read(uploadRepositoryProvider)
+          .getTrackDetails(trackId)
+          .timeout(const Duration(seconds: 5));
+      final ownerUserId = details.ownerUserId?.trim();
+      final stored = ref.read(globalTrackStoreProvider).find(trackId);
+      if (stored != null && ownerUserId != null && ownerUserId.isNotEmpty) {
+        ref
+            .read(globalTrackStoreProvider)
+            .update(stored, ownerUserId: ownerUserId);
+      }
+      return ownerUserId == null || ownerUserId.isEmpty ? null : ownerUserId;
+    });
+
+class TrackOptionsSheetContent extends ConsumerWidget {
+  const TrackOptionsSheetContent({
+    super.key,
     required this.info,
     required this.ref,
     this.onEditTap,
@@ -168,24 +225,72 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   final VoidCallback? onEditTap;
   final VoidCallback? onDeleteTap;
 
-  bool _resolveIsOwned() {
+  bool _resolveIsOwned({String? currentUserId, String? backendOwnerUserId}) {
     if (info.isOwned) return true;
+
+    if (currentUserId == null || currentUserId.isEmpty) return false;
+
+    final ownerId = backendOwnerUserId?.trim();
+    if (ownerId != null && ownerId.isNotEmpty) {
+      return currentUserId == ownerId;
+    }
+
+    final storeOwnerId = ref
+        .read(globalTrackStoreProvider)
+        .ownerUserIdForTrack(info.trackId)
+        ?.trim();
+    if (storeOwnerId != null &&
+        storeOwnerId.isNotEmpty &&
+        storeOwnerId != '__global__') {
+      return currentUserId == storeOwnerId;
+    }
 
     final uploaderId = info.artistId?.trim();
     if (uploaderId == null || uploaderId.isEmpty) return false;
-
-    final currentUserId =
-        ref.read(authControllerProvider).asData?.value?.id.trim();
-    if (currentUserId == null || currentUserId.isEmpty) return false;
-
     return currentUserId == uploaderId;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef watchRef) {
-    final isOwned = _resolveIsOwned();
-    final conversations =
-        watchRef.watch(conversationsControllerProvider).items;
+    final currentUserId = watchRef
+        .watch(authControllerProvider)
+        .value
+        ?.id
+        .trim();
+    final backendOwnerUserId = watchRef
+        .watch(_trackOptionsOwnerProvider(info.trackId))
+        .asData
+        ?.value
+        ?.trim();
+    final isOwned = _resolveIsOwned(
+      currentUserId: currentUserId,
+      backendOwnerUserId: backendOwnerUserId,
+    );
+    final conversations = watchRef.watch(conversationsControllerProvider).items;
+    final subscriptionState = watchRef.watch(subscriptionNotifierProvider);
+    final currentSubscription = subscriptionState.currentSubscription;
+    final canDownload = currentSubscription?.tier != SubscriptionTier.free;
+    final engagementState = watchRef.watch(engagementProvider(info.trackId));
+    final engagement = engagementState.engagement;
+    final isLiked = engagement?.isLiked ?? false;
+    final isReposted = engagement?.isReposted ?? false;
+
+    if (engagementState.engagementStatus == EngagementStatus.initial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        watchRef
+            .read(engagementProvider(info.trackId).notifier)
+            .loadEngagement();
+      });
+    }
+
+    if (!subscriptionState.hasLoadedCurrent &&
+        !subscriptionState.isCurrentLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        watchRef
+            .read(subscriptionNotifierProvider.notifier)
+            .loadCurrentSubscription();
+      });
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -217,10 +322,7 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
               // ── Send To ──────────────────────────────────────────────
               if (conversations.isNotEmpty) ...[
                 SectionLabel(label: 'SEND TO'),
-                SendToRow(
-                  info: info,
-                  conversations: conversations,
-                ),
+                SendToRow(info: info, conversations: conversations),
               ],
 
               // ── Share ────────────────────────────────────────────────
@@ -229,10 +331,23 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
 
               const Divider(color: Colors.white12, height: 1),
 
+              if (canDownload) ...[
+                YourUploadsOptionRow(
+                  icon: Icons.download_outlined,
+                  label: 'Download track',
+                  onTap: () => downloadTrackFromOptions(context, ref, info),
+                ),
+                const Divider(color: Colors.white12, height: 1),
+              ],
+
               // ── Action rows (owner vs non-owner) ─────────────────────
               ...(isOwned
                   ? _buildOwnerRows(context)
-                  : _buildNonOwnerRows(context)),
+                  : _buildNonOwnerRows(
+                      context,
+                      isLiked: isLiked,
+                      isReposted: isReposted,
+                    )),
 
               const SizedBox(height: 8),
             ],
@@ -245,19 +360,13 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   List<Widget> _buildOwnerRows(BuildContext context) {
     return [
       YourUploadsOptionRow(
-        icon: Icons.favorite_border,
-        label: 'Like',
-        onTap: () => Navigator.pop(context),
-      ),
-      YourUploadsOptionRow(
         icon: Icons.edit_outlined,
         label: 'Edit track',
         onTap: () {
           if (onEditTap != null) {
             onEditTap!();
           } else {
-            Navigator.pop(context);
-            _navigateToEditTrack(context);
+            editTrackFromOptions(context, ref, info);
           }
         },
       ),
@@ -281,26 +390,40 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
       YourUploadsOptionRow(
         icon: Icons.playlist_add,
         label: 'Add to playlist',
-        onTap: () => Navigator.pop(context),
-      ),
-      YourUploadsOptionRow(
-        icon: Icons.radio,
-        label: 'Start station',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          final navigator = Navigator.of(context);
+          final targetContext = navigator.context;
+          navigator.pop();
+          showSelectPlaylistSheet(
+            context: targetContext,
+            ref: ref,
+            trackId: info.trackId,
+          );
+        },
       ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.graphic_eq,
         label: 'Behind this track',
         onTap: () {
-          Navigator.pop(context);
-          _navigateToBehindThisTrack(context);
+          final navigator = Navigator.of(context);
+          final targetContext = navigator.context;
+          navigator.pop();
+          _navigateToBehindThisTrack(targetContext);
         },
       ),
       YourUploadsOptionRow(
         icon: Icons.comment_outlined,
         label: 'View comments',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => CommentsScreen(trackId: info.trackId),
+            ),
+          );
+        },
       ),
       YourUploadsOptionRow(
         icon: Icons.delete_outline,
@@ -310,19 +433,27 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
           if (onDeleteTap != null) {
             onDeleteTap!();
           } else {
-            Navigator.pop(context);
+            deleteTrackFromOptions(context, ref, info);
           }
         },
       ),
     ];
   }
 
-  List<Widget> _buildNonOwnerRows(BuildContext context) {
+  List<Widget> _buildNonOwnerRows(
+    BuildContext context, {
+    required bool isLiked,
+    required bool isReposted,
+  }) {
     return [
       YourUploadsOptionRow(
-        icon: Icons.favorite_border,
-        label: 'Like',
-        onTap: () => Navigator.pop(context),
+        icon: isLiked ? Icons.favorite : Icons.favorite_border,
+        label: isLiked ? 'Liked' : 'Like',
+        color: isLiked ? Colors.orange : Colors.white,
+        onTap: () {
+          ref.read(engagementProvider(info.trackId).notifier).toggleLike();
+          Navigator.pop(context);
+        },
       ),
       YourUploadsOptionRow(
         icon: Icons.queue_play_next,
@@ -343,55 +474,75 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
       YourUploadsOptionRow(
         icon: Icons.playlist_add,
         label: 'Add to playlist',
-        onTap: () => Navigator.pop(context),
-      ),
-      YourUploadsOptionRow(
-        icon: Icons.radio,
-        label: 'Start station',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          final navigator = Navigator.of(context);
+          final targetContext = navigator.context;
+          navigator.pop();
+          showSelectPlaylistSheet(
+            context: targetContext,
+            ref: ref,
+            trackId: info.trackId,
+          );
+        },
       ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.person_outline,
         label: 'Go to profile',
         onTap: () {
-          Navigator.pop(context);
-          _navigateToUploaderProfile(context);
+          final navigator = Navigator.of(context);
+          final targetContext = navigator.context;
+          navigator.pop();
+          _navigateToUploaderProfile(targetContext);
         },
       ),
       YourUploadsOptionRow(
         icon: Icons.comment_outlined,
         label: 'View comments',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => CommentsScreen(trackId: info.trackId),
+            ),
+          );
+        },
       ),
       YourUploadsOptionRow(
-        icon: Icons.repeat,
-        label: 'Repost',
-        onTap: () => Navigator.pop(context),
+        icon: isReposted ? Icons.repeat_on : Icons.repeat,
+        label: isReposted ? 'Reposted' : 'Repost on SoundCloud',
+        color: isReposted ? Colors.orange : Colors.white,
+        onTap: () {
+          final navigator = Navigator.of(context);
+          final targetContext = navigator.context;
+          navigator.pop();
+          if (isReposted) {
+            ref.read(engagementProvider(info.trackId).notifier).removeRepost();
+            return;
+          }
+
+          RepostCaptionSheet.show(
+            targetContext,
+            trackId: info.trackId,
+            trackTitle: info.title,
+            artistName: info.artist,
+            coverUrl: info.coverUrl,
+          );
+        },
       ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.graphic_eq,
         label: 'Behind this track',
         onTap: () {
-          Navigator.pop(context);
-          _navigateToBehindThisTrack(context);
+          final navigator = Navigator.of(context);
+          final targetContext = navigator.context;
+          navigator.pop();
+          _navigateToBehindThisTrack(targetContext);
         },
       ),
-      YourUploadsOptionRow(
-        icon: Icons.flag_outlined,
-        label: 'Report',
-        onTap: () => Navigator.pop(context),
-      ),
     ];
-  }
-
-  void _navigateToEditTrack(BuildContext context) {
-    final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-    if (stored == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)),
-    );
   }
 
   void _navigateToUploaderProfile(BuildContext context) {
@@ -435,7 +586,8 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
   void _navigateToBehindThisTrack(BuildContext context) {
     final store = ref.read(globalTrackStoreProvider);
     final stored = store.find(info.trackId);
-    final item = stored ??
+    final item =
+        stored ??
         UploadItem(
           id: info.trackId,
           title: info.title,
@@ -457,13 +609,250 @@ class _TrackOptionsSheetContent extends ConsumerWidget {
           createdAt: DateTime.now(),
         );
 
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TrackInfoScreen(item: item)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => TrackInfoScreen(item: item)));
   }
 }
 
 // ── Frosted track header ────────────────────────────────────────────────────
+
+Future<void> editTrackFromOptions(
+  BuildContext context,
+  WidgetRef ref,
+  TrackOptionInfo info,
+) async {
+  final navigator = Navigator.of(context);
+  final uploadsNotifier = ref.read(libraryUploadsProvider.notifier);
+
+  final item = await _resolveOptionUploadItem(ref, info);
+  if (!context.mounted) return;
+
+  navigator.pop();
+  final result = await navigator.push<bool>(
+    MaterialPageRoute(builder: (_) => EditTrackScreen(item: item)),
+  );
+  if (result == true) {
+    await uploadsNotifier.refresh();
+  }
+}
+
+Future<void> deleteTrackFromOptions(
+  BuildContext context,
+  WidgetRef ref,
+  TrackOptionInfo info,
+) async {
+  final navigator = Navigator.of(context);
+  final navigatorContext = navigator.context;
+  final uploadsNotifier = ref.read(libraryUploadsProvider.notifier);
+
+  final item = await _resolveOptionUploadItem(ref, info);
+  if (!navigatorContext.mounted) return;
+
+  navigator.pop();
+  final confirmed = await confirmYourUploadsDeletion(navigatorContext, item);
+  if (!confirmed) return;
+
+  await uploadsNotifier.deleteTrack(info.trackId);
+}
+
+Future<void> downloadTrackFromOptions(
+  BuildContext context,
+  WidgetRef ref,
+  TrackOptionInfo info,
+) async {
+  final navigator = Navigator.of(context);
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final dio = ref.read(dioProvider);
+  var subscriptionState = ref.read(subscriptionNotifierProvider);
+  var currentSubscription = subscriptionState.currentSubscription;
+
+  if (!subscriptionState.hasLoadedCurrent &&
+      !subscriptionState.isCurrentLoading) {
+    await ref
+        .read(subscriptionNotifierProvider.notifier)
+        .loadCurrentSubscription();
+    subscriptionState = ref.read(subscriptionNotifierProvider);
+    currentSubscription = subscriptionState.currentSubscription;
+  }
+
+  navigator.pop();
+
+  if (currentSubscription?.tier == SubscriptionTier.free) {
+    messenger?.showSnackBar(
+      const SnackBar(content: Text('Upgrade to premium to download tracks.')),
+    );
+    return;
+  }
+
+  try {
+    messenger?.showSnackBar(
+      const SnackBar(
+        duration: Duration(minutes: 1),
+        content: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Downloading track...'),
+          ],
+        ),
+      ),
+    );
+
+    final response = await dio.get(ApiEndpoints.trackDownload(info.trackId));
+    final downloadUrl = _readDownloadUrl(response.data);
+    if (downloadUrl == null || downloadUrl.trim().isEmpty) {
+      throw StateError('Download URL missing from response.');
+    }
+
+    final file = await _downloadTrackFile(downloadUrl: downloadUrl, info: info);
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
+      SnackBar(content: Text('Downloaded to ${file.path}')),
+    );
+  } catch (error) {
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
+      SnackBar(content: Text(_downloadErrorMessage(error))),
+    );
+  }
+}
+
+Future<File> _downloadTrackFile({
+  required String downloadUrl,
+  required TrackOptionInfo info,
+}) async {
+  final directory = await _trackDownloadDirectory();
+  if (!await directory.exists()) {
+    await directory.create(recursive: true);
+  }
+
+  final extension = _downloadExtension(downloadUrl);
+  final safeTitle = _safeFileName(
+    info.title.isEmpty ? info.trackId : info.title,
+  );
+  final file = File('${directory.path}/$safeTitle.$extension');
+  final tempFile = File('${file.path}.download');
+
+  if (await tempFile.exists()) {
+    await tempFile.delete();
+  }
+
+  await Dio().download(downloadUrl, tempFile.path);
+
+  if (await file.exists()) {
+    await file.delete();
+  }
+  return tempFile.rename(file.path);
+}
+
+Future<Directory> _trackDownloadDirectory() async {
+  if (Platform.isAndroid) {
+    final external = await getExternalStorageDirectory();
+    if (external != null) {
+      return Directory('${external.path}/downloads');
+    }
+  }
+
+  final documents = await getApplicationDocumentsDirectory();
+  return Directory('${documents.path}/downloads');
+}
+
+String _downloadExtension(String url) {
+  final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+  for (final ext in const ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a']) {
+    if (path.endsWith('.$ext')) return ext;
+  }
+  return 'mp3';
+}
+
+String _safeFileName(String value) {
+  final sanitized = value
+      .trim()
+      .replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_')
+      .replaceAll(RegExp(r'\s+'), ' ');
+  if (sanitized.isEmpty) return 'track';
+  return sanitized.length > 80 ? sanitized.substring(0, 80).trim() : sanitized;
+}
+
+Future<UploadItem> _resolveOptionUploadItem(
+  WidgetRef ref,
+  TrackOptionInfo info,
+) async {
+  final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
+  final base = stored ?? _fallbackUploadItemFromOptions(info);
+
+  try {
+    final details = await ref
+        .read(uploadRepositoryProvider)
+        .getTrackDetails(info.trackId)
+        .timeout(const Duration(seconds: 5));
+    final merged = mergeTrackDetailItem(base: base, details: details);
+    final ownerUserId = details.ownerUserId?.trim();
+    if (ownerUserId != null && ownerUserId.isNotEmpty) {
+      ref
+          .read(globalTrackStoreProvider)
+          .update(merged, ownerUserId: ownerUserId);
+    }
+    return merged;
+  } catch (_) {
+    return base;
+  }
+}
+
+UploadItem _fallbackUploadItemFromOptions(TrackOptionInfo info) {
+  return UploadItem(
+    id: info.trackId,
+    title: info.title,
+    artistDisplay: info.artist,
+    durationLabel: '',
+    durationSeconds: 0,
+    audioUrl: null,
+    waveformUrl: null,
+    artworkUrl: info.coverUrl,
+    localArtworkPath: info.localArtworkPath,
+    localFilePath: null,
+    description: '',
+    visibility: info.isPrivate
+        ? UploadVisibility.private
+        : UploadVisibility.public,
+    status: UploadProcessingStatus.finished,
+    isExplicit: false,
+    privateToken: info.privateToken,
+    createdAt: DateTime.now(),
+  );
+}
+
+String? _readDownloadUrl(dynamic raw) {
+  if (raw is Map<String, dynamic>) {
+    final data = raw['data'];
+    if (data is Map<String, dynamic>) {
+      return data['downloadUrl']?.toString();
+    }
+    return raw['downloadUrl']?.toString();
+  }
+  return null;
+}
+
+String _downloadErrorMessage(Object error) {
+  if (error is DioException) {
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 403) {
+      return 'Download requires a premium plan and enabled downloads.';
+    }
+    if (statusCode == 404) {
+      return 'This track is not available for download.';
+    }
+  }
+  return 'We could not download this track right now.';
+}
 
 class FrostedTrackHeader extends StatelessWidget {
   const FrostedTrackHeader({super.key, required this.info});
@@ -505,8 +894,10 @@ class FrostedTrackHeader extends StatelessWidget {
               ),
 
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     UploadArtworkView(
@@ -564,7 +955,7 @@ class FrostedTrackHeader extends StatelessWidget {
 // ── Section label ───────────────────────────────────────────────────────────
 
 class SectionLabel extends StatelessWidget {
-  const SectionLabel({required this.label});
+  const SectionLabel({super.key, required this.label});
 
   final String label;
 
@@ -591,7 +982,7 @@ class SectionLabel extends StatelessWidget {
 // ── Send To row (recent conversations) ─────────────────────────────────────
 
 class SendToRow extends StatelessWidget {
-  const SendToRow({required this.info, required this.conversations});
+  const SendToRow({super.key, required this.info, required this.conversations});
 
   final TrackOptionInfo info;
   final List<ConversationEntity> conversations;
@@ -617,7 +1008,11 @@ class SendToRow extends StatelessWidget {
 }
 
 class SendToAvatar extends StatelessWidget {
-  const SendToAvatar({required this.info, required this.conversation});
+  const SendToAvatar({
+    super.key,
+    required this.info,
+    required this.conversation,
+  });
 
   final TrackOptionInfo info;
   final ConversationEntity conversation;
@@ -661,8 +1056,9 @@ class SendToAvatar extends StatelessWidget {
   }
 
   void _sendTrackToConversation(BuildContext context) {
-    Navigator.pop(context);
-    Navigator.of(context).pushNamed(
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.pushNamed(
       Routes.chat,
       arguments: {
         'conversationId': conversation.conversationId,
@@ -686,7 +1082,7 @@ class SendToAvatar extends StatelessWidget {
 // ── Share row (social + copy link) ─────────────────────────────────────────
 
 class ShareRow extends StatelessWidget {
-  const ShareRow({required this.info, required this.ref});
+  const ShareRow({super.key, required this.info, required this.ref});
 
   final TrackOptionInfo info;
   final WidgetRef ref;
@@ -711,7 +1107,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final text = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('sms:?body=$text'),
                 mode: LaunchMode.externalApplication,
@@ -724,12 +1121,14 @@ class ShareRow extends StatelessWidget {
             icon: Icons.copy_outlined,
             label: usePrivateLabel ? 'Copy private link' : 'Copy link',
             onTap: () async {
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.maybeOf(context);
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await Clipboard.setData(ClipboardData(text: url));
               if (!context.mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              navigator.pop();
+              messenger?.showSnackBar(
                 SnackBar(
                   content: Text(
                     usePrivateLabel
@@ -743,10 +1142,7 @@ class ShareRow extends StatelessWidget {
           ),
 
           // QR code (placeholder)
-          const YourUploadsShareButton(
-            icon: Icons.qr_code_2,
-            label: 'QR code',
-          ),
+          const YourUploadsShareButton(icon: Icons.qr_code_2, label: 'QR code'),
 
           // WhatsApp
           SocialShareButton(
@@ -757,7 +1153,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final msg = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('https://wa.me/?text=$msg'),
                 mode: LaunchMode.externalApplication,
@@ -773,7 +1170,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final text = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('sms:?body=$text'),
                 mode: LaunchMode.externalApplication,
@@ -791,7 +1189,9 @@ class ShareRow extends StatelessWidget {
               if (url == null) return;
               // Instagram deep-link: opens the app
               await launchUrl(
-                Uri.parse('instagram://sharesheet?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}'),
+                Uri.parse(
+                  'instagram://sharesheet?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -806,7 +1206,9 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await launchUrl(
-                Uri.parse('snapchat://send?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}'),
+                Uri.parse(
+                  'snapchat://send?text=${Uri.encodeComponent('Check out "${info.title}" on Tunify: $url')}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -821,7 +1223,9 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await launchUrl(
-                Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(url)}'),
+                Uri.parse(
+                  'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(url)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -836,7 +1240,8 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               final text = Uri.encodeComponent(
-                  'Check out "${info.title}" on Tunify: $url');
+                'Check out "${info.title}" on Tunify: $url',
+              );
               await launchUrl(
                 Uri.parse('https://twitter.com/intent/tweet?text=$text'),
                 mode: LaunchMode.externalApplication,
@@ -853,7 +1258,9 @@ class ShareRow extends StatelessWidget {
               final url = await _buildTrackOptionShareUrl(context, info, ref);
               if (url == null) return;
               await launchUrl(
-                Uri.parse('fb-messenger://share?link=${Uri.encodeComponent(url)}'),
+                Uri.parse(
+                  'fb-messenger://share?link=${Uri.encodeComponent(url)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -877,7 +1284,6 @@ class ShareRow extends StatelessWidget {
     );
   }
 }
-
 
 // ── Share URL builder ───────────────────────────────────────────────────────
 
@@ -912,7 +1318,8 @@ Future<String?> _buildTrackOptionShareUrl(
   }
 
   final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-  final shouldUsePrivateLink = detailPrivacy == 'private' ||
+  final shouldUsePrivateLink =
+      detailPrivacy == 'private' ||
       stored?.visibility == UploadVisibility.private ||
       (privateToken != null && privateToken.isNotEmpty);
 

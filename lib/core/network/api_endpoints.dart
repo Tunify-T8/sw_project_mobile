@@ -103,6 +103,7 @@ class ApiEndpoints {
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';
   static String trackPlayed(String trackId) => '/tracks/$trackId/played';
+  static String trackDownload(String trackId) => '/tracks/$trackId/download';
 
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String playbackEvents = '/me/playback/events';
@@ -180,7 +181,8 @@ class ApiEndpoints {
   static String collectionLike(String id) => '/collections/$id/like';
   static String collectionEmbed(String id) => '/collections/$id/embed';
   static String collectionShare(String id) => '/collections/$id/share';
-  static String collectionShareReset(String id) => '/collections/$id/share/reset';
+  static String collectionShareReset(String id) =>
+      '/collections/$id/share/reset';
 
   static String userCollections(String username) =>
       '/users/$username/collections';
