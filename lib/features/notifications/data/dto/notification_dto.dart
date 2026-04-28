@@ -108,10 +108,7 @@ String _normalizedType(String raw) {
 
 NotificationActorDto? _actorFromFlatJson(Map<String, dynamic> json) {
   final id = _nullableString(
-    json['actorId'] ??
-        json['senderId'] ??
-        json['fromUserId'] ??
-        json['userId'],
+    json['actorId'] ?? json['senderId'] ?? json['fromUserId'] ?? json['userId'],
   );
   if (id == null) return null;
 
@@ -152,7 +149,7 @@ String? _referenceTypeFor(Map<String, dynamic> json, String type) {
         json['entityType'] ??
         json['resourceType'],
   );
-  if (explicit != null) return explicit;
+  if (explicit != null) return _normalizedReferenceType(explicit);
 
   if (hasTrackReference) return 'track';
   if (_findUserId(json) != null || type == 'user_followed') return 'user';
@@ -184,6 +181,17 @@ String? _referenceIdFor(Map<String, dynamic> json, String type) {
         json['relatedId'] ??
         json['related_id'],
   );
+}
+
+String _normalizedReferenceType(String raw) {
+  final text = raw.trim().split('.').last;
+  return text
+      .replaceAll('-', '_')
+      .replaceAllMapped(
+        RegExp(r'(?<=[a-z0-9])[A-Z]'),
+        (match) => '_${match.group(0)}',
+      )
+      .toLowerCase();
 }
 
 String? _findTrackId(Map<String, dynamic> json) {
@@ -235,10 +243,7 @@ String? _findTrackId(Map<String, dynamic> json) {
     final nested = _mapOrNull(json[key]);
     if (nested == null) continue;
     final nestedId = _nullableString(
-      nested['trackId'] ??
-          nested['track_id'] ??
-          nested['id'] ??
-          nested['_id'],
+      nested['trackId'] ?? nested['track_id'] ?? nested['id'] ?? nested['_id'],
     );
     if (nestedId != null &&
         (key == 'track' ||
@@ -284,18 +289,14 @@ String? _findUserId(Map<String, dynamic> json) {
     final nested = _mapOrNull(json[key]);
     if (nested == null) continue;
     final nestedId = _nullableString(
-      nested['userId'] ??
-          nested['user_id'] ??
-          nested['id'] ??
-          nested['_id'],
+      nested['userId'] ?? nested['user_id'] ?? nested['id'] ?? nested['_id'],
     );
     if (nestedId != null &&
         (key == 'user' ||
             key == 'actor' ||
             key == 'sender' ||
             key == 'fromUser' ||
-            nested['type']?.toString().toLowerCase().contains('user') ==
-                true ||
+            nested['type']?.toString().toLowerCase().contains('user') == true ||
             nested.containsKey('userId') ||
             nested.containsKey('user_id'))) {
       return nestedId;

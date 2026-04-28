@@ -50,20 +50,23 @@ class SettingsScreen extends ConsumerWidget {
           LibraryMenuTile(
             label: 'Use Classic feed',
             onTap: () {
-              final isClassic = ref.read(feedViewModeProvider) == FeedViewMode.classic;
+              final isClassic =
+                  ref.read(feedViewModeProvider) == FeedViewMode.classic;
               final next = !isClassic;
               settingsNotifier.setUseClassicFeed(next);
-              ref.read(feedViewModeProvider.notifier).setMode(
-                next ? FeedViewMode.classic : FeedViewMode.discover,
-              );
+              ref
+                  .read(feedViewModeProvider.notifier)
+                  .setMode(next ? FeedViewMode.classic : FeedViewMode.discover);
             },
             trailing: Switch(
               value: ref.watch(feedViewModeProvider) == FeedViewMode.classic,
               onChanged: (val) {
                 settingsNotifier.setUseClassicFeed(val);
-                ref.read(feedViewModeProvider.notifier).setMode(
-                  val ? FeedViewMode.classic : FeedViewMode.discover,
-                );
+                ref
+                    .read(feedViewModeProvider.notifier)
+                    .setMode(
+                      val ? FeedViewMode.classic : FeedViewMode.discover,
+                    );
               },
               activeThumbColor: _settingsToggleGreen,
               activeTrackColor: _settingsToggleGreen.withValues(alpha: 0.45),
@@ -89,15 +92,14 @@ class SettingsScreen extends ConsumerWidget {
             label: 'Blocked Users',
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const BlockedUsersScreen()
-                ),
+                MaterialPageRoute(builder: (_) => const BlockedUsersScreen()),
               );
             },
           ),
           LibraryMenuTile(
             label: 'Notifications',
-            onTap: () => _showComingSoon(context, 'Notifications'),
+            onTap: () =>
+                Navigator.of(context).pushNamed(Routes.notificationPreferences),
           ),
           LibraryMenuTile(
             label: 'App Icon',
