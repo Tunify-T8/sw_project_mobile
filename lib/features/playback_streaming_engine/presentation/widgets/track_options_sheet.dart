@@ -249,14 +249,6 @@ class TrackOptionsSheetContent extends ConsumerWidget {
     final uploaderId = info.artistId?.trim();
     if (uploaderId == null || uploaderId.isEmpty) return false;
 
-    final currentUserId = ref
-        .read(authControllerProvider)
-        .asData
-        ?.value
-        ?.id
-        .trim();
-    if (currentUserId == null || currentUserId.isEmpty) return false;
-
     return currentUserId == uploaderId;
   }
 
@@ -553,14 +545,6 @@ class TrackOptionsSheetContent extends ConsumerWidget {
         },
       ),
     ];
-  }
-
-  void _navigateToEditTrack(BuildContext context) {
-    final stored = ref.read(globalTrackStoreProvider).find(info.trackId);
-    if (stored == null) return;
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: stored)));
   }
 
   void _navigateToUploaderProfile(BuildContext context) {
