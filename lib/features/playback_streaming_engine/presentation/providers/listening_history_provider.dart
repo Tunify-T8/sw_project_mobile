@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/connectivity_provider.dart';
 import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
 import '../../domain/entities/track_artist_summary.dart';
@@ -55,6 +56,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   late PlayerRepository _repository;
 
   final List<HistoryTrack> _optimisticTracks = <HistoryTrack>[];
+  String _userId = '';
   bool _clearedLocally = false;
   // Watermark recorded by clearHistory().  When non-null, any backend track
   // whose playedAt is on-or-before this instant is dropped on load — that's
@@ -62,10 +64,23 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   // honour the clear request and keeps re-serving the old history.
   DateTime? _clearedAt;
 
+  String get _historyKey => _userId.isEmpty
+      ? StorageKeys.cachedListeningHistory
+      : '${StorageKeys.cachedListeningHistory}_$_userId';
+
+  String get _clearedLocallyKey => _userId.isEmpty
+      ? StorageKeys.historyClearedLocally
+      : '${StorageKeys.historyClearedLocally}_$_userId';
+
+  String get _clearedAtKey => _userId.isEmpty
+      ? StorageKeys.historyClearedAt
+      : '${StorageKeys.historyClearedAt}_$_userId';
+
   @override
   Future<ListeningHistoryState> build() async {
     _repository = ref.watch(playerRepositoryProvider);
     _getHistory = GetListeningHistoryUsecase(_repository);
+    _userId = (await const TokenStorage().getUser())?.id.trim() ?? '';
 
     // When the device comes back online, flush any queued playback events and
     // pull the latest history from the server so local and remote stay in sync.
