@@ -9,13 +9,19 @@ import '../../domain/entities/playlist_summary_entity.dart';
 void showPlaylistOptionsSheet({
   required BuildContext context,
   required PlaylistSummaryEntity playlist,
-  required VoidCallback onEdit,
-  required VoidCallback onTogglePrivacy,
-  required VoidCallback onAddMusic,
-  required VoidCallback onDelete,
+  // Own-playlist callbacks
+  VoidCallback? onEdit,
+  VoidCallback? onTogglePrivacy,
+  VoidCallback? onAddMusic,
+  VoidCallback? onDelete,
+  VoidCallback? onCopyPlaylist,
+  // Other-user-playlist callbacks
+  VoidCallback? onLike,
+  VoidCallback? onRepost,
+  VoidCallback? onGoToArtistProfile,
+  // Shared
   bool isDetailView = false,
   VoidCallback? onShare,
-  VoidCallback? onCopyPlaylist,
   VoidCallback? onShufflePlay,
 }) {
   showModalBottomSheet(
@@ -23,14 +29,18 @@ void showPlaylistOptionsSheet({
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (_) => _PlaylistOptionsSheet(
+      hostContext: context,
       playlist: playlist,
       onEdit: onEdit,
       onTogglePrivacy: onTogglePrivacy,
       onAddMusic: onAddMusic,
       onDelete: onDelete,
+      onCopyPlaylist: onCopyPlaylist,
+      onLike: onLike,
+      onRepost: onRepost,
+      onGoToArtistProfile: onGoToArtistProfile,
       isDetailView: isDetailView,
       onShare: onShare,
-      onCopyPlaylist: onCopyPlaylist,
       onShufflePlay: onShufflePlay,
     ),
   );
@@ -38,25 +48,33 @@ void showPlaylistOptionsSheet({
 
 class _PlaylistOptionsSheet extends StatelessWidget {
   const _PlaylistOptionsSheet({
+    required this.hostContext,
     required this.playlist,
-    required this.onEdit,
-    required this.onTogglePrivacy,
-    required this.onAddMusic,
-    required this.onDelete,
+    this.onEdit,
+    this.onTogglePrivacy,
+    this.onAddMusic,
+    this.onDelete,
+    this.onCopyPlaylist,
+    this.onLike,
+    this.onRepost,
+    this.onGoToArtistProfile,
     this.isDetailView = false,
     this.onShare,
-    this.onCopyPlaylist,
     this.onShufflePlay,
   });
 
+  final BuildContext hostContext;
   final PlaylistSummaryEntity playlist;
-  final VoidCallback onEdit;
-  final VoidCallback onTogglePrivacy;
-  final VoidCallback onAddMusic;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onTogglePrivacy;
+  final VoidCallback? onAddMusic;
+  final VoidCallback? onDelete;
+  final VoidCallback? onCopyPlaylist;
+  final VoidCallback? onLike;
+  final VoidCallback? onRepost;
+  final VoidCallback? onGoToArtistProfile;
   final bool isDetailView;
   final VoidCallback? onShare;
-  final VoidCallback? onCopyPlaylist;
   final VoidCallback? onShufflePlay;
 
   @override
@@ -76,6 +94,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
           _Header(playlist: playlist),
           const Divider(color: Colors.white12, height: 1),
           _OptionRow(
+            key: const Key('playlist_option_share'),
             icon: Icons.share_outlined,
             label: 'Share',
             onTap: () {
@@ -83,52 +102,88 @@ class _PlaylistOptionsSheet extends StatelessWidget {
               onShare?.call();
             },
           ),
-          _OptionRow(
-            icon: Icons.edit_outlined,
-            label: 'Edit',
-            onTap: () {
-              Navigator.pop(context);
-              onEdit();
-            },
-          ),
-          _OptionRow(
-            icon: playlist.privacy == CollectionPrivacy.private
-                ? Icons.lock_open_outlined
-                : Icons.lock_outline,
-            label: playlist.privacy == CollectionPrivacy.private
-                ? 'Make public'
-                : 'Make private',
-            onTap: () {
-              Navigator.pop(context);
-              onTogglePrivacy();
-            },
-          ),
-          _OptionRow(
-            icon: Icons.library_add_outlined,
-            label: 'Add music',
-            onTap: () {
-              Navigator.pop(context);
-              onAddMusic();
-            },
-          ),
-          _OptionRow(
-            icon: Icons.delete_outline,
-            label: 'Delete',
-            color: Colors.redAccent,
-            onTap: () {
-              Navigator.pop(context);
-              _confirmDelete(context);
-            },
-          ),
-          if (isDetailView)
+          if (playlist.isMine) ...[
             _OptionRow(
-              icon: Icons.copy_outlined,
-              label: 'Copy playlist',
+              key: const Key('playlist_option_edit'),
+              icon: Icons.edit_outlined,
+              label: 'Edit',
               onTap: () {
                 Navigator.pop(context);
-                onCopyPlaylist?.call();
+                onEdit?.call();
               },
             ),
+            _OptionRow(
+              key: const Key('playlist_option_toggle_privacy'),
+              icon: playlist.privacy == CollectionPrivacy.private
+                  ? Icons.lock_open_outlined
+                  : Icons.lock_outline,
+              label: playlist.privacy == CollectionPrivacy.private
+                  ? 'Make public'
+                  : 'Make private',
+              onTap: () {
+                Navigator.pop(context);
+                onTogglePrivacy?.call();
+              },
+            ),
+            _OptionRow(
+              key: const Key('playlist_option_add_music'),
+              icon: Icons.library_add_outlined,
+              label: 'Add music',
+              onTap: () {
+                Navigator.pop(context);
+                onAddMusic?.call();
+              },
+            ),
+            _OptionRow(
+              key: const Key('playlist_option_delete'),
+              icon: Icons.delete_outline,
+              label: 'Delete',
+              color: Colors.redAccent,
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDelete(hostContext);
+              },
+            ),
+            if (isDetailView)
+              _OptionRow(
+                icon: Icons.copy_outlined,
+                label: 'Copy playlist',
+                onTap: () {
+                  Navigator.pop(context);
+                  onCopyPlaylist?.call();
+                },
+              ),
+          ] else ...[
+            _OptionRow(
+              key: const Key('playlist_option_like'),
+              icon: playlist.isLiked
+                  ? Icons.favorite
+                  : Icons.favorite_border_outlined,
+              label: playlist.isLiked ? 'Unlike' : 'Like',
+              onTap: () {
+                Navigator.pop(context);
+                onLike?.call();
+              },
+            ),
+            _OptionRow(
+              key: const Key('playlist_option_repost'),
+              icon: Icons.repeat_outlined,
+              label: 'Repost',
+              onTap: () {
+                Navigator.pop(context);
+                onRepost?.call();
+              },
+            ),
+            _OptionRow(
+              key: const Key('playlist_option_go_to_artist'),
+              icon: Icons.person_outline,
+              label: 'Go to artist profile',
+              onTap: () {
+                Navigator.pop(context);
+                onGoToArtistProfile?.call();
+              },
+            ),
+          ],
           const Divider(color: Colors.white12, height: 1),
           _OptionRow(
             icon: Icons.queue_play_next_outlined,
@@ -170,14 +225,14 @@ class _PlaylistOptionsSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             child: const Text('Cancel',
                 style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              onDelete();
+              Navigator.of(context, rootNavigator: true).pop();
+              onDelete?.call();
             },
             child: const Text('Delete',
                 style: TextStyle(color: Colors.redAccent)),
@@ -227,8 +282,8 @@ class _Header extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       playlist.privacy == CollectionPrivacy.private
-                          ? 'Private playlist'
-                          : 'Public playlist',
+                          ? 'Private'
+                          : 'Public',
                       style: const TextStyle(
                           color: Colors.white60, fontSize: 13),
                     ),
@@ -266,6 +321,7 @@ class _CoverArt extends StatelessWidget {
 
 class _OptionRow extends StatelessWidget {
   const _OptionRow({
+    super.key,
     required this.icon,
     required this.label,
     required this.onTap,

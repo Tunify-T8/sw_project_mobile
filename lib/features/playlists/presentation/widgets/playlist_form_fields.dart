@@ -15,6 +15,7 @@ class PlaylistTitleField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: const Key('playlist_title_field'),
       controller: controller,
       onChanged: onChanged != null ? (_) => onChanged!() : null,
       style: const TextStyle(color: Colors.white),
@@ -38,6 +39,7 @@ class PlaylistDescriptionField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: const Key('playlist_description_field'),
       controller: controller,
       maxLines: 3,
       onChanged: onChanged != null ? (_) => onChanged!() : null,
@@ -104,6 +106,7 @@ class PlaylistPrivacyToggle extends StatelessWidget {
               ),
             ),
             Switch(
+              key: const Key('playlist_privacy_switch'),
               value: isPrivate,
               onChanged: (v) => onChanged(
                 v ? CollectionPrivacy.private : CollectionPrivacy.public,

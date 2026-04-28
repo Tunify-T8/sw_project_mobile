@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/connectivity_provider.dart';
 import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
-import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
 import '../../domain/entities/track_artist_summary.dart';
@@ -55,11 +54,6 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   late GetListeningHistoryUsecase _getHistory;
   late PlayerRepository _repository;
 
-  /// The user ID active when this notifier was built. Every cache read/write
-  /// is namespaced under this ID so switching accounts never leaks one user's
-  /// history into another's view.
-  String _userId = '';
-
   final List<HistoryTrack> _optimisticTracks = <HistoryTrack>[];
   bool _clearedLocally = false;
   // Watermark recorded by clearHistory().  When non-null, any backend track
@@ -68,34 +62,10 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   // honour the clear request and keeps re-serving the old history.
   DateTime? _clearedAt;
 
-  // ── Per-user storage key helpers ──────────────────────────────────────────
-  // All three keys are suffixed with the current user ID so that signing in
-  // as a different account never reads the previous user's cached history,
-  // clear-flag, or watermark timestamp.
-
-  String get _historyKey =>
-      _userId.isEmpty
-          ? StorageKeys.cachedListeningHistory
-          : '${StorageKeys.cachedListeningHistory}_$_userId';
-
-  String get _clearedLocallyKey =>
-      _userId.isEmpty
-          ? StorageKeys.historyClearedLocally
-          : '${StorageKeys.historyClearedLocally}_$_userId';
-
-  String get _clearedAtKey =>
-      _userId.isEmpty
-          ? StorageKeys.historyClearedAt
-          : '${StorageKeys.historyClearedAt}_$_userId';
-
   @override
   Future<ListeningHistoryState> build() async {
     _repository = ref.watch(playerRepositoryProvider);
     _getHistory = GetListeningHistoryUsecase(_repository);
-
-    // Scope every cache key to the signed-in user so account switches never
-    // bleed one user's history into another's.
-    _userId = (await const TokenStorage().getUser())?.id.trim() ?? '';
 
     // When the device comes back online, flush any queued playback events and
     // pull the latest history from the server so local and remote stay in sync.

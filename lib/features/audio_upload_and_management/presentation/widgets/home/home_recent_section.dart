@@ -75,13 +75,13 @@ class HomeRecentSection extends StatelessWidget {
     }
 
     return SliverPadding(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: childAspectRatio,
+          childAspectRatio: 2.85,
         ),
         delegate: SliverChildListDelegate(cards),
       ),

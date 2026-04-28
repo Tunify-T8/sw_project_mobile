@@ -179,6 +179,7 @@ class _LibraryHistoryTile extends ConsumerWidget {
                 child: Center(
                   child: GestureDetector(
                     onTap: () async {
+                      print(track.artist.id);
                       await showTrackOptionsMenu(
                         context: context,
                         trackId: track.trackId,

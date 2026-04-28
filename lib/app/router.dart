@@ -30,6 +30,7 @@ import '../features/notifications/presentation/screens/notification_preferences_
 import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
 import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
 import '../features/playlists/presentation/screens/playlist_screen.dart';
+import '../features/playlists/presentation/utils/shared_playlist_link_parser.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
@@ -76,9 +77,23 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = _readArgs(settings.arguments);
+    final sharedPlaylistLink = settings.name == null
+        ? null
+        : parsePlaylistShareLink(settings.name!);
     final sharedTrackLink = settings.name == null
         ? null
         : parseTrackShareLink(settings.name!);
+    if (sharedPlaylistLink != null) {
+      return _slideUp(
+        AuthProtectedScreen(
+          child: PlaylistDetailScreen(
+            playlistId: sharedPlaylistLink.playlistId,
+            secretToken: sharedPlaylistLink.secretToken,
+          ),
+        ),
+        settings,
+      );
+    }
     if (sharedTrackLink != null) {
       return _slideUp(
         AuthProtectedScreen(
@@ -320,9 +335,10 @@ class AppRouter {
 
       case Routes.playlistDetail:
         final id = args['playlistId'] as String? ?? '';
+        final isMine = args['isMine'] as bool? ?? true;
         return _slide(
           AuthProtectedScreen(
-            child: PlaylistDetailScreen(playlistId: id),
+            child: PlaylistDetailScreen(playlistId: id, isMine: isMine),
           ),
           settings,
         );

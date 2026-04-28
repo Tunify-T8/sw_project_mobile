@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
-import '../../../../core/storage/token_storage.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playability_info.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';

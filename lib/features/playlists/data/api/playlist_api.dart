@@ -7,6 +7,7 @@ import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../dto/paginated_dto.dart';
 import '../dto/playlist_dto.dart';
+import '../dto/playlist_share_link_dto.dart';
 import '../dto/playlist_summary_dto.dart';
 import '../dto/playlist_track_dto.dart';
 
@@ -31,29 +32,30 @@ class PlaylistApi {
     File? cover,
     String? coverUrl,
   }) async {
-    final res = cover != null
-        // File upload path — multipart/form-data.
-        ? await _dio.post<Map<String, dynamic>>(
-            ApiEndpoints.collections,
-            data: FormData.fromMap({
-              'title': title,
-              'type': type.toJson(),
-              'privacy': privacy.toJson(),
-              if (description != null) 'description': description,
-              'cover': await MultipartFile.fromFile(cover.path),
-            }),
-          )
-        // JSON path — coverUrl or no cover.
-        : await _dio.post<Map<String, dynamic>>(
-            ApiEndpoints.collections,
-            data: {
-              'title': title,
-              'type': type.toJson(),
-              'privacy': privacy.toJson(),
-              if (description != null) 'description': description,
-              if (coverUrl != null) 'coverUrl': coverUrl,
-            },
-          );
+    if (cover != null) {
+      final res = await _dio.post<Map<String, dynamic>>(
+        ApiEndpoints.collections,
+        data: FormData.fromMap({
+          'title': title,
+          'type': type.toJson(),
+          'privacy': privacy.toJson(),
+          if (description != null) 'description': description,
+          'cover': await MultipartFile.fromFile(cover.path),
+        }),
+      );
+      return PlaylistDto.fromJson(res.data!);
+    }
+
+    final res = await _dio.post<Map<String, dynamic>>(
+      ApiEndpoints.collections,
+      data: {
+        'title': title,
+        'type': type.toJson(),
+        'privacy': privacy.toJson(),
+        if (description != null) 'description': description,
+        if (coverUrl != null) 'coverUrl': coverUrl,
+      },
+    );
     return PlaylistDto.fromJson(res.data!);
   }
 
@@ -196,6 +198,20 @@ class PlaylistApi {
   }
 
   // ─── GET /users/:username/collections|albums|playlists ───────────────────
+
+  Future<PlaylistShareLinkDto> getShareUrl(String id) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      ApiEndpoints.collectionShare(id),
+    );
+    return PlaylistShareLinkDto.fromJson(res.data!);
+  }
+
+  Future<PlaylistShareLinkDto> resetShareToken(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      ApiEndpoints.collectionShareReset(id),
+    );
+    return PlaylistShareLinkDto.fromJson(res.data!);
+  }
 
   Future<PaginatedDto<PlaylistSummaryDto>> getUserCollections({
     required String username,

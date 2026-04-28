@@ -36,9 +36,11 @@ class TrackSocialActions extends ConsumerWidget {
           icon: Icons.person_outline,
           label: 'Go to profile',
           onTap: () {
-            Navigator.pop(context);
+            final navigator = Navigator.of(context);
+            final targetContext = navigator.context;
+            navigator.pop();
             navigateToProfile(
-              context,
+              targetContext,
               artistId,
               currentUserId: ref.read(authControllerProvider).value?.id,
             );
@@ -51,9 +53,9 @@ class TrackSocialActions extends ConsumerWidget {
           icon: Icons.comment_outlined,
           label: 'View comments',
           onTap: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
+            final navigator = Navigator.of(context);
+            navigator.pop();
+            navigator.push(
               MaterialPageRoute(
                 builder: (_) => CommentsScreen(trackId: trackId),
               ),
@@ -68,17 +70,17 @@ class TrackSocialActions extends ConsumerWidget {
           label: isReposted ? 'Reposted' : 'Repost on SoundCloud',
           color: isReposted ? Colors.orange : Colors.white,
           onTap: () {
-            Navigator.pop(context);
+            final navigator = Navigator.of(context);
+            final targetContext = navigator.context;
+            navigator.pop();
 
             if (isReposted) {
-              ref
-                  .read(engagementProvider(trackId).notifier)
-                  .removeRepost();
+              ref.read(engagementProvider(trackId).notifier).removeRepost();
               return;
             }
 
             RepostCaptionSheet.show(
-              context,
+              targetContext,
               trackId: trackId,
               trackTitle: title,
               artistName: artistName,

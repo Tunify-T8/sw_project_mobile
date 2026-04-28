@@ -330,7 +330,7 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
     required String collectionId,
     required List<String> trackIds,
   }) async {
-    _require(collectionId);
+    final col = _require(collectionId);
     final list = _store.tracks[collectionId] ?? [];
 
     // Validate: same set of IDs, no extras, no omissions.
@@ -345,7 +345,7 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
 
     // Rebuild list in the given order with updated positions.
     final byId = {for (final t in list) t.trackId: t};
-    _store.tracks[collectionId] = [
+    final reordered = [
       for (var i = 0; i < trackIds.length; i++)
         PlaylistTrackDto(
           position: i + 1,
@@ -363,6 +363,25 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
           ownerAvatarUrl: byId[trackIds[i]]!.ownerAvatarUrl,
         ),
     ];
+
+    _store.tracks[collectionId] = reordered;
+    _store.collections[collectionId] = PlaylistDto(
+      id: col.id,
+      title: col.title,
+      description: col.description,
+      type: col.type,
+      privacy: col.privacy,
+      secretToken: col.secretToken,
+      coverUrl: reordered.isNotEmpty ? reordered.first.coverUrl : null,
+      trackCount: col.trackCount,
+      likeCount: col.likeCount,
+      repostsCount: col.repostsCount,
+      ownerFollowerCount: col.ownerFollowerCount,
+      isLiked: col.isLiked,
+      owner: col.owner,
+      createdAt: col.createdAt,
+      updatedAt: DateTime.now().toIso8601String(),
+    );
   }
 
   // ─── Likes ───────────────────────────────────────────────────────────────
@@ -434,6 +453,40 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
   }
 
   // ─── User collections ────────────────────────────────────────────────────
+
+  @override
+  Future<String> getShareUrl(String id) async {
+    final col = _require(id);
+    if (CollectionPrivacy.fromJson(col.privacy) == CollectionPrivacy.private) {
+      final token = col.secretToken ?? 'mock_token_${id.hashCode.abs()}';
+      return 'https://tunify.duckdns.org/playlist/$id?token=$token';
+    }
+    return 'https://tunify.duckdns.org/playlist/$id';
+  }
+
+  @override
+  Future<String> resetShareToken(String id) async {
+    final col = _require(id);
+    final token = 'mock_token_${DateTime.now().microsecondsSinceEpoch}';
+    _store.collections[id] = PlaylistDto(
+      id: col.id,
+      title: col.title,
+      description: col.description,
+      type: col.type,
+      privacy: CollectionPrivacy.private.toJson(),
+      secretToken: token,
+      coverUrl: col.coverUrl,
+      trackCount: col.trackCount,
+      likeCount: col.likeCount,
+      repostsCount: col.repostsCount,
+      ownerFollowerCount: col.ownerFollowerCount,
+      isLiked: col.isLiked,
+      owner: col.owner,
+      createdAt: col.createdAt,
+      updatedAt: DateTime.now().toIso8601String(),
+    );
+    return 'https://tunify.duckdns.org/playlist/$id?token=$token';
+  }
 
   @override
   Future<PaginatedPlaylists> getUserCollections({

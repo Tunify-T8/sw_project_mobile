@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../premium_subscription/domain/entities/subscription_tier.dart';
+import '../../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../../../../premium_subscription/presentation/screens/upgrade_screen.dart';
 
-class HomeTopBar extends StatelessWidget {
+class HomeTopBar extends ConsumerWidget {
   const HomeTopBar({
     super.key,
     required this.isBusy,
@@ -18,7 +21,11 @@ class HomeTopBar extends StatelessWidget {
   final VoidCallback? onOpenMessaging;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentSubscription = ref
+        .watch(subscriptionNotifierProvider)
+        .currentSubscription;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -49,25 +56,27 @@ class HomeTopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const UpgradeScreen(popUp: true),
-                ),
-              );
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              overlayColor: Colors.transparent,
+          if (currentSubscription?.tier == SubscriptionTier.free) ...[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const UpgradeScreen(popUp: true),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                overlayColor: Colors.transparent,
+              ),
+              child: const Text(
+                "GET PRO",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
             ),
-            child: Text(
-              "GET PRO",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           _CircleIconButton(
             icon: Icons.cloud_upload_outlined,
             isBusy: isBusy,

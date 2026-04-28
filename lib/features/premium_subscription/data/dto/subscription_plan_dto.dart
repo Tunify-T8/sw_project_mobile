@@ -18,8 +18,8 @@ class SubscriptionPlanDto {
   factory SubscriptionPlanDto.fromJson(Map<String, dynamic> json) {
     return SubscriptionPlanDto(
       name: json['name'],
-      monthlyPrice: (json['monthly_price'] as num).toDouble(),
-      yearlyPrice: (json['yearly_price'] as num).toDouble(),
+      monthlyPrice: (json['monthlyPrice'] as num).toDouble(),
+      yearlyPrice: (json['yearlyPrice'] as num).toDouble(),
       currency: json['currency'],
       features: SubscriptionFeaturesDto.fromJson(json['features']),
     );

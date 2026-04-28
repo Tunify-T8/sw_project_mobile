@@ -6,7 +6,7 @@ import 'subscription_features_mapper.dart';
 extension SubscriptionPlanMapper on SubscriptionPlanDto {
   SubscriptionPlanEntity toEntity() {
     return SubscriptionPlanEntity(
-      tier: SubscriptionTier.values.byName(name),
+      tier: SubscriptionTier.values.byName(name.replaceAll('-', '')),
       monthlyPrice: monthlyPrice,
       yearlyPrice: yearlyPrice,
       currency: currency,

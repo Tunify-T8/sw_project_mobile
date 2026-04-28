@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/routing/routes.dart';
-import 'package:software_project/core/utils/adaptive_breakpoints.dart';
 
 import '../features/audio_upload_and_management/presentation/screens/home_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/library_screen.dart';
@@ -11,6 +10,9 @@ import '../features/feed_search_discovery/presentation/screens/classic_feed_scre
 import '../features/feed_search_discovery/presentation/screens/feed_screen.dart';
 import '../features/feed_search_discovery/presentation/screens/search_screen.dart';
 import '../features/playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../features/premium_subscription/domain/entities/subscription_tier.dart';
+import '../features/premium_subscription/presentation/providers/subscription_notifier.dart';
+import '../features/premium_subscription/presentation/screens/current_subscription_screen.dart';
 import '../features/premium_subscription/presentation/screens/upgrade_screen.dart';
 import 'router.dart';
 
@@ -31,13 +33,23 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const UpgradeScreen(popUp: true),
-        ),
-      );
+
+      final notifier = ref.read(subscriptionNotifierProvider.notifier);
+      await notifier.loadCurrentSubscription();
+
+      if (!mounted) return;
+
+      final currentSubscription = ref
+          .read(subscriptionNotifierProvider)
+          .currentSubscription;
+
+      if (currentSubscription?.tier == SubscriptionTier.free) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const UpgradeScreen(popUp: true)),
+        );
+      }
     });
     MainShellScreen.tabNotifier.addListener(_onExternalTabChange);
   }
@@ -55,55 +67,44 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = AdaptiveBreakpoints.isExpanded(context);
-    final tabBody = DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF0D0D0D), Color(0xFF050505)],
-        ),
-      ),
-      child: IndexedStack(
-        index: _index,
-        children: [
-          const HomeScreen(),
-          ref.watch(feedViewModeProvider) == FeedViewMode.classic
-              ? const ClassicFeedScreen()
-              : const FeedScreen(),
-          const SearchScreen(),
-          LibraryScreen(
-            onOpenSettings: () =>
-                Navigator.of(context).pushNamed(AppRoutes.settings),
-            onOpenProfile: () =>
-                Navigator.of(context).pushNamed(AppRoutes.profile),
-            onOpenYourUploads: () =>
-                Navigator.of(context).pushNamed(Routes.yourUploads),
-          ),
-          const UpgradeScreen(popUp: false),
-        ],
-      ),
-    );
+    final currentSubscription = ref
+        .watch(subscriptionNotifierProvider)
+        .currentSubscription;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: isDesktop
-          ? Row(
-              children: [
-                _SCNavigationRail(
-                  selectedIndex: _index,
-                  onTap: (i) {
-                    MainShellScreen.tabNotifier.value = i;
-                    setState(() => _index = i);
-                  },
-                ),
-                Expanded(child: tabBody),
-              ],
-            )
-          : tabBody,
-      bottomNavigationBar: isDesktop
-          ? (_index != 1 ? const _DesktopMiniPlayerBar() : null)
-          : Container(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0D0D0D), Color(0xFF050505)],
+          ),
+        ),
+        child: IndexedStack(
+          index: _index,
+          children: [
+            const HomeScreen(),
+            ref.watch(feedViewModeProvider) == FeedViewMode.classic
+                ? const ClassicFeedScreen()
+                : const FeedScreen(),
+            const SearchScreen(),
+            LibraryScreen(
+              onOpenSettings: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.settings),
+              onOpenProfile: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.profile),
+              onOpenYourUploads: () =>
+                  Navigator.of(context).pushNamed(Routes.yourUploads),
+            ),
+            
+            (currentSubscription?.tier == SubscriptionTier.free)
+                ? const UpgradeScreen(popUp: false)
+                : const CurrentSubscriptionScreen(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Color(0x1AFFFFFF))),
           color: Color(0xFF090909),
@@ -131,118 +132,21 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   }
 }
 
-class _DesktopMiniPlayerBar extends StatelessWidget {
-  const _DesktopMiniPlayerBar();
+class _PlaceholderTab extends StatelessWidget {
+  const _PlaceholderTab({required this.label});
+
+  final String label;
 
   @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0x1AFFFFFF))),
-        color: Color(0xFF090909),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.black,
+    body: Center(
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white38, fontSize: 20),
       ),
-      child: SafeArea(top: false, child: MiniPlayer()),
-    );
-  }
-}
-
-class _SCNavigationRail extends StatelessWidget {
-  const _SCNavigationRail({required this.selectedIndex, required this.onTap});
-
-  final int selectedIndex;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 96,
-      decoration: const BoxDecoration(
-        border: Border(right: BorderSide(color: Color(0x1AFFFFFF))),
-        color: Color(0xFF080808),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 18),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFF5500),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.graphic_eq, color: Colors.white),
-            ),
-            const SizedBox(height: 26),
-            for (var i = 0; i < _SCBottomBar._items.length; i++)
-              _RailItem(
-                data: _SCBottomBar._items[i],
-                selected: selectedIndex == i,
-                onTap: () => onTap(i),
-              ),
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RailItem extends StatelessWidget {
-  const _RailItem({
-    required this.data,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final _NavData data;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: data.label,
-      waitDuration: const Duration(milliseconds: 450),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          width: 76,
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF1C1C1C) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? Colors.white12 : Colors.transparent,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                selected ? data.activeIcon : data.inactiveIcon,
-                color: selected ? Colors.white : const Color(0xFF808080),
-                size: 26,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                data.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? Colors.white : const Color(0xFF808080),
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 class _SCBottomBar extends StatelessWidget {

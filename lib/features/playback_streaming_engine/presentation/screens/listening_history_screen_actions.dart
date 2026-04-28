@@ -46,72 +46,14 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
     if (track.status == PlaybackStatus.blocked) return;
 
     final store = ref.read(globalTrackStoreProvider);
-    UploadItem? stored = storedUploadItemForTrack(store, track.trackId);
+    final stored = storedUploadItemForTrack(store, track.trackId);
+    final seedTrack = _seedTrackFromHistory(track, stored);
 
-    // Private tracks from history have no token in the in-memory store because
-    // the uploads list endpoint omits it. Fetch the full detail so we have the
-    // token before hitting the stream endpoint — without it the backend returns
-    // 403 private_no_token.
-    if (stored != null &&
-        stored.visibility == UploadVisibility.private &&
-        stored.privateToken == null) {
-      try {
-        final detailed = await ref
-            .read(trackDetailItemProvider(stored).future)
-            .timeout(const Duration(seconds: 6));
-        stored = detailed;
-        store.update(detailed);
-      } catch (_) {
-        // Proceed with whatever token we have; the backend call will clarify.
-      }
-    }
-
-    // Use ensureUploadItemPlayback when we have a stored item — it handles
-    // private-token fetching, queue building, and seed-track creation in one
-    // place so private tracks play reliably from history too.
-    if (stored != null) {
-      final playableHistory = historyTracks
-          .where((item) => item.status != PlaybackStatus.blocked)
-          .toList(growable: false);
-
-      await openHistorySourcedPlayer(
-        context,
-        ref,
-        stored,
-        historyTracks: playableHistory,
-        openScreen: false,
-      );
-
-      if (!context.mounted) return;
-
-      final current = ref.read(playerProvider).asData?.value;
-      final item = current?.bundle != null
-          ? uploadItemFromPlayerState(current!, store)
-          : stored;
-
-      await Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (_, a, b) => TrackDetailScreen(item: item),
-          transitionsBuilder: (_, animation, b, child) => SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 1),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            ),
-            child: child,
-          ),
-          transitionDuration: const Duration(milliseconds: 340),
-        ),
-      );
-      return;
-    }
-
-    // Fallback path: track is not in GlobalTrackStore (e.g. another user's
-    // public track that appears in history). Build a minimal seed and load
-    // directly through the player — the backend will resolve ownership.
-    final seedTrack = _seedTrackFromHistory(track, null);
-
+    // Opened from Listening history → "next up" should be the next song
+    // in the user's history, not "more by this artist". We build the queue
+    // from the playable history tracks and anchor it at the tapped track.
+    // The queue is marked with QueueSource.history so
+    // enrichQueueWithArtistTracks will skip it and leave the order intact.
     final playableHistory = historyTracks
         .where((item) => item.status != PlaybackStatus.blocked)
         .toList(growable: false);
@@ -148,7 +90,7 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
     final current = ref.read(playerProvider).asData?.value;
     final item = current != null && current.bundle != null
         ? uploadItemFromPlayerState(current, store)
-        : _historyTrackToUploadItem(track);
+        : (stored ?? _historyTrackToUploadItem(track));
 
     await Navigator.of(context).push(
       PageRouteBuilder(

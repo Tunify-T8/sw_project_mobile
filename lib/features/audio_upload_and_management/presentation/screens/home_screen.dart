@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/routing/routes.dart';
-import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
-import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../notifications/presentation/state/notifications_controller.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../controllers/upload_flow_controller.dart';
 import '../providers/library_uploads_provider.dart';
 import '../providers/upload_provider.dart';
@@ -14,6 +12,7 @@ import '../utils/upload_error_snackbar.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
 import '../widgets/home/home_recent_section.dart';
+import '../../../../core/routing/routes.dart';
 import '../widgets/home/home_top_bar.dart';
 import 'artist_home_screen.dart';
 
@@ -38,9 +37,12 @@ class HomeScreen extends ConsumerWidget {
       notificationsControllerProvider.select((state) => state.unreadCount > 0),
     );
     final hasUnreadActivity = hasUnreadMessages || hasUnreadNotifications;
+
+    // Prefer the most recently played track for the "Picked for you" hero card.
+    // Fall back to the most recent upload if history is empty/loading.
     final historyTracks = historyAsync.asData?.value.tracks ?? const [];
     final latestTrack = historyTracks.isNotEmpty
-        ? null
+        ? null // history-based: handled inside HomeRecentSection
         : (libraryState.items.isNotEmpty ? libraryState.items.first : null);
     final isDesktop = AdaptiveBreakpoints.isExpanded(context);
     final greeting = _homeGreeting(DateTime.now());
@@ -333,20 +335,24 @@ class _DesktopStatCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 21,
+                    fontSize: 22,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+            // Use history tracks for the recently-played grid when available.
+            HomeRecentSection(
+              latestTrack: latestTrack,
+              historyTracks: historyTracks,
+              onOpenTrack: (item) async {
+                // Open the track playing — not just navigating to the screen.
+                await openUploadItemPlayer(context, ref, item);
+              },
+            ),
+            const HomeDiscoverySections(),
+          ],
+        ),
       ),
     );
   }

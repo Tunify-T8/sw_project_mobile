@@ -11,7 +11,7 @@ class CurrentSubscriptionEntity {
   final SubscriptionFeaturesEntity features;
 
   CurrentSubscriptionEntity({
-    required this.tier,
+    this.tier = SubscriptionTier.free,
     required this.status,
     required this.startedAt,
     required this.expiresAt,

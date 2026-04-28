@@ -18,13 +18,19 @@ class CurrentSubscriptionDto {
   });
 
   factory CurrentSubscriptionDto.fromJson(Map<String, dynamic> json) {
+    final featuresJson = json['features'];
+
     return CurrentSubscriptionDto(
-      plan: json['plan'],
-      status: json['status'],
+      plan: json['plan'] ?? 'free',
+      status: json['status'] ?? 'active',
       startedAt: json['startedAt'],
-      expiresAt: json['expiresAt'],
+      expiresAt: json['expiresAt'] ?? json['endedAt'],
       autoRenew: json['autoRenew'] ?? false,
-      features: SubscriptionFeaturesDto.fromJson(json['features']),
+      features: SubscriptionFeaturesDto.fromJson(
+        featuresJson is Map<String, dynamic>
+            ? featuresJson
+            : const <String, dynamic>{},
+      ),
     );
   }
 }

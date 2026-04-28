@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/entities/notification_type.dart';
@@ -15,6 +16,11 @@ class NotificationNavigation {
     WidgetRef ref,
     NotificationEntity notification,
   ) async {
+    if (notification.type == NotificationType.trackCommented) {
+      await openComments(context, ref, notification);
+      return;
+    }
+
     if (_isTrackNotification(notification)) {
       await openReference(context, ref, notification);
       return;
@@ -32,14 +38,40 @@ class NotificationNavigation {
     if (!context.mounted) return;
 
     final actorId = notification.actor?.id;
-    if (actorId == null || actorId.trim().isEmpty) {
+    final fallbackUserId = _referenceUserId(notification);
+    final userId = (actorId != null && actorId.trim().isNotEmpty)
+        ? actorId.trim()
+        : fallbackUserId;
+
+    if (userId == null || userId.trim().isEmpty) {
       _showUnavailable(context);
       return;
     }
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => OtherUserProfileScreen(userId: actorId),
+        builder: (_) => OtherUserProfileScreen(userId: userId),
+      ),
+    );
+  }
+
+  static Future<void> openComments(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationEntity notification,
+  ) async {
+    await _markRead(ref, notification);
+    if (!context.mounted) return;
+
+    final trackId = _trackReferenceId(notification);
+    if (trackId == null || trackId.isEmpty) {
+      _showUnavailable(context);
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CommentsScreen(trackId: trackId),
       ),
     );
   }
@@ -69,12 +101,48 @@ class NotificationNavigation {
       return;
     }
 
-    if (referenceType == null || referenceType == 'track') {
+    if (referenceType == null ||
+        referenceType == 'track' ||
+        referenceType == 'tracks' ||
+        referenceType == 'song') {
       await TrackLinkHelper.openTrackByIdAndToken(context, ref, referenceId);
       return;
     }
 
     _showUnavailable(context);
+  }
+
+  static String? _trackReferenceId(NotificationEntity notification) {
+    final referenceType = notification.referenceType?.toLowerCase().trim();
+    final referenceId = notification.referenceId?.trim();
+    if (referenceId == null || referenceId.isEmpty) return null;
+
+    if (notification.type == NotificationType.trackCommented) {
+      return referenceId;
+    }
+
+    if (referenceType == null ||
+        referenceType == 'track' ||
+        referenceType == 'tracks' ||
+        referenceType == 'song') {
+      return referenceId;
+    }
+
+    return null;
+  }
+
+  static String? _referenceUserId(NotificationEntity notification) {
+    final referenceType = notification.referenceType?.toLowerCase().trim();
+    final referenceId = notification.referenceId?.trim();
+    if (referenceId == null || referenceId.isEmpty) return null;
+
+    if (referenceType == 'user' ||
+        referenceType == 'users' ||
+        notification.type == NotificationType.userFollowed) {
+      return referenceId;
+    }
+
+    return null;
   }
 
   static Future<void> _markRead(

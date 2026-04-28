@@ -1,3 +1,4 @@
+import '../../domain/entities/autocomplete_result_entity.dart';
 import '../../domain/entities/search_all_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
@@ -17,6 +18,15 @@ class MockSearchRepositoryImpl implements SearchRepository {
   @override
   Future<SearchAllResultEntity> searchAll(String query) =>
       _service.searchAll(query);
+
+  @override
+  Future<AutocompleteResultEntity> searchAutocomplete(String query) async {
+    return const AutocompleteResultEntity(
+      tracks: [],
+      users: [],
+      collections: [],
+    );
+  }
 
   @override
   Future<List<TrackResultEntity>> searchTracks(
