@@ -39,8 +39,9 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
   }
 
   Future<PlayerState> _restorePersistedSession() async {
-    final raw = await PlayerNotifier._storage.read(
-      key: StorageKeys.cachedPlayerSession,
+    final raw = await _readStorageKey(
+      StorageKeys.cachedPlayerSession,
+      deleteCachedSessionOnFailure: true,
     );
     if (raw == null || raw.isEmpty) {
       return const PlayerState();
@@ -53,9 +54,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       if (cachedUserId == null ||
           currentUserId == null ||
           cachedUserId != currentUserId) {
-        await PlayerNotifier._storage.delete(
-          key: StorageKeys.cachedPlayerSession,
-        );
+        await _deleteCachedPlayerSession();
         return const PlayerState();
       }
 
@@ -108,9 +107,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
 
       return restored;
     } catch (_) {
-      await PlayerNotifier._storage.delete(
-        key: StorageKeys.cachedPlayerSession,
-      );
+      await _deleteCachedPlayerSession();
       return const PlayerState();
     }
   }
@@ -121,9 +118,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
   }) async {
     final current = playerState ?? _current;
     if (current == null || current.bundle == null) {
-      await PlayerNotifier._storage.delete(
-        key: StorageKeys.cachedPlayerSession,
-      );
+      await _deleteCachedPlayerSession();
       return;
     }
 
@@ -137,9 +132,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
     _lastSessionPersistAt = now;
     final authUserId = await _currentAuthUserId();
     if (authUserId == null || authUserId.isEmpty) {
-      await PlayerNotifier._storage.delete(
-        key: StorageKeys.cachedPlayerSession,
-      );
+      await _deleteCachedPlayerSession();
       return;
     }
 
@@ -158,14 +151,11 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       'mediaDurationSeconds': current.mediaDurationSeconds,
     };
 
-    await PlayerNotifier._storage.write(
-      key: StorageKeys.cachedPlayerSession,
-      value: jsonEncode(payload),
-    );
+    await _writeCachedPlayerSession(jsonEncode(payload));
   }
 
   Future<String?> _currentAuthUserId() async {
-    final raw = await PlayerNotifier._storage.read(key: StorageKeys.user);
+    final raw = await _readStorageKey(StorageKeys.user);
     if (raw == null || raw.isEmpty) return null;
 
     try {
@@ -175,6 +165,28 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<String?> _readStorageKey(
+    String key, {
+    bool deleteCachedSessionOnFailure = false,
+  }) async {
+    final value = await SafeSecureStorage.read(key);
+    if (value == null && deleteCachedSessionOnFailure) {
+      await _deleteCachedPlayerSession();
+    }
+    return value;
+  }
+
+  Future<void> _writeCachedPlayerSession(String value) {
+    return SafeSecureStorage.write(
+      key: StorageKeys.cachedPlayerSession,
+      value: value,
+    );
+  }
+
+  Future<void> _deleteCachedPlayerSession() {
+    return SafeSecureStorage.delete(StorageKeys.cachedPlayerSession);
   }
 
   Map<String, dynamic> _bundleToJson(TrackPlaybackBundle bundle) {
