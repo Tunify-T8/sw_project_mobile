@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../domain/entities/upload_item.dart';
+import '../../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
+import '../../../../playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
 
-class TrackDetailHeader extends StatelessWidget {
+class TrackDetailHeader extends ConsumerStatefulWidget {
   const TrackDetailHeader({
     super.key,
     required this.item,
@@ -17,6 +20,33 @@ class TrackDetailHeader extends StatelessWidget {
   final VoidCallback onTrackInfoTap;
 
   @override
+  ConsumerState<TrackDetailHeader> createState() => _TrackDetailHeaderState();
+}
+
+class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
+  late String _resolvedArtistId;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedArtistId = resolveArtistIdForTrackLocally(
+          ref,
+          widget.item.id,
+        ) ??
+        '';
+
+    if (_resolvedArtistId.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resolveArtistId());
+    }
+  }
+
+  Future<void> _resolveArtistId() async {
+    final artistId = await resolveArtistIdForTrack(ref, widget.item.id);
+    if (!mounted || artistId == null || artistId == _resolvedArtistId) return;
+    setState(() => _resolvedArtistId = artistId);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
@@ -29,22 +59,22 @@ class TrackDetailHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _BlackTag(
-                    text: item.title,
+                    text: widget.item.title,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    onTap: onTrackInfoTap,
+                    onTap: widget.onTrackInfoTap,
                   ),
                   const SizedBox(height: 4),
                   _BlackTag(
-                    text: item.artistDisplay,
+                    text: widget.item.artistDisplay,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    onTap: onArtistTap,
+                    onTap: widget.onArtistTap,
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: onTrackInfoTap,
+                    onTap: widget.onTrackInfoTap,
                     child: Container(
                       color: Colors.black.withOpacity(0.82),
                       padding: const EdgeInsets.symmetric(
@@ -79,16 +109,43 @@ class TrackDetailHeader extends StatelessWidget {
                   backgroundColor: Colors.black,
                   icon: Icons.keyboard_arrow_down_rounded,
                   iconSize: 34,
-                  onTap: onDismiss,
+                  onTap: widget.onDismiss,
                 ),
                 const SizedBox(height: 28),
-                const _SideIcon(icon: Icons.person_add_alt_1_outlined),
+                _FollowSideIcon(artistId: _resolvedArtistId),
                 const SizedBox(height: 28),
                 const _SideIcon(icon: Icons.devices_outlined),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FollowSideIcon extends ConsumerWidget {
+  const _FollowSideIcon({required this.artistId});
+
+  final String artistId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (artistId.trim().isEmpty) {
+      return const _SideIcon(icon: Icons.person_add_alt_1_outlined);
+    }
+
+    final relationshipState = ref.watch(relationshipStatusProvider(artistId));
+    final isFollowing = relationshipState.isFollowing ?? false;
+
+    return GestureDetector(
+      onTap: () => ref.read(relationshipStatusProvider(artistId).notifier).toggleFollow(),
+      child: Icon(
+        isFollowing
+            ? Icons.person_remove_alt_1_outlined
+            : Icons.person_add_alt_1_outlined,
+        color: Colors.white70,
+        size: 34,
       ),
     );
   }

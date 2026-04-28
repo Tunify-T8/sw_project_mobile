@@ -10,7 +10,7 @@ class NetworkListsTrueFriendsTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(10.0),
       child: ListTile(
-        key: const Key('true_friends_tile'),
+        key: const Key('true_friends_list_tile'),
         onTap: onTap,
         leading: const CircleAvatar(child: Icon(Icons.people)),
         title: const Text(

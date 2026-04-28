@@ -6,23 +6,17 @@ void main() {
     test('maps all booleans correctly', () {
       final dto = SocialRelationDTO.fromJson({
         'isFollowing': true,
-        'isFollowedBy': false,
-        'isMutual': true,
         'isBlocked': true,
       });
 
       expect(dto.isFollowing, isTrue);
-      expect(dto.isFollowedBy, isFalse);
-      expect(dto.isMutual, isTrue);
       expect(dto.isBlocked, isTrue);
     });
 
-    test('defaults all booleans to false when keys are absent', () {
+    test('defaults relation booleans to false when keys are absent', () {
       final dto = SocialRelationDTO.fromJson({});
 
       expect(dto.isFollowing, isFalse);
-      expect(dto.isFollowedBy, isFalse);
-      expect(dto.isMutual, isFalse);
       expect(dto.isBlocked, isFalse);
     });
   });

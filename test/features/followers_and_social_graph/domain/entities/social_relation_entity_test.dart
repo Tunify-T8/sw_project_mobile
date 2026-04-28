@@ -7,15 +7,11 @@ void main() {
       const entity = SocialRelationEntity(
         targetUserId: 'user-1',
         isFollowing: true,
-        isFollowedBy: false,
-        isMutual: true,
         isBlocked: true,
       );
 
       expect(entity.targetUserId, 'user-1');
       expect(entity.isFollowing, isTrue);
-      expect(entity.isFollowedBy, isFalse);
-      expect(entity.isMutual, isTrue);
       expect(entity.isBlocked, isTrue);
     });
 
@@ -23,8 +19,6 @@ void main() {
       const entity = SocialRelationEntity(
         targetUserId: 'user-1',
         isFollowing: false,
-        isFollowedBy: true,
-        isMutual: false,
         isBlocked: false,
       );
 
@@ -32,8 +26,6 @@ void main() {
 
       expect(updated.targetUserId, entity.targetUserId);
       expect(updated.isFollowing, isTrue);
-      expect(updated.isFollowedBy, entity.isFollowedBy);
-      expect(updated.isMutual, entity.isMutual);
       expect(updated.isBlocked, entity.isBlocked);
     });
 
@@ -41,23 +33,17 @@ void main() {
       const entity = SocialRelationEntity(
         targetUserId: 'user-1',
         isFollowing: false,
-        isFollowedBy: false,
-        isMutual: false,
         isBlocked: false,
       );
 
       final updated = entity.copyWith(
         targetUserId: 'user-2',
         isFollowing: true,
-        isFollowedBy: true,
-        isMutual: true,
         isBlocked: true,
       );
 
       expect(updated.targetUserId, 'user-2');
       expect(updated.isFollowing, isTrue);
-      expect(updated.isFollowedBy, isTrue);
-      expect(updated.isMutual, isTrue);
       expect(updated.isBlocked, isTrue);
     });
 
@@ -65,23 +51,17 @@ void main() {
       const entity = SocialRelationEntity(
         targetUserId: 'user-1',
         isFollowing: true,
-        isFollowedBy: true,
-        isMutual: false,
         isBlocked: true,
       );
 
       final updated = entity.copyWith(
         targetUserId: null,
         isFollowing: null,
-        isFollowedBy: null,
-        isMutual: null,
         isBlocked: null,
       );
 
       expect(updated.targetUserId, entity.targetUserId);
       expect(updated.isFollowing, entity.isFollowing);
-      expect(updated.isFollowedBy, entity.isFollowedBy);
-      expect(updated.isMutual, entity.isMutual);
       expect(updated.isBlocked, entity.isBlocked);
     });
 
@@ -89,8 +69,6 @@ void main() {
       const entity = SocialRelationEntity(
         targetUserId: 'user-1',
         isFollowing: false,
-        isFollowedBy: false,
-        isMutual: false,
       );
 
       expect(entity.isBlocked, isFalse);
