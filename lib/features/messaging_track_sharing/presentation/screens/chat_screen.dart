@@ -105,6 +105,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
         _scrollToBottom();
       }
+      // Surface a friendly toast when a message send fails — usually because
+      // the recipient only accepts messages from people they follow.
+      if (next.error != null && next.error != previous?.error) {
+        final raw = next.error!.toLowerCase();
+        final friendly =
+            raw.contains('403') ||
+                raw.contains('forbidden') ||
+                raw.contains('not follow') ||
+                raw.contains('blocked') ||
+                raw.contains('cannot') ||
+                raw.contains('rejected')
+            ? 'Message not delivered. ${widget.otherUserName} only accepts messages from people they follow.'
+            : 'Message not delivered. Please try again.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(friendly),
+            backgroundColor: const Color(0xFF2A2A2A),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     });
 
     final isDesktop = AdaptiveBreakpoints.isExpanded(context);

@@ -80,8 +80,9 @@ class MessageDto {
     // Backend may send a single attachment under `attachment`, older /
     // optimistic payloads use the flat `attachments` list.
     final attachments = <MessageAttachmentDto>[];
-    final singleAttachment = _map(j['attachment'] ?? j['sharedResource']);
-    if (singleAttachment != null && _hasRealAttachment(singleAttachment, type)) {
+    final singleAttachment = _attachmentObjectFor(j, type);
+    if (singleAttachment != null &&
+        _hasRealAttachment(singleAttachment, type)) {
       final att = singleAttachment;
       final merged = <String, dynamic>{...att, 'type': att['type'] ?? type};
       attachments.add(MessageAttachmentDto.fromJson(merged));
@@ -90,11 +91,9 @@ class MessageDto {
       // attachment payload (e.g. collection include missing on getMessages).
       // Synthesise a placeholder so the bubble doesn't render empty.
       final fallbackTitle = _attachmentFallbackTitle(type);
-      attachments.add(MessageAttachmentDto(
-        id: '',
-        type: type,
-        title: fallbackTitle,
-      ));
+      attachments.add(
+        MessageAttachmentDto(id: '', type: type, title: fallbackTitle),
+      );
     } else {
       final list = (j['attachments'] as List?) ?? const [];
       attachments.addAll(
@@ -146,7 +145,14 @@ class MessageDto {
   }
 
   static const _attachmentTypes = {
-    'TRACK_LIKE', 'TRACK_UPLOAD', 'UPLOAD', 'PLAYLIST', 'ALBUM', 'USER',
+    'TRACK',
+    'TRACK_LIKE',
+    'TRACK_UPLOAD',
+    'UPLOAD',
+    'COLLECTION',
+    'PLAYLIST',
+    'ALBUM',
+    'USER',
   };
 
   static bool _isAttachmentType(String type) => _attachmentTypes.contains(type);
@@ -156,7 +162,9 @@ class MessageDto {
       case 'TRACK_LIKE':
       case 'TRACK_UPLOAD':
       case 'UPLOAD':
+      case 'TRACK':
         return 'Shared track';
+      case 'COLLECTION':
       case 'PLAYLIST':
         return 'Shared playlist';
       case 'ALBUM':
@@ -175,7 +183,8 @@ class MessageDto {
     final hasId = id.isNotEmpty && id.toLowerCase() != 'null';
 
     final preview = _map(value['preview']);
-    final hasPreview = preview != null &&
+    final hasPreview =
+        preview != null &&
         preview.values.any((v) {
           final text = _string(v);
           return text.isNotEmpty && text.toLowerCase() != 'null';
@@ -185,5 +194,29 @@ class MessageDto {
     // This covers UPLOAD messages where id comes from collectionId and
     // preview carries title/coverUrl even when the other field is null.
     return hasId || hasPreview;
+  }
+
+  static Map<String, dynamic>? _attachmentObjectFor(
+    Map<String, dynamic> json,
+    String type,
+  ) {
+    final explicit = _map(json['attachment'] ?? json['sharedResource']);
+    if (explicit != null) return explicit;
+
+    switch (type) {
+      case 'TRACK':
+      case 'TRACK_LIKE':
+      case 'TRACK_UPLOAD':
+      case 'UPLOAD':
+        return _map(json['track']);
+      case 'COLLECTION':
+      case 'PLAYLIST':
+      case 'ALBUM':
+        return _map(json['collection']);
+      case 'USER':
+        return _map(json['sharedUser']);
+      default:
+        return null;
+    }
   }
 }

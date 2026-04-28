@@ -95,7 +95,7 @@ class RealMessagingRepository implements MessagingRepository {
       final kind = attachment.backendKind;
       final payload = <String, dynamic>{
         'conversationId': conversationId,
-        'type': kind.wireType,
+        'type': _messageTypeFor(kind),
         'clientPreview': {
           'id': attachment.id,
           'type': kind.wireType,
@@ -107,9 +107,9 @@ class RealMessagingRepository implements MessagingRepository {
       };
       switch (kind) {
         case MessageAttachmentBackendKind.trackLike:
+        case MessageAttachmentBackendKind.trackUpload:
           payload['trackId'] = attachment.id;
           break;
-        case MessageAttachmentBackendKind.trackUpload:
         case MessageAttachmentBackendKind.playlist:
         case MessageAttachmentBackendKind.album:
           payload['collectionId'] = attachment.id;
@@ -132,6 +132,20 @@ class RealMessagingRepository implements MessagingRepository {
     }
 
     return last!;
+  }
+
+  String _messageTypeFor(MessageAttachmentBackendKind kind) {
+    switch (kind) {
+      case MessageAttachmentBackendKind.trackLike:
+      case MessageAttachmentBackendKind.trackUpload:
+        return 'TRACK_LIKE';
+      case MessageAttachmentBackendKind.playlist:
+        return 'PLAYLIST';
+      case MessageAttachmentBackendKind.album:
+        return 'ALBUM';
+      case MessageAttachmentBackendKind.user:
+        return 'USER';
+    }
   }
 
   @override
