@@ -11,9 +11,10 @@ import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/presentation/screens/listening_history_screen.dart';
 import '../../../playback_streaming_engine/presentation/screens/open_shared_track_link_screen.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
+import '../../../playlists/presentation/providers/playlist_providers.dart';
 import '../../../playlists/presentation/providers/recent_playlists_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
-import '../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 import '../../data/services/global_track_store.dart';
 import '../../../engagements_social_interactions/presentation/screens/liked_tracks_screen.dart';
@@ -64,6 +65,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     Future.microtask(() {
       ref.read(profileProvider.notifier).loadProfile();
       ref.read(subscriptionNotifierProvider.notifier).loadCurrentSubscription();
+      ref.read(playlistNotifierProvider.notifier).loadMyCollections();
     });
   }
 
@@ -268,6 +270,8 @@ class _LibraryRecentlyPlayedPlaylistsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recentAsync = ref.watch(recentPlaylistsProvider);
+    final playlistState = ref.watch(playlistNotifierProvider);
+    final profile = ref.watch(profileProvider).profile;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -289,9 +293,8 @@ class _LibraryRecentlyPlayedPlaylistsSection extends ConsumerWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pushNamed(
-                    Routes.playlists,
-                  ),
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(Routes.playlists),
                   child: const Text(
                     'See all',
                     style: TextStyle(color: Colors.white70, fontSize: 15),
@@ -302,11 +305,39 @@ class _LibraryRecentlyPlayedPlaylistsSection extends ConsumerWidget {
           ),
           recentAsync.when(
             data: (items) {
-              if (items.isEmpty) {
+              final displayItems = items.isNotEmpty
+                  ? items
+                  : playlistState.myCollections
+                        .where(
+                          (playlist) =>
+                              playlist.isMine &&
+                              playlist.type == CollectionType.playlist,
+                        )
+                        .map(
+                          (playlist) => RecentPlaylistItem.fromSummary(
+                            playlist,
+                            ownerName: profile?.userName,
+                          ),
+                        )
+                        .take(10)
+                        .toList(growable: false);
+
+              if (displayItems.isEmpty) {
+                if (playlistState.isMyCollectionsLoading) {
+                  return const SizedBox(
+                    height: 96,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  );
+                }
+
                 return const Padding(
                   padding: EdgeInsets.fromLTRB(18, 8, 18, 0),
                   child: Text(
-                    'No playlists played yet',
+                    'No playlists yet',
                     style: TextStyle(color: Colors.white38),
                   ),
                 );
@@ -318,11 +349,11 @@ class _LibraryRecentlyPlayedPlaylistsSection extends ConsumerWidget {
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  itemBuilder: (context, index) => _LibraryRecentPlaylistCard(
-                    item: items[index],
-                  ),
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemCount: items.length,
+                  itemBuilder: (context, index) =>
+                      _LibraryRecentPlaylistCard(item: displayItems[index]),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 14),
+                  itemCount: displayItems.length,
                 ),
               );
             },
@@ -356,10 +387,7 @@ class _LibraryRecentPlaylistCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.of(context).pushNamed(
         Routes.playlistDetail,
-        arguments: {
-          'playlistId': item.id,
-          'isMine': item.isMine,
-        },
+        arguments: {'playlistId': item.id, 'isMine': item.isMine},
       ),
       child: SizedBox(
         width: 138,
@@ -379,7 +407,8 @@ class _LibraryRecentPlaylistCard extends StatelessWidget {
                   ? Image.network(
                       item.coverUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _playlistPlaceholder(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _playlistPlaceholder(),
                     )
                   : _playlistPlaceholder(),
             ),
@@ -399,10 +428,7 @@ class _LibraryRecentPlaylistCard extends StatelessWidget {
               item.subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
             ),
           ],
         ),
@@ -412,11 +438,7 @@ class _LibraryRecentPlaylistCard extends StatelessWidget {
 
   Widget _playlistPlaceholder() {
     return const Center(
-      child: Icon(
-        Icons.queue_music_rounded,
-        color: Colors.white24,
-        size: 32,
-      ),
+      child: Icon(Icons.queue_music_rounded, color: Colors.white24, size: 32),
     );
   }
 }

@@ -6,6 +6,7 @@ import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/playlist_entity.dart';
+import '../../domain/entities/playlist_summary_entity.dart';
 
 class RecentPlaylistItem {
   const RecentPlaylistItem({
@@ -74,6 +75,21 @@ class RecentPlaylistItem {
       coverUrl: (coverUrl?.trim().isNotEmpty == true)
           ? coverUrl
           : playlist.coverUrl,
+    );
+  }
+
+  factory RecentPlaylistItem.fromSummary(
+    PlaylistSummaryEntity playlist, {
+    String? ownerName,
+  }) {
+    return RecentPlaylistItem(
+      id: playlist.id,
+      title: playlist.title,
+      trackCount: playlist.trackCount,
+      isMine: playlist.isMine,
+      playedAt: playlist.updatedAt,
+      ownerName: ownerName,
+      coverUrl: playlist.coverUrl,
     );
   }
 }
