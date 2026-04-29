@@ -111,20 +111,11 @@ class MiniPlayer extends ConsumerWidget {
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.devices_outlined),
-                color: Colors.white70,
-                tooltip: 'Open track details',
-              ),
               SizedBox(
                 width: 48,
                 height: 48,
                 child: Center(
-                  child: LikeButton(
-                    trackId: bundle.trackId,
-                    showCount: false,
-                  ),
+                  child: LikeButton(trackId: bundle.trackId, showCount: false),
                 ),
               ), // engagement addition
               const SizedBox(width: 10),

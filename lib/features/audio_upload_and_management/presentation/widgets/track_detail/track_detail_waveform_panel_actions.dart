@@ -132,6 +132,7 @@ class _BottomActionBar extends ConsumerStatefulWidget {
   const _BottomActionBar({
     required this.trackId,
     required this.onMoreTap,
+    required this.onShareTap,
     required this.onQueueTap,
     this.coverUrl,
     this.trackTitle,
@@ -140,6 +141,7 @@ class _BottomActionBar extends ConsumerStatefulWidget {
 
   final String trackId;
   final VoidCallback onMoreTap;
+  final VoidCallback onShareTap;
   final VoidCallback onQueueTap;
   final String? coverUrl;
   final String? trackTitle;
@@ -202,7 +204,11 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
                 ),
               ),
             ),
-            const _ActionMetric(icon: Icons.ios_share_outlined, label: ''),
+            _ActionMetric(
+              icon: Icons.ios_share_outlined,
+              label: '',
+              onTap: widget.onShareTap,
+            ),
             _ActionMetric(
               icon: Icons.playlist_play,
               label: '',
@@ -251,9 +257,8 @@ class _LikeMetric extends ConsumerWidget {
               // Key: WaveformKeys.likeButton
               GestureDetector(
                 key: const Key('waveform_like_button'),
-                onTap: () => ref
-                    .read(engagementProvider(trackId).notifier)
-                    .toggleLike(),
+                onTap: () =>
+                    ref.read(engagementProvider(trackId).notifier).toggleLike(),
                 behavior: HitTestBehavior.opaque,
                 child: Icon(
                   isLiked ? Icons.favorite : Icons.favorite_border,
@@ -290,7 +295,12 @@ class _LikeMetric extends ConsumerWidget {
 }
 
 class _ActionMetric extends StatelessWidget {
-  const _ActionMetric({super.key, required this.icon, required this.label, this.onTap});
+  const _ActionMetric({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;

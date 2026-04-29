@@ -8,8 +8,8 @@ import '../screens/track_detail_screen.dart';
 
 /// Centralised helper for building and copying track links.
 ///
-/// Public track:  https://soundcloud.app/tracks/<trackId>
-/// Private track: https://soundcloud.app/tracks/<trackId>?privateToken=<token>
+/// Public track: `https://soundcloud.app/tracks/trackId`
+/// Private track: `https://soundcloud.app/tracks/trackId?privateToken=token`
 class TrackLinkHelper {
   TrackLinkHelper._();
 
@@ -37,12 +37,10 @@ class TrackLinkHelper {
     await Clipboard.setData(ClipboardData(text: url));
     if (!context.mounted) return;
 
-    final isPrivate =
-        privateToken != null && privateToken.trim().isNotEmpty;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isPrivate ? 'Private link copied' : 'Link copied'),
-        duration: const Duration(seconds: 2),
+      const SnackBar(
+        content: Text('Link copied'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -83,11 +81,9 @@ class TrackLinkHelper {
   }) async {
     final item = buildStubUploadItem(trackId, privateToken: privateToken);
     if (!context.mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TrackDetailScreen(item: item),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => TrackDetailScreen(item: item)));
   }
 
   /// External share: launch a platform-specific URL that carries the track
@@ -106,10 +102,12 @@ class TrackLinkHelper {
         : '${title.trim()} — $link';
 
     final Uri? target = switch (platform) {
-      ExternalSharePlatform.whatsapp =>
-          Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}'),
-      ExternalSharePlatform.facebook =>
-          Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(link)}'),
+      ExternalSharePlatform.whatsapp => Uri.parse(
+        'https://wa.me/?text=${Uri.encodeComponent(text)}',
+      ),
+      ExternalSharePlatform.facebook => Uri.parse(
+        'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(link)}',
+      ),
       ExternalSharePlatform.instagram => null,
       ExternalSharePlatform.snapchat => null,
     };

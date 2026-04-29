@@ -183,7 +183,17 @@ class _PlayerBody extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         _BottomActions(
-                          trackId: bundle.trackId,
+                          info: TrackOptionInfo(
+                            trackId: bundle.trackId,
+                            title: bundle.title,
+                            artist: bundle.artist.name,
+                            artistId: bundle.artist.id,
+                            coverUrl: bundle.coverUrl,
+                            privateToken: playerState.privateToken,
+                            isPrivate:
+                                playerState.privateToken?.trim().isNotEmpty ==
+                                true,
+                          ),
                           onQueue: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
