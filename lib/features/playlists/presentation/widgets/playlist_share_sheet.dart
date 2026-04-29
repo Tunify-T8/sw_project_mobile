@@ -608,7 +608,7 @@ class _SocialBtn extends StatelessWidget {
             ),
             child: Center(
               child: faIcon != null
-                  ? Icon(faIcon, color: color, size: 22)
+                  ? _PlaylistBrandShareIcon(label: label, color: color)
                   : Icon(icon, color: color, size: 22),
             ),
           ),
@@ -621,4 +621,120 @@ class _SocialBtn extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PlaylistBrandShareIcon extends StatelessWidget {
+  const _PlaylistBrandShareIcon({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = label.toLowerCase();
+    return switch (normalized) {
+      'whatsapp' => Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.chat_bubble_outline_rounded, color: color, size: 26),
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(Icons.call_rounded, color: color, size: 12),
+            ),
+          ],
+        ),
+      'instagram' => CustomPaint(
+          size: const Size.square(25),
+          painter: _PlaylistInstagramGlyphPainter(color),
+        ),
+      'snapchat' => CustomPaint(
+          size: const Size.square(25),
+          painter: _PlaylistSnapchatGlyphPainter(color),
+        ),
+      'facebook' => Text(
+          'f',
+          style: TextStyle(
+            color: color,
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            height: 0.95,
+          ),
+        ),
+      'x' => Text(
+          'X',
+          style: TextStyle(
+            color: color,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            height: 1,
+          ),
+        ),
+      _ => Icon(Icons.public_rounded, color: color, size: 22),
+    };
+  }
+}
+
+class _PlaylistInstagramGlyphPainter extends CustomPainter {
+  const _PlaylistInstagramGlyphPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        (Offset.zero & size).deflate(3),
+        const Radius.circular(6),
+      ),
+      stroke,
+    );
+    canvas.drawCircle(size.center(Offset.zero), size.width * 0.18, stroke);
+    canvas.drawCircle(
+      Offset(size.width * 0.70, size.height * 0.30),
+      1.6,
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlaylistInstagramGlyphPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+class _PlaylistSnapchatGlyphPainter extends CustomPainter {
+  const _PlaylistSnapchatGlyphPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.3
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    final w = size.width;
+    final h = size.height;
+    final path = Path()
+      ..moveTo(w * 0.50, h * 0.14)
+      ..cubicTo(w * 0.28, h * 0.14, w * 0.26, h * 0.34, w * 0.27, h * 0.50)
+      ..cubicTo(w * 0.24, h * 0.58, w * 0.17, h * 0.61, w * 0.11, h * 0.63)
+      ..cubicTo(w * 0.20, h * 0.69, w * 0.24, h * 0.70, w * 0.27, h * 0.79)
+      ..cubicTo(w * 0.35, h * 0.76, w * 0.40, h * 0.86, w * 0.50, h * 0.86)
+      ..cubicTo(w * 0.60, h * 0.86, w * 0.65, h * 0.76, w * 0.73, h * 0.79)
+      ..cubicTo(w * 0.76, h * 0.70, w * 0.80, h * 0.69, w * 0.89, h * 0.63)
+      ..cubicTo(w * 0.83, h * 0.61, w * 0.76, h * 0.58, w * 0.73, h * 0.50)
+      ..cubicTo(w * 0.74, h * 0.34, w * 0.72, h * 0.14, w * 0.50, h * 0.14);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlaylistSnapchatGlyphPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

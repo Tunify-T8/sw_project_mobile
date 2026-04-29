@@ -44,7 +44,7 @@ const _desktopLibraryMenuItems = [
   'Following',
   'Stations',
   'Open shared link',
-  'Your insights',
+  'Listening history',
   'Your uploads',
 ];
 
@@ -469,7 +469,7 @@ class _DesktopLibraryMenu extends StatelessWidget {
       'Following' => Icons.people_outline,
       'Stations' => Icons.radio_outlined,
       'Open shared link' => Icons.link_rounded,
-      'Your insights' => Icons.insights_rounded,
+      'Listening history' => Icons.history_rounded,
       'Your uploads' => Icons.cloud_upload_outlined,
       _ => Icons.library_music_outlined,
     };

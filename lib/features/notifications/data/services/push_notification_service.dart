@@ -23,12 +23,30 @@ class PushNotificationService {
   Stream<String?> get onNotificationTap => _tapController.stream;
 
   bool _initialized = false;
+  Future<void>? _initFuture;
 
   /// Must be called once at app startup (in bootstrap).
   Future<void> init() async {
     if (_initialized) return;
-    _initialized = true;
+    if (!_canUseLocalNotifications) {
+      _initialized = true;
+      return;
+    }
 
+    final existing = _initFuture;
+    if (existing != null) return existing;
+
+    _initFuture = _initPlugin();
+    try {
+      await _initFuture;
+      _initialized = true;
+    } catch (_) {
+      _initFuture = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _initPlugin() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -64,6 +82,10 @@ class PushNotificationService {
     required String body,
     String? payload,
   }) async {
+    if (!_canUseLocalNotifications) return;
+
+    await init();
+
     const androidDetails = AndroidNotificationDetails(
       'tunify_notifications',
       'Notifications',
@@ -96,3 +118,5 @@ class PushNotificationService {
     _tapController.close();
   }
 }
+
+bool get _canUseLocalNotifications => Platform.isAndroid || Platform.isIOS;
