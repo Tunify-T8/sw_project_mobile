@@ -3,12 +3,37 @@ part of 'your_uploads_screen.dart';
 extension _YourUploadsScreenActions on _YourUploadsScreenState {
   /// Opens the first playable track and starts the full uploads queue.
   Future<void> _openFirst(List<UploadItem> items) async {
-    final first = items.firstWhere(
-      (item) => item.isPlayable,
-      orElse: () => items.first,
-    );
+    final playable = _playableUploads(items);
+    if (playable.isEmpty) return;
 
-    await openUploadItemPlayer(context, ref, first, queueItems: items);
+    await openUploadItemPlayer(
+      context,
+      ref,
+      playable.first,
+      queueItems: playable,
+      openScreen: false,
+    );
+  }
+
+  /// Opens a random playable upload and keeps the user on this screen.
+  Future<void> _openRandom(List<UploadItem> items) async {
+    final playable = _playableUploads(items);
+    if (playable.isEmpty) return;
+    final selected = playable[Random().nextInt(playable.length)];
+
+    await openUploadItemPlayer(
+      context,
+      ref,
+      selected,
+      queueItems: playable,
+      openScreen: false,
+    );
+  }
+
+  List<UploadItem> _playableUploads(List<UploadItem> items) {
+    return items
+        .where((item) => item.isPlayable && !item.isDeleted)
+        .toList(growable: false);
   }
 
   /// Tapping any tile in the uploads list should:
