@@ -32,31 +32,37 @@ class _LikeButtonState extends ConsumerState<LikeButton> {
     final state = ref.watch(engagementProvider(widget.trackId));
     final isLiked = state.engagement?.isLiked ?? false;
     final likeCount = state.engagement?.likeCount ?? 0;
+    final iconButton = IconButton(
+      key: const Key('like_button'),
+      onPressed: () =>
+          ref.read(engagementProvider(widget.trackId).notifier).toggleLike(),
+      icon: Icon(
+        isLiked ? Icons.favorite : Icons.favorite_border,
+        color: isLiked ? Colors.orange : Colors.white,
+      ),
+      alignment: Alignment.center,
+      constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+      padding: EdgeInsets.zero,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+    );
+
+    if (!widget.showCount) {
+      return SizedBox.square(dimension: 48, child: Center(child: iconButton));
+    }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Key: EngagementKeys.likeButton
-        IconButton(
-          key: const Key('like_button'),
-          onPressed: () => ref
-              .read(engagementProvider(widget.trackId).notifier)
-              .toggleLike(),
-          icon: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
+        iconButton,
+        Text(
+          likeCount.toString(),
+          style: TextStyle(
             color: isLiked ? Colors.orange : Colors.white,
+            fontSize: 15,
           ),
-          padding: EdgeInsets.zero,
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
         ),
-        if (widget.showCount)
-          Text(
-            likeCount.toString(),
-            style: TextStyle(
-              color: isLiked ? Colors.orange : Colors.white,
-              fontSize: 15,
-            ),
-          ),
       ],
     );
   }

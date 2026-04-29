@@ -31,8 +31,8 @@ class HomeRecentSection extends StatelessWidget {
     final crossAxisCount = width >= 1280
         ? 4
         : width >= 900
-            ? 3
-            : 2;
+        ? 3
+        : 2;
     final horizontalPadding = width >= 1024 ? 28.0 : 16.0;
     final childAspectRatio = width >= 1024 ? 3.2 : 2.85;
     final cards = <Widget>[];
@@ -63,10 +63,7 @@ class HomeRecentSection extends StatelessWidget {
 
     if (cards.isEmpty && latestTrack != null) {
       cards.add(
-        _RecentCard(
-          item: latestTrack!,
-          onTap: () => onOpenTrack(latestTrack!),
-        ),
+        _RecentCard(item: latestTrack!, onTap: () => onOpenTrack(latestTrack!)),
       );
     }
 
@@ -75,13 +72,13 @@ class HomeRecentSection extends StatelessWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 2.85,
+          childAspectRatio: childAspectRatio,
         ),
         delegate: SliverChildListDelegate(cards),
       ),

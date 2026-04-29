@@ -92,9 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 recentCount: historyTracks.length,
                 onOpenArtistHome: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ArtistHomeScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const ArtistHomeScreen()),
                   );
                 },
                 onStartUpload: () => startUploadFlow(context, ref),
@@ -103,9 +101,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
               ),
             ),
-            const SliverToBoxAdapter(
-              child: AdaptiveCenter(child: HomeLikesTile()),
-            ),
+            if (!isDesktop)
+              const SliverToBoxAdapter(
+                child: AdaptiveCenter(child: HomeLikesTile()),
+              ),
             SliverToBoxAdapter(
               child: AdaptiveCenter(
                 child: Padding(
@@ -143,6 +142,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
+            if (isDesktop)
+              const SliverToBoxAdapter(
+                child: AdaptiveCenter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 24),
+                    child: HomeLikesTile(),
+                  ),
+                ),
+              ),
             SliverToBoxAdapter(
               child: AdaptiveCenter(
                 child: HomeTrackHighlights(
@@ -205,10 +213,7 @@ class _HomeHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Colors.white.withValues(alpha: 0.05),
-            Colors.transparent,
-          ],
+          colors: [Colors.white.withValues(alpha: 0.05), Colors.transparent],
         ),
       ),
       child: SafeArea(
@@ -237,7 +242,6 @@ class _HomeHeader extends StatelessWidget {
                         greeting: greeting,
                         trackCount: trackCount,
                         recentCount: recentCount,
-                        onStartUpload: onStartUpload,
                       )
                     : Text(
                         greeting,
@@ -261,13 +265,11 @@ class _DesktopWelcome extends StatelessWidget {
     required this.greeting,
     required this.trackCount,
     required this.recentCount,
-    required this.onStartUpload,
   });
 
   final String greeting;
   final int trackCount;
   final int recentCount;
-  final VoidCallback onStartUpload;
 
   @override
   Widget build(BuildContext context) {
@@ -309,20 +311,6 @@ class _DesktopWelcome extends StatelessWidget {
           label: 'Recent plays',
           value: recentCount.toString(),
           icon: Icons.history_rounded,
-        ),
-        const SizedBox(width: 12),
-        FilledButton.icon(
-          onPressed: onStartUpload,
-          icon: const Icon(Icons.cloud_upload_outlined),
-          label: const Text('Upload'),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFFF5500),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
         ),
       ],
     );
