@@ -127,8 +127,8 @@ class ChatController extends Notifier<ChatState> {
       final repo = ref.read(messagingRepositoryProvider);
       await repo.connectRealtime();
       await repo.joinConversation(_conversationId);
-      // Unarchive locally — no backend unarchive endpoint exists, so we
-      // update the in-memory state so the conversation reappears in the list.
+      // Keep the conversation visible locally while this chat is open. Sending
+      // a real message persists the unarchive state on the backend.
       ref
           .read(conversationsControllerProvider.notifier)
           .unarchiveLocally(_conversationId);
@@ -271,6 +271,9 @@ class ChatController extends Notifier<ChatState> {
       final message = await ref
           .read(sendMessageUseCaseProvider)
           .call(_conversationId, draft);
+      await ref
+          .read(messagingRepositoryProvider)
+          .unarchiveConversation(_conversationId);
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
 
       final attributed = _attributeToMe(message);

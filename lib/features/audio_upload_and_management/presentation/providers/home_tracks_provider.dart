@@ -10,10 +10,7 @@ import '../../domain/entities/upload_item.dart';
 import 'library_uploads_provider.dart';
 
 class HomeTrackItem {
-  const HomeTrackItem({
-    required this.track,
-    this.likesCount,
-  });
+  const HomeTrackItem({required this.track, this.likesCount});
 
   final UploadItem track;
   final int? likesCount;
@@ -30,8 +27,11 @@ final homeTracksProvider = FutureProvider<List<HomeTrackItem>>((ref) async {
   final libraryItems = ref.watch(
     libraryUploadsProvider.select((state) => state.items),
   );
+  // Playback updates listening history optimistically. This section only uses
+  // history as a fallback source, so take a snapshot instead of subscribing and
+  // forcing recommendations back into a loading skeleton on every play.
   final historyTracks =
-      ref.watch(listeningHistoryProvider).asData?.value.tracks ??
+      ref.read(listeningHistoryProvider).asData?.value.tracks ??
       const <HistoryTrack>[];
   final store = ref.read(globalTrackStoreProvider);
 
