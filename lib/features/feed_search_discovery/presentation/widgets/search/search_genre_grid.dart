@@ -27,6 +27,8 @@ const _leftColumn = [
   _GenreItem('indie', 'Indie', 0xFF2D6CDF, 210, Icons.album),
   _GenreItem('country', 'Country', 0xFFFF8C42, 100, Icons.grass),
   _GenreItem('rock', 'Rock', 0xFFFF3D2E, 100, Icons.bolt),
+  _GenreItem('ambient', 'Ambient', 0xFF5E8C9E, 140, Icons.waves),
+  _GenreItem('classical', 'Classical', 0xFF8B5CF6, 210, Icons.theater_comedy),
 ];
 
 const _rightColumn = [
@@ -34,7 +36,21 @@ const _rightColumn = [
   _GenreItem('rnb', 'R&B', 0xFF0FA3B1, 100, Icons.audiotrack),
   _GenreItem('party', 'Party', 0xFFFF8C42, 140, Icons.celebration),
   _GenreItem('techno', 'Techno', 0xFFFF4FA3, 210, Icons.graphic_eq),
-  _GenreItem('feel_good', 'Feel Good', 0xFFFFD60A, 100, Icons.sentiment_very_satisfied),
+  _GenreItem('dance_edm', 'Dance & EDM', 0xFF00B8D9, 140, Icons.equalizer),
+  _GenreItem(
+    'dancehall',
+    'Dancehall',
+    0xFFFF6B35,
+    100,
+    Icons.local_fire_department,
+  ),
+  _GenreItem(
+    'feel_good',
+    'Feel Good',
+    0xFFFFD60A,
+    100,
+    Icons.sentiment_very_satisfied,
+  ),
   _GenreItem('healing_era', 'Healing Era', 0xFF2D6CDF, 140, Icons.favorite),
   _GenreItem('folk', 'Folk', 0xFFFF8C42, 210, Icons.music_note),
   _GenreItem('soul', 'Soul', 0xFF0FA3B1, 140, Icons.piano),

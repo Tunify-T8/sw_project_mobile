@@ -304,6 +304,16 @@ class RealSearchRepositoryImpl implements SearchRepository {
         colorValue: 0xFFFF8C42,
       ),
       SearchGenreEntity(id: 'rock', label: 'Rock', colorValue: 0xFFFF3D2E),
+      SearchGenreEntity(
+        id: 'ambient',
+        label: 'Ambient',
+        colorValue: 0xFF5E8C9E,
+      ),
+      SearchGenreEntity(
+        id: 'classical',
+        label: 'Classical',
+        colorValue: 0xFF8B5CF6,
+      ),
       // ── Right column ───────────────────────────────────────────────────────
       SearchGenreEntity(
         id: 'electronic',
@@ -313,6 +323,16 @@ class RealSearchRepositoryImpl implements SearchRepository {
       SearchGenreEntity(id: 'rnb', label: 'R&B', colorValue: 0xFF0FA3B1),
       SearchGenreEntity(id: 'party', label: 'Party', colorValue: 0xFFFF8C42),
       SearchGenreEntity(id: 'techno', label: 'Techno', colorValue: 0xFFFF4FA3),
+      SearchGenreEntity(
+        id: 'dance_edm',
+        label: 'Dance & EDM',
+        colorValue: 0xFF00B8D9,
+      ),
+      SearchGenreEntity(
+        id: 'dancehall',
+        label: 'Dancehall',
+        colorValue: 0xFFFF6B35,
+      ),
       SearchGenreEntity(
         id: 'feel_good',
         label: 'Feel Good',
@@ -441,10 +461,14 @@ class RealSearchRepositoryImpl implements SearchRepository {
     'indie': 'Indie',
     'country': 'Country',
     'rock': 'Rock',
+    'ambient': 'Ambient',
+    'classical': 'Classical',
     'electronic': 'Electronic',
     'rnb': 'R&B',
     'party': 'Party',
     'techno': 'Techno',
+    'dance_edm': 'Dance & EDM',
+    'dancehall': 'Dancehall',
     'feel_good': 'Feel Good',
     'healing_era': 'Healing Era',
     'folk': 'Folk',

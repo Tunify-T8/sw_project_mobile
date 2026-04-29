@@ -71,6 +71,7 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
             const Text('Something went wrong', style: TextStyle(color: Colors.white)),
             TextButton(
               key: Key('${widget.listType.name}_retry_button'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
               onPressed: _loadSuggestedUsers,
               child: const Text('Try Again'),
             ),
