@@ -53,6 +53,13 @@ extension _LibraryScreenActions on _LibraryScreenState {
       return;
     }
 
+    if (label == 'Listening history') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ListeningHistoryScreen()),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF1C1C1E),
