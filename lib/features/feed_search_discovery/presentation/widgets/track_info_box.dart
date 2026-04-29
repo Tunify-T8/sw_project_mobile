@@ -4,6 +4,8 @@ import '../../domain/entities/track_preview_entity.dart';
 import '../../../../../core/utils/navigation_utils.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../providers/feed_preview_playback_controller.dart';
 import '../utils/feed_track_playback.dart';
 import 'feed_play_button.dart';
 
@@ -14,6 +16,19 @@ class TrackInfoBox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final playerState = ref.watch(playerProvider).asData?.value;
+    final isCurrentMainTrack = playerState?.bundle?.trackId == track.trackId;
+    final previewState = ref.watch(feedPreviewPlaybackStateProvider);
+    final isCurrentPreviewTrack = previewState.trackId == track.trackId;
+    final progress = isCurrentMainTrack
+        ? (playerState?.normalizedProgress ?? 0.0)
+        : isCurrentPreviewTrack
+        ? previewState.progress
+        : 0.0;
+    final isPlaying =
+        (isCurrentMainTrack && playerState?.isPlaying == true) ||
+        (isCurrentPreviewTrack && previewState.isPlaying);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -104,8 +119,8 @@ class TrackInfoBox extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
                 child: FeedPlayButton(
-                  progress: 0,
-                  isPlaying: false,
+                  progress: progress,
+                  isPlaying: isPlaying,
                   onTap: () => playFeedTrack(context, ref, track),
                 ),
               ),

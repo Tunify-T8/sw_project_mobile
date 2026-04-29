@@ -9,12 +9,44 @@ import '../../../playback_streaming_engine/presentation/providers/player_reposit
 
 final feedPreviewPlaybackControllerProvider =
     Provider<FeedPreviewPlaybackController>((ref) {
-  // One controller is provided to the feed screen and disposed with Riverpod.
-  // It keeps preview audio lifecycle outside the feed widgets themselves.
-  final controller = FeedPreviewPlaybackController(ref);
-  ref.onDispose(controller.dispose);
-  return controller;
-});
+      // One controller is provided to the feed screen and disposed with Riverpod.
+      // It keeps preview audio lifecycle outside the feed widgets themselves.
+      final controller = FeedPreviewPlaybackController(ref);
+      ref.onDispose(controller.dispose);
+      return controller;
+    });
+
+final feedPreviewPlaybackStateProvider =
+    NotifierProvider<
+      FeedPreviewPlaybackStateNotifier,
+      FeedPreviewPlaybackState
+    >(FeedPreviewPlaybackStateNotifier.new);
+
+class FeedPreviewPlaybackStateNotifier
+    extends Notifier<FeedPreviewPlaybackState> {
+  @override
+  FeedPreviewPlaybackState build() => const FeedPreviewPlaybackState();
+
+  void update(FeedPreviewPlaybackState next) {
+    state = next;
+  }
+
+  void reset() {
+    state = const FeedPreviewPlaybackState();
+  }
+}
+
+class FeedPreviewPlaybackState {
+  const FeedPreviewPlaybackState({
+    this.trackId,
+    this.progress = 0,
+    this.isPlaying = false,
+  });
+
+  final String? trackId;
+  final double progress;
+  final bool isPlaying;
+}
 
 /// Owns an isolated [just_audio.AudioPlayer] used ONLY for the feed card
 /// "Tap to Preview" experience. Kept separate from the main playerProvider
@@ -26,8 +58,12 @@ class FeedPreviewPlaybackController {
   final just_audio.AudioPlayer _audio = just_audio.AudioPlayer();
 
   Timer? _stopTimer;
+  Timer? _progressTimer;
   int _requestId = 0;
   bool _disposed = false;
+  String? _previewTrackId;
+  int _previewStartOffsetSeconds = 0;
+  int _previewWindowSeconds = _previewLength.inSeconds;
 
   // Feed previews are capped to 30 seconds even when the full track is longer.
   static const Duration _previewLength = Duration(seconds: 30);
@@ -67,6 +103,13 @@ class FeedPreviewPlaybackController {
 
       // Long tracks preview from the middle; short tracks preview from the start.
       final offset = _middleOffsetSeconds(durationSeconds);
+      _previewTrackId = trackId;
+      _previewStartOffsetSeconds = offset;
+      _previewWindowSeconds = durationSeconds <= 0
+          ? _previewLength.inSeconds
+          : durationSeconds < _previewLength.inSeconds
+          ? durationSeconds
+          : _previewLength.inSeconds;
       if (offset > 0) {
         await _audio.seek(Duration(seconds: offset));
       }
@@ -74,6 +117,10 @@ class FeedPreviewPlaybackController {
 
       // This is the line that actually starts feed preview audio.
       await _audio.play();
+      _publishPreviewProgress(forcePlaying: true);
+      _progressTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        _publishPreviewProgress();
+      });
 
       // Auto-stop the preview after the capped preview length.
       _stopTimer = Timer(_previewLength, () {
@@ -95,9 +142,15 @@ class FeedPreviewPlaybackController {
   Future<void> _stopInternal() async {
     _stopTimer?.cancel();
     _stopTimer = null;
+    _progressTimer?.cancel();
+    _progressTimer = null;
     try {
       await _audio.stop();
     } catch (_) {}
+    _previewTrackId = null;
+    _previewStartOffsetSeconds = 0;
+    _previewWindowSeconds = _previewLength.inSeconds;
+    _ref.read(feedPreviewPlaybackStateProvider.notifier).reset();
   }
 
   // Dispose the feed-only audio player when the provider leaves scope.
@@ -106,9 +159,35 @@ class FeedPreviewPlaybackController {
     _disposed = true;
     _stopTimer?.cancel();
     _stopTimer = null;
+    _progressTimer?.cancel();
+    _progressTimer = null;
     try {
       await _audio.dispose();
     } catch (_) {}
+    _ref.read(feedPreviewPlaybackStateProvider.notifier).reset();
+  }
+
+  void _publishPreviewProgress({bool forcePlaying = false}) {
+    final trackId = _previewTrackId;
+    if (trackId == null) return;
+
+    final relativePosition =
+        _audio.position.inMilliseconds -
+        Duration(seconds: _previewStartOffsetSeconds).inMilliseconds;
+    final window = Duration(seconds: _previewWindowSeconds).inMilliseconds;
+    final progress = window <= 0
+        ? 0.0
+        : (relativePosition / window).clamp(0.0, 1.0).toDouble();
+
+    _ref
+        .read(feedPreviewPlaybackStateProvider.notifier)
+        .update(
+          FeedPreviewPlaybackState(
+            trackId: trackId,
+            progress: progress,
+            isPlaying: forcePlaying || _audio.playing,
+          ),
+        );
   }
 
   // Centre a 30s window on the midpoint when the track is long enough,

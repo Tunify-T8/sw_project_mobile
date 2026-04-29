@@ -24,6 +24,12 @@ class MetadataPermissionToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor = locked ? const Color(0xFF8A8A8A) : Colors.white;
+    final activeTrackColor = locked
+        ? const Color(0xFF31523C)
+        : _activeSelectionGreen;
+    final thumbColor = locked ? const Color(0xFFB0B0B0) : Colors.white;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
@@ -32,11 +38,7 @@ class MetadataPermissionToggleRow extends StatelessWidget {
           Expanded(
             child: Text(
               '$title\n$subtitle',
-              style: const TextStyle(
-                color: Colors.white,
-                height: 1.45,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: textColor, height: 1.45, fontSize: 16),
             ),
           ),
           const SizedBox(width: 16),
@@ -45,9 +47,9 @@ class MetadataPermissionToggleRow extends StatelessWidget {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: _activeSelectionGreen,
-              inactiveThumbColor: Colors.white,
+              activeThumbColor: thumbColor,
+              activeTrackColor: activeTrackColor,
+              inactiveThumbColor: thumbColor,
               inactiveTrackColor: const Color(0xFF2F2F2F),
             ),
           ),

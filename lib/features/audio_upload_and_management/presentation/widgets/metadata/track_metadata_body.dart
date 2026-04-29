@@ -97,9 +97,13 @@ class TrackMetadataBody extends ConsumerWidget {
                           onPickFromCamera: () =>
                               metadataNotifier.pickArtwork(fromCamera: true),
                         ),
-                        onReplaceAudio: ref
-                            .read(uploadProvider.notifier)
-                            .replaceCurrentAudioAndStartUpload,
+                        onReplaceAudio: () async {
+                          final replacement = await ref
+                              .read(uploadProvider.notifier)
+                              .replaceCurrentAudioAndStartUpload();
+                          if (replacement == null) return;
+                          metadataNotifier.setTitle(replacement.name);
+                        },
                         onCancelUpload: () => unawaited(onCancelUpload()),
                       ),
                       const SizedBox(height: 26),
