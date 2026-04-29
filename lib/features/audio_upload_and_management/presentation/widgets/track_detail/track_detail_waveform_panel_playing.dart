@@ -27,11 +27,34 @@ class _PlayingWaveform extends StatelessWidget {
       child: SizedBox(
         key: const ValueKey('waveform'),
         height: 250,
-        child: TrackDetailSoundcloudWaveform(
-          state: state,
-          bars: bars,
-          isLoading: isLoading,
-          progress: progress,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            TrackDetailSoundcloudWaveform(
+              state: state,
+              bars: bars,
+              isLoading: isLoading,
+              progress: progress,
+            ),
+            if (isLoading)
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.42),
+                  shape: BoxShape.circle,
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

@@ -175,8 +175,14 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final queue = current.queue!;
     final insertIndex = queue.currentIndex + 1;
-    final newIds = List<String>.from(queue.trackIds)..insert(insertIndex, trackId);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final newIds = List<String>.from(queue.trackIds)
+      ..insert(insertIndex, trackId);
+    final newOriginalIds = queue.originalTrackIds == null
+        ? null
+        : (List<String>.from(queue.originalTrackIds!)..add(trackId));
+    final next = current.copyWith(
+      queue: queue.copyWith(trackIds: newIds, originalTrackIds: newOriginalIds),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -214,8 +220,18 @@ extension PlayerNotifierQueue on PlayerNotifier {
     }
 
     final queue = current.queue!;
-    final newIds = List<String>.from(queue.trackIds)..add(trackId);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final newIds = List<String>.from(queue.trackIds)
+      ..insert(queue.currentIndex, trackId);
+    final newOriginalIds = queue.originalTrackIds == null
+        ? null
+        : (List<String>.from(queue.originalTrackIds!)..add(trackId));
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: queue.currentIndex + 1,
+        originalTrackIds: newOriginalIds,
+      ),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
