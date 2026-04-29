@@ -12,6 +12,17 @@ import 'package:software_project/features/messaging_track_sharing/domain/entitie
 import 'package:software_project/features/messaging_track_sharing/domain/entities/send_message_draft.dart';
 
 void main() {
+  test('unarchive uses the backend delete archive endpoint', () async {
+    final dio = _RecordingDio();
+    final api = MessagingApi(dio);
+
+    await api.unarchive('conversation-1');
+
+    expect(dio.requests, hasLength(1));
+    expect(dio.requests.single.method, 'DELETE');
+    expect(dio.requests.single.path, '/conversations/conversation-1/archive');
+  });
+
   test('sends each track attachment separately before the text', () async {
     final socket = _RecordingMessagingSocket();
     final repository = RealMessagingRepository(
@@ -98,6 +109,49 @@ void main() {
     expect(socket.sent[2]['type'], 'USER');
     expect(socket.sent[2]['userId'], 'user-1');
   });
+}
+
+class _RecordedRequest {
+  const _RecordedRequest(this.method, this.path);
+
+  final String method;
+  final String path;
+}
+
+class _RecordingDio extends Dio {
+  final requests = <_RecordedRequest>[];
+
+  @override
+  Future<Response<T>> delete<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    requests.add(_RecordedRequest('DELETE', path));
+    return Response<T>(
+      requestOptions: RequestOptions(path: path),
+      statusCode: 200,
+    );
+  }
+
+  @override
+  Future<Response<T>> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    requests.add(_RecordedRequest('POST', path));
+    return Response<T>(
+      requestOptions: RequestOptions(path: path),
+      statusCode: 200,
+    );
+  }
 }
 
 class _RecordingMessagingSocket implements MessagingSocket {
