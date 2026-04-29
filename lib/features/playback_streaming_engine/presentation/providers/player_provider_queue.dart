@@ -83,8 +83,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
         shuffle: shuffle,
         repeat: repeat,
       ),
-    ))
-        .copyWith(source: _queueSourceForContext(contextType));
+    )).copyWith(source: _queueSourceForContext(contextType));
 
     await loadTrack(
       startTrackId,
@@ -293,6 +292,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
     final api = ref.read(userTracksApiProvider);
     final fetched = await api.getUserTracks(artistUserId);
     if (fetched.isEmpty) return;
+    _cacheFetchedArtistTracks(fetched, ownerUserId: artistUserId);
 
     // The user may have moved on while the request was in flight.
     final after = _current;
@@ -375,9 +375,9 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final historyState = ref.read(listeningHistoryProvider).asData?.value;
     final historyTrack = historyState?.tracks.cast<HistoryTrack?>().firstWhere(
-          (track) => track?.trackId == trackId,
-          orElse: () => null,
-        );
+      (track) => track?.trackId == trackId,
+      orElse: () => null,
+    );
 
     if (historyTrack == null) {
       return null;
@@ -404,5 +404,39 @@ extension PlayerNotifierQueue on PlayerNotifier {
       case PlaybackContextType.track:
         return QueueSource.singleTrack;
     }
+  }
+
+  void _cacheFetchedArtistTracks(
+    List<UserTrackSummaryDto> tracks, {
+    required String ownerUserId,
+  }) {
+    final store = GlobalTrackStore.instance;
+    for (final track in tracks) {
+      if (!track.isPlayable || track.id.trim().isEmpty) continue;
+      final title = track.title.trim();
+      final artist = track.artistName.trim();
+      store.update(
+        UploadItem(
+          id: track.id,
+          title: title.isEmpty ? 'Track' : title,
+          artistDisplay: artist,
+          durationLabel: _formatQueueDuration(track.durationSeconds),
+          durationSeconds: track.durationSeconds,
+          artworkUrl: track.coverUrl,
+          visibility: UploadVisibility.public,
+          status: UploadProcessingStatus.finished,
+          isExplicit: false,
+          createdAt: DateTime.now(),
+        ),
+        ownerUserId: ownerUserId,
+      );
+    }
+  }
+
+  String _formatQueueDuration(int totalSeconds) {
+    final safe = totalSeconds < 0 ? 0 : totalSeconds;
+    final minutes = safe ~/ 60;
+    final seconds = safe % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

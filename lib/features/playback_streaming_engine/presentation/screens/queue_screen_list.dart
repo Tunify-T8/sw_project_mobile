@@ -444,7 +444,9 @@ class _QueueTrackTileState extends ConsumerState<_QueueTrackTile>
 
   @override
   Widget build(BuildContext context) {
-    final info = _resolveTrackInfo(widget.trackId, ref);
+    final hydratedInfo = ref.watch(_queueTrackInfoProvider(widget.trackId));
+    final info =
+        hydratedInfo.asData?.value ?? _resolveTrackInfo(widget.trackId, ref);
 
     return SizedBox(
       key: widget.key,
@@ -619,6 +621,63 @@ class _TrackInfo {
   final String? coverUrl;
 }
 
+final _queueTrackInfoProvider = FutureProvider.autoDispose
+    .family<_TrackInfo, String>((ref, trackId) async {
+      final stored = ref.read(globalTrackStoreProvider).find(trackId);
+      if (stored != null) {
+        return _TrackInfo(
+          title: stored.title,
+          artist: stored.artistDisplay,
+          coverUrl: stored.artworkUrl,
+        );
+      }
+
+      final historyTracks =
+          ref.read(listeningHistoryProvider).asData?.value.tracks ?? const [];
+      for (final track in historyTracks) {
+        if (track.trackId == trackId) {
+          return _TrackInfo(
+            title: track.title,
+            artist: track.artist.name,
+            coverUrl: track.coverUrl,
+          );
+        }
+      }
+
+      if (trackId.startsWith('track-')) {
+        return _TrackInfo(title: 'Track $trackId', artist: '');
+      }
+
+      final bundle = await ref
+          .read(playerRepositoryProvider)
+          .getPlaybackBundle(trackId);
+      final artistName = bundle.artist.name.trim();
+      final coverUrl = bundle.coverUrl.trim().isEmpty ? null : bundle.coverUrl;
+      final title = bundle.title.trim().isEmpty ? 'Track' : bundle.title.trim();
+
+      ref
+          .read(globalTrackStoreProvider)
+          .update(
+            UploadItem(
+              id: bundle.trackId,
+              title: title,
+              artistDisplay: artistName,
+              durationLabel: _formatQueueDuration(bundle.durationSeconds),
+              durationSeconds: bundle.durationSeconds,
+              artworkUrl: coverUrl,
+              visibility: UploadVisibility.public,
+              status: UploadProcessingStatus.finished,
+              isExplicit: false,
+              createdAt: DateTime.now(),
+            ),
+            ownerUserId: bundle.artist.id.trim().isEmpty
+                ? null
+                : bundle.artist.id.trim(),
+          );
+
+      return _TrackInfo(title: title, artist: artistName, coverUrl: coverUrl);
+    });
+
 _TrackInfo _resolveTrackInfo(String trackId, WidgetRef ref) {
   // 1. GlobalTrackStore (uploaded tracks — fastest, in-memory)
   final stored = ref.read(globalTrackStoreProvider).find(trackId);
@@ -644,5 +703,15 @@ _TrackInfo _resolveTrackInfo(String trackId, WidgetRef ref) {
   }
 
   // 3. Fall back to ID (unknown track not yet in local stores)
+  if (trackId.startsWith('track-')) {
+    return _TrackInfo(title: 'Track $trackId', artist: '');
+  }
   return const _TrackInfo(title: 'Track', artist: '');
+}
+
+String _formatQueueDuration(int totalSeconds) {
+  final safe = totalSeconds < 0 ? 0 : totalSeconds;
+  final minutes = safe ~/ 60;
+  final seconds = safe % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
