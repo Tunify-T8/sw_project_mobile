@@ -89,6 +89,7 @@ class _ArtistToolPaywallSheetState
           ),
           actions: [
             TextButton(
+              key: const Key('artist_tool_paywall_unavailable_ok_button'),
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('OK'),
             ),
@@ -151,6 +152,7 @@ class _ArtistToolPaywallSheetState
     );
 
     return Container(
+      key: Key('artist_tool_paywall_sheet_${widget.kind.name}'),
       decoration: const BoxDecoration(
         color: Color(0xFF0F0F10),
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
@@ -201,6 +203,7 @@ class _ArtistToolPaywallSheetState
               ),
               const SizedBox(height: 22),
               _ArtistToolPaywallMessage(
+                key: Key('artist_tool_paywall_message_${widget.kind.name}'),
                 kind: widget.kind,
                 data: data,
                 uploadMinutesLimit: widget.uploadMinutesLimit,

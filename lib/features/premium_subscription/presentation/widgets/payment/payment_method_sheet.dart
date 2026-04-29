@@ -133,6 +133,7 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
     final errorMessage = sheetState.errorMessage;
 
     return SafeArea(
+      key: const Key('payment_method_sheet'),
       child: Padding(
         padding: EdgeInsets.only(left: 20, right: 20),
         child: Column(
@@ -147,6 +148,7 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
                   : errorMessage != null
                   ? 'Payment Failed'
                   : 'Payment method',
+              key: const Key('payment_sheet_title'),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -158,11 +160,13 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
 
             if (isSuccessful)
               PaymentResult(
+                key: const Key('payment_success_result'),
                 responseMessage: resultMessage ?? 'Subscription activated',
                 isSuccessful: true,
               )
             else if (errorMessage != null)
               PaymentResult(
+                key: const Key('payment_error_result'),
                 responseMessage: "Couldn't process payment",
                 isSuccessful: false,
               )
@@ -172,10 +176,12 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
                     .map(
                       (method) => Expanded(
                         child: Padding(
+                          key: Key('payment_method_option_${method.name}_slot'),
                           padding: EdgeInsets.only(
                             right: (method == PaymentMethodType.apple) ? 0 : 8,
                           ),
                           child: PaymentOption(
+                            key: Key('payment_method_option_${method.name}'),
                             label: _methodLabel(method),
                             icon: _methodIcon(method),
                             isSelected: (selectedMethod == method),
@@ -210,6 +216,7 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
               else
                 Text(
                   '${_methodLabel(selectedMethod)} coming soon.',
+                  key: Key('payment_method_unavailable_${selectedMethod.name}'),
                   style: const TextStyle(color: Colors.white70, fontSize: 15),
                 ),
 
@@ -224,6 +231,7 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
                   ),
                   Text(
                     widget.price,
+                    key: const Key('payment_total_price'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -239,6 +247,7 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
             SizedBox(
               width: double.infinity,
               child: TextButton(
+                key: const Key('payment_continue_button'),
                 onPressed: isProcessing
                     ? null
                     : isSuccessful

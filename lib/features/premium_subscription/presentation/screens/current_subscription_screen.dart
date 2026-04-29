@@ -71,6 +71,7 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
     final subscription = state.currentSubscription;
 
     return Scaffold(
+      key: const Key('current_subscription_screen'),
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Padding(
@@ -79,10 +80,11 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const UpgradeImage(),
+                const UpgradeImage(key: Key('current_subscription_image')),
 
                 Text(
                   _planName(subscription.tier),
+                  key: const Key('current_subscription_plan_name'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 29,
@@ -95,6 +97,7 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
 
                 Text(
                   _billingLabel(subscription),
+                  key: const Key('current_subscription_billing_label'),
                   style: const TextStyle(color: Colors.white70, fontSize: 15),
                 ),
 
@@ -102,6 +105,7 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
 
                 for (final feature in _featureLabels(subscription.features))
                   Padding(
+                    key: Key('current_subscription_feature_$feature'),
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Row(
                       children: [
@@ -129,6 +133,7 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
+                    key: const Key('current_subscription_see_more_plans_button'),
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -155,6 +160,7 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
             
                 Center(
                   child: TextButton(
+                    key: const Key('current_subscription_cancel_button'),
                     onPressed: state.isCancelling
                         ? null
                         : () => ref

@@ -21,13 +21,18 @@ class _FaqSectionState extends State<FaqSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Frequently asked questions", style: _titleTextStyle),
+        Text(
+          "Frequently asked questions",
+          key: const Key('subscription_faq_title'),
+          style: _titleTextStyle,
+        ),
         const SizedBox(height: 14),
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: Column(
             children: [
               ExpansionTile(
+                key: const Key('subscription_faq_fan_artist_tile'),
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
                 backgroundColor: Colors.transparent,
@@ -61,6 +66,7 @@ class _FaqSectionState extends State<FaqSection> {
               ),
 
               ExpansionTile(
+                key: const Key('subscription_faq_annual_family_tile'),
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
                 backgroundColor: Colors.transparent,

@@ -70,8 +70,10 @@ class _SubscriptionPlansScreenState
     }
 
     return Scaffold(
+      key: const Key('subscription_plans_screen'),
       backgroundColor: Colors.black,
       body: ListView(
+        key: const Key('subscription_plans_scroll'),
         padding: EdgeInsets.zero,
         children: [
           Container(
@@ -89,6 +91,7 @@ class _SubscriptionPlansScreenState
                   Align(
                     alignment: Alignment.topRight,
                     child: IconButton(
+                      key: const Key('subscription_plans_close_button'),
                       icon: const Icon(
                         Icons.close,
                         color: Colors.white,
@@ -122,6 +125,7 @@ class _SubscriptionPlansScreenState
                       height: 450,
                       width: 380,
                       child: SubscriptionPlanContent(
+                        key: const Key('subscription_plan_content'),
                         state: state,
                         paidPlans: paidPlans,
                         pageViewController: _pageViewController,
@@ -153,6 +157,7 @@ class _SubscriptionPlansScreenState
 
                   if (_tabController != null)
                     Center(
+                      key: const Key('subscription_plan_page_indicator'),
                       child: TabPageSelector(
                         controller: _tabController!,
                         color: const Color(0xFF7A2D63),
@@ -189,12 +194,12 @@ class _SubscriptionPlansScreenState
 
           SizedBox(height: 8),
 
-          SubscriptionTestimonial(),
+          SubscriptionTestimonial(key: const Key('subscription_testimonial')),
 
           const SizedBox(height: 60),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: FaqSection(),
+            child: FaqSection(key: const Key('subscription_faq_section')),
           ),
         ],
       ),

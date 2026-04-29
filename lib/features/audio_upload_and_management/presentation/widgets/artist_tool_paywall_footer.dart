@@ -21,6 +21,7 @@ class ArtistToolPaywallFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      key: const Key('artist_tool_paywall_footer'),
       children: [
         Align(
           alignment: Alignment.centerLeft,
@@ -36,6 +37,7 @@ class ArtistToolPaywallFooter extends StatelessWidget {
           ),
         ),
         SubscriptionRestrictionsLink(
+          key: const Key('artist_tool_paywall_restrictions'),
           subscriptionPlan: SubscriptionTier.artistpro,
         ),
         const SizedBox(height: 28),
@@ -43,6 +45,7 @@ class ArtistToolPaywallFooter extends StatelessWidget {
           width: double.infinity,
           height: 56,
           child: OutlinedButton(
+            key: const Key('artist_tool_paywall_subscribe_button'),
             onPressed: isLoading ? null : onSubscribe,
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.white, width: 1.5),
@@ -60,6 +63,7 @@ class ArtistToolPaywallFooter extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextButton(
+          key: const Key('artist_tool_paywall_maybe_later_button'),
           onPressed: () => Navigator.of(context).pop(),
           child: const Text(
             'Maybe later',
