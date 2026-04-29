@@ -155,6 +155,7 @@ class MockPlaylistRepository extends Mock implements PlaylistRepository {
   @override
   Future<PlaylistEntity> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -164,6 +165,7 @@ class MockPlaylistRepository extends Mock implements PlaylistRepository {
     return super.noSuchMethod(
       Invocation.method(#updateCollection, [], {
         #id: id,
+        #type: type,
         #title: title,
         #description: description,
         #privacy: privacy,
@@ -255,6 +257,24 @@ class MockPlaylistRepository extends Mock implements PlaylistRepository {
   Future<void> unlikeCollection(String id) {
     return super.noSuchMethod(
       Invocation.method(#unlikeCollection, [id]),
+      returnValue: Future<void>.value(),
+      returnValueForMissingStub: Future<void>.value(),
+    ) as Future<void>;
+  }
+
+  @override
+  Future<void> followCollection(String id) {
+    return super.noSuchMethod(
+      Invocation.method(#followCollection, [id]),
+      returnValue: Future<void>.value(),
+      returnValueForMissingStub: Future<void>.value(),
+    ) as Future<void>;
+  }
+
+  @override
+  Future<void> unfollowCollection(String id) {
+    return super.noSuchMethod(
+      Invocation.method(#unfollowCollection, [id]),
       returnValue: Future<void>.value(),
       returnValueForMissingStub: Future<void>.value(),
     ) as Future<void>;

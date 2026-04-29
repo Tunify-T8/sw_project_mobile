@@ -159,7 +159,7 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ── Like ────────────────────────────────────────────────
+                  //  Like 
                   YourUploadsOptionRow(
                     icon: isLiked ? Icons.favorite : Icons.favorite_border,
                     label: isLiked ? 'Unlike' : 'Like',
@@ -172,7 +172,7 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
                     },
                   ),
 
-                  // ── Play Next ───────────────────────────────────────────
+                  //  Play Next 
                   YourUploadsOptionRow(
                     icon: Icons.queue_play_next_outlined,
                     label: 'Play Next',
@@ -184,7 +184,7 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
                     },
                   ),
 
-                  // ── Play Last ───────────────────────────────────────────
+                  //  Play Last 
                   YourUploadsOptionRow(
                     icon: Icons.add_to_queue_outlined,
                     label: 'Play Last',
@@ -202,7 +202,7 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
                     onTap: () => Navigator.pop(context),
                   ),
 
-                  // ── Remove from playlist ────────────────────────────────
+                  //  Remove from playlist 
                   YourUploadsOptionRow(
                     icon: Icons.playlist_remove,
                     label: 'Remove from playlist',
@@ -220,7 +220,7 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
 
                   const Divider(color: Colors.white12, height: 1),
 
-                  // ── Go to artist profile ────────────────────────────────
+                  //  Go to artist profile 
                   YourUploadsOptionRow(
                     icon: Icons.person_outline,
                     label: 'Go to artist profile',

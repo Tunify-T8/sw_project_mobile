@@ -107,7 +107,7 @@ class _TrackReorderScreenState extends ConsumerState<TrackReorderScreen> {
   }
 }
 
-// ─── Row ──────────────────────────────────────────────────────────────────────
+//Row of the reorder list (info and such)
 
 class _ReorderRow extends StatelessWidget {
   const _ReorderRow({super.key, required this.track});
