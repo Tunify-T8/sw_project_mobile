@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
+import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/network_list_type.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/social_relation_entity.dart';
 import 'package:software_project/features/followers_and_social_graph/domain/entities/social_user_entity.dart';
@@ -44,6 +46,7 @@ void main() {
     await tester.pump();
     expect(repository.followed, contains('u3'));
 
+    repository.blockedStatusIds.add('u4');
     await tester.pumpWidget(_wrap(
       repository: repository,
       child: const RelationshipButton(
@@ -54,6 +57,9 @@ void main() {
     ));
     expect(find.byKey(const Key('block_button_u4')), findsOneWidget);
     expect(find.text('Unblock'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('block_button_u4')));
+    await tester.pump();
+    expect(repository.unblocked, contains('u4'));
   });
 
   testWidgets('UserSocialTile renders user details action keys and notification key', (tester) async {
@@ -94,6 +100,7 @@ void main() {
 
   testWidgets('UserSocialTile hides relationship controls for my own user', (tester) async {
     await tester.pumpWidget(_wrap(
+      currentUserId: 'me',
       child: const UserSocialTile(
         user: SocialUserEntity(id: 'me', username: 'myself'),
         listType: NetworkListType.following,
@@ -103,6 +110,28 @@ void main() {
 
     expect(find.byKey(const Key('follow_button_me')), findsNothing);
     expect(find.byKey(const Key('notification_button_me')), findsNothing);
+  });
+
+  testWidgets('UserSocialTile uses network avatar when avatar URL is present', (tester) async {
+    await tester.pumpWidget(_wrap(
+      child: const UserSocialTile(
+        user: SocialUserEntity(
+          id: 'avatar-user',
+          username: 'has_avatar',
+          avatarUrl: 'https://example.com/avatar.png',
+        ),
+        listType: NetworkListType.followers,
+      ),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNotNull);
+
+    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar).first);
+    expect(avatar.backgroundImage, isA<NetworkImage>());
+    expect(find.descendant(
+      of: find.byType(CircleAvatar).first,
+      matching: find.byIcon(Icons.person),
+    ), findsNothing);
   });
 
   testWidgets('SuggestedUserItem has stable item and nested follow button keys', (tester) async {
@@ -118,6 +147,23 @@ void main() {
     expect(find.byKey(const Key('follow_button_u6')), findsOneWidget);
     await tester.tap(find.text('suggested'));
     expect(tapped, isTrue);
+  });
+
+  testWidgets('SuggestedUserItem uses network avatar when avatar URL is present', (tester) async {
+    await tester.pumpWidget(_wrap(
+      child: SuggestedUserItem(
+        user: const SocialUserEntity(
+          id: 'u7',
+          username: 'avatar suggested',
+          avatarUrl: 'https://example.com/suggested.png',
+        ),
+      ),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNotNull);
+
+    final avatar = tester.widget<CircleAvatar>(find.byType(CircleAvatar).first);
+    expect(avatar.backgroundImage, isA<NetworkImage>());
   });
 
   testWidgets('empty error and true-friends widgets render expected keys', (tester) async {
@@ -138,10 +184,10 @@ void main() {
     ));
 
     expect(find.text('No users found'), findsOneWidget);
-    expect(find.byKey(const Key('retry_button')), findsOneWidget);
+    expect(find.byKey(const Key('followers_social_graph_retry_button')), findsOneWidget);
     expect(find.byKey(const Key('true_friends_list_tile')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('retry_button')));
+    await tester.tap(find.byKey(const Key('followers_social_graph_retry_button')));
     await tester.tap(find.byKey(const Key('true_friends_list_tile')));
     expect(retried, isTrue);
     expect(opened, isTrue);
@@ -200,7 +246,7 @@ void main() {
     ));
 
     expect(find.byKey(const Key('network_lists_screen_following')), findsOneWidget);
-    expect(find.byKey(const Key('loading_indicator')), findsOneWidget);
+    expect(find.byKey(const Key('followers_social_graph_loading_indicator')), findsOneWidget);
     await tester.pump();
 
     expect(find.byKey(const Key('following_refresh')), findsOneWidget);
@@ -217,7 +263,7 @@ void main() {
     ));
     await tester.pump();
 
-    expect(find.byKey(const Key('error_state')), findsOneWidget);
+    expect(find.byKey(const Key('followers_social_graph_error_state')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(_wrap(
@@ -227,7 +273,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.byKey(const Key('empty_state')), findsOneWidget);
+    expect(find.byKey(const Key('followers_social_graph_empty_state')), findsOneWidget);
   });
 
   testWidgets('BlockedUsersScreen renders blocked users list and empty state keys', (tester) async {
@@ -242,7 +288,7 @@ void main() {
     ));
 
     expect(find.byKey(const Key('blocked_users_screen')), findsOneWidget);
-    expect(find.byKey(const Key('loading_indicator')), findsOneWidget);
+    expect(find.byKey(const Key('followers_social_graph_loading_indicator')), findsOneWidget);
     await tester.pump();
 
     expect(find.byKey(const Key('blocked_users_refresh')), findsOneWidget);
@@ -257,12 +303,13 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.byKey(const Key('empty_state')), findsOneWidget);
+    expect(find.byKey(const Key('followers_social_graph_empty_state')), findsOneWidget);
   });
 }
 
 Widget _wrap({
   SocialGraphRepository? repository,
+  String? currentUserId,
   required Widget child,
 }) {
   return ProviderScope(
@@ -270,14 +317,41 @@ Widget _wrap({
       socialGraphRepositoryProvider.overrideWithValue(
         repository ?? FakeWidgetRepository(),
       ),
+      authControllerProvider.overrideWith(
+        () => _TestAuthController(currentUserId),
+      ),
     ],
     child: MaterialApp(home: Scaffold(body: child)),
   );
 }
 
+class _TestAuthController extends AuthController {
+  _TestAuthController(this._currentUserId);
+
+  final String? _currentUserId;
+
+  @override
+  AsyncValue<AuthUserEntity?> build() {
+    final currentUserId = _currentUserId;
+    return AsyncData(
+      currentUserId == null
+          ? null
+          : AuthUserEntity(
+              id: currentUserId,
+              email: '$currentUserId@example.com',
+              username: currentUserId,
+              role: 'listener',
+              isVerified: true,
+            ),
+    );
+  }
+}
+
 class FakeWidgetRepository implements SocialGraphRepository {
   Object? error;
   final followed = <String>[];
+  final unblocked = <String>[];
+  final blockedStatusIds = <String>{};
   List<SocialUserEntity> myFollowing = const [];
   List<SocialUserEntity> myFollowers = const [];
   List<SocialUserEntity> userFollowing = const [];
@@ -295,7 +369,11 @@ class FakeWidgetRepository implements SocialGraphRepository {
   @override
   Future<SocialRelationEntity> getFollowStatus(String userId) async {
     _throwIfNeeded();
-    return SocialRelationEntity(targetUserId: userId, isFollowing: false);
+    return SocialRelationEntity(
+      targetUserId: userId,
+      isFollowing: false,
+      isBlocked: blockedStatusIds.contains(userId),
+    );
   }
 
   @override
@@ -310,7 +388,9 @@ class FakeWidgetRepository implements SocialGraphRepository {
   Future<void> blockUser(String userId) async {}
 
   @override
-  Future<void> unblockUser(String userId) async {}
+  Future<void> unblockUser(String userId) async {
+    unblocked.add(userId);
+  }
 
   @override
   Future<List<SocialUserEntity>> getUserFollowers({
@@ -366,5 +446,10 @@ class FakeWidgetRepository implements SocialGraphRepository {
   Future<List<SocialUserEntity>> getSuggestedArtists({int page = 1, int limit = 20}) async {
     _throwIfNeeded();
     return suggestedArtists;
+  }
+
+  @override
+  Future<bool> doesUserFollowMe(String otherUserId, String myUserId) async {
+    return false;
   }
 }

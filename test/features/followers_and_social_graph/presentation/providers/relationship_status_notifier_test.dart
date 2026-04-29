@@ -193,4 +193,9 @@ class FakeRelationshipRepository implements SocialGraphRepository {
 
   @override
   Future<List<SocialUserEntity>> getSuggestedArtists({int page = 1, int limit = 20}) async => const [];
+
+  @override
+  Future<bool> doesUserFollowMe(String otherUserId, String myUserId) async {
+    return false;
+  }
 }
