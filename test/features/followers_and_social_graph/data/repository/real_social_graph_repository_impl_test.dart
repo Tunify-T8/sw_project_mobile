@@ -87,6 +87,58 @@ void main() {
       'suggestedArtists:2:3',
     ]));
   });
+
+  test('doesUserFollowMe returns true when my user appears in following page', () async {
+    api.followingPages = {
+      1: List.generate(
+        100,
+        (index) => SocialUserDTO(id: 'other-$index', username: 'user $index'),
+      ),
+      2: const [
+        SocialUserDTO(id: 'me', username: 'current user'),
+      ],
+    };
+
+    final result = await repository.doesUserFollowMe('other', 'me');
+
+    expect(result, isTrue);
+    expect(api.calls, [
+      'userFollowing:other:1:100',
+      'userFollowing:other:2:100',
+    ]);
+  });
+
+  test('doesUserFollowMe returns false after short page without match', () async {
+    api.followingPages = {
+      1: const [
+        SocialUserDTO(id: 'someone-else', username: 'other user'),
+      ],
+    };
+
+    final result = await repository.doesUserFollowMe('other', 'me');
+
+    expect(result, isFalse);
+    expect(api.calls, ['userFollowing:other:1:100']);
+  });
+
+  test('doesUserFollowMe returns false after max full pages without match', () async {
+    api.followingPages = {
+      for (var page = 1; page <= 20; page++)
+        page: List.generate(
+          100,
+          (index) => SocialUserDTO(
+            id: 'page-$page-user-$index',
+            username: 'user $index',
+          ),
+        ),
+    };
+
+    final result = await repository.doesUserFollowMe('other', 'me');
+
+    expect(result, isFalse);
+    expect(api.calls.length, 20);
+    expect(api.calls.last, 'userFollowing:other:20:100');
+  });
 }
 
 class FakeSocialApi extends SocialApi {
@@ -98,6 +150,7 @@ class FakeSocialApi extends SocialApi {
     isBlocked: false,
   );
   List<SocialUserDTO> users = const [];
+  Map<int, List<SocialUserDTO>>? followingPages;
 
   @override
   Future<void> followUser(String userId) async {
@@ -142,6 +195,10 @@ class FakeSocialApi extends SocialApi {
     int limit = 20,
   }) async {
     calls.add('userFollowing:$userId:$page:$limit');
+    final pages = followingPages;
+    if (pages != null) {
+      return pages[page] ?? const [];
+    }
     return users;
   }
 

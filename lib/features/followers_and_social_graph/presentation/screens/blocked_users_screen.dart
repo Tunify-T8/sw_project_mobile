@@ -56,7 +56,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
         backgroundColor: const Color(0xFF121212),
         foregroundColor: Colors.white,
         leading: IconButton(
-          key: const Key('back_button'),
+          key: const Key('followers_social_graph_back_button'),
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
         ),
@@ -64,11 +64,11 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
       ),
       body: SafeArea(
         child: showInitialLoading
-            ? const Center(key: Key('loading_indicator'), child: CircularProgressIndicator())
+            ? const Center(key: Key('followers_social_graph_loading_indicator'), child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(key: const Key('error_state'), onRetry: _loadBlockedUsers)
+            ? NetworkListsErrorState(key: const Key('followers_social_graph_error_state'), onRetry: _loadBlockedUsers)
             : showEmpty
-            ? const NetworkListsEmptyState(key: Key('empty_state'))
+            ? const NetworkListsEmptyState(key: Key('followers_social_graph_empty_state'))
             : RefreshIndicator(
                 key: const Key('blocked_users_refresh'),
                 onRefresh: _loadBlockedUsers,

@@ -248,4 +248,9 @@ class FakeSocialGraphRepository implements SocialGraphRepository {
   Future<SocialRelationEntity> getFollowStatus(String userId) async {
     return SocialRelationEntity(targetUserId: userId, isFollowing: false);
   }
+
+  @override
+  Future<bool> doesUserFollowMe(String otherUserId, String myUserId) async {
+    return false;
+  }
 }

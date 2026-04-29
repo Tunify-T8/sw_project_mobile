@@ -113,7 +113,7 @@ class MockSocialGraphService {
         'isVerified': number % 4 == 0,
         'isFollowing': false,
         'isBlocked': false,
-        'genre': ?genre,
+        'genre': genre,
       };
     });
   }
