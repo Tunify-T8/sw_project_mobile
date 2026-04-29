@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/storage/safe_secure_storage.dart';
@@ -15,6 +15,7 @@ import '../../../playback_streaming_engine/domain/entities/playback_status.dart'
 import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/domain/entities/track_artist_summary.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_local_file_guard.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../data/dto/upload_item_dto.dart';
@@ -33,12 +34,17 @@ Future<void> openUploadItemPlayer(
   List<UploadItem>? queueItems,
   bool openScreen = true,
 }) async {
-  if (!item.isPlayable) return;
-
   await _ensureCachedUploadsHydrated(ref);
 
-  final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
-  _cacheUploadItems(ref, [preparedItem, ...?queueItems]);
+  final preparedItem = await _preparePlayableTrackSurfaceItem(ref, item);
+  if (!preparedItem.isPlayable) return;
+
+  final preparedQueueItems = _mergeQueueWithCachedItems(
+    ref,
+    preparedItem,
+    queueItems,
+  );
+  _cacheUploadItems(ref, [preparedItem, ...preparedQueueItems]);
 
   if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
     _optimisticallyPromoteHistory(ref, preparedItem);
@@ -47,7 +53,7 @@ Future<void> openUploadItemPlayer(
   await ensureUploadItemPlayback(
     ref,
     preparedItem,
-    queueItems: queueItems,
+    queueItems: preparedQueueItems,
     autoPlay: true,
   );
 
@@ -79,14 +85,13 @@ Future<void> openHistorySourcedPlayer(
   bool openScreen = true,
   double? initialPositionSeconds,
 }) async {
-  if (!item.isPlayable) return;
-
   await _ensureCachedUploadsHydrated(ref);
 
   final preparedItem = await _resolvePrivateItemForPlayback(
     ref,
-    await _prepareTrackSurfaceItemFast(ref, item),
+    await _preparePlayableTrackSurfaceItem(ref, item),
   );
+  if (!preparedItem.isPlayable) return;
   final privateToken = _normalizePrivateToken(preparedItem.privateToken);
 
   if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
@@ -182,8 +187,6 @@ Future<void> ensureUploadItemPlayback(
   List<UploadItem>? queueItems,
   bool autoPlay = true,
 }) async {
-  if (!item.isPlayable) return;
-
   await _ensureCachedUploadsHydrated(ref);
 
   // Private tracks from the library list never include privateToken (the list
@@ -194,6 +197,14 @@ Future<void> ensureUploadItemPlayback(
   // Rebind item to the resolved copy (may have privateToken now).
   // ignore: parameter_assignments
   item = resolvedItem;
+  if (!item.isPlayable) {
+    // Stale library/cache rows can say "processing" even after the track
+    // has finished on the backend. Give details one patient chance before
+    // treating the upload as genuinely unplayable.
+    // ignore: parameter_assignments
+    item = await _preparePlayableTrackSurfaceItem(ref, item);
+  }
+  if (!item.isPlayable) return;
   final privateToken = _normalizePrivateToken(item.privateToken);
 
   final notifier = ref.read(playerProvider.notifier);
@@ -207,15 +218,18 @@ Future<void> ensureUploadItemPlayback(
   // fetched from the backend by enrichQueueWithArtistTracks (called from
 
   // inside loadTrack once the real bundle lands).
-  _cacheUploadItems(ref, [item, ...?queueItems]);
+  final preparedQueueItems = _mergeQueueWithCachedItems(ref, item, queueItems);
+  _cacheUploadItems(ref, [item, ...preparedQueueItems]);
 
-  final queue = _resolveArtistQueue(item, queueItems, store);
+  final queue = _resolveArtistQueue(item, preparedQueueItems, store);
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
 
   final seedTrack = await _seedTrackForUploadItem(ref, item);
 
-  if (isSameTrack && current?.isBuffering != true) {
+  if (isSameTrack &&
+      current?.isBuffering != true &&
+      _hasUsableCurrentPlaybackSource(current)) {
     final hasUsefulQueue = (current?.queue?.trackIds.length ?? 0) > 1;
     if (!hasUsefulQueue && currentIndex >= 0 && queueIds.length > 1) {
       await notifier.loadTrackWithQueue(
@@ -255,6 +269,14 @@ Future<void> ensureUploadItemPlayback(
     seedTrack: seedTrack,
     privateToken: privateToken,
   );
+}
+
+bool _hasUsableCurrentPlaybackSource(PlayerState? current) {
+  if (current == null) return false;
+  if (existingPlaybackLocalFile(current.localFilePath) != null) {
+    return true;
+  }
+  return current.streamUrl?.url.trim().isNotEmpty == true;
 }
 
 String? _normalizePrivateToken(String? value) {
@@ -458,7 +480,8 @@ List<UploadItem> _resolveArtistQueue(
   GlobalTrackStore store,
 ) {
   final explicitQueue = (queueItems ?? const <UploadItem>[])
-      .where((track) => track.isPlayable)
+      .map((track) => store.find(track.id) ?? track)
+      .where((track) => track.isPlayable && !track.isDeleted)
       .toList();
   if (explicitQueue.isNotEmpty) {
     return explicitQueue;
@@ -491,6 +514,24 @@ List<UploadItem> _resolveArtistQueue(
   return merged;
 }
 
+List<UploadItem> _mergeQueueWithCachedItems(
+  WidgetRef ref,
+  UploadItem current,
+  List<UploadItem>? queueItems,
+) {
+  if (queueItems == null || queueItems.isEmpty) {
+    return const <UploadItem>[];
+  }
+
+  final store = ref.read(globalTrackStoreProvider);
+  return queueItems
+      .map((item) {
+        if (item.id == current.id) return current;
+        return store.find(item.id) ?? item;
+      })
+      .toList(growable: false);
+}
+
 Future<UploadItem> _prepareTrackSurfaceItemFast(
   WidgetRef ref,
   UploadItem item,
@@ -502,6 +543,28 @@ Future<UploadItem> _prepareTrackSurfaceItemFast(
     ).timeout(const Duration(milliseconds: 500), onTimeout: () => item);
   } catch (_) {
     return item;
+  }
+}
+
+Future<UploadItem> _preparePlayableTrackSurfaceItem(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final fastItem = await _prepareTrackSurfaceItemFast(ref, item);
+  if (fastItem.isPlayable) {
+    return fastItem;
+  }
+
+  try {
+    final detailedItem = await ref
+        .read(trackDetailItemProvider(fastItem).future)
+        .timeout(const Duration(seconds: 5));
+    if (detailedItem.isPlayable) {
+      return detailedItem;
+    }
+    return detailedItem;
+  } catch (_) {
+    return fastItem;
   }
 }
 
@@ -616,14 +679,26 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
 }
 
 UploadProcessingStatus _dtoStatusToEntityStatus(String value) {
-  switch (value) {
+  switch (value.trim().toLowerCase()) {
     case 'processing':
     case 'uploading':
+    case 'pending':
+    case 'queued':
+    case 'transcoding':
       return UploadProcessingStatus.processing;
     case 'failed':
+    case 'failure':
+    case 'error':
       return UploadProcessingStatus.failed;
     case 'deleted':
       return UploadProcessingStatus.deleted;
+    case 'finished':
+    case 'ready':
+    case 'completed':
+    case 'complete':
+    case 'succeeded':
+    case 'success':
+    case 'published':
     default:
       return UploadProcessingStatus.finished;
   }

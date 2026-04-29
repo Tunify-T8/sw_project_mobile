@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
@@ -130,16 +131,25 @@ void main() {
       addTearDown(container.dispose);
       await container.read(playerProvider.future);
       final notifier = container.read(playerProvider.notifier);
+      final audioFile = File(
+        '${Directory.systemTemp.path}/tunify_offline_track_test.mp3',
+      );
+      await audioFile.writeAsBytes(<int>[0, 1, 2, 3]);
+      addTearDown(() async {
+        if (audioFile.existsSync()) {
+          await audioFile.delete();
+        }
+      });
 
       await notifier.loadTrack(
         'offline-track',
         autoPlay: true,
-        seedTrack: const PlayerSeedTrack(
+        seedTrack: PlayerSeedTrack(
           trackId: 'offline-track',
           title: 'Offline Track',
           artistName: 'Seed Artist',
           durationSeconds: 180,
-          localFilePath: 'C:/music/offline.mp3',
+          localFilePath: audioFile.path,
         ),
       );
 
@@ -161,6 +171,43 @@ void main() {
       expect(historyNotifier.lastNeedsBackendSync, isTrue);
       expect(repository.addedOfflinePlays, contains('offline-track'));
       expect(repository.completedOfflinePlays, contains('offline-track'));
+    },
+  );
+
+  test(
+    'real mode ignores stale desktop local paths and requests a stream',
+    () async {
+      var streamRequests = 0;
+      repository.requestStreamUrlHandler =
+          (trackId, {String quality = 'auto', String? privateToken}) async {
+            streamRequests++;
+            return sampleStreamUrl(
+              trackId: trackId,
+              url: 'https://example.com/$trackId.m3u8',
+            );
+          };
+
+      final container = buildContainer();
+      addTearDown(container.dispose);
+      await container.read(playerProvider.future);
+
+      await container
+          .read(playerProvider.notifier)
+          .loadTrack(
+            'desktop-upload',
+            seedTrack: const PlayerSeedTrack(
+              trackId: 'desktop-upload',
+              title: 'Desktop Upload',
+              artistName: 'Artist',
+              durationSeconds: 180,
+              localFilePath: r'C:\Users\hp\Music\missing.mp3',
+            ),
+          );
+
+      final state = container.read(playerProvider).requireValue;
+      expect(state.localFilePath, isNull);
+      expect(state.streamUrl?.url, 'https://example.com/desktop-upload.m3u8');
+      expect(streamRequests, 1);
     },
   );
 

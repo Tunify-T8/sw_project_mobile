@@ -28,7 +28,20 @@ class UserTrackSummaryDto {
   final String status;
   final String? coverUrl;
 
-  bool get isPlayable => status == 'finished';
+  bool get isPlayable {
+    switch (status.trim().toLowerCase()) {
+      case 'finished':
+      case 'ready':
+      case 'completed':
+      case 'complete':
+      case 'succeeded':
+      case 'success':
+      case 'published':
+        return true;
+      default:
+        return false;
+    }
+  }
 
   factory UserTrackSummaryDto.fromJson(Map<String, dynamic> json) {
     // Artist may arrive as a single object {id, displayName, ...} or as a
@@ -83,8 +96,8 @@ class UserTracksApi {
       final List<dynamic> rawList = body is Map<String, dynamic>
           ? (body['data'] as List<dynamic>? ?? const <dynamic>[])
           : body is List<dynamic>
-              ? body
-              : const <dynamic>[];
+          ? body
+          : const <dynamic>[];
 
       return rawList
           .whereType<Map<String, dynamic>>()

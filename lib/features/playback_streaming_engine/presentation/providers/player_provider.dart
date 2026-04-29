@@ -36,6 +36,7 @@ import 'player_backend_mode_provider.dart';
 // Provides userTracksApiProvider used by enrichQueueWithArtistTracks
 // in player_provider_queue.dart to fetch the playing artist's catalog.
 import 'player_dependencies_provider.dart';
+import 'player_local_file_guard.dart';
 import 'player_repository_provider.dart';
 
 part 'player_provider_state.dart';
