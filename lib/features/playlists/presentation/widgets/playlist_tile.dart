@@ -37,6 +37,7 @@ class PlaylistTile extends StatelessWidget {
               ),
             ),
             IconButton(
+              key: Key('playlist_tile_more_${playlist.id}'),
               icon: const Icon(Icons.more_vert, color: Colors.white54),
               onPressed: onMoreTap,
             ),

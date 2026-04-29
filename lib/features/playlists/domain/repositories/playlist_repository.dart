@@ -81,6 +81,8 @@ abstract class PlaylistRepository {
 
   Future<void> likeCollection(String id);
   Future<void> unlikeCollection(String id);
+  Future<void> followCollection(String id);
+  Future<void> unfollowCollection(String id);
 
   // ─── Embed ───────────────────────────────────────────────────────────────
 

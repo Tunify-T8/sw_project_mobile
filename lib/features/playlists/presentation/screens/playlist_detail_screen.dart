@@ -308,7 +308,11 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                 playlist.id,
                                 currentlyLiked: playlist.isLiked,
                               ),
-                      onRepost: widget.isMine ? null : () {},
+                      onRepost: widget.isMine
+                          ? null
+                          : () => ref
+                              .read(playlistNotifierProvider.notifier)
+                              .repostCollection(playlist.id),
                       onGoToArtistProfile:
                           (widget.isMine || playlist.owner == null)
                               ? null

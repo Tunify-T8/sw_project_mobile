@@ -427,6 +427,44 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     }
   }
 
+  Future<void> repostCollection(String id) async {
+    try {
+      await _repository.followCollection(id);
+      final active = state.activePlaylist;
+      final updatedActive = active != null && active.id == id
+          ? active.copyWith(repostsCount: active.repostsCount + 1)
+          : active;
+      final updatedCollections = state.myCollections
+          .map(
+            (playlist) => playlist.id == id
+                ? PlaylistSummaryEntity(
+                    id: playlist.id,
+                    title: playlist.title,
+                    description: playlist.description,
+                    type: playlist.type,
+                    privacy: playlist.privacy,
+                    coverUrl: playlist.coverUrl,
+                    trackCount: playlist.trackCount,
+                    likeCount: playlist.likeCount,
+                    repostsCount: playlist.repostsCount + 1,
+                    ownerFollowerCount: playlist.ownerFollowerCount,
+                    isMine: playlist.isMine,
+                    isLiked: playlist.isLiked,
+                    createdAt: playlist.createdAt,
+                    updatedAt: playlist.updatedAt,
+                  )
+                : playlist,
+          )
+          .toList();
+      state = state.copyWith(
+        activePlaylist: updatedActive,
+        myCollections: updatedCollections,
+      );
+    } catch (e) {
+      state = state.copyWith(mutationError: _actionErrorMessage(e));
+    }
+  }
+
   Future<void> convertToAlbum(String id) async {
     final role = _currentUserRole();
     if (role != 'ARTIST') {

@@ -123,6 +123,12 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
   Future<void> unlikeCollection(String id) => _api.unlikeCollection(id);
 
   @override
+  Future<void> followCollection(String id) => _api.followCollection(id);
+
+  @override
+  Future<void> unfollowCollection(String id) => _api.unfollowCollection(id);
+
+  @override
   Future<String> getEmbedCode(String id) => _api.getEmbedCode(id);
 
   @override

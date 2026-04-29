@@ -336,13 +336,9 @@ class _GenreAllTab extends StatelessWidget {
                               ),
                       onRepost: isMine
                           ? null
-                          : () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Repost coming soon'),
-                                ),
-                              );
-                            },
+                          : () => ref
+                              .read(playlistNotifierProvider.notifier)
+                              .repostCollection(playlist.id),
                       onGoToArtistProfile: (!isMine &&
                               playlist.creatorId.isNotEmpty)
                           ? () => Navigator.of(context).push(
@@ -475,20 +471,32 @@ class _GenreTrackList extends ConsumerWidget {
   }
 }
 
-class _GenrePlaylistList extends StatelessWidget {
+class _GenrePlaylistList extends ConsumerWidget {
   const _GenrePlaylistList({required this.playlists});
   final List<PlaylistResultEntity> playlists;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (playlists.isEmpty) {
       return const _GenreEmptyState(message: 'No playlists yet.');
     }
+    final currentUserId =
+        ref.watch(authControllerProvider).value?.id.trim() ?? '';
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: playlists.length,
-      itemBuilder: (context, i) =>
-          SearchResultTilePlaylist(playlist: playlists[i]),
+      itemBuilder: (context, i) {
+        final playlist = playlists[i];
+        final isMine =
+            currentUserId.isNotEmpty && playlist.creatorId == currentUserId;
+        return SearchResultTilePlaylist(
+          playlist: playlist,
+          onTap: () => Navigator.of(context).pushNamed(
+            Routes.playlistDetail,
+            arguments: {'playlistId': playlist.id, 'isMine': isMine},
+          ),
+        );
+      },
     );
   }
 }

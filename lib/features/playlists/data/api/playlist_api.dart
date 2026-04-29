@@ -191,6 +191,16 @@ class PlaylistApi {
   Future<void> unlikeCollection(String id) =>
       _dio.delete<void>(ApiEndpoints.collectionLike(id));
 
+  // ─── POST /collections/:id/follow ─────────────────────────────────────────
+
+  Future<void> followCollection(String id) =>
+      _dio.post<void>(ApiEndpoints.collectionFollow(id));
+
+  // ─── DELETE /collections/:id/follow ───────────────────────────────────────
+
+  Future<void> unfollowCollection(String id) =>
+      _dio.delete<void>(ApiEndpoints.collectionFollow(id));
+
   // ─── GET /collections/:id/embed ──────────────────────────────────────────
 
   Future<String> getEmbedCode(String id) async {

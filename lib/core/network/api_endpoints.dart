@@ -181,6 +181,7 @@ class ApiEndpoints {
       '/collections/$id/tracks/reorder';
 
   static String collectionLike(String id) => '/collections/$id/like';
+  static String collectionFollow(String id) => '/collections/$id/follow';
   static String collectionEmbed(String id) => '/collections/$id/embed';
   static String collectionShare(String id) => '/collections/$id/share';
   static String collectionShareReset(String id) =>

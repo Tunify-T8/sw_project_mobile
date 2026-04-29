@@ -26,11 +26,12 @@ class SearchResultTilePlaylist extends ConsumerWidget {
     final currentUserId = ref.watch(authControllerProvider).value?.id.trim() ?? '';
     final isMine = currentUserId.isNotEmpty && playlist.creatorId == currentUserId;
     return ListTile(
+      key: ValueKey('search_playlist_tile_${playlist.id}'),
       onTap:
           onTap ??
           () => Navigator.of(context).pushNamed(
             Routes.playlistDetail,
-            arguments: {'playlistId': playlist.id},
+            arguments: {'playlistId': playlist.id, 'isMine': isMine},
           ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: ClipRRect(
@@ -101,6 +102,7 @@ class SearchResultTilePlaylist extends ConsumerWidget {
         ],
       ),
       trailing: IconButton(
+        key: ValueKey('search_playlist_more_${playlist.id}'),
         icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
         onPressed: () {
           showPlaylistOptionsSheet(
@@ -130,11 +132,9 @@ class SearchResultTilePlaylist extends ConsumerWidget {
                     ),
             onRepost: isMine
                 ? null
-                : () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Repost coming soon')),
-                    );
-                  },
+                : () => ref
+                    .read(playlistNotifierProvider.notifier)
+                    .repostCollection(playlist.id),
             onGoToArtistProfile: (!isMine && playlist.creatorId.isNotEmpty)
                 ? () => Navigator.of(context).push(
                       MaterialPageRoute(
