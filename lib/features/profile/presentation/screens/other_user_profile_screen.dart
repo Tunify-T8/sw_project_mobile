@@ -23,6 +23,7 @@ import '../../../followers_and_social_graph/presentation/providers/social_graph_
 import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
 import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
 import '../../../playlists/presentation/widgets/profile_playlists_section.dart';
 import '../../../../shared/ui/widgets/play_button.dart';
 import '../../../../shared/ui/patterns/error_retry_view.dart';
@@ -356,6 +357,7 @@ class _OtherUserProfileScreenState
                     username: profile?.userName,
                     ownerName: profileDisplayName,
                   ),
+                  ProfileLikesSection(userId: widget.userId),
                   ProfileRepostsSection(userId: widget.userId),
                 ],
               ),

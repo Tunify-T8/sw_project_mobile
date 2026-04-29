@@ -144,7 +144,8 @@ class RealEngagementRepositoryImpl implements EngagementRepository {
 
   @override
   Future<List<LikedTrackEntity>> getLikedTracks({required String viewerId}) async {
-    return _api.getLikedTracks();
+    final userId = viewerId.trim().isEmpty ? null : viewerId;
+    return _api.getLikedTracks(userId: userId);
   }
 
   @override

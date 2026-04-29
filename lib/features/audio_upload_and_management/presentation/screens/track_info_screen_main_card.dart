@@ -38,8 +38,19 @@ class _MainTrackCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.profile),
+                        key: const Key('track_info_main_artist_tap'),
+                        onTap: () {
+                          final artistId = _resolveTrackArtistId(ref, item.id);
+                          if (artistId == null || artistId.isEmpty) return;
+
+                          final currentUserId =
+                              ref.read(authControllerProvider).value?.id;
+                          navigateToProfile(
+                            context,
+                            artistId,
+                            currentUserId: currentUserId,
+                          );
+                        },
                         child: Text(
                           item.artistDisplay,
                           style: const TextStyle(

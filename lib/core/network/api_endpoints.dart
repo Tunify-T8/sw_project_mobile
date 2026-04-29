@@ -143,6 +143,7 @@ class ApiEndpoints {
       '/comments/$commentId/replies';
   static String likeComment(String commentId) => '/comments/$commentId/like';
   static const String myLikedTracks = '/users/me/liked-tracks';
+  static String userLikes(String userId) => '/users/$userId/likes';
   static const String myReposts = '/users/me/reposts';
   static String userReposts(String userId) => '/users/$userId/reposts';
 

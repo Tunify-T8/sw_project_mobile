@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/router.dart';
+import '../../../../core/utils/navigation_utils.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
@@ -48,4 +48,23 @@ class TrackInfoScreen extends ConsumerWidget {
       bottomNavigationBar: const MiniPlayer(),
     );
   }
+}
+
+String? _resolveTrackArtistId(WidgetRef ref, String trackId) {
+  final storeOwner = ref.read(globalTrackStoreProvider).ownerUserIdForTrack(
+    trackId,
+  );
+  if (storeOwner != null &&
+      storeOwner.isNotEmpty &&
+      storeOwner != '__global__') {
+    return storeOwner;
+  }
+
+  final bundle = ref.read(playerProvider).asData?.value.bundle;
+  if (bundle != null && bundle.trackId == trackId) {
+    final id = bundle.artist.id.trim();
+    if (id.isNotEmpty) return id;
+  }
+
+  return null;
 }

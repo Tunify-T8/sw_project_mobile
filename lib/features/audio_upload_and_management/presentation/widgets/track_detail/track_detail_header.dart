@@ -101,6 +101,7 @@ class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
                   ),
                   const SizedBox(height: 4),
                   _BlackTag(
+                    key: const Key('track_detail_artist_tap'),
                     text: widget.item.artistDisplay,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -190,6 +191,7 @@ class _FollowSideIcon extends ConsumerWidget {
 
 class _BlackTag extends StatelessWidget {
   const _BlackTag({
+    super.key,
     required this.text,
     required this.fontSize,
     required this.fontWeight,
