@@ -17,11 +17,15 @@
 /// `auth_provider.dart` continue to work without modification.
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/errors/failure.dart';
+import 'package:software_project/core/network/dio_client.dart';
 import 'package:software_project/core/storage/token_storage.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
 import 'package:software_project/features/auth/data/services/google_sign_in_service.dart';
+import 'package:software_project/features/notifications/data/services/push_notification_service.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/player_provider.dart';
 import 'auth_infrastructure_providers.dart';
@@ -126,6 +130,9 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   Future<AuthUserEntity?> restoreSession() async {
     final user = await _tokenStorage.getUser();
     state = AsyncData<AuthUserEntity?>(user);
+    if (user != null) {
+      unawaited(_syncPushNotifications());
+    }
     return user;
   }
 
@@ -212,6 +219,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
       await _clearPlaybackBeforeAccountSwitch();
       final user = await _verifyEmail(email, token);
       state = AsyncData<AuthUserEntity?>(user);
+      unawaited(_syncPushNotifications());
     } catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
     }
@@ -240,6 +248,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
       await _clearPlaybackBeforeAccountSwitch();
       final user = await _login(email, password);
       state = AsyncData<AuthUserEntity?>(user);
+      unawaited(_syncPushNotifications());
     } catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
     }
@@ -268,6 +277,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
         authorizationCode: result.authorizationCode,
       );
       state = AsyncData<AuthUserEntity?>(user);
+      unawaited(_syncPushNotifications());
       return GoogleSignInOutcome.success;
     } on GoogleAccountLinkingRequiredFailure catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
@@ -299,6 +309,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
         password: password,
       );
       state = AsyncData<AuthUserEntity?>(user);
+      unawaited(_syncPushNotifications());
     } catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
     }
@@ -311,6 +322,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   /// `AsyncData(null)`.
   Future<void> logout() async {
     await _clearPlaybackBeforeAccountSwitch();
+    await _unregisterPushNotifications();
     await _logout();
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
@@ -325,6 +337,7 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   /// just the current one.
   Future<void> logoutAll() async {
     await _clearPlaybackBeforeAccountSwitch();
+    await _unregisterPushNotifications();
     await _logoutAll();
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
@@ -336,6 +349,22 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   Future<void> _clearPlaybackBeforeAccountSwitch() async {
     try {
       await ref.read(playerProvider.notifier).clearPlaybackSession();
+    } catch (_) {}
+  }
+
+  Future<void> _syncPushNotifications() async {
+    try {
+      final dio = ref.read(dioProvider);
+      PushNotificationService.instance.listenForTokenRefresh(dio);
+      await PushNotificationService.instance.syncTokenWithBackend(dio);
+    } catch (_) {}
+  }
+
+  Future<void> _unregisterPushNotifications() async {
+    try {
+      await PushNotificationService.instance.unregisterTokenFromBackend(
+        ref.read(dioProvider),
+      );
     } catch (_) {}
   }
 

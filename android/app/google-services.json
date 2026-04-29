@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "948769061038",
+    "project_id": "tunify-3d931",
+    "storage_bucket": "tunify-3d931.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:948769061038:android:24c2e5b00ca00f228d153f",
+        "android_client_info": {
+          "package_name": "com.example.software_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3Hx9NiLTncq3PTp2jEyFc2IiqPBtBjVs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

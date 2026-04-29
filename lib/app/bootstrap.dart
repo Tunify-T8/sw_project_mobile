@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
+import 'package:software_project/core/network/dio_client.dart';
+import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 import 'package:software_project/features/notifications/data/services/push_notification_service.dart';
 import 'router.dart';
 
@@ -38,7 +42,52 @@ Future<void> bootstrap() async {
 
   await PushNotificationService.instance.init();
 
-  runApp(const ProviderScope(child: TunifyApp()));
+  runApp(
+    const ProviderScope(
+      child: PushNotificationTokenSync(child: TunifyApp()),
+    ),
+  );
+}
+
+class PushNotificationTokenSync extends ConsumerStatefulWidget {
+  const PushNotificationTokenSync({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<PushNotificationTokenSync> createState() =>
+      _PushNotificationTokenSyncState();
+}
+
+class _PushNotificationTokenSyncState
+    extends ConsumerState<PushNotificationTokenSync> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncToken();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(authControllerProvider, (previous, next) {
+      final previousUser = previous?.asData?.value;
+      final nextUser = next.asData?.value;
+      if (nextUser != null && nextUser.id != previousUser?.id) {
+        _syncToken();
+      }
+    });
+
+    return widget.child;
+  }
+
+  void _syncToken() {
+    final dio = ref.read(dioProvider);
+    PushNotificationService.instance.listenForTokenRefresh(dio);
+    unawaited(PushNotificationService.instance.syncTokenWithBackend(dio));
+  }
 }
 
 /// The root widget of the application.
