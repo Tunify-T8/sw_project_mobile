@@ -109,8 +109,7 @@ class _LibraryHistoryTile extends ConsumerWidget {
                   selected,
                   historyTracks: playableHistory,
                   openScreen: true,
-                  initialPositionSeconds:
-                      track.lastPositionSeconds.toDouble(),
+                  initialPositionSeconds: track.lastPositionSeconds.toDouble(),
                 );
               },
         child: Padding(
@@ -181,7 +180,6 @@ class _LibraryHistoryTile extends ConsumerWidget {
                 child: Center(
                   child: GestureDetector(
                     onTap: () async {
-                      print(track.artist.id);
                       await showTrackOptionsMenu(
                         context: context,
                         trackId: track.trackId,

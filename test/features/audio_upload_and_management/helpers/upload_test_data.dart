@@ -156,7 +156,8 @@ Map<String, dynamic> sampleTrackResponseJson({
     'format': 'mp3',
     'fileSizeBytes': 10485760,
   },
-  if (error case final error?) 'error': error,
+  // ignore: use_null_aware_elements
+  if (error != null) 'error': error,
 };
 
 Map<String, dynamic> sampleUploadItemJson({

@@ -1,10 +1,7 @@
 part of 'listening_history_screen.dart';
 
 extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
-  Future<void> _confirmClearHistory(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _confirmClearHistory(BuildContext context, WidgetRef ref) async {
     final shouldClear = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -47,8 +44,6 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
 
     final store = ref.read(globalTrackStoreProvider);
     final stored = storedUploadItemForTrack(store, track.trackId);
-    final seedTrack = _seedTrackFromHistory(track, stored);
-
     // Opened from Listening history → "next up" should be the next song
     // in the user's history, not "more by this artist". We build the queue
     // from the playable history tracks and anchor it at the tapped track.
@@ -57,74 +52,13 @@ extension _ListeningHistoryScreenActions on ListeningHistoryScreen {
     final playableHistory = historyTracks
         .where((item) => item.status != PlaybackStatus.blocked)
         .toList(growable: false);
-    final queueTrackIds = playableHistory
-        .map((item) => item.trackId)
-        .toList(growable: false);
-    final startIndex = queueTrackIds.indexOf(track.trackId);
-
-    if (startIndex >= 0 && queueTrackIds.length > 1) {
-      await ref.read(playerProvider.notifier).loadTrack(
-            track.trackId,
-            autoPlay: true,
-            seedTrack: seedTrack,
-            initialPositionSeconds: track.lastPositionSeconds.toDouble(),
-            queue: PlaybackQueue(
-              trackIds: queueTrackIds,
-              currentIndex: startIndex,
-              shuffle: false,
-              repeat: RepeatMode.none,
-              source: QueueSource.history,
-            ),
-          );
-    } else {
-      await ref.read(playerProvider.notifier).loadTrack(
-            track.trackId,
-            autoPlay: true,
-            seedTrack: seedTrack,
-            initialPositionSeconds: track.lastPositionSeconds.toDouble(),
-          );
-    }
-
-    if (!context.mounted) return;
-
-    final current = ref.read(playerProvider).asData?.value;
-    final item = current != null && current.bundle != null
-        ? uploadItemFromPlayerState(current, store)
-        : (stored ?? _historyTrackToUploadItem(track));
-
-    await Navigator.of(context).push(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => TrackDetailScreen(item: item),
-        transitionsBuilder: (_, animation, __, child) => SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-          ),
-          child: child,
-        ),
-        transitionDuration: const Duration(milliseconds: 340),
-      ),
-    );
-  }
-
-  PlayerSeedTrack _seedTrackFromHistory(
-    HistoryTrack track,
-    UploadItem? stored,
-  ) {
-    return PlayerSeedTrack(
-      trackId: track.trackId,
-      title: stored?.title ?? track.title,
-      artistName: stored?.artistDisplay ?? track.artist.name,
-      durationSeconds:
-          stored?.durationSeconds ??
-          (track.durationSeconds > 0 ? track.durationSeconds : 0),
-      coverUrl: stored?.artworkUrl ?? track.coverUrl,
-      waveformUrl: stored?.waveformUrl,
-      directAudioUrl: stored?.audioUrl,
-      resumePositionSeconds: track.lastPositionSeconds,
-      localFilePath: stored?.localFilePath,
+    await openHistorySourcedPlayer(
+      context,
+      ref,
+      stored ?? _historyTrackToUploadItem(track),
+      historyTracks: playableHistory,
+      openScreen: true,
+      initialPositionSeconds: track.lastPositionSeconds.toDouble(),
     );
   }
 
