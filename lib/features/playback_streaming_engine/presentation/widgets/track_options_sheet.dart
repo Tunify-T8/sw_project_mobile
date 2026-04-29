@@ -1232,21 +1232,22 @@ class ShareRow extends StatelessWidget {
           ),
 
           // SMS
-          YourUploadsShareButton(
-            icon: Icons.sms_outlined,
-            label: 'SMS',
-            onTap: () async {
-              final url = await _buildTrackOptionShareUrl(context, info, ref);
-              if (url == null) return;
-              final text = Uri.encodeComponent(
-                'Check out "${info.title}" on Tunify: $url',
-              );
-              await launchUrl(
-                Uri.parse('sms:?body=$text'),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-          ),
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.sms_outlined,
+              label: 'SMS',
+              onTap: () async {
+                final url = await _buildTrackOptionShareUrl(context, info, ref);
+                if (url == null) return;
+                final text = Uri.encodeComponent(
+                  'Check out "${info.title}" on Tunify: $url',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$text'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
 
           // Instagram Stories
           SocialShareButton(

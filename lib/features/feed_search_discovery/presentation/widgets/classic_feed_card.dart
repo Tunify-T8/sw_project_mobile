@@ -32,50 +32,56 @@ class ClassicFeedCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: () => navigateToProfile(
-              context,
-              item.actor.id,
-              currentUserId: ref.read(authControllerProvider).value?.id,
-            ),
-            child: FeedActivityRow(
-              avatarUrl: item.actor.avatarUrl,
-              timeAgo: item.timeAgo,
-              feedViewMode: FeedViewMode.classic,
-              source: item.source,
-              actorName: item.actor.username,
-              trackName: item.track.title,
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => navigateToProfile(
+                context,
+                item.actor.id,
+                currentUserId: ref.read(authControllerProvider).value?.id,
+              ),
+              child: FeedActivityRow(
+                avatarUrl: item.actor.avatarUrl,
+                timeAgo: item.timeAgo,
+                feedViewMode: FeedViewMode.classic,
+                source: item.source,
+                actorName: item.actor.username,
+                trackName: item.track.title,
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
           Stack(
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _playTrack(context, ref),
-                child: Container(
-                  width: double.infinity,
-                  height: 350,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1E),
-                    borderRadius: BorderRadius.circular(8),
-                    image: item.track.coverUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(item.track.coverUrl!),
-                            fit: BoxFit.cover,
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _playTrack(context, ref),
+                  child: Container(
+                    width: double.infinity,
+                    height: 350,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1E),
+                      borderRadius: BorderRadius.circular(8),
+                      image: item.track.coverUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(item.track.coverUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: item.track.coverUrl == null
+                        ? const Center(
+                            child: Icon(
+                              Icons.music_note,
+                              color: Colors.white24,
+                              size: 56,
+                            ),
                           )
                         : null,
                   ),
-                  child: item.track.coverUrl == null
-                      ? const Center(
-                          child: Icon(
-                            Icons.music_note,
-                            color: Colors.white24,
-                            size: 56,
-                          ),
-                        )
-                      : null,
                 ),
               ),
               Positioned.fill(
@@ -123,23 +129,26 @@ class ClassicFeedCard extends ConsumerWidget {
                     Container(
                       decoration: BoxDecoration(color: Colors.black),
                       padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                      child: GestureDetector(
-                        onTap: () => navigateToProfile(
-                          context,
-                          item.track.artistId,
-                          currentUserId: ref
-                              .read(authControllerProvider)
-                              .value
-                              ?.id,
-                        ),
-                        child: Text(
-                          item.track.artistName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => navigateToProfile(
+                            context,
+                            item.track.artistId,
+                            currentUserId: ref
+                                .read(authControllerProvider)
+                                .value
+                                ?.id,
+                          ),
+                          child: Text(
+                            item.track.artistName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),

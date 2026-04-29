@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
 import '../../../../../core/network/api_endpoints.dart';
 import '../../../domain/entities/upload_item.dart';
@@ -170,10 +171,11 @@ class YourUploadsTrackOptionsSheet extends ConsumerWidget {
                       );
                     },
                   ),
-                  const YourUploadsShareButton(
-                    icon: Icons.sms_outlined,
-                    label: 'SMS',
-                  ),
+                  if (Platform.isAndroid)
+                    const YourUploadsShareButton(
+                      icon: Icons.sms_outlined,
+                      label: 'SMS',
+                    ),
                 ],
               ),
             ),

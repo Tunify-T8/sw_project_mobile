@@ -6,7 +6,6 @@ import '../../../audio_upload_and_management/presentation/providers/public_user_
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
-import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
 import '../providers/profile_provider.dart';
@@ -20,8 +19,6 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 import '../../../followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
-import '../../../followers_and_social_graph/domain/entities/network_list_type.dart';
-import '../../../followers_and_social_graph/presentation/screens/network_lists_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
 import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
 import '../../../playlists/presentation/widgets/profile_playlists_section.dart';
@@ -188,10 +185,6 @@ class _OtherUserProfileScreenState
             RelationshipButton(userId: widget.userId),
           const SizedBox(width: 12),
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
             icon: _openingChat
                 ? const SizedBox(
                     width: 20,
@@ -225,12 +218,12 @@ class _OtherUserProfileScreenState
             onTap: profileTracks.isEmpty
                 ? null
                 : () => openUploadItemPlayer(
-                      context,
-                      ref,
-                      profileTracks.first,
-                      queueItems: profileTracks,
-                      openScreen: false,
-                    ),
+                    context,
+                    ref,
+                    profileTracks.first,
+                    queueItems: profileTracks,
+                    openScreen: false,
+                  ),
           ),
         ],
       ),
@@ -248,7 +241,9 @@ class _OtherUserProfileScreenState
       profile?.displayName,
       profile?.userName,
     );
-    final profileTracks = ref.watch(publicUserUploadsProvider(widget.userId)).asData?.value ?? const <UploadItem>[];
+    final profileTracks =
+        ref.watch(publicUserUploadsProvider(widget.userId)).asData?.value ??
+        const <UploadItem>[];
 
     return Scaffold(
       bottomNavigationBar: const MiniPlayer(),
@@ -303,7 +298,9 @@ class _OtherUserProfileScreenState
           ? const Center(child: CircularProgressIndicator())
           : state.isError
           ? ErrorRetryView(
-              onRetry: () => ref.read(userProfileProvider.notifier).loadProfile(widget.userId),
+              onRetry: () => ref
+                  .read(userProfileProvider.notifier)
+                  .loadProfile(widget.userId),
             )
           : SingleChildScrollView(
               child: Column(
@@ -317,7 +314,8 @@ class _OtherUserProfileScreenState
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
-                    displayName: profile?.displayName ?? profile?.userName ?? '',
+                    displayName:
+                        profile?.displayName ?? profile?.userName ?? '',
                     userName: profile?.userName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
@@ -382,18 +380,12 @@ class _OtherUserTracksSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(publicUserUploadsProvider(userId));
 
-   
     final items = tracksAsync.asData?.value ?? const [];
 
     return ProfileTracksSection(
       items: items,
       onTrackTap: (item) {
-        openUploadItemPlayer(
-          context,
-          ref,
-          item,
-          queueItems: items,
-        );
+        openUploadItemPlayer(context, ref, item, queueItems: items);
       },
     );
   }

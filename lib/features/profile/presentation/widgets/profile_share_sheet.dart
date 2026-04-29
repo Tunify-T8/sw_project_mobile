@@ -51,7 +51,11 @@ class ProfileShareSheet {
   Widget _buildSocialLinks() {
     final links = [
       if (instagram != null && instagram!.isNotEmpty)
-        {'icon': FontAwesomeIcons.instagram, 'url': instagram!, 'label': instagram!},
+        {
+          'icon': FontAwesomeIcons.instagram,
+          'url': instagram!,
+          'label': instagram!,
+        },
       if (twitter != null && twitter!.isNotEmpty)
         {'icon': FontAwesomeIcons.xTwitter, 'url': twitter!, 'label': twitter!},
       if (youtube != null && youtube!.isNotEmpty)
@@ -61,7 +65,11 @@ class ProfileShareSheet {
       if (tiktok != null && tiktok!.isNotEmpty)
         {'icon': FontAwesomeIcons.tiktok, 'url': tiktok!, 'label': tiktok!},
       if (soundcloud != null && soundcloud!.isNotEmpty)
-        {'icon': FontAwesomeIcons.soundcloud, 'url': soundcloud!, 'label': soundcloud!},
+        {
+          'icon': FontAwesomeIcons.soundcloud,
+          'url': soundcloud!,
+          'label': soundcloud!,
+        },
     ];
 
     if (links.isEmpty) return const SizedBox.shrink();
@@ -125,11 +133,12 @@ class ProfileShareSheet {
                   backgroundImage: profileImage != null
                       ? FileImage(profileImage!)
                       : _hasLocalProfileImage
-                          ? FileImage(File(profileImagePath!))
-                          : _hasRemoteProfileImage
-                              ? NetworkImage(profileImagePath!)
-                              : null,
-                  child: profileImage == null &&
+                      ? FileImage(File(profileImagePath!))
+                      : _hasRemoteProfileImage
+                      ? NetworkImage(profileImagePath!)
+                      : null,
+                  child:
+                      profileImage == null &&
                           !_hasLocalProfileImage &&
                           !_hasRemoteProfileImage
                       ? const Icon(Icons.person, color: Colors.white)
@@ -206,47 +215,63 @@ class ProfileShareSheet {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          YourUploadsShareButton(
-            icon: Icons.send_outlined,
-            label: 'Message',
-            onTap: () async {
-              final text = Uri.encodeComponent('Check out $userName on Tunify: $profileUrl');
-              await launchUrl(Uri.parse('sms:?body=$text'), mode: LaunchMode.externalApplication);
-            },
-          ),
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.send_outlined,
+              label: 'Message',
+              onTap: () async {
+                final text = Uri.encodeComponent(
+                  'Check out $userName on Tunify: $profileUrl',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$text'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
           YourUploadsShareButton(
             icon: Icons.copy_outlined,
             label: 'Copy link',
             onTap: copyLink,
           ),
-          YourUploadsShareButton(
-            icon: Icons.qr_code_2,
-            label: 'QR code',
-          ),
+          YourUploadsShareButton(icon: Icons.qr_code_2, label: 'QR code'),
           SocialShareButton(
             faIcon: FontAwesomeIcons.whatsapp,
             iconColor: const Color(0xFF25D366),
             label: 'WhatsApp',
             onTap: () async {
-              final msg = Uri.encodeComponent('Check out $userName on Tunify: $profileUrl');
-              await launchUrl(Uri.parse('https://wa.me/?text=$msg'), mode: LaunchMode.externalApplication);
+              final msg = Uri.encodeComponent(
+                'Check out $userName on Tunify: $profileUrl',
+              );
+              await launchUrl(
+                Uri.parse('https://wa.me/?text=$msg'),
+                mode: LaunchMode.externalApplication,
+              );
             },
           ),
-          YourUploadsShareButton(
-            icon: Icons.sms_outlined,
-            label: 'SMS',
-            onTap: () async {
-              final text = Uri.encodeComponent('Check out $userName on Tunify: $profileUrl');
-              await launchUrl(Uri.parse('sms:?body=$text'), mode: LaunchMode.externalApplication);
-            },
-          ),
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.sms_outlined,
+              label: 'SMS',
+              onTap: () async {
+                final text = Uri.encodeComponent(
+                  'Check out $userName on Tunify: $profileUrl',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$text'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
           SocialShareButton(
             faIcon: FontAwesomeIcons.instagram,
             iconColor: const Color(0xFFE1306C),
             label: 'Stories',
             onTap: () async {
               await launchUrl(
-                Uri.parse('instagram://sharesheet?text=${Uri.encodeComponent('Check out $userName on Tunify: $profileUrl')}'),
+                Uri.parse(
+                  'instagram://sharesheet?text=${Uri.encodeComponent('Check out $userName on Tunify: $profileUrl')}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -257,7 +282,9 @@ class ProfileShareSheet {
             label: 'Snapchat',
             onTap: () async {
               await launchUrl(
-                Uri.parse('snapchat://send?text=${Uri.encodeComponent('Check out $userName on Tunify: $profileUrl')}'),
+                Uri.parse(
+                  'snapchat://send?text=${Uri.encodeComponent('Check out $userName on Tunify: $profileUrl')}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -268,7 +295,9 @@ class ProfileShareSheet {
             label: 'Facebook',
             onTap: () async {
               await launchUrl(
-                Uri.parse('https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(profileUrl)}'),
+                Uri.parse(
+                  'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(profileUrl)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -278,8 +307,13 @@ class ProfileShareSheet {
             iconColor: Colors.white,
             label: 'X',
             onTap: () async {
-              final text = Uri.encodeComponent('Check out $userName on Tunify: $profileUrl');
-              await launchUrl(Uri.parse('https://twitter.com/intent/tweet?text=$text'), mode: LaunchMode.externalApplication);
+              final text = Uri.encodeComponent(
+                'Check out $userName on Tunify: $profileUrl',
+              );
+              await launchUrl(
+                Uri.parse('https://twitter.com/intent/tweet?text=$text'),
+                mode: LaunchMode.externalApplication,
+              );
             },
           ),
           SocialShareButton(
@@ -288,7 +322,9 @@ class ProfileShareSheet {
             label: 'Messenger',
             onTap: () async {
               await launchUrl(
-                Uri.parse('fb-messenger://share?link=${Uri.encodeComponent(profileUrl)}'),
+                Uri.parse(
+                  'fb-messenger://share?link=${Uri.encodeComponent(profileUrl)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
@@ -297,7 +333,10 @@ class ProfileShareSheet {
             icon: Icons.more_horiz,
             label: 'More',
             onTap: () async {
-              await launchUrl(Uri.parse(profileUrl), mode: LaunchMode.externalApplication);
+              await launchUrl(
+                Uri.parse(profileUrl),
+                mode: LaunchMode.externalApplication,
+              );
             },
           ),
         ],

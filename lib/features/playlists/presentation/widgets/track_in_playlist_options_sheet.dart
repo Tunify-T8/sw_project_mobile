@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -153,9 +154,8 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
                       Navigator.pop(context);
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => OtherUserProfileScreen(
-                            userId: track.ownerId,
-                          ),
+                          builder: (_) =>
+                              OtherUserProfileScreen(userId: track.ownerId),
                         ),
                       );
                     },
@@ -173,8 +173,8 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
                             trackId: track.trackId,
                             coverUrl: track.coverUrl,
                             trackTitle: track.title,
-                            artistName: track.ownerDisplayName ??
-                                track.ownerUsername,
+                            artistName:
+                                track.ownerDisplayName ?? track.ownerUsername,
                           ),
                         ),
                       );
@@ -197,8 +197,8 @@ class _TrackInPlaylistOptionsSheet extends ConsumerWidget {
                           context,
                           trackId: track.trackId,
                           trackTitle: track.title,
-                          artistName: track.ownerDisplayName ??
-                              track.ownerUsername,
+                          artistName:
+                              track.ownerDisplayName ?? track.ownerUsername,
                           coverUrl: track.coverUrl,
                         );
                       }
@@ -310,8 +310,7 @@ class _ShareRow extends StatelessWidget {
   const _ShareRow({required this.track});
   final PlaylistTrackEntity track;
 
-  String get _url =>
-      '${ApiEndpoints.shareBaseUrl}/tracks/${track.trackId}';
+  String get _url => '${ApiEndpoints.shareBaseUrl}/tracks/${track.trackId}';
 
   @override
   Widget build(BuildContext context) {
@@ -321,16 +320,20 @@ class _ShareRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          YourUploadsShareButton(
-            icon: Icons.send_outlined,
-            label: 'Message',
-            onTap: () async {
-              final body = Uri.encodeComponent(
-                  'Check out "${track.title}" on Tunify: $_url');
-              await launchUrl(Uri.parse('sms:?body=$body'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.send_outlined,
+              label: 'Message',
+              onTap: () async {
+                final body = Uri.encodeComponent(
+                  'Check out "${track.title}" on Tunify: $_url',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$body'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
           YourUploadsShareButton(
             icon: Icons.copy_outlined,
             label: 'Copy Link',
@@ -340,8 +343,10 @@ class _ShareRow extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   backgroundColor: Color(0xFF1C1C1E),
-                  content: Text('Link copied',
-                      style: TextStyle(color: Colors.white)),
+                  content: Text(
+                    'Link copied',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   duration: Duration(seconds: 2),
                 ),
               );
@@ -353,9 +358,12 @@ class _ShareRow extends StatelessWidget {
             label: 'WhatsApp',
             onTap: () async {
               final msg = Uri.encodeComponent(
-                  'Check out "${track.title}" on Tunify: $_url');
-              await launchUrl(Uri.parse('https://wa.me/?text=$msg'),
-                  mode: LaunchMode.externalApplication);
+                'Check out "${track.title}" on Tunify: $_url',
+              );
+              await launchUrl(
+                Uri.parse('https://wa.me/?text=$msg'),
+                mode: LaunchMode.externalApplication,
+              );
             },
           ),
           SocialShareButton(
@@ -365,21 +373,26 @@ class _ShareRow extends StatelessWidget {
             onTap: () async {
               await launchUrl(
                 Uri.parse(
-                    'instagram://sharesheet?text=${Uri.encodeComponent(_url)}'),
+                  'instagram://sharesheet?text=${Uri.encodeComponent(_url)}',
+                ),
                 mode: LaunchMode.externalApplication,
               );
             },
           ),
-          YourUploadsShareButton(
-            icon: Icons.sms_outlined,
-            label: 'SMS',
-            onTap: () async {
-              final body = Uri.encodeComponent(
-                  'Check out "${track.title}" on Tunify: $_url');
-              await launchUrl(Uri.parse('sms:?body=$body'),
-                  mode: LaunchMode.externalApplication);
-            },
-          ),
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.sms_outlined,
+              label: 'SMS',
+              onTap: () async {
+                final body = Uri.encodeComponent(
+                  'Check out "${track.title}" on Tunify: $_url',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$body'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
         ],
       ),
     );
