@@ -106,8 +106,12 @@ class MessageDto {
     }
 
     final status = (j['status'] ?? '').toString().trim().toUpperCase();
+    final readFlag = j['read'];
+    final isReadFlag = j['isRead'];
     final read =
-        (j['read'] as bool?) ?? (j['isRead'] as bool?) ?? status == 'READ';
+        (readFlag is bool ? readFlag : null) ??
+        (isReadFlag is bool ? isReadFlag : null) ??
+        status == 'READ';
 
     return MessageDto(
       id: _string(j['id'] ?? j['_id'] ?? j['messageId'] ?? j['message_id']),

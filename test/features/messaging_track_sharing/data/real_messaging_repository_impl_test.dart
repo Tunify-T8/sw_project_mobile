@@ -118,7 +118,7 @@ class _RecordedRequest {
   final String path;
 }
 
-class _RecordingDio extends Dio {
+class _RecordingDio implements Dio {
   final requests = <_RecordedRequest>[];
 
   @override
@@ -152,6 +152,9 @@ class _RecordingDio extends Dio {
       statusCode: 200,
     );
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _RecordingMessagingSocket implements MessagingSocket {
