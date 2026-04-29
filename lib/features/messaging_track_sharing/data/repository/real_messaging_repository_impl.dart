@@ -182,6 +182,31 @@ class RealMessagingRepository implements MessagingRepository {
       _socket.leaveConversation(conversationId);
 
   @override
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  }) => _socket.markMessageDelivered(
+    conversationId: conversationId,
+    messageId: messageId,
+  );
+
+  @override
+  Future<void> markMessageRead({
+    required String conversationId,
+    required String messageId,
+  }) => _socket.markMessageRead(
+    conversationId: conversationId,
+    messageId: messageId,
+  );
+
+  @override
+  void startTyping(String conversationId) =>
+      _socket.startTyping(conversationId);
+
+  @override
+  void stopTyping(String conversationId) => _socket.stopTyping(conversationId);
+
+  @override
   Stream<RealtimeMessagingEvent> realtimeEvents() => _socket.events;
 
   @override

@@ -2,6 +2,8 @@ import 'message_attachment.dart';
 
 enum MessageType { text, attachment }
 
+enum MessageDeliveryStatus { sent, delivered, read }
+
 /// Domain entity representing a single chat message.
 class MessageEntity {
   final String id;
@@ -12,8 +14,11 @@ class MessageEntity {
   final List<MessageAttachment> attachments;
   final DateTime createdAt;
   final bool isRead;
+  final MessageDeliveryStatus deliveryStatus;
+
   /// True for messages the current user is optimistically sending (not yet confirmed).
   final bool isPending;
+
   /// True when delivery failed (socket/API error).
   final bool isFailed;
 
@@ -25,26 +30,29 @@ class MessageEntity {
     required this.createdAt,
     this.text,
     this.attachments = const [],
-    this.isRead = false,
+    bool isRead = false,
+    this.deliveryStatus = MessageDeliveryStatus.sent,
     this.isPending = false,
     this.isFailed = false,
-  });
+  }) : isRead = isRead || deliveryStatus == MessageDeliveryStatus.read;
 
   MessageEntity copyWith({
     String? id,
     bool? isRead,
+    MessageDeliveryStatus? deliveryStatus,
     bool? isPending,
     bool? isFailed,
   }) => MessageEntity(
-        id: id ?? this.id,
-        conversationId: conversationId,
-        senderId: senderId,
-        type: type,
-        createdAt: createdAt,
-        text: text,
-        attachments: attachments,
-        isRead: isRead ?? this.isRead,
-        isPending: isPending ?? this.isPending,
-        isFailed: isFailed ?? this.isFailed,
-      );
+    id: id ?? this.id,
+    conversationId: conversationId,
+    senderId: senderId,
+    type: type,
+    createdAt: createdAt,
+    text: text,
+    attachments: attachments,
+    isRead: isRead ?? this.isRead,
+    deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+    isPending: isPending ?? this.isPending,
+    isFailed: isFailed ?? this.isFailed,
+  );
 }

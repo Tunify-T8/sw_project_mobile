@@ -22,6 +22,7 @@ class MessageDto {
   final String? text;
   final DateTime createdAt;
   final bool isRead;
+  final String status;
   final List<MessageAttachmentDto> attachments;
 
   const MessageDto({
@@ -34,6 +35,7 @@ class MessageDto {
     this.senderAvatarUrl,
     this.text,
     this.isRead = false,
+    this.status = 'SENT',
     this.attachments = const [],
   });
 
@@ -103,6 +105,14 @@ class MessageDto {
       );
     }
 
+    final status = (j['status'] ?? '').toString().trim().toUpperCase();
+    final readFlag = j['read'];
+    final isReadFlag = j['isRead'];
+    final read =
+        (readFlag is bool ? readFlag : null) ??
+        (isReadFlag is bool ? isReadFlag : null) ??
+        status == 'READ';
+
     return MessageDto(
       id: _string(j['id'] ?? j['_id'] ?? j['messageId'] ?? j['message_id']),
       conversationId: _string(
@@ -116,7 +126,8 @@ class MessageDto {
       createdAt:
           DateTime.tryParse((j['createdAt'] ?? '').toString()) ??
           DateTime.now().toUtc(),
-      isRead: (j['read'] as bool?) ?? (j['isRead'] as bool?) ?? false,
+      isRead: read,
+      status: status.isEmpty ? (read ? 'READ' : 'SENT') : status,
       attachments: attachments,
     );
   }

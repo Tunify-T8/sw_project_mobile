@@ -7,15 +7,25 @@ import '../entities/send_message_draft.dart';
 /// Abstraction over the messaging data layer.
 /// UI/providers depend ONLY on this — never on the concrete impl.
 abstract class MessagingRepository {
-  Future<PaginatedConversations> getConversations({int page = 1, int limit = 20});
+  Future<PaginatedConversations> getConversations({
+    int page = 1,
+    int limit = 20,
+  });
   Future<String> createOrGetConversation(String otherUserId);
   Future<void> deleteConversation(String conversationId);
-  Future<PaginatedMessages> getMessages(String conversationId, {int page = 1, int limit = 20});
+  Future<PaginatedMessages> getMessages(
+    String conversationId, {
+    int page = 1,
+    int limit = 20,
+  });
 
   /// Sends a message. In real mode this goes over the websocket and resolves
   /// once the backend acks (`message:sent`). In mock mode it resolves
   /// synchronously against the in-memory store.
-  Future<MessageEntity> sendMessage(String conversationId, SendMessageDraft draft);
+  Future<MessageEntity> sendMessage(
+    String conversationId,
+    SendMessageDraft draft,
+  );
 
   Future<void> markConversationRead(String conversationId);
   Future<int> getUnreadCount();
@@ -30,6 +40,16 @@ abstract class MessagingRepository {
   /// events for it are delivered. Safe to call repeatedly.
   Future<void> joinConversation(String conversationId);
   Future<void> leaveConversation(String conversationId);
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  });
+  Future<void> markMessageRead({
+    required String conversationId,
+    required String messageId,
+  });
+  void startTyping(String conversationId);
+  void stopTyping(String conversationId);
 
   /// Lazy stream of realtime events — repo implementations are responsible
   /// for the underlying WebSocket lifecycle.

@@ -17,6 +17,8 @@ class ChatInputBar extends StatefulWidget {
     this.isSending = false,
     this.pendingAttachments = const [],
     this.onRemoveAttachment,
+    this.onChanged,
+    this.onFocusChanged,
   });
 
   final ValueChanged<String> onSend;
@@ -24,6 +26,8 @@ class ChatInputBar extends StatefulWidget {
   final bool isSending;
   final List<MessageAttachment> pendingAttachments;
   final ValueChanged<MessageAttachment>? onRemoveAttachment;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<bool>? onFocusChanged;
 
   @override
   State<ChatInputBar> createState() => _ChatInputBarState();
@@ -38,6 +42,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
   void initState() {
     super.initState();
     _controller.addListener(_onTextChanged);
+    _focusNode.addListener(_onFocusChanged);
   }
 
   void _onTextChanged() {
@@ -45,11 +50,17 @@ class _ChatInputBarState extends State<ChatInputBar> {
     if (hasText != _hasText) {
       setState(() => _hasText = hasText);
     }
+    widget.onChanged?.call(_controller.text);
+  }
+
+  void _onFocusChanged() {
+    widget.onFocusChanged?.call(_focusNode.hasFocus);
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
+    _focusNode.removeListener(_onFocusChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();

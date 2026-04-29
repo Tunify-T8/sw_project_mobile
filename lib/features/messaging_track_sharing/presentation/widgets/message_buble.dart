@@ -13,11 +13,7 @@ import '../utils/messaging_time_format.dart';
 /// A single chat bubble — text or attachment — plus the small h:mm AM/PM
 /// timestamp underneath.
 class MessageBubble extends StatelessWidget {
-  const MessageBubble({
-    super.key,
-    required this.message,
-    required this.isMine,
-  });
+  const MessageBubble({super.key, required this.message, required this.isMine});
 
   final MessageEntity message;
   final bool isMine;
@@ -28,7 +24,9 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alignment = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment = isMine
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -53,17 +51,42 @@ class MessageBubble extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          if (message.isFailed)
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
+          if (isMine)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
               child: Text(
-                'Not delivered',
-                style: TextStyle(color: Colors.redAccent, fontSize: 11),
+                _statusLabel(message),
+                style: TextStyle(
+                  color: _statusColor(message),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
         ],
       ),
     );
+  }
+
+  static String _statusLabel(MessageEntity message) {
+    if (message.isFailed) return 'Not delivered';
+    if (message.isPending) return 'Sending...';
+    switch (message.deliveryStatus) {
+      case MessageDeliveryStatus.read:
+        return 'Seen';
+      case MessageDeliveryStatus.delivered:
+        return 'Delivered';
+      case MessageDeliveryStatus.sent:
+        return 'Not delivered';
+    }
+  }
+
+  static Color _statusColor(MessageEntity message) {
+    if (message.isFailed) return Colors.redAccent;
+    if (message.deliveryStatus == MessageDeliveryStatus.read) {
+      return const Color(0xFF64B5F6);
+    }
+    return _timestampColor;
   }
 }
 
@@ -140,7 +163,9 @@ class _AttachmentCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isTrack = attachment.type == MessageAttachmentType.track;
-    final icon = isTrack ? Icons.music_note_outlined : Icons.library_music_outlined;
+    final icon = isTrack
+        ? Icons.music_note_outlined
+        : Icons.library_music_outlined;
 
     return InkWell(
       onTap: () => _open(context, ref),
@@ -168,7 +193,10 @@ class _AttachmentCard extends ConsumerWidget {
             ),
             Flexible(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,10 +256,7 @@ class _AttachmentCard extends ConsumerWidget {
 
       await Navigator.of(context).pushNamed(
         Routes.playlistDetail,
-        arguments: {
-          'playlistId': collectionId,
-          'isMine': isMine,
-        },
+        arguments: {'playlistId': collectionId, 'isMine': isMine},
       );
       return;
     }
@@ -263,9 +288,9 @@ class _AttachmentCard extends ConsumerWidget {
   }
 
   static Widget _artworkPlaceholder() => Container(
-        width: 56,
-        height: 56,
-        color: const Color(0xFF2A2A2A),
-        child: const Icon(Icons.music_note, color: Color(0xFF5A5A5A), size: 26),
-      );
+    width: 56,
+    height: 56,
+    color: const Color(0xFF2A2A2A),
+    child: const Icon(Icons.music_note, color: Color(0xFF5A5A5A), size: 26),
+  );
 }
