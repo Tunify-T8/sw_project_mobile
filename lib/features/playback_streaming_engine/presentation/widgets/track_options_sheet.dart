@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../../core/utils/navigation_utils.dart';
 
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
@@ -926,13 +927,16 @@ String _downloadErrorMessage(Object error) {
   return 'We could not download this track right now.';
 }
 
-class FrostedTrackHeader extends StatelessWidget {
+class FrostedTrackHeader extends ConsumerWidget {
   const FrostedTrackHeader({super.key, required this.info});
 
   final TrackOptionInfo info;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final artistId = info.artistId?.trim();
+    final canOpenArtist = artistId != null && artistId.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ClipRRect(
@@ -1002,13 +1006,35 @@ class FrostedTrackHeader extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            info.artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
+                          MouseRegion(
+                            cursor: canOpenArtist
+                                ? SystemMouseCursors.click
+                                : SystemMouseCursors.basic,
+                            child: GestureDetector(
+                              onTap: canOpenArtist
+                                  ? () {
+                                      final navigator = Navigator.of(context);
+                                      final targetContext = navigator.context;
+                                      navigator.pop();
+                                      navigateToProfile(
+                                        targetContext,
+                                        artistId,
+                                        currentUserId: ref
+                                            .read(authControllerProvider)
+                                            .value
+                                            ?.id,
+                                      );
+                                    }
+                                  : null,
+                              child: Text(
+                                info.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1095,34 +1121,37 @@ class SendToAvatar extends StatelessWidget {
     final name = user.displayName;
     final shortName = name.length > 8 ? '${name.substring(0, 7)}…' : name;
 
-    return GestureDetector(
-      onTap: () => _sendTrackToConversation(context),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: const Color(0xFF2A2A2A),
-            backgroundImage: user.avatarUrl != null
-                ? NetworkImage(user.avatarUrl!)
-                : null,
-            child: user.avatarUrl == null
-                ? Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            shortName,
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          ),
-        ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _sendTrackToConversation(context),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: const Color(0xFF2A2A2A),
+              backgroundImage: user.avatarUrl != null
+                  ? NetworkImage(user.avatarUrl!)
+                  : null,
+              child: user.avatarUrl == null
+                  ? Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              shortName,
+              style: const TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1571,6 +1600,9 @@ class _ShareConversationTile extends StatelessWidget {
       color: Colors.black,
       child: InkWell(
         onTap: enabled ? onTap : null,
+        mouseCursor: enabled
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
         splashColor: Colors.white10,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

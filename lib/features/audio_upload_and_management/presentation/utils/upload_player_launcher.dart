@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -550,7 +551,9 @@ Future<UploadItem> _preparePlayableTrackSurfaceItem(
   WidgetRef ref,
   UploadItem item,
 ) async {
-  final fastItem = await _prepareTrackSurfaceItemFast(ref, item);
+  final fastItem = _shouldWaitForWaveformBeforeOpening
+      ? await prepareTrackSurfaceItem(ref, item)
+      : await _prepareTrackSurfaceItemFast(ref, item);
   if (fastItem.isPlayable) {
     return fastItem;
   }
@@ -566,6 +569,12 @@ Future<UploadItem> _preparePlayableTrackSurfaceItem(
   } catch (_) {
     return fastItem;
   }
+}
+
+bool get _shouldWaitForWaveformBeforeOpening {
+  return defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS;
 }
 
 Future<void> _waitForTrackToBecomeCurrent(WidgetRef ref, String trackId) async {

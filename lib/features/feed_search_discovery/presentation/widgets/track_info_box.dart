@@ -106,7 +106,7 @@ class TrackInfoBox extends ConsumerWidget {
                 child: FeedPlayButton(
                   progress: 0,
                   isPlaying: false,
-                  onTap: () {},
+                  onTap: () => playFeedTrack(context, ref, track),
                 ),
               ),
             ],
