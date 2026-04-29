@@ -9,6 +9,7 @@ class HomeLikesTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GestureDetector(
+        key: const Key('home_your_likes_tile'),
         onTap: () {
           Navigator.of(
             context,

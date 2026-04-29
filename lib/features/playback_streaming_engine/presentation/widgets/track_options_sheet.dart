@@ -456,6 +456,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
         },
       ),
       YourUploadsOptionRow(
+        key: const Key('track_options_add_to_playlist'),
         icon: Icons.playlist_add,
         label: 'Add to playlist',
         onTap: () {
@@ -515,6 +516,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
   }) {
     return [
       YourUploadsOptionRow(
+        key: const Key('track_options_like'),
         icon: isLiked ? Icons.favorite : Icons.favorite_border,
         label: isLiked ? 'Liked' : 'Like',
         color: isLiked ? Colors.orange : Colors.white,
@@ -540,6 +542,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
         },
       ),
       YourUploadsOptionRow(
+        key: const Key('track_options_add_to_playlist'),
         icon: Icons.playlist_add,
         label: 'Add to playlist',
         onTap: () {
@@ -578,6 +581,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
         },
       ),
       YourUploadsOptionRow(
+        key: const Key('track_options_repost'),
         icon: isReposted ? Icons.repeat_on : Icons.repeat,
         label: isReposted ? 'Reposted' : 'Repost on SoundCloud',
         color: isReposted ? Colors.orange : Colors.white,
