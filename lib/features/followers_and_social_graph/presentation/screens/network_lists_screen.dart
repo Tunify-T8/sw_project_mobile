@@ -128,7 +128,6 @@ class _NetworkListsScreenState extends ConsumerState<NetworkListsScreen> {
                       key: ValueKey('${widget.listType.name}_user_tile_${user.id}'),
                       user: user,
                       listType: widget.listType,
-                      myId: myId,
                       onTap: () => navigateToProfile(
                         context,
                         user.id,

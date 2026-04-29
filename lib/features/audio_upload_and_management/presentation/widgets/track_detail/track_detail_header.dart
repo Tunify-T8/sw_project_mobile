@@ -6,6 +6,7 @@ import '../../../domain/entities/upload_item.dart';
 import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 import '../../../../playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart';
 
 class TrackDetailHeader extends ConsumerStatefulWidget {
   const TrackDetailHeader({
