@@ -2,17 +2,18 @@ part of 'player_screen.dart';
 
 class _BottomActions extends ConsumerWidget {
   const _BottomActions({
-    required this.trackId,
+    required this.info,
     required this.onQueue,
     required this.onComments,
   });
 
-  final String trackId;
+  final TrackOptionInfo info;
   final VoidCallback onQueue;
   final VoidCallback onComments;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final trackId = info.trackId;
     final state = ref.watch(engagementProvider(trackId));
     final isReposted = state.engagement?.isReposted ?? false;
     final repostCount = state.engagement?.repostCount ?? 0;
@@ -21,7 +22,11 @@ class _BottomActions extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _ActionBtn(icon: Icons.share_outlined, label: 'Share', onTap: () {}),
+        _ActionBtn(
+          icon: Icons.ios_share_outlined,
+          label: 'Share',
+          onTap: () => showTrackShareSheet(context, info: info, ref: ref),
+        ),
         // Key: PlayerKeys.repostButton
         GestureDetector(
           key: const Key('player_repost_button'),
@@ -59,8 +64,11 @@ class _BottomActions extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.chat_bubble_outline,
-                  color: Colors.white60, size: 22),
+              const Icon(
+                Icons.chat_bubble_outline,
+                color: Colors.white60,
+                size: 22,
+              ),
               const SizedBox(height: 3),
               Text(
                 _fmtCount(commentCount),
