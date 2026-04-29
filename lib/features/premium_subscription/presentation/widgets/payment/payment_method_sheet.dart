@@ -135,172 +135,174 @@ class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
     return SafeArea(
       key: const Key('payment_method_sheet'),
       child: Padding(
-        padding: EdgeInsets.only(left: 20, right: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-
-            Text(
-              isSuccessful
-                  ? 'Payment Successful'
-                  : errorMessage != null
-                  ? 'Payment Failed'
-                  : 'Payment method',
-              key: const Key('payment_sheet_title'),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+        padding: EdgeInsets.only(left: 20, right: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20,),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+          
+              Text(
+                isSuccessful
+                    ? 'Payment Successful'
+                    : errorMessage != null
+                    ? 'Payment Failed'
+                    : 'Payment method',
+                key: const Key('payment_sheet_title'),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            if (isSuccessful)
-              PaymentResult(
-                key: const Key('payment_success_result'),
-                responseMessage: resultMessage ?? 'Subscription activated',
-                isSuccessful: true,
-              )
-            else if (errorMessage != null)
-              PaymentResult(
-                key: const Key('payment_error_result'),
-                responseMessage: "Couldn't process payment",
-                isSuccessful: false,
-              )
-            else ...[
-              Row(
-                children: PaymentMethodType.values
-                    .map(
-                      (method) => Expanded(
-                        child: Padding(
-                          key: Key('payment_method_option_${method.name}_slot'),
-                          padding: EdgeInsets.only(
-                            right: (method == PaymentMethodType.apple) ? 0 : 8,
-                          ),
-                          child: PaymentOption(
-                            key: Key('payment_method_option_${method.name}'),
-                            label: _methodLabel(method),
-                            icon: _methodIcon(method),
-                            isSelected: (selectedMethod == method),
-                            onTap: () {
-                              if (!isProcessing) {
-                                ref
-                                    .read(paymentSheetNotifierProvider.notifier)
-                                    .selectMethod(method);
-                              }
-                              ;
-                            },
+          
+              const SizedBox(height: 16),
+          
+              if (isSuccessful)
+                PaymentResult(
+                  key: const Key('payment_success_result'),
+                  responseMessage: resultMessage ?? 'Subscription activated',
+                  isSuccessful: true,
+                )
+              else if (errorMessage != null)
+                PaymentResult(
+                  key: const Key('payment_error_result'),
+                  responseMessage: "Couldn't process payment",
+                  isSuccessful: false,
+                )
+              else ...[
+                Row(
+                  children: PaymentMethodType.values
+                      .map(
+                        (method) => Expanded(
+                          child: Padding(
+                            key: Key('payment_method_option_${method.name}_slot'),
+                            padding: EdgeInsets.only(
+                              right: (method == PaymentMethodType.apple) ? 0 : 8,
+                            ),
+                            child: PaymentOption(
+                              key: Key('payment_method_option_${method.name}'),
+                              label: _methodLabel(method),
+                              icon: _methodIcon(method),
+                              isSelected: (selectedMethod == method),
+                              onTap: () {
+                                if (!isProcessing) {
+                                  ref
+                                      .read(paymentSheetNotifierProvider.notifier)
+                                      .selectMethod(method);
+                                }
+                                ;
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                    .toList(),
-              ),
-
-              const SizedBox(height: 18),
-
-              if (selectedMethod == PaymentMethodType.card)
-                Form(
-                  key: _formKey,
-                  autovalidateMode: AutovalidateMode.onUnfocus,
-                  child: PaymentFields(
-                    cardNumberController: _cardNumberController,
-                    expiryController: _expiryController,
-                    cvvController: _cvvController,
-                    cardholderNameController: _cardholderNameController,
-                  ),
-                )
-              else
-                Text(
-                  '${_methodLabel(selectedMethod)} coming soon.',
-                  key: Key('payment_method_unavailable_${selectedMethod.name}'),
-                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                      )
+                      .toList(),
                 ),
-
-              const SizedBox(height: 20),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total',
-                    style: TextStyle(color: Colors.white70, fontSize: 15),
-                  ),
+          
+                const SizedBox(height: 18),
+          
+                if (selectedMethod == PaymentMethodType.card)
+                  Form(
+                    key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUnfocus,
+                    child: PaymentFields(
+                      cardNumberController: _cardNumberController,
+                      expiryController: _expiryController,
+                      cvvController: _cvvController,
+                      cardholderNameController: _cardholderNameController,
+                    ),
+                  )
+                else
                   Text(
-                    widget.price,
-                    key: const Key('payment_total_price'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    '${_methodLabel(selectedMethod)} coming soon.',
+                    key: Key('payment_method_unavailable_${selectedMethod.name}'),
+                    style: const TextStyle(color: Colors.white70, fontSize: 15),
+                  ),
+          
+                const SizedBox(height: 20),
+          
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total',
+                      style: TextStyle(color: Colors.white70, fontSize: 15),
+                    ),
+                    Text(
+                      widget.price,
+                      key: const Key('payment_total_price'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+          
+              const SizedBox(height: 14),
+          
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  key: const Key('payment_continue_button'),
+                  onPressed: isProcessing
+                      ? null
+                      : isSuccessful
+                      ? () => Navigator.of(context).pop()
+                      : errorMessage != null
+                      ? notifier.reset
+                      : _continue,
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    disabledBackgroundColor: const Color(0xFF3A3A3A),
+                    disabledForegroundColor: Colors.white70,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26),
                     ),
                   ),
-                ],
+                  child: isProcessing
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Processing...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          isSuccessful
+                              ? 'Start Exploring'
+                              : errorMessage != null
+                              ? 'Try Again'
+                              : 'Pay Now',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
               ),
             ],
-
-            const SizedBox(height: 14),
-
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                key: const Key('payment_continue_button'),
-                onPressed: isProcessing
-                    ? null
-                    : isSuccessful
-                    ? () => Navigator.of(context).pop()
-                    : errorMessage != null
-                    ? notifier.reset
-                    : _continue,
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  disabledBackgroundColor: const Color(0xFF3A3A3A),
-                  disabledForegroundColor: Colors.white70,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                ),
-                child: isProcessing
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Processing...',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Text(
-                        isSuccessful
-                            ? 'Start Exploring'
-                            : errorMessage != null
-                            ? 'Try Again'
-                            : 'Pay Now',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
