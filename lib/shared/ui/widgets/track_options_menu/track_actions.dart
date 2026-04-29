@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../features/playlists/domain/entities/collection_type.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../../features/playlists/presentation/widgets/select_playlist_sheet.dart';
 import '../../../../features/playback_streaming_engine/presentation/providers/player_provider.dart';
@@ -24,6 +26,8 @@ class TrackActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final role = ref.watch(authControllerProvider).value?.role.toUpperCase();
+    final isArtist = role == 'ARTIST';
     return Column(
       children: [
         if (!isMyTrack)
@@ -67,6 +71,28 @@ class TrackActions extends ConsumerWidget {
               context: targetContext,
               ref: ref,
               trackId: trackId,
+            );
+          },
+        ),
+        TrackOptionMenuItem(
+          icon: Icons.album_outlined,
+          label: 'Add to album',
+          onTap: () {
+            if (!isArtist) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Only artists can add to albums')),
+              );
+              return;
+            }
+            final navigator = Navigator.of(context);
+            final targetContext = navigator.context;
+            navigator.pop();
+            showSelectPlaylistSheet(
+              context: targetContext,
+              ref: ref,
+              trackId: trackId,
+              collectionType: CollectionType.album,
             );
           },
         ),

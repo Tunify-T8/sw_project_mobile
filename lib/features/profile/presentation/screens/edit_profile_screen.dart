@@ -27,6 +27,7 @@ class EditProfileScreen extends StatefulWidget {
   final String? tiktok;
   final String? soundcloud;
   final String userType;
+  final String role;
   final String? profileImageUrl;
   final String? coverImageUrl; //3lshan yfdal shayef el soora
 
@@ -48,6 +49,7 @@ class EditProfileScreen extends StatefulWidget {
     this.profileImageUrl,
     this.coverImageUrl,
     this.userType = 'ARTIST',
+    this.role = 'USER',
   });
 
   @override
@@ -112,7 +114,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _originalCoverImage = widget.coverImage;
     _originalProfileImageUrl = widget.profileImageUrl;
     _originalCoverImageUrl = widget.coverImageUrl;
-    _isArtist = widget.userType == 'ARTIST';
+    final normalizedUserType = widget.userType.toUpperCase();
+    final normalizedRole = widget.role.toUpperCase();
+    _isArtist = normalizedRole == 'ARTIST'
+        ? true
+        : normalizedRole == 'LISTENER'
+        ? false
+        : normalizedUserType == 'ARTIST';
   }
 
   @override

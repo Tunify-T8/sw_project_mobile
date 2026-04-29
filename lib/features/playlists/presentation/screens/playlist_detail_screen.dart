@@ -12,8 +12,10 @@ import '../widgets/playlist_share_sheet.dart';
 import '../widgets/secret_token_section.dart';
 import '../widgets/track_in_playlist_options_sheet.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/collection_privacy.dart';
+import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_entity.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/entities/playlist_track_entity.dart';
@@ -21,6 +23,9 @@ import '../providers/playlist_providers.dart';
 import '../providers/recent_playlists_provider.dart';
 import '../widgets/playlist_options_sheet.dart';
 import '../widgets/playlist_track_tile.dart';
+import '../../../../shared/ui/patterns/error_message_view.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
+import '../../../../shared/ui/patterns/error_ui_mapper.dart';
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
   const PlaylistDetailScreen({
@@ -132,6 +137,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     final state = ref.watch(playlistNotifierProvider);
     final playlist = state.activePlaylist;
     final tracks = state.activeTracks;
+    final currentRole =
+        ref.watch(profileProvider).profile?.role.toUpperCase() ?? 'USER';
+    final canEditAlbumAsCurrentUser = currentRole == 'ARTIST';
 
     if (state.isDetailLoading) {
       return const Scaffold(
@@ -141,18 +149,16 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     }
 
     if (state.detailError != null || playlist == null) {
+      final uiError = mapToUiErrorState(state.detailError ?? 'Could not fetch playlist');
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.black,
           leading: const BackButton(color: Colors.white),
         ),
-        body: Center(
-          child: Text(
-            state.detailError ?? 'Playlist not found',
-            style: const TextStyle(color: Colors.white70),
-          ),
-        ),
+        body: uiError.retryable
+            ? ErrorRetryView(onRetry: _reloadPlaylist)
+            : ErrorMessageView(message: uiError.message),
       );
     }
 
@@ -233,10 +239,23 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     onPressed: () => showPlaylistOptionsSheet(
                       context: context,
                       playlist: _toSummary(playlist, isMine: widget.isMine),
+                      collectionType: playlist.type,
                       isDetailView: true,
                       // Own-playlist actions
                       onEdit: widget.isMine
                           ? () async {
+                              if (playlist.type == CollectionType.album &&
+                                  !canEditAlbumAsCurrentUser) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Only artists can edit albums',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
                               await Navigator.of(context).pushNamed(
                                 Routes.playlistEdit,
                                 arguments: {'collectionId': playlist.id},
@@ -264,6 +283,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               context: context,
                               ref: ref,
                               collectionId: playlist.id,
+                              collectionType: playlist.type,
                             )
                           : null,
                       onDelete: widget.isMine
@@ -301,6 +321,24 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         secretToken: playlist.secretToken,
                       ),
                       onCopyPlaylist: widget.isMine ? () {} : null,
+                      onConvertToAlbum: widget.isMine &&
+                              playlist.type == CollectionType.playlist
+                          ? () {
+                              if (!canEditAlbumAsCurrentUser) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Only artists can convert playlists to albums',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              ref
+                                  .read(playlistNotifierProvider.notifier)
+                                  .convertToAlbum(playlist.id);
+                            }
+                          : null,
                       onShufflePlay: tracks.isEmpty
                           ? null
                           : () => _playPlaylistTrack(
@@ -506,6 +544,7 @@ class _HeaderInfo extends StatelessWidget {
         ? 'Private'
         : 'Public';
     final ownerName = playlist.owner?.displayName ?? playlist.owner?.username;
+    final ownerAvatarUrl = playlist.owner?.avatarUrl;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,10 +595,10 @@ class _HeaderInfo extends StatelessWidget {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: const Color(0xFF2A2A2A),
-                backgroundImage: playlist.owner!.avatarUrl != null
-                    ? NetworkImage(playlist.owner!.avatarUrl!)
+                backgroundImage: ownerAvatarUrl != null
+                    ? NetworkImage(ownerAvatarUrl)
                     : null,
-                child: playlist.owner!.avatarUrl == null
+                child: ownerAvatarUrl == null
                     ? const Icon(Icons.person, color: Colors.white38, size: 14)
                     : null,
               ),

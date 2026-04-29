@@ -7,26 +7,37 @@ import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import '../../../feed_search_discovery/domain/entities/track_result_entity.dart';
 import '../../../feed_search_discovery/presentation/providers/search_provider.dart';
+import '../../domain/entities/collection_type.dart';
 import '../providers/playlist_providers.dart';
 
 void showAddTrackSheet({
   required BuildContext context,
   required WidgetRef ref,
   required String collectionId,
+  CollectionType collectionType = CollectionType.playlist,
 }) {
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (_) => _AddTrackSheet(outerRef: ref, collectionId: collectionId),
+    builder: (_) => _AddTrackSheet(
+      outerRef: ref,
+      collectionId: collectionId,
+      collectionType: collectionType,
+    ),
   );
 }
 
 class _AddTrackSheet extends ConsumerStatefulWidget {
-  const _AddTrackSheet({required this.outerRef, required this.collectionId});
+  const _AddTrackSheet({
+    required this.outerRef,
+    required this.collectionId,
+    required this.collectionType,
+  });
 
   final WidgetRef outerRef;
   final String collectionId;
+  final CollectionType collectionType;
 
   @override
   ConsumerState<_AddTrackSheet> createState() => _AddTrackSheetState();
@@ -115,7 +126,7 @@ class _AddTrackSheetState extends ConsumerState<_AddTrackSheet> {
     final bottom = MediaQuery.of(context).padding.bottom;
 
     Widget body;
-    if (_query.isEmpty) {
+    if (_query.isEmpty || widget.collectionType == CollectionType.album) {
       // ── Library mode ────────────────────────────────────────────────────
       final tracks = uploadsState.items;
       if (uploadsState.isLoading && tracks.isEmpty) {
@@ -214,9 +225,12 @@ class _AddTrackSheetState extends ConsumerState<_AddTrackSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
               controller: _searchCtrl,
+              readOnly: widget.collectionType == CollectionType.album,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Search tracks',
+                hintText: widget.collectionType == CollectionType.album
+                    ? 'Album tracks must be from your uploads'
+                    : 'Search tracks',
                 hintStyle: const TextStyle(color: Colors.white38),
                 prefixIcon: const Icon(Icons.search, color: Colors.white38),
                 filled: true,

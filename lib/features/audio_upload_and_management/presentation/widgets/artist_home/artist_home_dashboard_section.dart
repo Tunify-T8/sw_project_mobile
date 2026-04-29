@@ -11,12 +11,14 @@ class ArtistHomeDashboardSection extends StatelessWidget {
     required this.busyLabel,
     required this.onUpload,
     required this.onOpenUploads,
+    required this.onOpenAlbums,
   });
 
   final bool isBusy;
   final String busyLabel;
   final VoidCallback onUpload;
   final VoidCallback onOpenUploads;
+  final VoidCallback onOpenAlbums;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +75,15 @@ class ArtistHomeDashboardSection extends StatelessWidget {
             icon: Icons.graphic_eq,
             label: 'Uploads',
             onTap: onOpenUploads,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _DarkCard(
+            icon: Icons.album_outlined,
+            label: 'Albums',
+            onTap: onOpenAlbums,
           ),
         ),
       ],

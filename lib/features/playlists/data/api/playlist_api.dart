@@ -14,8 +14,8 @@ import '../dto/playlist_track_dto.dart';
 /// All 17 Module-7 endpoints wired to Dio.
 ///
 /// Cover image strategy (both create and update):
-///   - [cover] File  → multipart/form-data with 'cover' field (takes precedence)
-///   - [coverUrl] String → JSON payload with 'coverUrl' field
+///   cover File  → multipart/form-data with 'cover' field (takes precedence)
+///   coverUrl String → JSON payload with 'coverUrl' field
 ///   - Both provided  → file wins; coverUrl is ignored
 ///   - Neither        → no cover sent
 class PlaylistApi {
@@ -99,6 +99,7 @@ class PlaylistApi {
 
   Future<PlaylistDto> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -110,6 +111,7 @@ class PlaylistApi {
         ? await _dio.put<Map<String, dynamic>>(
             ApiEndpoints.collectionById(id),
             data: FormData.fromMap({
+              if (type != null) 'type': type.toJson(),
               if (title != null) 'title': title,
               if (description != null) 'description': description,
               if (privacy != null) 'privacy': privacy.toJson(),
@@ -120,6 +122,7 @@ class PlaylistApi {
         : await _dio.put<Map<String, dynamic>>(
             ApiEndpoints.collectionById(id),
             data: {
+              if (type != null) 'type': type.toJson(),
               if (title != null) 'title': title,
               if (description != null) 'description': description,
               if (privacy != null) 'privacy': privacy.toJson(),

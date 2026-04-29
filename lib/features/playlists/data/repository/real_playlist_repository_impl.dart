@@ -62,6 +62,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
   @override
   Future<PlaylistEntity> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -70,6 +71,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
   }) async {
     final dto = await _api.updateCollection(
       id: id,
+      type: type,
       title: title,
       description: description,
       privacy: privacy,

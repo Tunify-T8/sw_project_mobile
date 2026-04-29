@@ -10,12 +10,14 @@ class PlaylistTile extends StatelessWidget {
     required this.onTap,
     required this.onMoreTap,
     this.ownerName,
+    this.showReleaseDate = false,
   });
 
   final PlaylistSummaryEntity playlist;
   final VoidCallback onTap;
   final VoidCallback onMoreTap;
   final String? ownerName;
+  final bool showReleaseDate;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,13 @@ class PlaylistTile extends StatelessWidget {
           children: [
             _Cover(coverUrl: playlist.coverUrl),
             const SizedBox(width: 12),
-            Expanded(child: _Info(playlist: playlist, ownerName: ownerName)),
+            Expanded(
+              child: _Info(
+                playlist: playlist,
+                ownerName: ownerName,
+                showReleaseDate: showReleaseDate,
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.more_vert, color: Colors.white54),
               onPressed: onMoreTap,
@@ -61,15 +69,26 @@ class _Cover extends StatelessWidget {
 }
 
 class _Info extends StatelessWidget {
-  const _Info({required this.playlist, this.ownerName});
+  const _Info({
+    required this.playlist,
+    this.ownerName,
+    required this.showReleaseDate,
+  });
+
   final PlaylistSummaryEntity playlist;
   final String? ownerName;
+  final bool showReleaseDate;
 
   String get _typeLabel =>
       playlist.type == CollectionType.album ? 'Album' : 'Playlist';
 
-  String get _subtitle =>
-      '$_typeLabel · ${playlist.trackCount} Track${playlist.trackCount != 1 ? 's' : ''}';
+  String get _subtitle {
+    final privacyLabel = playlist.privacy.name == 'private' ? 'Private' : 'Public';
+    final releaseLabel = showReleaseDate
+        ? ' · Released ${playlist.createdAt.year}-${playlist.createdAt.month.toString().padLeft(2, '0')}-${playlist.createdAt.day.toString().padLeft(2, '0')}'
+        : '';
+    return '$_typeLabel · ${playlist.trackCount} Track${playlist.trackCount != 1 ? 's' : ''} · $privacyLabel$releaseLabel';
+  }
 
   @override
   Widget build(BuildContext context) {

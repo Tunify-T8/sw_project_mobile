@@ -13,6 +13,7 @@ import '../widgets/artist_home/artist_home_app_bar.dart';
 import '../widgets/artist_home/artist_home_credits_section.dart';
 import '../widgets/artist_home/artist_home_dashboard_section.dart';
 import '../widgets/artist_home/artist_home_latest_upload_section.dart';
+import '../../../../core/routing/routes.dart';
 import 'your_uploads_screen.dart';
 
 class ArtistHomeScreen extends ConsumerStatefulWidget {
@@ -67,6 +68,9 @@ class _ArtistHomeScreenState extends ConsumerState<ArtistHomeScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const YourUploadsScreen()),
                 );
+              },
+              onOpenAlbums: () {
+                Navigator.of(context).pushNamed(Routes.albums);
               },
             ),
             const SizedBox(height: 28),

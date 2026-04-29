@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/utils/engagement_formatters.dart';
 import '../../domain/entities/playlist_track_entity.dart';
 
-class PlaylistTrackTile extends StatelessWidget {
+class PlaylistTrackTile extends ConsumerWidget {
   const PlaylistTrackTile({
     super.key,
     required this.track,
@@ -15,7 +18,13 @@ class PlaylistTrackTile extends StatelessWidget {
   final VoidCallback onMoreTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final totalPlaysAsync = ref.watch(trackTotalPlaysProvider(track.trackId));
+    final playCount = totalPlaysAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => track.playCount,
+    );
+
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -24,7 +33,7 @@ class PlaylistTrackTile extends StatelessWidget {
           children: [
             _Cover(coverUrl: track.coverUrl),
             const SizedBox(width: 12),
-            Expanded(child: _Info(track: track)),
+            Expanded(child: _Info(track: track, playCount: playCount)),
             IconButton(
               icon: const Icon(Icons.more_vert, color: Colors.white38),
               onPressed: onMoreTap,
@@ -58,8 +67,9 @@ class _Cover extends StatelessWidget {
 }
 
 class _Info extends StatelessWidget {
-  const _Info({required this.track});
+  const _Info({required this.track, required this.playCount});
   final PlaylistTrackEntity track;
+  final int playCount;
 
   String get _duration {
     final m = track.durationSeconds ~/ 60;
@@ -68,10 +78,7 @@ class _Info extends StatelessWidget {
   }
 
   String get _playCount {
-    final c = track.playCount;
-    if (c >= 1000000) return '${(c / 1000000).toStringAsFixed(1)}M';
-    if (c >= 1000) return '${(c / 1000).toStringAsFixed(1)}K';
-    return c.toString();
+    return EngagementFormatters.compactCount(playCount);
   }
 
   @override

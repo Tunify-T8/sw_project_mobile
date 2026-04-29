@@ -148,6 +148,7 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
   @override
   Future<PlaylistEntity> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -171,7 +172,7 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
       id: old.id,
       title: title ?? old.title,
       description: description ?? old.description,
-      type: old.type,
+      type: (type ?? CollectionType.fromJson(old.type)).toJson(),
       privacy: newPrivacy.toJson(),
       secretToken: newToken,
       coverUrl: cover != null ? old.coverUrl : (coverUrl ?? old.coverUrl),
