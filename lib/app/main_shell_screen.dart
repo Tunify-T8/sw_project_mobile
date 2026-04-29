@@ -100,7 +100,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
                   Navigator.of(context).pushNamed(Routes.yourUploads),
             ),
 
-            (currentSubscription?.tier == SubscriptionTier.free)
+            (currentSubscription.tier == SubscriptionTier.free)
                 ? const UpgradeScreen(popUp: false)
                 : const CurrentSubscriptionScreen(),
           ],

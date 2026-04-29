@@ -60,8 +60,9 @@ class FeedActivityRow extends StatelessWidget {
           child: SizedBox(
             height: 22,
             child:
-                (_getActivityText().length > 25 &&
-                    (feedViewMode == FeedViewMode.discover))
+                (_getActivityText().length > 35 &&
+                    (feedViewMode == FeedViewMode.discover) &&
+                    (MediaQuery.of(context).size.width < 600))
                 ? Marquee(
                     text: _getActivityText(),
                     style: const TextStyle(
