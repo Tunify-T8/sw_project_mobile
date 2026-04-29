@@ -55,6 +55,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     required String? error,
     required List<FeedItemEntity> items,
     required String emptyMessage,
+    required Icon emptyIcon,
     required FeedType tabType,
   }) {
     if (isLoading || !hasLoaded) {
@@ -65,8 +66,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
             ref.read(feedNotifierProvider.notifier).loadFeed(tab: tabType),
       );
     } else if (items.isEmpty) {
-      return Center(
-        child: Text(emptyMessage, style: TextStyle(color: Colors.white54)),
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          emptyIcon,
+          SizedBox(height: 25),
+          Text(
+            emptyMessage,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       );
     } else {
       return PageView.builder(
@@ -101,7 +115,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       hasLoaded: state.hasLoadedDiscover,
       error: state.discoverError,
       items: state.discoverItems,
-      emptyMessage: 'Nothing to discover yet',
+      emptyMessage:
+          "We’re still learning more about you.\nExplore more to get better recommendations.",
+      emptyIcon: Icon(Icons.explore, size: 50, color: Colors.grey),
       tabType: FeedType.discover,
     );
 
@@ -110,7 +126,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       hasLoaded: state.hasLoadedFollowing,
       error: state.followingError,
       items: state.followingItems,
-      emptyMessage: 'Follow artists to see their tracks',
+      emptyMessage:
+          "Your feed is empty.\nFollow artists to see their latest tracks and reposts.",
+      emptyIcon: Icon(Icons.people, size: 50, color: Colors.grey),
       tabType: FeedType.following,
     );
 
