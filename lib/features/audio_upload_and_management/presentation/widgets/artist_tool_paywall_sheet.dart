@@ -224,6 +224,7 @@ class _ArtistToolPaywallSheetState
 
 class _ArtistToolPaywallMessage extends StatelessWidget {
   const _ArtistToolPaywallMessage({
+    super.key,
     required this.kind,
     required this.data,
     required this.uploadMinutesLimit,
