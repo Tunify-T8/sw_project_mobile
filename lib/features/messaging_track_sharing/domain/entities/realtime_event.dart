@@ -21,6 +21,23 @@ class MessageReadEvent extends RealtimeMessagingEvent {
   });
 }
 
+class MessageDeliveredEvent extends RealtimeMessagingEvent {
+  final String conversationId;
+  final String? messageId;
+  final String readerUserId;
+  const MessageDeliveredEvent({
+    required this.conversationId,
+    required this.readerUserId,
+    this.messageId,
+  });
+}
+
+class MessageUndeliveredEvent extends RealtimeMessagingEvent {
+  final String conversationId;
+  final String? messageId;
+  const MessageUndeliveredEvent({required this.conversationId, this.messageId});
+}
+
 class ConversationBlockedEvent extends RealtimeMessagingEvent {
   final String conversationId;
   const ConversationBlockedEvent(this.conversationId);

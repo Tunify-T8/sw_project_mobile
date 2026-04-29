@@ -161,13 +161,26 @@ class RealMessagingSocket implements MessagingSocket {
   }
 
   @override
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  }) async {
+    if (!_connected) await connect();
+    if (!_connected) return;
+    _socket?.emit('message:delivered', {
+      'conversationId': conversationId,
+      'messageId': messageId,
+    });
+  }
+
+  @override
   Future<void> markMessageRead({
     required String conversationId,
     required String messageId,
   }) async {
     if (!_connected) await connect();
     if (!_connected) return;
-    _socket?.emit('message:markRead', {
+    _socket?.emit('message:read', {
       'conversationId': conversationId,
       'messageId': messageId,
     });
@@ -280,20 +293,61 @@ class RealMessagingSocket implements MessagingSocket {
     });
 
     _socket!.on('read:success', (_) {});
+    _socket!.on('delivered:success', (_) {});
+    _socket!.on('undelivered:success', (_) {});
+
+    _socket!.on('message:delivered', (data) {
+      final m = _safeMap(data);
+      final convoId = (m['conversationId'] ?? '').toString();
+      final messageId = (m['messageId'] ?? '').toString();
+      final readerId = (m['readerId'] ?? m['userId'] ?? '').toString();
+      if (convoId.isEmpty) return;
+      _controller.add(
+        MessageDeliveredEvent(
+          conversationId: convoId,
+          readerUserId: readerId,
+          messageId: messageId.isEmpty ? null : messageId,
+        ),
+      );
+    });
 
     _socket!.on('message:read', (data) {
       final m = _safeMap(data);
       final convoId = (m['conversationId'] ?? '').toString();
-      final messageId = (m['messageId'] ?? '') as String?;
+      final messageId = (m['messageId'] ?? '').toString();
       final readerId = (m['readerId'] ?? m['userId'] ?? '').toString();
       if (convoId.isEmpty) return;
       _controller.add(
         MessageReadEvent(
           conversationId: convoId,
           readerUserId: readerId,
-          messageId: (messageId == null || messageId.isEmpty)
-              ? null
-              : messageId,
+          messageId: messageId.isEmpty ? null : messageId,
+        ),
+      );
+    });
+
+    _socket!.on('message:unread', (data) {
+      final m = _safeMap(data);
+      final convoId = (m['conversationId'] ?? '').toString();
+      final messageId = (m['messageId'] ?? '').toString();
+      if (convoId.isEmpty) return;
+      _controller.add(
+        MessageUndeliveredEvent(
+          conversationId: convoId,
+          messageId: messageId.isEmpty ? null : messageId,
+        ),
+      );
+    });
+
+    _socket!.on('message:undelivered', (data) {
+      final m = _safeMap(data);
+      final convoId = (m['conversationId'] ?? '').toString();
+      final messageId = (m['messageId'] ?? '').toString();
+      if (convoId.isEmpty) return;
+      _controller.add(
+        MessageUndeliveredEvent(
+          conversationId: convoId,
+          messageId: messageId.isEmpty ? null : messageId,
         ),
       );
     });
@@ -406,7 +460,7 @@ class RealMessagingSocket implements MessagingSocket {
       'type': type,
       ...(content == null ? const {} : {'content': content}),
       'createdAt': DateTime.now().toUtc().toIso8601String(),
-      'read': true,
+      'status': 'SENT',
       if (payload['trackId'] != null ||
           payload['collectionId'] != null ||
           payload['userId'] != null)

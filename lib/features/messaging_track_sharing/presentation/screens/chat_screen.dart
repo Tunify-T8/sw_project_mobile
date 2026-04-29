@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -107,6 +108,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
         _scrollToBottom();
       }
+      if ((previous?.typingUserIds.isEmpty ?? true) &&
+          next.typingUserIds.isNotEmpty) {
+        _scrollToBottom();
+      }
       // Surface a friendly toast when a message send fails — usually because
       // the recipient only accepts messages from people they follow.
       if (next.error != null && next.error != previous?.error) {
@@ -166,7 +171,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                     child: const Text(
                       'Unblock',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -178,6 +186,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             pendingAttachments: _pendingAttachments,
             onRemoveAttachment: _removePendingAttachment,
             onSend: _sendComposerMessage,
+            onChanged: ref
+                .read(chatControllerProvider(widget.conversationId).notifier)
+                .handleComposerTextChanged,
+            onFocusChanged: ref
+                .read(chatControllerProvider(widget.conversationId).notifier)
+                .handleComposerFocusChanged,
             onAttachTap: () => _showAttachSheet(context),
           );
 
@@ -210,6 +224,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       messages: chatState.messages,
                       scrollController: _scrollController,
                       currentUserId: currentUserId,
+                      typingUserName: chatState.typingUserIds.isEmpty
+                          ? null
+                          : appBarName,
                     ),
             ),
             bottomWidget,
@@ -277,6 +294,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         messages: chatState.messages,
                         scrollController: _scrollController,
                         currentUserId: currentUserId,
+                        typingUserName: chatState.typingUserIds.isEmpty
+                            ? null
+                            : appBarName,
                       ),
               ),
               bottomWidget,
@@ -463,7 +483,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: Text(
           isCurrentlyBlocked ? 'Unblock user?' : 'Block user?',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         content: Text(
           isCurrentlyBlocked
@@ -474,14 +497,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(
               isCurrentlyBlocked ? 'Unblock' : 'Block',
               style: TextStyle(
-                color: isCurrentlyBlocked ? Colors.greenAccent : Colors.redAccent,
+                color: isCurrentlyBlocked
+                    ? Colors.greenAccent
+                    : Colors.redAccent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -597,15 +625,19 @@ class _MessageList extends StatelessWidget {
     required this.messages,
     required this.scrollController,
     required this.currentUserId,
+    this.typingUserName,
   });
 
   final List<MessageEntity> messages;
   final ScrollController scrollController;
   final String currentUserId;
+  final String? typingUserName;
 
   @override
   Widget build(BuildContext context) {
-    if (messages.isEmpty) {
+    final isTyping =
+        typingUserName != null && typingUserName!.trim().isNotEmpty;
+    if (messages.isEmpty && !isTyping) {
       return const Center(
         child: Text(
           'Say hi!',
@@ -653,10 +685,122 @@ class _MessageList extends StatelessWidget {
       widgets.add(MessageBubble(message: message, isMine: isMine));
     }
 
+    if (isTyping) {
+      widgets.add(_TypingIndicator(name: typingUserName!.trim()));
+    }
+
     return ListView(
       controller: scrollController,
       padding: const EdgeInsets.only(bottom: 8),
       children: widgets,
+    );
+  }
+}
+
+class _TypingIndicator extends StatefulWidget {
+  const _TypingIndicator({required this.name});
+
+  final String name;
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFF151515),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF2A2A2A)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.sizeOf(context).width * 0.48,
+                    ),
+                    child: Text(
+                      '${widget.name} is typing',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  for (var i = 0; i < 3; i++) ...[
+                    _TypingDot(
+                      opacity:
+                          0.35 +
+                          0.65 *
+                              ((math.sin(
+                                        (_controller.value * math.pi * 2) -
+                                            (i * 0.75),
+                                      ) +
+                                      1) /
+                                  2),
+                    ),
+                    if (i != 2) const SizedBox(width: 4),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _TypingDot extends StatelessWidget {
+  const _TypingDot({required this.opacity});
+
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: Color(0xFF64B5F6),
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 }

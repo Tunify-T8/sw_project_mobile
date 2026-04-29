@@ -65,6 +65,20 @@ class MessagingMapper {
     }
   }
 
+  static MessageDeliveryStatus _deliveryStatus(MessageDto d) {
+    switch (d.status.toUpperCase()) {
+      case 'READ':
+        return MessageDeliveryStatus.read;
+      case 'DELIVERED':
+        return MessageDeliveryStatus.delivered;
+      case 'SENT':
+      default:
+        return d.isRead
+            ? MessageDeliveryStatus.read
+            : MessageDeliveryStatus.sent;
+    }
+  }
+
   static MessageEntity message(MessageDto d) => MessageEntity(
     id: d.id,
     conversationId: d.conversationId,
@@ -74,6 +88,7 @@ class MessagingMapper {
     attachments: d.attachments.map(attachment).toList(),
     createdAt: d.createdAt,
     isRead: d.isRead,
+    deliveryStatus: _deliveryStatus(d),
   );
 
   static ConversationEntity conversation(ConversationDto d) =>

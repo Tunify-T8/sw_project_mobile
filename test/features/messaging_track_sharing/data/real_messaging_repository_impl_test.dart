@@ -177,6 +177,12 @@ class _RecordingMessagingSocket implements MessagingSocket {
   Future<void> leaveConversation(String conversationId) async {}
 
   @override
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  }) async {}
+
+  @override
   Future<void> markMessageRead({
     required String conversationId,
     required String messageId,

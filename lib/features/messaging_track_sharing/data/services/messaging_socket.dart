@@ -21,7 +21,13 @@ abstract class MessagingSocket {
   /// echo can be constructed locally).
   Future<MessageDto> sendMessage(Map<String, dynamic> payload);
 
-  /// Fires `message:markRead` for a specific message id.
+  /// Fires `message:delivered` for a specific message id.
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  });
+
+  /// Fires `message:read` for a specific message id.
   Future<void> markMessageRead({
     required String conversationId,
     required String messageId,

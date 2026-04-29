@@ -91,7 +91,9 @@ class ConversationsController extends Notifier<ConversationsState> {
       '${StorageKeys.messagingReadWatermarks}_$userId';
 
   /// Merges backend items with local overrides that must survive refreshes.
-  List<ConversationEntity> _applyLocalOverrides(List<ConversationEntity> items) {
+  List<ConversationEntity> _applyLocalOverrides(
+    List<ConversationEntity> items,
+  ) {
     return items.map((c) {
       var next = c;
       if (_localUnarchivedIds.contains(c.conversationId)) {
@@ -129,13 +131,11 @@ class ConversationsController extends Notifier<ConversationsState> {
       _localReadWatermarks
         ..clear()
         ..addEntries(
-          decoded.entries
-              .map((entry) {
-                final parsed = DateTime.tryParse(entry.value.toString());
-                if (parsed == null) return null;
-                return MapEntry(entry.key, parsed);
-              })
-              .whereType<MapEntry<String, DateTime>>(),
+          decoded.entries.map((entry) {
+            final parsed = DateTime.tryParse(entry.value.toString());
+            if (parsed == null) return null;
+            return MapEntry(entry.key, parsed);
+          }).whereType<MapEntry<String, DateTime>>(),
         );
     } catch (_) {
       await SafeSecureStorage.delete(_readWatermarksKey(userId));
@@ -214,8 +214,8 @@ class ConversationsController extends Notifier<ConversationsState> {
       final now = DateTime.now();
       _localReadWatermarks[conversationId] =
           lastMessageAt != null && lastMessageAt.isAfter(now)
-              ? lastMessageAt
-              : now;
+          ? lastMessageAt
+          : now;
       unawaited(_persistReadWatermarks(userId));
     }
 
@@ -273,7 +273,9 @@ class ConversationsController extends Notifier<ConversationsState> {
     // Remove immediately from visible list without waiting for refresh.
     state = state.copyWith(
       items: state.items.map((c) {
-        if (c.conversationId == conversationId) return c.copyWith(isArchived: true);
+        if (c.conversationId == conversationId) {
+          return c.copyWith(isArchived: true);
+        }
         return c;
       }).toList(),
     );
@@ -284,7 +286,9 @@ class ConversationsController extends Notifier<ConversationsState> {
     _localArchivedIds.remove(conversationId);
     state = state.copyWith(
       items: state.items.map((c) {
-        if (c.conversationId == conversationId) return c.copyWith(isArchived: false);
+        if (c.conversationId == conversationId) {
+          return c.copyWith(isArchived: false);
+        }
         return c;
       }).toList(),
     );
@@ -316,6 +320,8 @@ class ConversationsController extends Notifier<ConversationsState> {
           switch (event) {
             case MessageReceivedEvent():
             case MessageReadEvent():
+            case MessageDeliveredEvent():
+            case MessageUndeliveredEvent():
             case ConversationBlockedEvent():
               refresh();
             case TypingEvent():

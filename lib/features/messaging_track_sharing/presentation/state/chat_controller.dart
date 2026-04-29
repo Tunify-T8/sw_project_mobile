@@ -21,12 +21,14 @@ class ChatState {
   final List<MessageEntity> messages;
   final String? error;
   final bool isSending;
+  final Set<String> typingUserIds;
 
   const ChatState({
     this.isLoading = false,
     this.messages = const [],
     this.error,
     this.isSending = false,
+    this.typingUserIds = const {},
   });
 
   ChatState copyWith({
@@ -35,11 +37,13 @@ class ChatState {
     String? error,
     bool clearError = false,
     bool? isSending,
+    Set<String>? typingUserIds,
   }) => ChatState(
     isLoading: isLoading ?? this.isLoading,
     messages: messages ?? this.messages,
     error: clearError ? null : (error ?? this.error),
     isSending: isSending ?? this.isSending,
+    typingUserIds: typingUserIds ?? this.typingUserIds,
   );
 }
 
@@ -50,6 +54,11 @@ class ChatController extends Notifier<ChatState> {
 
   final String _conversationId;
   StreamSubscription<RealtimeMessagingEvent>? _eventsSub;
+  final Map<String, Timer> _typingTimeouts = {};
+  final Set<String> _deliveredMessageIds = {};
+  final Set<String> _readMessageIds = {};
+  Timer? _outgoingTypingTimer;
+  bool _isTypingOutgoing = false;
 
   @override
   ChatState build() {
@@ -59,6 +68,11 @@ class ChatController extends Notifier<ChatState> {
     ref.onDispose(() async {
       await _eventsSub?.cancel();
       try {
+        _stopOutgoingTyping();
+        for (final timer in _typingTimeouts.values) {
+          timer.cancel();
+        }
+        _typingTimeouts.clear();
         await ref
             .read(messagingRepositoryProvider)
             .leaveConversation(_conversationId);
@@ -90,6 +104,7 @@ class ChatController extends Notifier<ChatState> {
         attachments: message.attachments,
         createdAt: message.createdAt,
         isRead: message.isRead,
+        deliveryStatus: message.deliveryStatus,
         isPending: message.isPending,
         isFailed: message.isFailed,
       );
@@ -108,7 +123,7 @@ class ChatController extends Notifier<ChatState> {
       text: (draft.text ?? '').trim().isEmpty ? null : draft.text!.trim(),
       attachments: draft.attachments,
       createdAt: DateTime.now(),
-      isRead: true,
+      deliveryStatus: MessageDeliveryStatus.sent,
       isPending: true,
     );
   }
@@ -144,6 +159,7 @@ class ChatController extends Notifier<ChatState> {
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
       state = state.copyWith(isLoading: false, messages: chronological);
+      _markIncomingMessagesVisible(chronological);
 
       if (ref.read(messagingSessionUserIdProvider) == userId) {
         await ref
@@ -177,17 +193,154 @@ class ChatController extends Notifier<ChatState> {
                 return true;
               }).toList();
               state = state.copyWith(messages: [...filtered, attributed]);
+              _markIncomingMessagesVisible([attributed]);
               unawaited(
                 ref
                     .read(conversationsControllerProvider.notifier)
                     .markRead(_conversationId),
               );
-            case MessageReadEvent():
+            case MessageDeliveredEvent(:final conversationId, :final messageId):
+              if (conversationId != _conversationId) return;
+              _applyDeliveryStatus(messageId, MessageDeliveryStatus.delivered);
+            case MessageReadEvent(:final conversationId, :final messageId):
+              if (conversationId != _conversationId) return;
+              _applyDeliveryStatus(messageId, MessageDeliveryStatus.read);
+            case MessageUndeliveredEvent(
+              :final conversationId,
+              :final messageId,
+            ):
+              if (conversationId != _conversationId) return;
+              _applyDeliveryStatus(messageId, MessageDeliveryStatus.sent);
             case ConversationBlockedEvent():
-            case TypingEvent():
+              break;
+            case TypingEvent(
+              :final conversationId,
+              :final userId,
+              :final isTyping,
+            ):
+              if (conversationId != _conversationId) return;
+              _applyTyping(userId, isTyping);
               break;
           }
         });
+  }
+
+  bool _isMine(MessageEntity message) {
+    final me = _currentUserId();
+    if (me == null || me.isEmpty) return false;
+    return message.senderId == me ||
+        message.senderId == kOptimisticSenderMarker;
+  }
+
+  void _markIncomingMessagesVisible(List<MessageEntity> messages) {
+    for (final message in messages) {
+      if (_isMine(message)) continue;
+      if (message.id.isEmpty || message.id.startsWith('local_')) continue;
+      if (_deliveredMessageIds.add(message.id)) {
+        unawaited(
+          ref
+              .read(messagingRepositoryProvider)
+              .markMessageDelivered(
+                conversationId: _conversationId,
+                messageId: message.id,
+              ),
+        );
+      }
+      if (_readMessageIds.add(message.id)) {
+        unawaited(
+          ref
+              .read(messagingRepositoryProvider)
+              .markMessageRead(
+                conversationId: _conversationId,
+                messageId: message.id,
+              ),
+        );
+      }
+    }
+  }
+
+  void _applyDeliveryStatus(
+    String? messageId,
+    MessageDeliveryStatus deliveryStatus,
+  ) {
+    var changed = false;
+    final updated = state.messages.map((message) {
+      if (!_isMine(message)) return message;
+      if (messageId != null &&
+          messageId.isNotEmpty &&
+          message.id != messageId) {
+        return message;
+      }
+      if (_statusRank(message.deliveryStatus) > _statusRank(deliveryStatus)) {
+        return message;
+      }
+      changed = true;
+      return message.copyWith(
+        deliveryStatus: deliveryStatus,
+        isRead: deliveryStatus == MessageDeliveryStatus.read,
+      );
+    }).toList();
+    if (changed) state = state.copyWith(messages: updated);
+  }
+
+  int _statusRank(MessageDeliveryStatus status) {
+    switch (status) {
+      case MessageDeliveryStatus.sent:
+        return 0;
+      case MessageDeliveryStatus.delivered:
+        return 1;
+      case MessageDeliveryStatus.read:
+        return 2;
+    }
+  }
+
+  void _applyTyping(String userId, bool isTyping) {
+    final me = _currentUserId();
+    if (userId.isEmpty || userId == me) return;
+
+    _typingTimeouts.remove(userId)?.cancel();
+    final next = Set<String>.of(state.typingUserIds);
+    if (isTyping) {
+      next.add(userId);
+      _typingTimeouts[userId] = Timer(const Duration(seconds: 4), () {
+        final remaining = Set<String>.of(state.typingUserIds)..remove(userId);
+        state = state.copyWith(typingUserIds: remaining);
+      });
+    } else {
+      next.remove(userId);
+    }
+    state = state.copyWith(typingUserIds: next);
+  }
+
+  void handleComposerTextChanged(String raw) {
+    final hasText = raw.trim().isNotEmpty;
+    if (!hasText) {
+      _stopOutgoingTyping();
+      return;
+    }
+
+    final repo = ref.read(messagingRepositoryProvider);
+    if (!_isTypingOutgoing) {
+      _isTypingOutgoing = true;
+      repo.startTyping(_conversationId);
+    }
+    _outgoingTypingTimer?.cancel();
+    _outgoingTypingTimer = Timer(
+      const Duration(milliseconds: 1400),
+      _stopOutgoingTyping,
+    );
+  }
+
+  void handleComposerFocusChanged(bool hasFocus) {
+    if (!hasFocus) _stopOutgoingTyping();
+  }
+
+  void _stopOutgoingTyping() {
+    _outgoingTypingTimer?.cancel();
+    _outgoingTypingTimer = null;
+    if (!_isTypingOutgoing) return;
+    _isTypingOutgoing = false;
+    ref.read(messagingRepositoryProvider).stopTyping(_conversationId);
   }
 
   Future<void> sendText(String raw) async {
@@ -208,6 +361,7 @@ class ChatController extends Notifier<ChatState> {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty && attachments.isEmpty) return;
     if (state.isSending) return;
+    _stopOutgoingTyping();
 
     if (trimmedText.isNotEmpty && attachments.isNotEmpty) {
       for (final attachment in attachments) {

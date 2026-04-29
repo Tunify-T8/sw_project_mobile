@@ -30,21 +30,22 @@ class MockMessagingRepository implements MessagingRepository {
     int page = 1,
     int limit = 20,
   }) async {
-    final all = _store.conversations.values
-        .where(
-          (conversation) =>
-              !_store.archivedConversationIds.contains(
-                conversation.conversationId,
-              ) &&
-              !conversation.isBlocked,
-        )
-        .map(MessagingMapper.conversation)
-        .toList()
-      ..sort(
-        (a, b) => (b.lastMessageAt ?? DateTime(0)).compareTo(
-          a.lastMessageAt ?? DateTime(0),
-        ),
-      );
+    final all =
+        _store.conversations.values
+            .where(
+              (conversation) =>
+                  !_store.archivedConversationIds.contains(
+                    conversation.conversationId,
+                  ) &&
+                  !conversation.isBlocked,
+            )
+            .map(MessagingMapper.conversation)
+            .toList()
+          ..sort(
+            (a, b) => (b.lastMessageAt ?? DateTime(0)).compareTo(
+              a.lastMessageAt ?? DateTime(0),
+            ),
+          );
 
     return PaginatedConversations(
       items: all,
@@ -95,10 +96,11 @@ class MockMessagingRepository implements MessagingRepository {
     int page = 1,
     int limit = 20,
   }) async {
-    final list = (_store.messages[conversationId] ?? const <MessageDto>[])
-        .map(MessagingMapper.message)
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final list =
+        (_store.messages[conversationId] ?? const <MessageDto>[])
+            .map(MessagingMapper.message)
+            .toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     return PaginatedMessages(
       items: list,
@@ -235,6 +237,41 @@ class MockMessagingRepository implements MessagingRepository {
 
   @override
   Future<void> leaveConversation(String conversationId) async {}
+
+  @override
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  }) async {
+    _socket.emit(
+      MessageDeliveredEvent(
+        conversationId: conversationId,
+        messageId: messageId,
+        readerUserId: _store.currentUserId,
+      ),
+    );
+  }
+
+  @override
+  Future<void> markMessageRead({
+    required String conversationId,
+    required String messageId,
+  }) async {
+    _socket.emit(
+      MessageReadEvent(
+        conversationId: conversationId,
+        messageId: messageId,
+        readerUserId: _store.currentUserId,
+      ),
+    );
+  }
+
+  @override
+  void startTyping(String conversationId) =>
+      _socket.startTyping(conversationId);
+
+  @override
+  void stopTyping(String conversationId) => _socket.stopTyping(conversationId);
 
   @override
   Future<void> enableReceiveFromAnyone() async {}

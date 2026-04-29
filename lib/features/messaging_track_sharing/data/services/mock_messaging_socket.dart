@@ -34,8 +34,15 @@ class MockMessagingSocket implements MessagingSocket {
   @override
   Future<MessageDto> sendMessage(Map<String, dynamic> payload) async {
     throw UnimplementedError(
-        'MockMessagingSocket.sendMessage is not used — mock repo handles sends.');
+      'MockMessagingSocket.sendMessage is not used — mock repo handles sends.',
+    );
   }
+
+  @override
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  }) async {}
 
   @override
   Future<void> markMessageRead({
