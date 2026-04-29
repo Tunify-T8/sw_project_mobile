@@ -10,7 +10,6 @@ import '../../../../core/design_system/colors.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/presentation/screens/listening_history_screen.dart';
-import '../../../playback_streaming_engine/presentation/screens/open_shared_track_link_screen.dart';
 import '../../../playlists/domain/entities/collection_type.dart';
 import '../../../playlists/presentation/providers/playlist_providers.dart';
 import '../../../playlists/presentation/providers/recent_playlists_provider.dart';
@@ -33,8 +32,6 @@ const _libraryMenuItems = [
   'Albums',
   'Following',
   'Stations',
-  'Open shared link',
-  'Your insights',
   'Your uploads',
 ];
 

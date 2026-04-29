@@ -28,7 +28,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     'Albums',
     'Following',
     'Stations',
-    'Your insights',
     'Your uploads',
   ];
 
@@ -65,10 +64,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             icon: const Icon(Icons.settings),
             color: Colors.white,
           ),
-          GestureDetector(
-            onTap: widget.onOpenProfile,
-            child: profileAvatar,
-          ),
+          GestureDetector(onTap: widget.onOpenProfile, child: profileAvatar),
           const SizedBox(width: 12),
         ],
       ),
@@ -86,7 +82,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
   }
 
-  void _handleMenuTap(BuildContext context, String label, ValueChanged<String>? onMenuTap) {
+  void _handleMenuTap(
+    BuildContext context,
+    String label,
+    ValueChanged<String>? onMenuTap,
+  ) {
     if (onMenuTap != null) {
       onMenuTap(label);
       return;
