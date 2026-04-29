@@ -17,10 +17,7 @@ import '../widgets/track_detail/track_detail_waveform_panel.dart';
 import 'track_info_screen.dart';
 
 class TrackDetailScreen extends ConsumerStatefulWidget {
-  const TrackDetailScreen({
-    super.key,
-    required this.item,
-  });
+  const TrackDetailScreen({super.key, required this.item});
 
   final UploadItem item;
 
@@ -71,9 +68,6 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     final activePlayer = playerState;
     final isCurrentTrack = activePlayer?.bundle?.trackId == resolvedItem.id;
     final isPlaying = isCurrentTrack && activePlayer?.isPlaying == true;
-    final activeDurationSeconds = isCurrentTrack
-        ? (activePlayer?.visualDurationSeconds ?? resolvedItem.durationSeconds)
-        : resolvedItem.durationSeconds;
     final progress = isCurrentTrack
         ? (activePlayer?.normalizedProgress ?? 0.0)
         : 0.0;
@@ -121,30 +115,22 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
             item: resolvedItem,
             state: waveformState,
             onMoreTap: () {
-              final bundle =
-                  ref.read(playerProvider).asData?.value.bundle;
-              final artistId =
-                  (bundle?.trackId == resolvedItem.id &&
-                          bundle!.artist.id.trim().isNotEmpty)
-                      ? bundle.artist.id
-                      : null;
               showTrackOptionsSheet(
                 context,
-                info: TrackOptionInfo.fromTrackId(
-                  resolvedItem.id,
-                  ref,
-                  fallbackTitle: resolvedItem.title,
-                  fallbackArtist: resolvedItem.artistDisplay,
-                  fallbackCoverUrl: resolvedItem.artworkUrl,
-                  fallbackLocalArtworkPath: resolvedItem.localArtworkPath,
-                  fallbackArtistId: artistId,
-                ),
+                info: _trackOptionInfoFor(resolvedItem),
                 ref: ref,
               );
             },
-            onQueueTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const QueueScreen()),
-            ),
+            onShareTap: () {
+              showTrackShareSheet(
+                context,
+                info: _trackOptionInfoFor(resolvedItem),
+                ref: ref,
+              );
+            },
+            onQueueTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const QueueScreen())),
             onPlayPauseTap: () => toggleUploadItemPlayback(ref, resolvedItem),
             onPreviousTap: () async {
               _allowPlayerTrackSwitchSync = true;
@@ -154,7 +140,8 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
               _allowPlayerTrackSwitchSync = true;
               await ref.read(playerProvider.notifier).next();
             },
-            onSeekFraction: (fraction) => _seekToFraction(resolvedItem, fraction),
+            onSeekFraction: (fraction) =>
+                _seekToFraction(resolvedItem, fraction),
           ),
         ],
       ),
@@ -185,4 +172,22 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
     await ref.read(playerProvider.notifier).seek(seconds);
   }
 
+  TrackOptionInfo _trackOptionInfoFor(UploadItem item) {
+    final bundle = ref.read(playerProvider).asData?.value.bundle;
+    final artistId =
+        (bundle?.trackId == item.id && bundle!.artist.id.trim().isNotEmpty)
+        ? bundle.artist.id
+        : null;
+
+    return TrackOptionInfo.fromTrackId(
+      item.id,
+      ref,
+      fallbackTitle: item.title,
+      fallbackArtist: item.artistDisplay,
+      fallbackCoverUrl: item.artworkUrl,
+      fallbackLocalArtworkPath: item.localArtworkPath,
+      fallbackArtistId: artistId,
+      fallbackPrivateToken: item.privateToken,
+    );
+  }
 }

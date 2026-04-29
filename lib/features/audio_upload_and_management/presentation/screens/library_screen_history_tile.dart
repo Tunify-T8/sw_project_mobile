@@ -109,6 +109,8 @@ class _LibraryHistoryTile extends ConsumerWidget {
                   selected,
                   historyTracks: playableHistory,
                   openScreen: true,
+                  initialPositionSeconds:
+                      track.lastPositionSeconds.toDouble(),
                 );
               },
         child: Padding(

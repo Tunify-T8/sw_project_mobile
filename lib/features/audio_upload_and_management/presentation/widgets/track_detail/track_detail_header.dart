@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/services/global_track_store.dart';
 import '../../../domain/entities/upload_item.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 import '../../../../playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
 
@@ -29,25 +31,58 @@ class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
   @override
   void initState() {
     super.initState();
-    _resolvedArtistId = resolveArtistIdForTrackLocally(
-          ref,
-          widget.item.id,
-        ) ??
-        '';
+    _resolvedArtistId = _resolveArtistIdLocally();
 
     if (_resolvedArtistId.trim().isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _resolveArtistId());
     }
   }
 
+  @override
+  void didUpdateWidget(covariant TrackDetailHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.id == widget.item.id) return;
+
+    _resolvedArtistId = _resolveArtistIdLocally();
+    if (_resolvedArtistId.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resolveArtistId());
+    }
+  }
+
+  String _resolveArtistIdLocally() {
+    return resolveArtistIdForTrackLocally(ref, widget.item.id) ?? '';
+  }
+
   Future<void> _resolveArtistId() async {
-    final artistId = await resolveArtistIdForTrack(ref, widget.item.id);
-    if (!mounted || artistId == null || artistId == _resolvedArtistId) return;
+    final trackId = widget.item.id;
+    final artistId = await resolveArtistIdForTrack(ref, trackId);
+    if (!mounted ||
+        widget.item.id != trackId ||
+        artistId == null ||
+        artistId == _resolvedArtistId) {
+      return;
+    }
     setState(() => _resolvedArtistId = artistId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId =
+        ref.watch(authControllerProvider).asData?.value?.id.trim() ?? '';
+    final ownerUserId = ref
+        .watch(globalTrackStoreProvider)
+        .ownerUserIdForTrack(widget.item.id)
+        ?.trim();
+    final artistId = _resolvedArtistId.trim();
+    final isOwnedTrack =
+        currentUserId.isNotEmpty &&
+        ((ownerUserId != null &&
+                ownerUserId.isNotEmpty &&
+                ownerUserId != '__global__' &&
+                ownerUserId == currentUserId) ||
+            artistId == currentUserId);
+    final showFollowIcon = !isOwnedTrack && artistId.isNotEmpty;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
@@ -76,7 +111,7 @@ class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
                     behavior: HitTestBehavior.opaque,
                     onTap: widget.onTrackInfoTap,
                     child: Container(
-                      color: Colors.black.withOpacity(0.82),
+                      color: Colors.black.withValues(alpha: 0.82),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 8,
@@ -84,7 +119,11 @@ class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.graphic_eq, color: Colors.white70, size: 17),
+                          Icon(
+                            Icons.graphic_eq,
+                            color: Colors.white70,
+                            size: 17,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Behind this track',
@@ -111,10 +150,10 @@ class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
                   iconSize: 34,
                   onTap: widget.onDismiss,
                 ),
-                const SizedBox(height: 28),
-                _FollowSideIcon(artistId: _resolvedArtistId),
-                const SizedBox(height: 28),
-                const _SideIcon(icon: Icons.devices_outlined),
+                if (showFollowIcon) ...[
+                  const SizedBox(height: 28),
+                  _FollowSideIcon(artistId: artistId),
+                ],
               ],
             ),
           ],
@@ -131,15 +170,13 @@ class _FollowSideIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (artistId.trim().isEmpty) {
-      return const _SideIcon(icon: Icons.person_add_alt_1_outlined);
-    }
-
     final relationshipState = ref.watch(relationshipStatusProvider(artistId));
     final isFollowing = relationshipState.isFollowing ?? false;
 
     return GestureDetector(
-      onTap: () => ref.read(relationshipStatusProvider(artistId).notifier).toggleFollow(),
+      onTap: () => ref
+          .read(relationshipStatusProvider(artistId).notifier)
+          .toggleFollow(),
       child: Icon(
         isFollowing
             ? Icons.person_remove_alt_1_outlined
@@ -170,7 +207,7 @@ class _BlackTag extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        color: Colors.black.withOpacity(0.82),
+        color: Colors.black.withValues(alpha: 0.82),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
           text,
@@ -217,16 +254,5 @@ class _CircleAction extends StatelessWidget {
         child: Icon(icon, color: Colors.white, size: iconSize),
       ),
     );
-  }
-}
-
-class _SideIcon extends StatelessWidget {
-  const _SideIcon({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Icon(icon, color: Colors.white70, size: 34);
   }
 }

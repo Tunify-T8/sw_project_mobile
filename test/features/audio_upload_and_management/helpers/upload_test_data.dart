@@ -27,7 +27,6 @@ const sampleArtistToolsQuota = ArtistToolsQuota(
   uploadMinutesLimit: 180,
   uploadMinutesUsed: 12,
   canReplaceFiles: false,
-  canUpgrade: true,
 );
 
 const sampleUploadedTrack = UploadedTrack(
@@ -123,10 +122,7 @@ Map<String, dynamic> sampleTrackResponseJson({
   'durationSeconds': 245,
   'privacy': 'public',
   'scheduledReleaseDate': '2026-04-01T00:00:00.000Z',
-  'availability': {
-    'type': 'worldwide',
-    'regions': <String>[],
-  },
+  'availability': {'type': 'worldwide', 'regions': <String>[]},
   'licensing': {
     'type': 'creative_commons',
     'allowAttribution': true,
@@ -160,7 +156,7 @@ Map<String, dynamic> sampleTrackResponseJson({
     'format': 'mp3',
     'fileSizeBytes': 10485760,
   },
-  if (error != null) 'error': error,
+  if (error case final error?) 'error': error,
 };
 
 Map<String, dynamic> sampleUploadItemJson({

@@ -196,6 +196,19 @@ Future<void> showTrackOptionsSheet(
   );
 }
 
+Future<void> showTrackShareSheet(
+  BuildContext context, {
+  required TrackOptionInfo info,
+  required WidgetRef ref,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => TrackShareSheetContent(info: info, ref: ref),
+  );
+}
+
 final _trackOptionsOwnerProvider = FutureProvider.autoDispose
     .family<String?, String>((ref, trackId) async {
       final details = await ref
@@ -211,6 +224,58 @@ final _trackOptionsOwnerProvider = FutureProvider.autoDispose
       }
       return ownerUserId == null || ownerUserId.isEmpty ? null : ownerUserId;
     });
+
+class TrackShareSheetContent extends ConsumerWidget {
+  const TrackShareSheetContent({
+    super.key,
+    required this.info,
+    required this.ref,
+  });
+
+  final TrackOptionInfo info;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context, WidgetRef watchRef) {
+    final conversations = watchRef.watch(conversationsControllerProvider).items;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF111111),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FrostedTrackHeader(info: info),
+              const SizedBox(height: 4),
+              if (conversations.isNotEmpty) ...[
+                SectionLabel(label: 'SEND TO'),
+                SendToRow(info: info, conversations: conversations),
+              ],
+              SectionLabel(label: 'SHARE'),
+              ShareRow(info: info, ref: ref),
+              const SizedBox(height: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class TrackOptionsSheetContent extends ConsumerWidget {
   const TrackOptionsSheetContent({
@@ -271,7 +336,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
     final conversations = watchRef.watch(conversationsControllerProvider).items;
     final subscriptionState = watchRef.watch(subscriptionNotifierProvider);
     final currentSubscription = subscriptionState.currentSubscription;
-    final canDownload = currentSubscription?.tier != SubscriptionTier.free;
+    final canDownload = currentSubscription.tier != SubscriptionTier.free;
     final engagementState = watchRef.watch(engagementProvider(info.trackId));
     final engagement = engagementState.engagement;
     final isLiked = engagement?.isLiked ?? false;
@@ -680,7 +745,7 @@ Future<void> downloadTrackFromOptions(
 
   navigator.pop();
 
-  if (currentSubscription?.tier == SubscriptionTier.free) {
+  if (currentSubscription.tier == SubscriptionTier.free) {
     messenger?.showSnackBar(
       const SnackBar(content: Text('Upgrade to premium to download tracks.')),
     );
