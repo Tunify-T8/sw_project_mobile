@@ -95,16 +95,15 @@ class UserSocialTile extends StatelessWidget {
               ),
             ),
 
-            if (user.id != myId)
-              Padding(
-                padding: const EdgeInsets.only(left: 20.0),
-                child: RelationshipButton(
-                  userId: user.id,
-                  initialIsFollowing: user.isFollowing,
-                  initialIsBlocked: user.isBlocked,
-                  isBlockMode: blockedList,
-                ),
+            Padding(
+              padding: const EdgeInsets.only(left: 20.0),
+              child: RelationshipButton(
+                userId: user.id,
+                initialIsFollowing: user.isFollowing,
+                initialIsBlocked: user.isBlocked,
+                isBlockMode: blockedList,
               ),
+            ),
 
             if (listType == NetworkListType.following && user.id != myId)
               IconButton(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/relationship_status_notifier.dart';
 
 class RelationshipButton extends ConsumerWidget {
@@ -19,6 +20,11 @@ class RelationshipButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(authControllerProvider).value?.id;
+    if (userId == currentUserId) {
+      return const SizedBox.shrink();
+    }
+
     final relationshipState = ref.watch(relationshipStatusProvider(userId));
     final notifier = ref.read(relationshipStatusProvider(userId).notifier);
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/upload_item.dart';
 import '../../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 import '../../../../playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart';
 
 class TrackDetailHeader extends ConsumerStatefulWidget {
   const TrackDetailHeader({
@@ -131,6 +132,8 @@ class _FollowSideIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(authControllerProvider).value?.id;
+
     if (artistId.trim().isEmpty) {
       return const _SideIcon(icon: Icons.person_add_alt_1_outlined);
     }
@@ -138,7 +141,8 @@ class _FollowSideIcon extends ConsumerWidget {
     final relationshipState = ref.watch(relationshipStatusProvider(artistId));
     final isFollowing = relationshipState.isFollowing ?? false;
 
-    return GestureDetector(
+    return (currentUserId != artistId) ?
+    GestureDetector(
       onTap: () => ref.read(relationshipStatusProvider(artistId).notifier).toggleFollow(),
       child: Icon(
         isFollowing
@@ -147,7 +151,7 @@ class _FollowSideIcon extends ConsumerWidget {
         color: Colors.white70,
         size: 34,
       ),
-    );
+    ): SizedBox.shrink();
   }
 }
 
