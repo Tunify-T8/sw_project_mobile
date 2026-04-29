@@ -68,23 +68,34 @@ class _MoreLikeThisSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final cardWidth = screenWidth < 390 ? 140.0 : 154.0;
+    final isDesktop = screenWidth >= 1024;
+    final horizontalPadding = isDesktop ? 28.0 : 18.0;
+    final cardWidth = isDesktop
+        ? 176.0
+        : screenWidth < 390
+        ? 140.0
+        : 154.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 26, 18, 14),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            isDesktop ? 34 : 26,
+            horizontalPadding,
+            14,
+          ),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'More of what you like',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
+                    fontSize: isDesktop ? 28 : 26,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -104,10 +115,10 @@ class _MoreLikeThisSection extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: cardWidth + 86,
+          height: cardWidth + (isDesktop ? 92 : 86),
           child: ListView.separated(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             scrollDirection: Axis.horizontal,
             itemCount: tracks.length,
             separatorBuilder: (_, _) => const SizedBox(width: 20),
@@ -141,9 +152,10 @@ class _TodayPickSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final upload = track.track;
     final likeCount = track.likesCount;
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -332,22 +344,19 @@ class HomeAllTracksView extends ConsumerWidget {
                     sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 28,
-                        crossAxisSpacing: 26,
-                        childAspectRatio: 0.72,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final track = tracks[index].track;
-                          return _HomeTrackPoster(
-                            track: track,
-                            width: double.infinity,
-                            onTap: () => onOpenTrack(track, queue),
-                          );
-                        },
-                        childCount: tracks.length,
-                      ),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 28,
+                            crossAxisSpacing: 26,
+                            childAspectRatio: 0.72,
+                          ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final track = tracks[index].track;
+                        return _HomeTrackPoster(
+                          track: track,
+                          width: double.infinity,
+                          onTap: () => onOpenTrack(track, queue),
+                        );
+                      }, childCount: tracks.length),
                     ),
                   ),
               ],
@@ -472,8 +481,17 @@ class _HighlightsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
+    final horizontalPadding = isDesktop ? 28.0 : 18.0;
+    final cardWidth = isDesktop ? 176.0 : 154.0;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 26, 18, 0),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        isDesktop ? 34 : 26,
+        horizontalPadding,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -487,13 +505,13 @@ class _HighlightsSkeleton extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 180,
+            height: cardWidth + 26,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 4,
               separatorBuilder: (_, _) => const SizedBox(width: 20),
               itemBuilder: (_, _) => Container(
-                width: 154,
+                width: cardWidth,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(6),

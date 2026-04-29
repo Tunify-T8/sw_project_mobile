@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
@@ -10,6 +10,7 @@ import '../../domain/entities/playback_queue.dart';
 import '../../domain/entities/player_seed_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
+import '../providers/player_repository_provider.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/track_options_sheet.dart';
 

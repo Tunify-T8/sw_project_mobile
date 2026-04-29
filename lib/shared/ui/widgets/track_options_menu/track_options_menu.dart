@@ -9,6 +9,7 @@ import 'track_feed_actions.dart';
 import 'track_more_actions.dart';
 
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../core/utils/navigation_utils.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../../features/engagements_social_interactions/presentation/screens/comments_screen.dart';
@@ -201,7 +202,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
     final isMyTrack = (myId == _resolvedArtistId);
     final subscriptionState = ref.watch(subscriptionNotifierProvider);
     final currentSubscription = subscriptionState.currentSubscription;
-    final canDownload = currentSubscription?.tier != SubscriptionTier.free;
+    final canDownload = currentSubscription.tier != SubscriptionTier.free;
 
     if (!subscriptionState.hasLoadedCurrent &&
         !subscriptionState.isCurrentLoading) {
@@ -222,6 +223,18 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
           artistName: widget.artistName,
           coverUrl: widget.coverUrl,
           localArtworkPath: widget.localArtworkPath,
+          onArtistTap: _resolvedArtistId.trim().isEmpty
+              ? null
+              : () {
+                  final navigator = Navigator.of(context);
+                  final targetContext = navigator.context;
+                  navigator.pop();
+                  navigateToProfile(
+                    targetContext,
+                    _resolvedArtistId,
+                    currentUserId: ref.read(authControllerProvider).value?.id,
+                  );
+                },
         ),
 
         if (conversations.isNotEmpty) ...[

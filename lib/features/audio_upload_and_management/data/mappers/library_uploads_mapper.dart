@@ -51,14 +51,26 @@ extension UploadItemDtoMapper on UploadItemDto {
   }
 
   static UploadProcessingStatus _mapStatus(String value) {
-    switch (value) {
+    switch (value.trim().toLowerCase()) {
       case 'processing':
       case 'uploading':
+      case 'pending':
+      case 'queued':
+      case 'transcoding':
         return UploadProcessingStatus.processing;
       case 'failed':
+      case 'failure':
+      case 'error':
         return UploadProcessingStatus.failed;
       case 'deleted':
         return UploadProcessingStatus.deleted;
+      case 'finished':
+      case 'ready':
+      case 'completed':
+      case 'complete':
+      case 'succeeded':
+      case 'success':
+      case 'published':
       default:
         return UploadProcessingStatus.finished;
     }

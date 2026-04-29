@@ -4,6 +4,8 @@ import '../../domain/entities/track_preview_entity.dart';
 import '../../../../../core/utils/navigation_utils.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../providers/feed_preview_playback_controller.dart';
 import '../utils/feed_track_playback.dart';
 import 'feed_play_button.dart';
 
@@ -14,103 +16,118 @@ class TrackInfoBox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      // Tapping the info box opens the full playback surface for the track.
-      // It also stops any active feed preview before launching the player.
-      onTap: () => playFeedTrack(context, ref, track),
-      child: Container(
-        padding: const EdgeInsets.all(5.0),
-        decoration: BoxDecoration(
-          color: const Color(0xFF464646),
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    track.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+    final playerState = ref.watch(playerProvider).asData?.value;
+    final isCurrentMainTrack = playerState?.bundle?.trackId == track.trackId;
+    final previewState = ref.watch(feedPreviewPlaybackStateProvider);
+    final isCurrentPreviewTrack = previewState.trackId == track.trackId;
+    final progress = isCurrentMainTrack
+        ? (playerState?.normalizedProgress ?? 0.0)
+        : isCurrentPreviewTrack
+        ? previewState.progress
+        : 0.0;
+    final isPlaying =
+        (isCurrentMainTrack && playerState?.isPlaying == true) ||
+        (isCurrentPreviewTrack && previewState.isPlaying);
 
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => navigateToProfile(
-                          context,
-                          track.artistId,
-                          currentUserId: ref
-                              .read(authControllerProvider)
-                              .value
-                              ?.id,
-                        ),
-                        child: CircleAvatar(
-                          radius: 20.0,
-                          backgroundImage: track.artistAvatar != null
-                              ? NetworkImage(track.artistAvatar!)
-                              : null,
-                          child: track.artistAvatar == null
-                              ? const Icon(Icons.person, color: Colors.white)
-                              : null,
-                        ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // Tapping the info box opens the full playback surface for the track.
+        // It also stops any active feed preview before launching the player.
+        onTap: () => playFeedTrack(context, ref, track),
+        child: Container(
+          padding: const EdgeInsets.all(5.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF464646),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      track.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 10.0),
-                      Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                track.artistName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => navigateToProfile(
+                            context,
+                            track.artistId,
+                            currentUserId: ref
+                                .read(authControllerProvider)
+                                .value
+                                ?.id,
+                          ),
+                          child: CircleAvatar(
+                            radius: 20.0,
+                            backgroundImage: track.artistAvatar != null
+                                ? NetworkImage(track.artistAvatar!)
+                                : null,
+                            child: track.artistAvatar == null
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 10.0),
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  track.artistName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(width: 5.0),
-                            if (track.artistVerified)
-                              const Icon(
-                                Icons.verified,
-                                color: Colors.blue,
-                                size: 20.0,
+                              const SizedBox(width: 5.0),
+                              if (track.artistVerified)
+                                const Icon(
+                                  Icons.verified,
+                                  color: Colors.blue,
+                                  size: 20.0,
+                                ),
+                              const SizedBox(width: 8.0),
+                              RelationshipButton(
+                                userId: track.artistId,
+                                initialIsFollowing: track.isFollowingArtist,
                               ),
-                            const SizedBox(width: 8.0),
-                            RelationshipButton(
-                              userId: track.artistId,
-                              initialIsFollowing: track.isFollowingArtist,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: FeedPlayButton(
-                progress: 0,
-                isPlaying: false,
-                onTap: (){},
+              Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: FeedPlayButton(
+                  progress: progress,
+                  isPlaying: isPlaying,
+                  onTap: () => playFeedTrack(context, ref, track),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

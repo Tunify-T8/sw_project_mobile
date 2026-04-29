@@ -83,8 +83,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
         shuffle: shuffle,
         repeat: repeat,
       ),
-    ))
-        .copyWith(source: _queueSourceForContext(contextType));
+    )).copyWith(source: _queueSourceForContext(contextType));
 
     await loadTrack(
       startTrackId,
@@ -175,8 +174,14 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final queue = current.queue!;
     final insertIndex = queue.currentIndex + 1;
-    final newIds = List<String>.from(queue.trackIds)..insert(insertIndex, trackId);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final newIds = List<String>.from(queue.trackIds)
+      ..insert(insertIndex, trackId);
+    final newOriginalIds = queue.originalTrackIds == null
+        ? null
+        : (List<String>.from(queue.originalTrackIds!)..add(trackId));
+    final next = current.copyWith(
+      queue: queue.copyWith(trackIds: newIds, originalTrackIds: newOriginalIds),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -214,8 +219,18 @@ extension PlayerNotifierQueue on PlayerNotifier {
     }
 
     final queue = current.queue!;
-    final newIds = List<String>.from(queue.trackIds)..add(trackId);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final newIds = List<String>.from(queue.trackIds)
+      ..insert(queue.currentIndex, trackId);
+    final newOriginalIds = queue.originalTrackIds == null
+        ? null
+        : (List<String>.from(queue.originalTrackIds!)..add(trackId));
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: queue.currentIndex + 1,
+        originalTrackIds: newOriginalIds,
+      ),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -223,24 +238,39 @@ extension PlayerNotifierQueue on PlayerNotifier {
   /// Reorders a queued track.
   ///
   /// Both indexes are relative to the visible "Playing next" list,
-  /// not the full underlying queue. So we offset them by the current track.
+  /// not the full underlying queue. The visible list is circular from the
+  /// current track, so rebuild the queue in that same visible order instead of
+  /// trying to map the drop target back onto a linear absolute index.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    final offset = queue.currentIndex + 1;
-    final absOld = offset + oldIndex;
-    final absNew = offset + newIndex;
+    if (queue.trackIds.length <= 1) return;
+    if (queue.currentIndex < 0 || queue.currentIndex >= queue.trackIds.length) {
+      return;
+    }
 
-    if (absOld < offset || absOld >= queue.trackIds.length) return;
-    if (absNew < offset || absNew > queue.trackIds.length) return;
+    final visibleNext = <String>[
+      for (var offset = 1; offset < queue.trackIds.length; offset++)
+        queue.trackIds[(queue.currentIndex + offset) % queue.trackIds.length],
+    ];
+    if (oldIndex < 0 || oldIndex >= visibleNext.length) return;
 
-    final newIds = List<String>.from(queue.trackIds);
-    final item = newIds.removeAt(absOld);
-    newIds.insert(absNew, item);
+    final item = visibleNext.removeAt(oldIndex);
+    final safeNewIndex = newIndex.clamp(0, visibleNext.length).toInt();
+    visibleNext.insert(safeNewIndex, item);
 
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final currentTrackId = queue.trackIds[queue.currentIndex];
+    final newIds = <String>[currentTrackId, ...visibleNext];
+
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: 0,
+        clearOriginalTrackIds: queue.shuffle,
+      ),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -277,6 +307,7 @@ extension PlayerNotifierQueue on PlayerNotifier {
     final api = ref.read(userTracksApiProvider);
     final fetched = await api.getUserTracks(artistUserId);
     if (fetched.isEmpty) return;
+    _cacheFetchedArtistTracks(fetched, ownerUserId: artistUserId);
 
     // The user may have moved on while the request was in flight.
     final after = _current;
@@ -359,9 +390,9 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final historyState = ref.read(listeningHistoryProvider).asData?.value;
     final historyTrack = historyState?.tracks.cast<HistoryTrack?>().firstWhere(
-          (track) => track?.trackId == trackId,
-          orElse: () => null,
-        );
+      (track) => track?.trackId == trackId,
+      orElse: () => null,
+    );
 
     if (historyTrack == null) {
       return null;
@@ -388,5 +419,39 @@ extension PlayerNotifierQueue on PlayerNotifier {
       case PlaybackContextType.track:
         return QueueSource.singleTrack;
     }
+  }
+
+  void _cacheFetchedArtistTracks(
+    List<UserTrackSummaryDto> tracks, {
+    required String ownerUserId,
+  }) {
+    final store = GlobalTrackStore.instance;
+    for (final track in tracks) {
+      if (!track.isPlayable || track.id.trim().isEmpty) continue;
+      final title = track.title.trim();
+      final artist = track.artistName.trim();
+      store.update(
+        UploadItem(
+          id: track.id,
+          title: title.isEmpty ? 'Track' : title,
+          artistDisplay: artist,
+          durationLabel: _formatQueueDuration(track.durationSeconds),
+          durationSeconds: track.durationSeconds,
+          artworkUrl: track.coverUrl,
+          visibility: UploadVisibility.public,
+          status: UploadProcessingStatus.finished,
+          isExplicit: false,
+          createdAt: DateTime.now(),
+        ),
+        ownerUserId: ownerUserId,
+      );
+    }
+  }
+
+  String _formatQueueDuration(int totalSeconds) {
+    final safe = totalSeconds < 0 ? 0 : totalSeconds;
+    final minutes = safe ~/ 60;
+    final seconds = safe % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

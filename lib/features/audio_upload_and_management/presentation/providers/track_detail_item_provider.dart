@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
+import '../../domain/entities/upload_status.dart';
 import '../../domain/entities/uploaded_track.dart';
 import 'upload_repository_provider.dart';
 
@@ -9,7 +11,9 @@ final trackDetailItemProvider = FutureProvider.autoDispose
       try {
         final repository = ref.read(uploadRepositoryProvider);
         final details = await repository.getTrackDetails(item.id);
-        return mergeTrackDetailItem(base: item, details: details);
+        final merged = mergeTrackDetailItem(base: item, details: details);
+        ref.read(globalTrackStoreProvider).update(merged);
+        return merged;
       } catch (_) {
         return item;
       }
@@ -56,6 +60,7 @@ UploadItem mergeTrackDetailItem({
       fallback: base.genreSubGenre,
     ),
     visibility: _resolveVisibility(details.privacy, fallback: base.visibility),
+    status: _resolveProcessingStatus(details.status, fallback: base.status),
     isExplicit: details.contentWarning ?? base.isExplicit,
     recordLabel: _resolveEditableText(
       details.recordLabel,
@@ -89,6 +94,24 @@ UploadItem mergeTrackDetailItem({
       fallback: base.privateToken,
     ),
   );
+}
+
+UploadProcessingStatus _resolveProcessingStatus(
+  UploadStatus status, {
+  required UploadProcessingStatus fallback,
+}) {
+  switch (status) {
+    case UploadStatus.finished:
+      return UploadProcessingStatus.finished;
+    case UploadStatus.processing:
+    case UploadStatus.uploading:
+    case UploadStatus.idle:
+      return UploadProcessingStatus.processing;
+    case UploadStatus.failed:
+      return UploadProcessingStatus.failed;
+    case UploadStatus.deleted:
+      return UploadProcessingStatus.deleted;
+  }
 }
 
 String _resolveText(String? value, {required String fallback}) {

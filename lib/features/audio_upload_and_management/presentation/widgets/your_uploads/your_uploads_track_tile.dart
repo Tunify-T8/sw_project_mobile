@@ -20,7 +20,7 @@ class YourUploadsTrackTile extends ConsumerWidget {
 
   final UploadItem item;
   final bool isBusy;
-  final VoidCallback onTap;
+  final ValueChanged<UploadItem> onTap;
   final VoidCallback onMoreTap;
 
   @override
@@ -29,7 +29,7 @@ class YourUploadsTrackTile extends ConsumerWidget {
     final resolvedItem = resolvedItemAsync.asData?.value ?? item;
 
     return GestureDetector(
-      onTap: isBusy ? null : onTap,
+      onTap: isBusy ? null : () => onTap(resolvedItem),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -65,7 +65,8 @@ class YourUploadsTrackTile extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (resolvedItem.status == UploadProcessingStatus.processing)
+                    if (resolvedItem.status ==
+                        UploadProcessingStatus.processing)
                       Container(
                         margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.symmetric(

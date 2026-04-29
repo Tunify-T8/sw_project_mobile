@@ -103,8 +103,20 @@ class _SkeletonWaveformPainter extends CustomPainter {
     final centreY = size.height * centreRatio;
     final upperZone = centreY;
     final barWidth = math.max(1.8, metrics.stride * 0.64);
+    final upperPlayedPaint = Paint()
+      ..color = const Color(
+        0xFFFF5A14,
+      ).withValues(alpha: opacity.clamp(0.0, 1.0))
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
     final upperPaint = Paint()
       ..color = Colors.white.withOpacity(opacity)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = barWidth;
+    final lowerPlayedPaint = Paint()
+      ..color = const Color(
+        0xFFFFB187,
+      ).withValues(alpha: (opacity * 0.78).clamp(0.0, 1.0))
       ..strokeCap = StrokeCap.round
       ..strokeWidth = barWidth;
     final lowerPaint = Paint()
@@ -118,16 +130,17 @@ class _SkeletonWaveformPainter extends CustomPainter {
       final normalised = bars[i];
       final upperH = math.max(12.0, normalised * upperZone * 0.50);
       final lowerH = math.max(9.0, upperH * 0.42);
+      final isPlayed = metrics.safeProgress > 0 && x <= metrics.playheadX;
 
       canvas.drawLine(
         Offset(x, centreY - upperH),
         Offset(x, centreY - 1),
-        upperPaint,
+        isPlayed ? upperPlayedPaint : upperPaint,
       );
       canvas.drawLine(
         Offset(x, centreY + 2),
         Offset(x, centreY + lowerH),
-        lowerPaint,
+        isPlayed ? lowerPlayedPaint : lowerPaint,
       );
     }
   }

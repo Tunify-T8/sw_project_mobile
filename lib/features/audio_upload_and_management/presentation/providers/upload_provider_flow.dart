@@ -77,14 +77,14 @@ extension UploadNotifierFlowActions on UploadNotifier {
     }
   }
 
-  Future<void> replaceCurrentAudioAndStartUpload() async {
+  Future<PickedUploadFile?> replaceCurrentAudioAndStartUpload() async {
     final currentTrack = state.currentTrack;
 
     if (currentTrack == null) {
       state = state.copyWith(
         error: 'Create the track draft first, then replace the audio file.',
       );
-      return;
+      return null;
     }
 
     try {
@@ -92,7 +92,7 @@ extension UploadNotifierFlowActions on UploadNotifier {
       final file = await picker.pickAudioFile();
 
       if (file == null) {
-        return;
+        return null;
       }
 
       final restorePoint = _captureRestorePoint();
@@ -120,6 +120,7 @@ extension UploadNotifierFlowActions on UploadNotifier {
           restorePoint: restorePoint,
         ),
       );
+      return file;
     } catch (error, stackTrace) {
       logUploadError('replace upload audio', error, stackTrace);
       state = state.copyWith(
@@ -129,6 +130,7 @@ extension UploadNotifierFlowActions on UploadNotifier {
           fallback: 'We could not replace that audio file. Please try again.',
         ),
       );
+      return null;
     }
   }
 

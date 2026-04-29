@@ -32,7 +32,11 @@ extension _PlayerNotifierSources on PlayerNotifier {
       // private-no-token, not-found) — we must let it propagate so canPlay
       // evaluates to false. Only fall back for genuine transport errors
       // (timeout, connection error, etc.) where the user has local seed data.
-      if (_isClientRefusal(error)) {
+      final refusalStatusCode = _clientRefusalStatusCode(error);
+      if (refusalStatusCode != null) {
+        if (refusalStatusCode == 404 && _hasSeedAudioFallback(seedTrack)) {
+          return seedTrack!.toPlaybackBundle();
+        }
         rethrow;
       }
       if (seedTrack != null) {
@@ -43,18 +47,26 @@ extension _PlayerNotifierSources on PlayerNotifier {
   }
 
   // A 4xx DioException means the server made a deliberate decision — don't mask it.
-  bool _isClientRefusal(Object error) {
-    if (error is just_audio.PlayerException) return false;
+  int? _clientRefusalStatusCode(Object error) {
+    if (error is just_audio.PlayerException) return null;
     // Uses duck-typing on the dynamic to avoid importing Dio here just for the type.
     // Dio errors expose `.response?.statusCode` as an int.
     try {
       final dynamic d = error;
       final int? code = d.response?.statusCode as int?;
-      if (code != null && code >= 400 && code < 500) return true;
+      if (code != null && code >= 400 && code < 500) return code;
     } catch (_) {
       // Not a Dio-shaped error; treat as transport error.
     }
-    return false;
+    return null;
+  }
+
+  bool _hasSeedAudioFallback(PlayerSeedTrack? seedTrack) {
+    if (seedTrack == null) return false;
+    if (existingPlaybackLocalFile(seedTrack.localFilePath) != null) {
+      return true;
+    }
+    return seedTrack.toDirectStreamUrl() != null;
   }
 
   Future<_ResolvedPlaybackSource> _resolvePlaybackSource(
@@ -65,25 +77,27 @@ extension _PlayerNotifierSources on PlayerNotifier {
     final mode = ref.read(playerBackendModeProvider);
 
     if (mode == PlayerBackendMode.mock && seedTrack != null) {
+      final localFilePath = existingPlaybackLocalFile(seedTrack.localFilePath);
       final directStream = seedTrack.toDirectStreamUrl();
 
       return _ResolvedPlaybackSource(
-        streamUrl: directStream,
-        streamExpiresAt: directStream == null
+        streamUrl: localFilePath == null ? directStream : null,
+        streamExpiresAt: localFilePath != null || directStream == null
             ? null
             : DateTime.now().add(
                 Duration(seconds: directStream.expiresInSeconds),
               ),
-        localFilePath: seedTrack.localFilePath,
+        localFilePath: localFilePath,
       );
     }
 
     // A locally cached audio file — plays fully offline, no server call needed.
-    if (seedTrack?.localFilePath?.trim().isNotEmpty == true) {
+    final localFilePath = existingPlaybackLocalFile(seedTrack?.localFilePath);
+    if (localFilePath != null) {
       return _ResolvedPlaybackSource(
         streamUrl: null,
         streamExpiresAt: null,
-        localFilePath: seedTrack!.localFilePath,
+        localFilePath: localFilePath,
       );
     }
 
@@ -96,9 +110,25 @@ extension _PlayerNotifierSources on PlayerNotifier {
       );
     }
 
-    // Request a signed streaming URL from the server (the only correct way
-    // to play a track online — never use the raw upload audioUrl directly).
-    final streamUrl = await _requestStream(trackId, privateToken: privateToken);
+    // Request a signed streaming URL from the server. Some owner-upload rows
+    // can exist in the upload library before the playback service knows them;
+    // in that 404-only case, fall back to the upload's direct audio URL.
+    final StreamUrl streamUrl;
+    try {
+      streamUrl = await _requestStream(trackId, privateToken: privateToken);
+    } catch (error) {
+      final directStream = seedTrack?.toDirectStreamUrl();
+      if (_clientRefusalStatusCode(error) == 404 && directStream != null) {
+        return _ResolvedPlaybackSource(
+          streamUrl: directStream,
+          streamExpiresAt: DateTime.now().add(
+            Duration(seconds: directStream.expiresInSeconds),
+          ),
+          localFilePath: null,
+        );
+      }
+      rethrow;
+    }
 
     return _ResolvedPlaybackSource(
       streamUrl: streamUrl,
@@ -113,17 +143,23 @@ extension _PlayerNotifierSources on PlayerNotifier {
     if (current.bundle == null) return null;
 
     final expiresAt = current.streamExpiresAt;
-    final mustRefresh =
-        current.localFilePath == null &&
-        (current.streamUrl == null ||
-            (expiresAt != null &&
-                DateTime.now().isAfter(
-                  expiresAt.subtract(const Duration(seconds: 10)),
-                )));
+    final localFilePath = existingPlaybackLocalFile(current.localFilePath);
+    final hasExpiredStream =
+        current.streamUrl == null ||
+        (expiresAt != null &&
+            DateTime.now().isAfter(
+              expiresAt.subtract(const Duration(seconds: 10)),
+            ));
+    final mustRefresh = localFilePath == null && hasExpiredStream;
 
     if (!mustRefresh) {
-      await _prepareAudioSource(current);
-      return current;
+      final prepared = current.copyWith(localFilePath: localFilePath);
+      await _prepareAudioSource(prepared);
+      if (!identical(prepared, current) &&
+          prepared.localFilePath != current.localFilePath) {
+        _setPlayerState(prepared);
+      }
+      return prepared;
     }
 
     final resolved = await _resolvePlaybackSource(
@@ -157,7 +193,8 @@ extension _PlayerNotifierSources on PlayerNotifier {
     final activeBundle = playerState.bundle;
     if (activeBundle == null) return;
 
-    final sourceKey = playerState.localFilePath ?? playerState.streamUrl?.url;
+    final localFilePath = existingPlaybackLocalFile(playerState.localFilePath);
+    final sourceKey = localFilePath ?? playerState.streamUrl?.url;
 
     if (!force &&
         _loadedTrackId == activeBundle.trackId &&
@@ -170,9 +207,8 @@ extension _PlayerNotifierSources on PlayerNotifier {
     // next/prev taps, a refresh racing a restore, etc.). That is a benign
     // signal, not a playback failure — swallow it so the newer load wins.
     try {
-      if (playerState.localFilePath != null &&
-          playerState.localFilePath!.trim().isNotEmpty) {
-        await _audioPlayer.setFilePath(playerState.localFilePath!);
+      if (localFilePath != null) {
+        await _audioPlayer.setFilePath(localFilePath);
       } else if (playerState.streamUrl?.url.trim().isNotEmpty == true) {
         await _audioPlayer.setAudioSource(
           just_audio.AudioSource.uri(Uri.parse(playerState.streamUrl!.url)),
@@ -180,7 +216,9 @@ extension _PlayerNotifierSources on PlayerNotifier {
         );
       }
     } on just_audio.PlayerInterruptedException {
-      debugPrint("[M5 Player] audio source load was interrupted by a newer command");
+      debugPrint(
+        "[M5 Player] audio source load was interrupted by a newer command",
+      );
       return;
     } catch (error) {
       debugPrint("[M5 Player] audio source failed safely: $error");
@@ -188,8 +226,7 @@ extension _PlayerNotifierSources on PlayerNotifier {
     }
 
     if (playerState.streamUrl?.url.trim().isNotEmpty == true &&
-        (playerState.localFilePath == null ||
-            playerState.localFilePath!.trim().isEmpty)) {
+        localFilePath == null) {
       // Download audio + artwork to device storage in the background so
       // subsequent plays work fully offline without requesting a new stream URL.
       // HLS manifests (.m3u8) are not cacheable as single files — skip them.
@@ -218,7 +255,9 @@ extension _PlayerNotifierSources on PlayerNotifier {
     try {
       await _audioPlayer.setVolume(targetVolume.clamp(0.0, 1.0).toDouble());
     } on just_audio.PlayerInterruptedException {
-      debugPrint("[M5 Player] volume change ignored because loading was interrupted");
+      debugPrint(
+        "[M5 Player] volume change ignored because loading was interrupted",
+      );
     } catch (error) {
       debugPrint("[M5 Player] volume change failed safely: $error");
     }

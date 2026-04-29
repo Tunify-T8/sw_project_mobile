@@ -26,7 +26,9 @@ void main() {
 
   group('TrackResponseDtoMapper', () {
     test('maps track response dto to uploaded track entity', () {
-      final dto = TrackResponseDto.fromJson(sampleTrackResponseJson(status: 'finished'));
+      final dto = TrackResponseDto.fromJson(
+        sampleTrackResponseJson(status: 'finished'),
+      );
 
       final entity = dto.toEntity();
 
@@ -34,11 +36,21 @@ void main() {
       expect(entity.status, UploadStatus.finished);
       expect(entity.audioUrl, contains('track-1.mp3'));
     });
+
+    test('treats backend ready status as finished', () {
+      final dto = TrackResponseDto.fromJson(
+        sampleTrackResponseJson(status: 'ready'),
+      );
+
+      expect(dto.toEntity().status, UploadStatus.finished);
+    });
   });
 
   group('UploadItemDtoMapper', () {
     test('maps upload item dto to upload item entity', () {
-      final dto = UploadItemDto.fromJson(sampleUploadItemJson(status: 'processing'));
+      final dto = UploadItemDto.fromJson(
+        sampleUploadItemJson(status: 'processing'),
+      );
 
       final entity = dto.toEntity();
 
@@ -56,13 +68,12 @@ void main() {
         uploadMinutesLimit: 180,
         uploadMinutesUsed: 12,
         canReplaceFiles: false,
-        canUpgrade: true,
       );
 
       final entity = dto.toEntity();
 
       expect(entity.tier, ArtistTier.free);
-      expect(entity.canUpgrade, isTrue);
+      expect(entity.canReplaceFiles, isFalse);
       expect(entity.uploadMinutesRemaining, 168);
     });
   });
@@ -70,8 +81,14 @@ void main() {
   group('UploadStatusMapper', () {
     test('maps known values and falls back to idle', () {
       expect(UploadStatusMapper.fromString('idle'), UploadStatus.idle);
-      expect(UploadStatusMapper.fromString('uploading'), UploadStatus.uploading);
-      expect(UploadStatusMapper.fromString('processing'), UploadStatus.processing);
+      expect(
+        UploadStatusMapper.fromString('uploading'),
+        UploadStatus.uploading,
+      );
+      expect(
+        UploadStatusMapper.fromString('processing'),
+        UploadStatus.processing,
+      );
       expect(UploadStatusMapper.fromString('finished'), UploadStatus.finished);
       expect(UploadStatusMapper.fromString('failed'), UploadStatus.failed);
       expect(UploadStatusMapper.fromString('unknown'), UploadStatus.idle);

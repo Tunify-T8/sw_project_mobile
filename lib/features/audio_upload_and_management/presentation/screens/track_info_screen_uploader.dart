@@ -11,20 +11,26 @@ class _UploaderCard extends ConsumerWidget {
   ///   2. The currently playing bundle's artist id vs. the authenticated user id.
   bool _isOwnUpload(WidgetRef ref) {
     final store = ref.read(globalTrackStoreProvider);
-    if (store.find(item.id) != null) return true;
-
-    final bundle = ref.read(playerProvider).asData?.value.bundle;
-    final bundleArtistId = (bundle != null && bundle.trackId == item.id)
-        ? bundle.artist.id.trim()
-        : '';
-    if (bundleArtistId.isEmpty) return false;
-
     final currentUserId = ref
         .read(authControllerProvider)
         .asData
         ?.value
         ?.id
         .trim();
+    final storeOwner = store.ownerUserIdForTrack(item.id)?.trim();
+    if (currentUserId != null &&
+        currentUserId.isNotEmpty &&
+        storeOwner != null &&
+        storeOwner.isNotEmpty &&
+        storeOwner != '__global__') {
+      return currentUserId == storeOwner;
+    }
+
+    final bundle = ref.read(playerProvider).asData?.value.bundle;
+    final bundleArtistId = (bundle != null && bundle.trackId == item.id)
+        ? bundle.artist.id.trim()
+        : '';
+    if (bundleArtistId.isEmpty) return false;
     if (currentUserId == null || currentUserId.isEmpty) return false;
 
     return currentUserId == bundleArtistId;
@@ -33,22 +39,20 @@ class _UploaderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOwn = _isOwnUpload(ref);
+    final profileAsync = ref.watch(_trackInfoArtistProfileProvider(item.id));
+    final profile = profileAsync.asData?.value;
+    final displayName = _displayProfileName(profile, item);
+    final location = _displayProfileLocation(profile);
+    final isProfileLoading = profileAsync.isLoading && profile == null;
+    final avatarUrl = profile?.profileImagePath?.trim().isNotEmpty == true
+        ? profile!.profileImagePath
+        : item.artworkUrl;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 10),
       child: Row(
         children: [
-          Container(
-            width: 74,
-            height: 74,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFF5D6),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(Icons.music_note, color: Color(0xFFB8860B), size: 36),
-            ),
-          ),
+          _ArtistAvatar(avatarUrl: avatarUrl, isLoading: isProfileLoading),
           const SizedBox(width: 16),
           Expanded(
             child: GestureDetector(
@@ -57,8 +61,10 @@ class _UploaderCard extends ConsumerWidget {
                 final artistId = _resolveTrackArtistId(ref, item.id);
                 if (artistId == null || artistId.isEmpty) return;
 
-                final currentUserId =
-                    ref.read(authControllerProvider).value?.id;
+                final currentUserId = ref
+                    .read(authControllerProvider)
+                    .value
+                    ?.id;
                 navigateToProfile(
                   context,
                   artistId,
@@ -69,7 +75,7 @@ class _UploaderCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.artistDisplay,
+                    displayName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -77,10 +83,14 @@ class _UploaderCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Egypt',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
+                  if (location.isNotEmpty)
+                    Text(
+                      location,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -103,6 +113,54 @@ class _UploaderCard extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _ArtistAvatar extends StatelessWidget {
+  const _ArtistAvatar({this.avatarUrl, this.isLoading = false});
+
+  final String? avatarUrl;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeUrl = avatarUrl?.trim();
+
+    return Container(
+      width: 74,
+      height: 74,
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFF5D6),
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: isLoading
+          ? const Center(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: Color(0xFFB8860B),
+                ),
+              ),
+            )
+          : safeUrl != null && safeUrl.isNotEmpty
+          ? Image.network(
+              safeUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, error, stack) => const Center(
+                child: Icon(
+                  Icons.music_note,
+                  color: Color(0xFFB8860B),
+                  size: 36,
+                ),
+              ),
+            )
+          : const Center(
+              child: Icon(Icons.music_note, color: Color(0xFFB8860B), size: 36),
+            ),
     );
   }
 }

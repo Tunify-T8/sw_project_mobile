@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/widgets.dart' hide RepeatMode;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' as just_audio;
 
 import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
+import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_event.dart';
 import '../../domain/entities/playback_context_request.dart';
@@ -29,11 +30,13 @@ import '../../domain/usecases/request_stream_url_usecase.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../../audio_upload_and_management/data/services/audio_cache_service.dart';
+import '../../data/api/user_tracks_api.dart';
 import 'listening_history_provider.dart';
 import 'player_backend_mode_provider.dart';
 // Provides userTracksApiProvider used by enrichQueueWithArtistTracks
 // in player_provider_queue.dart to fetch the playing artist's catalog.
 import 'player_dependencies_provider.dart';
+import 'player_local_file_guard.dart';
 import 'player_repository_provider.dart';
 
 part 'player_provider_state.dart';
@@ -112,7 +115,6 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
         .read(listeningHistoryProvider.notifier)
         .trackPlayed(historyTrack, needsBackendSync: needsBackendSync);
   }
-
 
   /// Saves the current playback position into the local Listening History store.
   ///

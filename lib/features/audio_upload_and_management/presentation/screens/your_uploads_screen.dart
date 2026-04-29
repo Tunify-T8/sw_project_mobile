@@ -144,7 +144,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
                       child: YourUploadsTrackTile(
                         item: item,
                         isBusy: state.busyTrackId == item.id,
-                        onTap: () => _openDetail(item),
+                        onTap: _openDetail,
                         onMoreTap: () => _showOptions(item),
                       ),
                     );

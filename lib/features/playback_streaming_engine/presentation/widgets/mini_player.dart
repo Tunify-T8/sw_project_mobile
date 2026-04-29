@@ -62,7 +62,11 @@ class MiniPlayer extends ConsumerWidget {
               _RingPlayButton(
                 progress: progress,
                 isPlaying: playerState.isPlaying,
+                isLoading: playerState.isBuffering,
                 onTap: () async {
+                  if (playerState.isBuffering && !playerState.isPlaying) {
+                    return;
+                  }
                   if (playerState.isPlaying) {
                     await ref.read(playerProvider.notifier).pause();
                   } else {

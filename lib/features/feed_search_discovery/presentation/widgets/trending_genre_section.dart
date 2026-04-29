@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/trending_notifier.dart';
+import '../utils/search_track_playback.dart';
 import '../widgets/trending_genre_bar.dart';
 import '../widgets/trending_track_tile.dart';
+import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/trending_track_entity.dart';
 
 const defaultTrendingGenres = [
@@ -31,10 +33,7 @@ const defaultTrendingGenres = [
 class TrendingGenreSection extends ConsumerStatefulWidget {
   final List<String> genres;
 
-  const TrendingGenreSection({
-    super.key,
-    this.genres = defaultTrendingGenres,
-  });
+  const TrendingGenreSection({super.key, this.genres = defaultTrendingGenres});
 
   @override
   ConsumerState<TrendingGenreSection> createState() =>
@@ -121,7 +120,15 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: pageTracks.map((track) {
-                return TrendingTrackTile(track: track, onTap: () {});
+                return TrendingTrackTile(
+                  track: track,
+                  onTap: () => playSearchTrack(
+                    context,
+                    ref,
+                    _toTrackResult(track),
+                    queueTracks: tracks.map(_toTrackResult).toList(),
+                  ),
+                );
               }).toList(),
             );
           },
@@ -156,4 +163,14 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
       ],
     );
   }
+}
+
+TrackResultEntity _toTrackResult(TrendingTrackEntity track) {
+  return TrackResultEntity(
+    id: track.trackId,
+    title: track.title,
+    artistName: track.artistName,
+    artworkUrl: track.coverUrl,
+    durationSeconds: 0,
+  );
 }

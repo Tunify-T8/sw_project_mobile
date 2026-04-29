@@ -64,21 +64,32 @@ extension TrackResponseDtoMapper on TrackResponseDto {
   }
 
   UploadStatus _mapStatus(String value) {
-    switch (value) {
+    switch (value.trim().toLowerCase()) {
       case 'idle':
         return UploadStatus.idle;
       case 'uploading':
         return UploadStatus.uploading;
       case 'processing':
+      case 'pending':
+      case 'queued':
+      case 'transcoding':
         return UploadStatus.processing;
       case 'finished':
+      case 'ready':
+      case 'completed':
+      case 'complete':
+      case 'succeeded':
+      case 'success':
+      case 'published':
         return UploadStatus.finished;
       case 'failed':
+      case 'failure':
+      case 'error':
         return UploadStatus.failed;
       case 'deleted':
         return UploadStatus.deleted;
       default:
-        return UploadStatus.failed;
+        return UploadStatus.finished;
     }
   }
 }

@@ -9,6 +9,7 @@ class TrackOptionsHeader extends StatelessWidget {
   final String artistName;
   final String? coverUrl;
   final String? localArtworkPath;
+  final VoidCallback? onArtistTap;
 
   const TrackOptionsHeader({
     super.key,
@@ -16,6 +17,7 @@ class TrackOptionsHeader extends StatelessWidget {
     required this.artistName,
     this.coverUrl,
     this.localArtworkPath,
+    this.onArtistTap,
   });
 
   @override
@@ -91,8 +93,7 @@ class TrackOptionsHeader extends StatelessWidget {
                                       remoteUrl: coverUrl,
                                       width: 100,
                                       height: 100,
-                                      backgroundColor:
-                                          const Color(0xFF2A2A2A),
+                                      backgroundColor: const Color(0xFF2A2A2A),
                                       borderRadius: BorderRadius.circular(8),
                                       placeholder: const Icon(
                                         Icons.music_note,
@@ -125,13 +126,21 @@ class TrackOptionsHeader extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            artistName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 16,
+                          MouseRegion(
+                            cursor: onArtistTap == null
+                                ? SystemMouseCursors.basic
+                                : SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: onArtistTap,
+                              child: Text(
+                                artistName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
                         ],
