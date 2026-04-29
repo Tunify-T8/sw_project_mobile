@@ -14,6 +14,7 @@ import '../providers/upload_provider.dart';
 import '../utils/upload_error_snackbar.dart';
 import '../utils/upload_player_launcher.dart';
 import '../widgets/home/home_discovery_sections.dart';
+import '../widgets/home/home_likes_tile.dart';
 import '../widgets/home/home_recent_section.dart';
 import '../widgets/home/home_track_highlights.dart';
 import '../widgets/home/home_top_bar.dart';
@@ -101,6 +102,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Navigator.of(context).pushNamed(Routes.messagingActivity);
                 },
               ),
+            ),
+            const SliverToBoxAdapter(
+              child: AdaptiveCenter(child: HomeLikesTile()),
             ),
             SliverToBoxAdapter(
               child: AdaptiveCenter(
