@@ -5,6 +5,13 @@ import '../../../../core/routing/routes.dart';
 import '../../../../core/utils/navigation_utils.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../features/followers_and_social_graph/presentation/widgets/relationship_button.dart';
+import '../../../../features/playlists/domain/entities/collection_privacy.dart';
+import '../../../../features/playlists/domain/entities/collection_type.dart';
+import '../../../../features/playlists/domain/entities/playlist_summary_entity.dart';
+import '../../../../features/playlists/presentation/providers/playlist_providers.dart';
+import '../../../../features/playlists/presentation/widgets/playlist_options_sheet.dart';
+import '../../../../features/playlists/presentation/widgets/playlist_share_sheet.dart';
+import '../../../../features/profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
 import '../../domain/entities/playlist_result_entity.dart';
@@ -279,14 +286,76 @@ class _GenreAllTab extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: playlists.length,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, i) => _CollectionCard(
-                title: playlists[i].title,
-                subtitle: playlists[i].creatorName,
-                artworkUrl: playlists[i].artworkUrl,
-                onTap: () => Navigator.of(context).pushNamed(
-                  Routes.playlistDetail,
-                  arguments: {'playlistId': playlists[i].id},
-                ),
+              itemBuilder: (context, i) => Consumer(
+                builder: (context, ref, _) {
+                  final playlist = playlists[i];
+                  final currentUserId =
+                      ref.watch(authControllerProvider).value?.id.trim() ?? '';
+                  final isMine = currentUserId.isNotEmpty &&
+                      playlist.creatorId == currentUserId;
+                  final summary = PlaylistSummaryEntity(
+                    id: playlist.id,
+                    title: playlist.title,
+                    description: null,
+                    type: CollectionType.playlist,
+                    privacy: CollectionPrivacy.public,
+                    coverUrl: playlist.artworkUrl,
+                    trackCount: playlist.trackCount,
+                    likeCount: playlist.likesCount,
+                    repostsCount: 0,
+                    ownerFollowerCount: 0,
+                    isMine: isMine,
+                    isLiked: playlist.isLiked,
+                    createdAt: DateTime.now(),
+                    updatedAt: DateTime.now(),
+                  );
+
+                  return _CollectionCard(
+                    title: playlist.title,
+                    subtitle: playlist.creatorName,
+                    artworkUrl: playlist.artworkUrl,
+                    onTap: () => Navigator.of(context).pushNamed(
+                      Routes.playlistDetail,
+                      arguments: {'playlistId': playlist.id, 'isMine': isMine},
+                    ),
+                    onMoreTap: () => showPlaylistOptionsSheet(
+                      context: context,
+                      playlist: summary,
+                      collectionType: CollectionType.playlist,
+                      onShare: () => showPlaylistShareSheet(
+                        context: context,
+                        playlist: summary,
+                      ),
+                      onLike: isMine
+                          ? null
+                          : () => ref
+                              .read(playlistNotifierProvider.notifier)
+                              .toggleLike(
+                                playlist.id,
+                                currentlyLiked: playlist.isLiked,
+                              ),
+                      onRepost: isMine
+                          ? null
+                          : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Repost coming soon'),
+                                ),
+                              );
+                            },
+                      onGoToArtistProfile: (!isMine &&
+                              playlist.creatorId.isNotEmpty)
+                          ? () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => OtherUserProfileScreen(
+                                    userId: playlist.creatorId,
+                                  ),
+                                ),
+                              )
+                          : null,
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -508,12 +577,14 @@ class _CollectionCard extends StatelessWidget {
     required this.subtitle,
     this.artworkUrl,
     required this.onTap,
+    this.onMoreTap,
   });
 
   final String title;
   final String subtitle;
   final String? artworkUrl;
   final VoidCallback onTap;
+  final VoidCallback? onMoreTap;
 
   @override
   Widget build(BuildContext context) {
@@ -538,15 +609,34 @@ class _CollectionCard extends StatelessWidget {
                   : const SearchArtworkPlaceholder(size: 140),
             ),
             const SizedBox(height: 6),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (onMoreTap != null)
+                  InkWell(
+                    onTap: onMoreTap,
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.all(2),
+                      child: Icon(
+                        Icons.more_vert,
+                        color: Colors.white54,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             Text(
               subtitle,

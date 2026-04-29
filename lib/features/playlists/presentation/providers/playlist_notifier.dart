@@ -254,9 +254,14 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       final refreshedActive = state.activePlaylist?.id == id
           ? updated
           : state.activePlaylist;
+      final updatedSummary = _toSummary(updated);
       final updatedList = state.myCollections
-          .map((s) => s.id == id ? _toSummary(updated) : s)
+          .map((s) => s.id == id ? updatedSummary : s)
+          .where((s) => s.id != id || updated.id == id || s.id == updated.id)
           .toList();
+      if (!updatedList.any((s) => s.id == updated.id)) {
+        updatedList.insert(0, updatedSummary);
+      }
       state = state.copyWith(
         isMutating: false,
         activePlaylist: refreshedActive,

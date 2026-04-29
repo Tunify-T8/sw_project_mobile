@@ -6,6 +6,7 @@ import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../providers/playlist_providers.dart';
 import '../widgets/create_edit_playlist_sheet.dart';
@@ -52,6 +53,10 @@ class _AlbumsScreenState extends ConsumerState<AlbumsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(playlistNotifierProvider);
     final profile = ref.watch(profileProvider).profile;
+    final profileRole = profile?.role.toUpperCase();
+    final authRole = ref.watch(authControllerProvider).value?.role.toUpperCase();
+    final role = (profileRole ?? authRole ?? 'USER').toUpperCase();
+    final isListener = role != 'ARTIST';
     final ownerName = profile?.displayName ?? profile?.userName;
     final albums = state.myCollections
         .where((p) => p.isMine && p.type == CollectionType.album)
@@ -145,11 +150,12 @@ class _AlbumsScreenState extends ConsumerState<AlbumsScreen> {
                     context: context,
                     playlist: album,
                     collectionType: CollectionType.album,
+                    useAlbumListenerLayout: isListener,
                     onShare: () => showPlaylistShareSheet(
                       context: context,
                       playlist: album,
                     ),
-                    onTogglePrivacy: () {
+                    onTogglePrivacy: isListener ? null : () {
                       final newPrivacy = album.privacy == CollectionPrivacy.private
                           ? CollectionPrivacy.public
                           : CollectionPrivacy.private;
@@ -158,7 +164,7 @@ class _AlbumsScreenState extends ConsumerState<AlbumsScreen> {
                             privacy: newPrivacy,
                           );
                     },
-                    onDelete: () => ref
+                    onDelete: isListener ? null : () => ref
                         .read(playlistNotifierProvider.notifier)
                         .deleteCollection(album.id),
                   ),

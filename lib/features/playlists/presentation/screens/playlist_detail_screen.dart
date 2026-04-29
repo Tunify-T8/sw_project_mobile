@@ -12,6 +12,7 @@ import '../widgets/playlist_share_sheet.dart';
 import '../widgets/secret_token_section.dart';
 import '../widgets/track_in_playlist_options_sheet.dart';
 import '../../../../core/routing/routes.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/collection_privacy.dart';
@@ -32,7 +33,7 @@ class PlaylistDetailScreen extends ConsumerStatefulWidget {
     super.key,
     this.playlistId,
     this.secretToken,
-    this.isMine = true,
+    this.isMine = false,
   });
   final String? playlistId;
   final String? secretToken;
@@ -137,9 +138,12 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     final state = ref.watch(playlistNotifierProvider);
     final playlist = state.activePlaylist;
     final tracks = state.activeTracks;
-    final currentRole =
-        ref.watch(profileProvider).profile?.role.toUpperCase() ?? 'USER';
+    final profileRole = ref.watch(profileProvider).profile?.role.toUpperCase();
+    final authRole = ref.watch(authControllerProvider).value?.role.toUpperCase();
+    final currentRole = (profileRole ?? authRole ?? 'USER').toUpperCase();
     final canEditAlbumAsCurrentUser = currentRole == 'ARTIST';
+    final useAlbumListenerLayout =
+        playlist?.type == CollectionType.album && !canEditAlbumAsCurrentUser;
 
     if (state.isDetailLoading) {
       return const Scaffold(
@@ -240,9 +244,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       context: context,
                       playlist: _toSummary(playlist, isMine: widget.isMine),
                       collectionType: playlist.type,
+                      useAlbumListenerLayout: useAlbumListenerLayout,
                       isDetailView: true,
                       // Own-playlist actions
-                      onEdit: widget.isMine
+                      onEdit: widget.isMine && !useAlbumListenerLayout
                           ? () async {
                               if (playlist.type == CollectionType.album &&
                                   !canEditAlbumAsCurrentUser) {
@@ -264,7 +269,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               await _reloadPlaylist();
                             }
                           : null,
-                      onTogglePrivacy: widget.isMine
+                      onTogglePrivacy: widget.isMine && !useAlbumListenerLayout
                           ? () {
                               final newPrivacy =
                                   playlist.privacy == CollectionPrivacy.private
@@ -278,7 +283,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                   );
                             }
                           : null,
-                      onAddMusic: widget.isMine
+                      onAddMusic: widget.isMine && !useAlbumListenerLayout
                           ? () => showAddTrackSheet(
                               context: context,
                               ref: ref,
@@ -286,7 +291,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               collectionType: playlist.type,
                             )
                           : null,
-                      onDelete: widget.isMine
+                      onDelete: widget.isMine && !useAlbumListenerLayout
                           ? () {
                               ref
                                   .read(playlistNotifierProvider.notifier)
@@ -320,8 +325,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                         playlist: _toSummary(playlist, isMine: widget.isMine),
                         secretToken: playlist.secretToken,
                       ),
-                      onCopyPlaylist: widget.isMine ? () {} : null,
+                      onCopyPlaylist:
+                          widget.isMine && !useAlbumListenerLayout ? () {} : null,
                       onConvertToAlbum: widget.isMine &&
+                              !useAlbumListenerLayout &&
                               playlist.type == CollectionType.playlist
                           ? () {
                               if (!canEditAlbumAsCurrentUser) {
