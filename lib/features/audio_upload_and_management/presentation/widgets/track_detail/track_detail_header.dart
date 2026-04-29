@@ -132,18 +132,13 @@ class _FollowSideIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUserId = ref.watch(authControllerProvider).value?.id;
-
-    if (artistId.trim().isEmpty) {
-      return const _SideIcon(icon: Icons.person_add_alt_1_outlined);
-    }
-
     final relationshipState = ref.watch(relationshipStatusProvider(artistId));
     final isFollowing = relationshipState.isFollowing ?? false;
 
-    return (currentUserId != artistId) ?
-    GestureDetector(
-      onTap: () => ref.read(relationshipStatusProvider(artistId).notifier).toggleFollow(),
+    return GestureDetector(
+      onTap: () => ref
+          .read(relationshipStatusProvider(artistId).notifier)
+          .toggleFollow(),
       child: Icon(
         isFollowing
             ? Icons.person_remove_alt_1_outlined
@@ -151,7 +146,7 @@ class _FollowSideIcon extends ConsumerWidget {
         color: Colors.white70,
         size: 34,
       ),
-    ): SizedBox.shrink();
+    );
   }
 }
 
