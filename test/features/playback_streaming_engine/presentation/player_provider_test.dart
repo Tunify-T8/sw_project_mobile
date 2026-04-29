@@ -317,6 +317,90 @@ void main() {
     ]);
   });
 
+  test('reorderQueue handles circular visible next up order', () async {
+    final container = buildContainer(mode: PlayerBackendMode.mock);
+    addTearDown(container.dispose);
+    await container.read(playerProvider.future);
+    final notifier = container.read(playerProvider.notifier);
+
+    await notifier.loadTrack(
+      'track-4',
+      autoPlay: false,
+      seedTrack: const PlayerSeedTrack(
+        trackId: 'track-4',
+        title: 'Track Four',
+        artistName: 'Artist',
+        durationSeconds: 180,
+      ),
+      queue: const PlaybackQueue(
+        trackIds: <String>[
+          'track-1',
+          'track-2',
+          'track-3',
+          'track-4',
+          'track-5',
+          'track-6',
+        ],
+        currentIndex: 3,
+        shuffle: false,
+        repeat: RepeatMode.all,
+      ),
+    );
+
+    notifier.reorderQueue(1, 4);
+
+    final queue = container.read(playerProvider).requireValue.queue!;
+    expect(queue.currentTrackId, 'track-4');
+    expect(queue.currentIndex, 0);
+    expect(queue.trackIds, <String>[
+      'track-4',
+      'track-5',
+      'track-1',
+      'track-2',
+      'track-3',
+      'track-6',
+    ]);
+  });
+
+  test(
+    'reorderQueue handles duplicate track ids by visible occurrence',
+    () async {
+      final container = buildContainer(mode: PlayerBackendMode.mock);
+      addTearDown(container.dispose);
+      await container.read(playerProvider.future);
+      final notifier = container.read(playerProvider.notifier);
+
+      await notifier.loadTrack(
+        'current',
+        autoPlay: false,
+        seedTrack: const PlayerSeedTrack(
+          trackId: 'current',
+          title: 'Current',
+          artistName: 'Artist',
+          durationSeconds: 180,
+        ),
+        queue: const PlaybackQueue(
+          trackIds: <String>['current', 'dupe', 'middle', 'dupe', 'last'],
+          currentIndex: 0,
+          shuffle: false,
+          repeat: RepeatMode.all,
+        ),
+      );
+
+      notifier.reorderQueue(0, 2);
+
+      final queue = container.read(playerProvider).requireValue.queue!;
+      expect(queue.currentTrackId, 'current');
+      expect(queue.trackIds, <String>[
+        'current',
+        'middle',
+        'dupe',
+        'dupe',
+        'last',
+      ]);
+    },
+  );
+
   test('preview tracks stop automatically at preview end', () async {
     repository.getPlaybackBundleHandler =
         (trackId, {String? privateToken}) async {

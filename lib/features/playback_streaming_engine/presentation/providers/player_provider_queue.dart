@@ -238,24 +238,39 @@ extension PlayerNotifierQueue on PlayerNotifier {
   /// Reorders a queued track.
   ///
   /// Both indexes are relative to the visible "Playing next" list,
-  /// not the full underlying queue. So we offset them by the current track.
+  /// not the full underlying queue. The visible list is circular from the
+  /// current track, so rebuild the queue in that same visible order instead of
+  /// trying to map the drop target back onto a linear absolute index.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    final offset = queue.currentIndex + 1;
-    final absOld = offset + oldIndex;
-    final absNew = offset + newIndex;
+    if (queue.trackIds.length <= 1) return;
+    if (queue.currentIndex < 0 || queue.currentIndex >= queue.trackIds.length) {
+      return;
+    }
 
-    if (absOld < offset || absOld >= queue.trackIds.length) return;
-    if (absNew < offset || absNew > queue.trackIds.length) return;
+    final visibleNext = <String>[
+      for (var offset = 1; offset < queue.trackIds.length; offset++)
+        queue.trackIds[(queue.currentIndex + offset) % queue.trackIds.length],
+    ];
+    if (oldIndex < 0 || oldIndex >= visibleNext.length) return;
 
-    final newIds = List<String>.from(queue.trackIds);
-    final item = newIds.removeAt(absOld);
-    newIds.insert(absNew, item);
+    final item = visibleNext.removeAt(oldIndex);
+    final safeNewIndex = newIndex.clamp(0, visibleNext.length).toInt();
+    visibleNext.insert(safeNewIndex, item);
 
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final currentTrackId = queue.trackIds[queue.currentIndex];
+    final newIds = <String>[currentTrackId, ...visibleNext];
+
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: 0,
+        clearOriginalTrackIds: queue.shuffle,
+      ),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }

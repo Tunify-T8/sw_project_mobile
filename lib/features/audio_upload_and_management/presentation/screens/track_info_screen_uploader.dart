@@ -43,6 +43,7 @@ class _UploaderCard extends ConsumerWidget {
     final profile = profileAsync.asData?.value;
     final displayName = _displayProfileName(profile, item);
     final location = _displayProfileLocation(profile);
+    final isProfileLoading = profileAsync.isLoading && profile == null;
     final avatarUrl = profile?.profileImagePath?.trim().isNotEmpty == true
         ? profile!.profileImagePath
         : item.artworkUrl;
@@ -51,7 +52,7 @@ class _UploaderCard extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 10),
       child: Row(
         children: [
-          _ArtistAvatar(avatarUrl: avatarUrl),
+          _ArtistAvatar(avatarUrl: avatarUrl, isLoading: isProfileLoading),
           const SizedBox(width: 16),
           Expanded(
             child: GestureDetector(
@@ -117,9 +118,10 @@ class _UploaderCard extends ConsumerWidget {
 }
 
 class _ArtistAvatar extends StatelessWidget {
-  const _ArtistAvatar({this.avatarUrl});
+  const _ArtistAvatar({this.avatarUrl, this.isLoading = false});
 
   final String? avatarUrl;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +135,18 @@ class _ArtistAvatar extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
-      child: safeUrl != null && safeUrl.isNotEmpty
+      child: isLoading
+          ? const Center(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: Color(0xFFB8860B),
+                ),
+              ),
+            )
+          : safeUrl != null && safeUrl.isNotEmpty
           ? Image.network(
               safeUrl,
               fit: BoxFit.cover,
