@@ -99,4 +99,20 @@ void main() {
     expect(merged.appPlaybackEnabled, isFalse);
     expect(merged.licensing, 'creative_commons');
   });
+
+  test(
+    'mergeTrackDetailItem keeps private token when details token is blank',
+    () {
+      final merged = mergeTrackDetailItem(
+        base: sampleUploadItem.copyWith(privateToken: 'existing-token'),
+        details: const UploadedTrack(
+          trackId: 'track-1',
+          status: UploadStatus.finished,
+          privateToken: '  ',
+        ),
+      );
+
+      expect(merged.privateToken, 'existing-token');
+    },
+  );
 }

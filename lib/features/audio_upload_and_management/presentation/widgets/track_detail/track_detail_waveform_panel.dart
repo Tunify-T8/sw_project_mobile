@@ -21,6 +21,7 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
     required this.item,
     required this.state,
     required this.onMoreTap,
+    required this.onShareTap,
     required this.onQueueTap,
     required this.onPlayPauseTap,
     required this.onPreviousTap,
@@ -31,6 +32,7 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
   final UploadItem item;
   final TrackDetailWaveformState state;
   final VoidCallback onMoreTap;
+  final VoidCallback onShareTap;
   final VoidCallback onQueueTap;
   final VoidCallback onPlayPauseTap;
   final VoidCallback onPreviousTap;
@@ -95,16 +97,19 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
                       ),
               ),
               const SizedBox(height: 16),
-              CommentInputBar( // engagement addition
+              CommentInputBar(
+                // engagement addition
                 trackId: item.id,
               ),
               const SizedBox(height: 16),
-              _BottomActionBar( // engagement addition
+              _BottomActionBar(
+                // engagement addition
                 trackId: item.id,
                 coverUrl: item.artworkUrl,
                 trackTitle: item.title,
                 artistName: item.artistDisplay,
                 onMoreTap: onMoreTap,
+                onShareTap: onShareTap,
                 onQueueTap: onQueueTap,
               ),
             ],

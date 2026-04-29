@@ -251,13 +251,9 @@ Future<void> _copyUploadShareLink(
   if (!context.mounted) return;
   Navigator.pop(context);
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        item.visibility == UploadVisibility.private
-            ? 'Private link copied to clipboard'
-            : 'Link copied to clipboard',
-      ),
-      duration: const Duration(seconds: 2),
+    const SnackBar(
+      content: Text('Link copied to clipboard'),
+      duration: Duration(seconds: 2),
     ),
   );
 }

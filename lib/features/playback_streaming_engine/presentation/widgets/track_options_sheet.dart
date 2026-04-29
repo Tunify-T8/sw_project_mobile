@@ -39,6 +39,7 @@ import '../../../playlists/presentation/widgets/select_playlist_sheet.dart';
 import '../../domain/entities/history_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
+import 'track_qr_code.dart';
 
 /// Lightweight data model used by the shared song options sheet.
 class TrackOptionInfo {
@@ -196,6 +197,19 @@ Future<void> showTrackOptionsSheet(
   );
 }
 
+Future<void> showTrackShareSheet(
+  BuildContext context, {
+  required TrackOptionInfo info,
+  required WidgetRef ref,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => TrackShareSheetContent(info: info, ref: ref),
+  );
+}
+
 final _trackOptionsOwnerProvider = FutureProvider.autoDispose
     .family<String?, String>((ref, trackId) async {
       final details = await ref
@@ -211,6 +225,58 @@ final _trackOptionsOwnerProvider = FutureProvider.autoDispose
       }
       return ownerUserId == null || ownerUserId.isEmpty ? null : ownerUserId;
     });
+
+class TrackShareSheetContent extends ConsumerWidget {
+  const TrackShareSheetContent({
+    super.key,
+    required this.info,
+    required this.ref,
+  });
+
+  final TrackOptionInfo info;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context, WidgetRef watchRef) {
+    final conversations = watchRef.watch(conversationsControllerProvider).items;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF111111),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FrostedTrackHeader(info: info),
+              const SizedBox(height: 4),
+              if (conversations.isNotEmpty) ...[
+                SectionLabel(label: 'SEND TO'),
+                SendToRow(info: info, conversations: conversations),
+              ],
+              SectionLabel(label: 'SHARE'),
+              ShareRow(info: info, ref: ref),
+              const SizedBox(height: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class TrackOptionsSheetContent extends ConsumerWidget {
   const TrackOptionsSheetContent({
@@ -271,7 +337,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
     final conversations = watchRef.watch(conversationsControllerProvider).items;
     final subscriptionState = watchRef.watch(subscriptionNotifierProvider);
     final currentSubscription = subscriptionState.currentSubscription;
-    final canDownload = currentSubscription?.tier != SubscriptionTier.free;
+    final canDownload = currentSubscription.tier != SubscriptionTier.free;
     final engagementState = watchRef.watch(engagementProvider(info.trackId));
     final engagement = engagementState.engagement;
     final isLiked = engagement?.isLiked ?? false;
@@ -680,7 +746,7 @@ Future<void> downloadTrackFromOptions(
 
   navigator.pop();
 
-  if (currentSubscription?.tier == SubscriptionTier.free) {
+  if (currentSubscription.tier == SubscriptionTier.free) {
     messenger?.showSnackBar(
       const SnackBar(content: Text('Upgrade to premium to download tracks.')),
     );
@@ -1083,10 +1149,6 @@ class ShareRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasToken =
-        info.privateToken != null && info.privateToken!.trim().isNotEmpty;
-    final usePrivateLabel = info.isPrivate || hasToken;
-
     return SizedBox(
       height: 88,
       child: ListView(
@@ -1111,7 +1173,7 @@ class ShareRow extends StatelessWidget {
           // Copy link
           YourUploadsShareButton(
             icon: Icons.copy_outlined,
-            label: usePrivateLabel ? 'Copy private link' : 'Copy link',
+            label: 'Copy link',
             onTap: () async {
               final navigator = Navigator.of(context);
               final messenger = ScaffoldMessenger.maybeOf(context);
@@ -1121,20 +1183,31 @@ class ShareRow extends StatelessWidget {
               if (!context.mounted) return;
               navigator.pop();
               messenger?.showSnackBar(
-                SnackBar(
-                  content: Text(
-                    usePrivateLabel
-                        ? 'Private link copied to clipboard'
-                        : 'Link copied to clipboard',
-                  ),
-                  duration: const Duration(seconds: 2),
+                const SnackBar(
+                  content: Text('Link copied to clipboard'),
+                  duration: Duration(seconds: 2),
                 ),
               );
             },
           ),
 
-          // QR code (placeholder)
-          const YourUploadsShareButton(icon: Icons.qr_code_2, label: 'QR code'),
+          YourUploadsShareButton(
+            icon: Icons.qr_code_2,
+            label: 'QR code',
+            onTap: () async {
+              final navigator = Navigator.of(context);
+              final dialogContext = Navigator.of(
+                context,
+                rootNavigator: true,
+              ).context;
+              final url = await _buildTrackOptionShareUrl(context, info, ref);
+              if (url == null || !context.mounted || !dialogContext.mounted) {
+                return;
+              }
+              navigator.pop();
+              await showTrackQrCodeDialog(dialogContext, url);
+            },
+          ),
 
           // WhatsApp
           SocialShareButton(
@@ -1277,7 +1350,56 @@ class ShareRow extends StatelessWidget {
   }
 }
 
-// ── Share URL builder ───────────────────────────────────────────────────────
+// QR code popup
+
+Future<void> showTrackQrCodeDialog(BuildContext context, String url) {
+  return showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.72),
+    builder: (context) {
+      final screenWidth = MediaQuery.sizeOf(context).width;
+      final qrSize = (screenWidth - 96).clamp(220.0, 330.0);
+
+      return Dialog(
+        backgroundColor: const Color(0xFF111111),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TrackQrCode(data: url, size: qrSize),
+              const SizedBox(height: 26),
+              const Text(
+                'Others can scan this QR code with a smartphone\ncamera to see this content.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  height: 1.35,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 28),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
 class TrackShareToScreen extends ConsumerStatefulWidget {
   const TrackShareToScreen({super.key, required this.info});

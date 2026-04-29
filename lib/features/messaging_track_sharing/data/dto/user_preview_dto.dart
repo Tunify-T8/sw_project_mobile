@@ -17,11 +17,11 @@ class UserPreviewDto {
           j['profileId'] ??
           j['profile_id'],
     );
-    final displayName = _firstNonEmpty([
-      j['displayName'],
-      j['display_name'],
+    final displayName = _firstUsableName([
       j['username'],
       j['userName'],
+      j['displayName'],
+      j['display_name'],
       j['name'],
       j['fullName'],
       j['full_name'],
@@ -53,12 +53,19 @@ class UserPreviewDto {
     return text.isEmpty ? null : text;
   }
 
-  static String _firstNonEmpty(List<Object?> values) {
+  static String _firstUsableName(List<Object?> values) {
     for (final value in values) {
       final text = _string(value);
-      if (text.isNotEmpty) return text;
+      if (text.isNotEmpty && !_isPlaceholderName(text)) return text;
     }
     return '';
+  }
+
+  static bool _isPlaceholderName(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == 'unknown display name' ||
+        normalized == 'unknown user' ||
+        normalized == 'unknown';
   }
 
   static String _friendlyDisplayName(String raw) {
