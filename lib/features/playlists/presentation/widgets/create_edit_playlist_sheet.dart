@@ -6,12 +6,15 @@ import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_entity.dart';
 import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/playlist_providers.dart';
 import 'playlist_form_fields.dart';
 
 Future<PlaylistEntity?> showCreatePlaylistSheet({
   required BuildContext context,
   required WidgetRef ref,
+  CollectionType type = CollectionType.playlist,
 }) {
   return showModalBottomSheet<PlaylistEntity>(
     context: context,
@@ -20,6 +23,7 @@ Future<PlaylistEntity?> showCreatePlaylistSheet({
     builder: (_) => _CreatePlaylistSheet(
       ref: ref,
       hostContext: context,
+      type: type,
     ),
   );
 }
@@ -28,10 +32,12 @@ class _CreatePlaylistSheet extends StatefulWidget {
   const _CreatePlaylistSheet({
     required this.ref,
     required this.hostContext,
+    required this.type,
   });
 
   final WidgetRef ref;
   final BuildContext hostContext;
+  final CollectionType type;
 
   @override
   State<_CreatePlaylistSheet> createState() => _CreatePlaylistSheetState();
@@ -67,21 +73,37 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
     });
 
     try {
-      final latestPlaylists = await widget.ref
+      if (widget.type == CollectionType.album) {
+        final profileRole =
+            widget.ref.read(profileProvider).profile?.role.toUpperCase();
+        final authRole =
+            widget.ref.read(authControllerProvider).value?.role.toUpperCase();
+        final role = (profileRole ?? authRole ?? 'USER').toUpperCase();
+        if (role != 'ARTIST') {
+          if (!mounted) return;
+          setState(() {
+            _canCreate = false;
+            _availabilityMessage = 'Only artists can create albums';
+            _isCheckingAvailability = false;
+          });
+          return;
+        }
+      }
+      final latestCollections = await widget.ref
           .read(playlistRepositoryProvider)
           .getMyCollections(
             page: 1,
             limit: 1,
-            type: CollectionType.playlist,
+            type: widget.type,
           );
-      final playlistLimit = widget.ref
+      final collectionLimit = widget.ref
           .read(subscriptionNotifierProvider)
           .currentSubscription
           .features
           .playlistLimit;
-      final limit = playlistLimit > 0 ? playlistLimit : kFreeCollectionLimit;
-      final reachedLimit = playlistLimit != -1 &&
-          hasReachedFreeCollectionLimit(latestPlaylists.total, limit: limit);
+      final limit = collectionLimit > 0 ? collectionLimit : kFreeCollectionLimit;
+      final reachedLimit = collectionLimit != -1 &&
+          hasReachedFreeCollectionLimit(latestCollections.total, limit: limit);
       if (!mounted) return;
       setState(() {
         _canCreate = !reachedLimit;
@@ -107,7 +129,7 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
         .read(playlistNotifierProvider.notifier)
         .createCollection(
           title: _titleCtrl.text.trim(),
-          type: CollectionType.playlist,
+          type: widget.type,
           privacy: _privacy,
           description:
               _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
@@ -179,8 +201,9 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Create playlist',
+              Text(
+                key: ValueKey('create_${_collectionLabel(widget.type)}_title'),
+                'Create ${_collectionLabel(widget.type)}',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -199,6 +222,9 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
               if (_availabilityMessage != null) ...[
                 const SizedBox(height: 14),
                 Text(
+                  key: ValueKey(
+                    '${_collectionLabel(widget.type)}_permission_message',
+                  ),
                   _availabilityMessage!,
                   style: const TextStyle(
                     color: Colors.redAccent,
@@ -245,3 +271,6 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
     );
   }
 }
+
+String _collectionLabel(CollectionType type) =>
+    type == CollectionType.album ? 'album' : 'playlist';

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
@@ -11,12 +14,17 @@ Future<void> showSelectPlaylistSheet({
   required BuildContext context,
   required WidgetRef ref,
   required String trackId,
+  CollectionType collectionType = CollectionType.playlist,
 }) {
   final navigator = Navigator.of(context, rootNavigator: true);
   return navigator.push(
     PageRouteBuilder<void>(
       pageBuilder: (_, __, ___) =>
-          _SelectPlaylistScreen(outerRef: ref, trackId: trackId),
+          _SelectPlaylistScreen(
+            outerRef: ref,
+            trackId: trackId,
+            collectionType: collectionType,
+          ),
       transitionDuration: const Duration(milliseconds: 220),
       reverseTransitionDuration: const Duration(milliseconds: 180),
       transitionsBuilder: (_, animation, __, child) {
@@ -41,10 +49,12 @@ class _SelectPlaylistScreen extends ConsumerStatefulWidget {
   const _SelectPlaylistScreen({
     required this.outerRef,
     required this.trackId,
+    required this.collectionType,
   });
 
   final WidgetRef outerRef;
   final String trackId;
+  final CollectionType collectionType;
 
   @override
   ConsumerState<_SelectPlaylistScreen> createState() =>
@@ -61,6 +71,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
   final Map<String, int> _trackCountOverrides = {};
   final TextEditingController _searchCtrl = TextEditingController();
   bool _isResolvingSelections = false;
+  String? _inlineErrorMessage;
 
   String _query = '';
 
@@ -73,8 +84,12 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
     Future.microtask(() async {
       final notifier = ref.read(playlistNotifierProvider.notifier);
       final state = ref.read(playlistNotifierProvider);
-      if (state.myCollections.isEmpty && !state.isMyCollectionsLoading) {
-        await notifier.loadMyCollections();
+      final hasRequestedType = state.myCollections.any(
+        (playlist) => playlist.type == widget.collectionType && playlist.isMine,
+      );
+      if ((!hasRequestedType || state.myCollections.isEmpty) &&
+          !state.isMyCollectionsLoading) {
+        await notifier.loadMyCollections(type: widget.collectionType);
       }
       if (!mounted) return;
       await _resolveMissingCovers(ref.read(playlistNotifierProvider).myCollections);
@@ -96,7 +111,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
   ) async {
     final repo = ref.read(playlistRepositoryProvider);
     final pending = playlists.where((playlist) {
-      return playlist.type == CollectionType.playlist &&
+      return playlist.type == widget.collectionType &&
           playlist.trackCount > 0 &&
           (playlist.coverUrl == null || playlist.coverUrl!.isEmpty) &&
           !_resolvedCoverUrls.containsKey(playlist.id) &&
@@ -132,13 +147,13 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
 
     try {
       final candidateIds = playlists
-          .where((playlist) => playlist.type == CollectionType.playlist)
+          .where((playlist) => playlist.type == widget.collectionType)
           .map((playlist) => playlist.id)
           .toSet();
       final existingIds = <String>{};
 
       for (final playlist in playlists) {
-        if (playlist.type != CollectionType.playlist || playlist.trackCount <= 0) {
+        if (playlist.type != widget.collectionType || playlist.trackCount <= 0) {
           continue;
         }
 
@@ -195,6 +210,25 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
         message.contains('already exists') ||
         message.contains('already added') ||
         message.contains('duplicate');
+  }
+
+  String? _extractAddErrorMessage(Object error) {
+    if (error is DioException) {
+      final responseData = error.response?.data;
+      if (responseData is Map<String, dynamic>) {
+        final message = responseData['message']?.toString().trim();
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+      }
+      final message = error.message?.trim();
+      if (message != null && message.isNotEmpty) {
+        return message;
+      }
+    }
+    final fallback = error.toString().trim();
+    if (fallback.isEmpty) return null;
+    return fallback;
   }
 
   PlaylistSummaryEntity _playlistForDisplay(PlaylistSummaryEntity playlist) {
@@ -254,15 +288,20 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
       setState(() {
         _mutatingIds.remove(playlist.id);
         _addedIds.add(playlist.id);
+        _inlineErrorMessage = null;
         _trackCountOverrides[playlist.id] =
             (_trackCountOverrides[playlist.id] ?? playlist.trackCount) + 1;
       });
     } catch (error) {
       if (!mounted) return;
+      final errorMessage = _extractAddErrorMessage(error);
       setState(() {
         _mutatingIds.remove(playlist.id);
         if (_looksLikeDuplicateAddError(error)) {
           _addedIds.add(playlist.id);
+          _inlineErrorMessage = null;
+        } else {
+          _inlineErrorMessage = errorMessage;
         }
       });
     }
@@ -297,6 +336,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
     final created = await showCreatePlaylistSheet(
       context: context,
       ref: widget.outerRef,
+      type: widget.collectionType,
     );
     if (!mounted) return;
     if (created == null) return;
@@ -336,10 +376,20 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = ref.watch(profileProvider).profile;
+    final profileRole = profile?.role.toUpperCase();
+    final profileUserType = profile?.userType.toUpperCase();
+    final authRole = ref.watch(authControllerProvider).value?.role.toUpperCase();
+    final isArtist =
+        profileRole == 'ARTIST' ||
+        profileUserType == 'ARTIST' ||
+        authRole == 'ARTIST';
+    final isAlbumListener =
+        widget.collectionType == CollectionType.album && !isArtist;
     final state = ref.watch(playlistNotifierProvider);
     final playlists = state.myCollections
         .where((playlist) =>
-            playlist.type == CollectionType.playlist && playlist.isMine)
+            playlist.type == widget.collectionType && playlist.isMine)
         .map(_playlistForDisplay)
         .toList();
     final filtered = _query.isEmpty
@@ -369,9 +419,11 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                     onTap: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Add to playlist',
+                      widget.collectionType == CollectionType.album
+                          ? 'Add to album'
+                          : 'Add to playlist',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -393,8 +445,11 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                       key: const Key('select_playlist_done_button'),
                       onPressed: () => Navigator.of(context).pop(),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
+                        backgroundColor: isAlbumListener
+                            ? const Color(0xFF2C2C2C)
+                            : Colors.white,
+                        foregroundColor:
+                            isAlbumListener ? Colors.white : Colors.black,
                         padding: const EdgeInsets.symmetric(horizontal: 22),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -433,8 +488,10 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                         ),
                         decoration: InputDecoration(
                           hintText: playlists.isEmpty
-                              ? 'Search playlists'
-                              : 'Search ${playlists.length} playlist${playlists.length == 1 ? '' : 's'}',
+                              ? widget.collectionType == CollectionType.album
+                                  ? 'Search albums'
+                                  : 'Search playlists'
+                              : 'Search ${playlists.length} ${widget.collectionType == CollectionType.album ? 'album' : 'playlist'}${playlists.length == 1 ? '' : 's'}',
                           hintStyle: const TextStyle(
                             color: Colors.white54,
                             fontSize: 16,
@@ -464,6 +521,36 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            if (isAlbumListener)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "You can't add tracks to albums as a listener.",
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            if (_inlineErrorMessage != null && _inlineErrorMessage!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _inlineErrorMessage!,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             Expanded(
               child: state.isMyCollectionsLoading && playlists.isEmpty
                   ? const Center(
@@ -474,7 +561,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                       children: [
                         InkWell(
                           key: const Key('select_playlist_create_button'),
-                          onTap: _openCreatePlaylist,
+                          onTap: isAlbumListener ? null : _openCreatePlaylist,
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -492,19 +579,55 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                                 ),
                                 const SizedBox(width: 20),
                                 Expanded(
-                                  child: Text(
-                                    'Create playlist',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.collectionType ==
+                                                CollectionType.album
+                                            ? 'Create album'
+                                            : 'Create playlist',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      if (isAlbumListener)
+                                        const Padding(
+                                          padding: EdgeInsets.only(top: 4),
+                                          child: Text(
+                                            'Unable to create album',
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ),
+                        if (isAlbumListener)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2, left: 2, bottom: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Add to album isn't available for listeners.",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 14),
                         const Text(
                           'Recently updated',
@@ -516,11 +639,13 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                         ),
                         const SizedBox(height: 10),
                         if (filtered.isEmpty && !state.isMyCollectionsLoading)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.symmetric(vertical: 32),
                             child: Center(
                               child: Text(
-                                'No playlists yet',
+                                widget.collectionType == CollectionType.album
+                                    ? 'No albums yet'
+                                    : 'No playlists yet',
                                 style: TextStyle(
                                   color: Colors.white54,
                                   fontSize: 15,
@@ -532,6 +657,7 @@ class _SelectPlaylistScreenState extends ConsumerState<_SelectPlaylistScreen> {
                           ...filtered.map(
                             (playlist) => _PlaylistSelectRow(
                               playlist: playlist,
+                              collectionType: widget.collectionType,
                               isMutating: _mutatingIds.contains(playlist.id),
                               isAdded: _addedIds.contains(playlist.id),
                               onTap: () {
@@ -587,12 +713,14 @@ class _CircleIconButton extends StatelessWidget {
 class _PlaylistSelectRow extends StatelessWidget {
   const _PlaylistSelectRow({
     required this.playlist,
+    required this.collectionType,
     required this.isMutating,
     required this.isAdded,
     required this.onTap,
   });
 
   final PlaylistSummaryEntity playlist;
+  final CollectionType collectionType;
   final bool isMutating;
   final bool isAdded;
   final VoidCallback onTap;
@@ -600,7 +728,7 @@ class _PlaylistSelectRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtitle =
-        'Playlist - ${playlist.trackCount} Track${playlist.trackCount == 1 ? '' : 's'}';
+        '${collectionType == CollectionType.album ? 'Album' : 'Playlist'} - ${playlist.trackCount} Track${playlist.trackCount == 1 ? '' : 's'}';
 
     return InkWell(
       onTap: isMutating ? null : onTap,

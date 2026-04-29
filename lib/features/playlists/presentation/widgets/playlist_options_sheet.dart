@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/entities/collection_privacy.dart';
+import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 
 void showPlaylistOptionsSheet({
@@ -15,6 +16,8 @@ void showPlaylistOptionsSheet({
   VoidCallback? onAddMusic,
   VoidCallback? onDelete,
   VoidCallback? onCopyPlaylist,
+  VoidCallback? onConvertToAlbum,
+  VoidCallback? onConvertToPlaylist,
   // Other-user-playlist callbacks
   VoidCallback? onLike,
   VoidCallback? onRepost,
@@ -23,6 +26,8 @@ void showPlaylistOptionsSheet({
   bool isDetailView = false,
   VoidCallback? onShare,
   VoidCallback? onShufflePlay,
+  CollectionType collectionType = CollectionType.playlist,
+  bool useAlbumListenerLayout = false,
 }) {
   showModalBottomSheet(
     context: context,
@@ -36,12 +41,16 @@ void showPlaylistOptionsSheet({
       onAddMusic: onAddMusic,
       onDelete: onDelete,
       onCopyPlaylist: onCopyPlaylist,
+      onConvertToAlbum: onConvertToAlbum,
+      onConvertToPlaylist: onConvertToPlaylist,
       onLike: onLike,
       onRepost: onRepost,
       onGoToArtistProfile: onGoToArtistProfile,
       isDetailView: isDetailView,
       onShare: onShare,
       onShufflePlay: onShufflePlay,
+      collectionType: collectionType,
+      useAlbumListenerLayout: useAlbumListenerLayout,
     ),
   );
 }
@@ -55,12 +64,16 @@ class _PlaylistOptionsSheet extends StatelessWidget {
     this.onAddMusic,
     this.onDelete,
     this.onCopyPlaylist,
+    this.onConvertToAlbum,
+    this.onConvertToPlaylist,
     this.onLike,
     this.onRepost,
     this.onGoToArtistProfile,
     this.isDetailView = false,
     this.onShare,
     this.onShufflePlay,
+    this.collectionType = CollectionType.playlist,
+    this.useAlbumListenerLayout = false,
   });
 
   final BuildContext hostContext;
@@ -70,16 +83,72 @@ class _PlaylistOptionsSheet extends StatelessWidget {
   final VoidCallback? onAddMusic;
   final VoidCallback? onDelete;
   final VoidCallback? onCopyPlaylist;
+  final VoidCallback? onConvertToAlbum;
+  final VoidCallback? onConvertToPlaylist;
   final VoidCallback? onLike;
   final VoidCallback? onRepost;
   final VoidCallback? onGoToArtistProfile;
   final bool isDetailView;
   final VoidCallback? onShare;
   final VoidCallback? onShufflePlay;
+  final CollectionType collectionType;
+  final bool useAlbumListenerLayout;
 
   @override
   Widget build(BuildContext context) {
+    if (!playlist.isMine) {
+      return _NonOwnerPlaylistOptionsSheet(
+        playlist: playlist,
+        onLike: onLike,
+        onRepost: onRepost,
+        onGoToArtistProfile: onGoToArtistProfile,
+        onShare: onShare,
+        onShufflePlay: onShufflePlay,
+        isDetailView: isDetailView,
+      );
+    }
+
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    if (useAlbumListenerLayout) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF111111),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            _DragHandle(),
+            _Header(playlist: playlist),
+            const Divider(color: Colors.white12, height: 1),
+            _OptionRow(
+              key: const Key('playlist_option_share'),
+              icon: Icons.share_outlined,
+              label: 'Share',
+              onTap: () {
+                Navigator.pop(context);
+                onShare?.call();
+              },
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            _OptionRow(
+              key: const Key('playlist_option_play_next'),
+              icon: Icons.queue_play_next_outlined,
+              label: 'Play Next',
+              onTap: () => Navigator.pop(context),
+            ),
+            _OptionRow(
+              key: const Key('playlist_option_play_last'),
+              icon: Icons.add_to_queue_outlined,
+              label: 'Play Last',
+              onTap: () => Navigator.pop(context),
+            ),
+            SizedBox(height: bottomPadding + 8),
+          ],
+        ),
+      );
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -102,7 +171,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
               onShare?.call();
             },
           ),
-          if (playlist.isMine) ...[
+          ...[
             _OptionRow(
               key: const Key('playlist_option_edit'),
               icon: Icons.edit_outlined,
@@ -146,6 +215,7 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             ),
             if (isDetailView)
               _OptionRow(
+                key: const Key('playlist_option_copy_playlist'),
                 icon: Icons.copy_outlined,
                 label: 'Copy playlist',
                 onTap: () {
@@ -153,44 +223,37 @@ class _PlaylistOptionsSheet extends StatelessWidget {
                   onCopyPlaylist?.call();
                 },
               ),
-          ] else ...[
-            _OptionRow(
-              key: const Key('playlist_option_like'),
-              icon: playlist.isLiked
-                  ? Icons.favorite
-                  : Icons.favorite_border_outlined,
-              label: playlist.isLiked ? 'Unlike' : 'Like',
-              onTap: () {
-                Navigator.pop(context);
-                onLike?.call();
-              },
-            ),
-            _OptionRow(
-              key: const Key('playlist_option_repost'),
-              icon: Icons.repeat_outlined,
-              label: 'Repost',
-              onTap: () {
-                Navigator.pop(context);
-                onRepost?.call();
-              },
-            ),
-            _OptionRow(
-              key: const Key('playlist_option_go_to_artist'),
-              icon: Icons.person_outline,
-              label: 'Go to artist profile',
-              onTap: () {
-                Navigator.pop(context);
-                onGoToArtistProfile?.call();
-              },
-            ),
+            if ((collectionType == CollectionType.playlist &&
+                    onConvertToAlbum != null) ||
+                (collectionType == CollectionType.album &&
+                    onConvertToPlaylist != null))
+              _OptionRow(
+                key: const Key('playlist_option_convert_type'),
+                icon: collectionType == CollectionType.playlist
+                    ? Icons.album_outlined
+                    : Icons.playlist_play,
+                label: collectionType == CollectionType.playlist
+                    ? 'Convert to album'
+                    : 'Convert to playlist',
+                onTap: () {
+                  Navigator.pop(context);
+                  if (collectionType == CollectionType.playlist) {
+                    onConvertToAlbum?.call();
+                  } else {
+                    onConvertToPlaylist?.call();
+                  }
+                },
+              ),
           ],
           const Divider(color: Colors.white12, height: 1),
           _OptionRow(
+            key: const Key('playlist_option_play_next'),
             icon: Icons.queue_play_next_outlined,
             label: 'Play Next',
             onTap: () => Navigator.pop(context),
           ),
           _OptionRow(
+            key: const Key('playlist_option_play_last'),
             icon: Icons.add_to_queue_outlined,
             label: 'Play Last',
             onTap: () => Navigator.pop(context),
@@ -237,6 +300,112 @@ class _PlaylistOptionsSheet extends StatelessWidget {
             child: const Text('Delete',
                 style: TextStyle(color: Colors.redAccent)),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NonOwnerPlaylistOptionsSheet extends StatelessWidget {
+  const _NonOwnerPlaylistOptionsSheet({
+    required this.playlist,
+    this.onLike,
+    this.onRepost,
+    this.onGoToArtistProfile,
+    this.onShare,
+    this.onShufflePlay,
+    this.isDetailView = false,
+  });
+
+  final PlaylistSummaryEntity playlist;
+  final VoidCallback? onLike;
+  final VoidCallback? onRepost;
+  final VoidCallback? onGoToArtistProfile;
+  final VoidCallback? onShare;
+  final VoidCallback? onShufflePlay;
+  final bool isDetailView;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF111111),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          _DragHandle(),
+          _Header(playlist: playlist),
+          const Divider(color: Colors.white12, height: 1),
+          _OptionRow(
+            key: const Key('playlist_option_share'),
+            icon: Icons.share_outlined,
+            label: 'Share',
+            onTap: () {
+              Navigator.pop(context);
+              onShare?.call();
+            },
+          ),
+          if (onLike != null)
+            _OptionRow(
+              key: const Key('playlist_option_like'),
+              icon: playlist.isLiked
+                  ? Icons.favorite
+                  : Icons.favorite_border_outlined,
+              label: playlist.isLiked ? 'Liked' : 'Like',
+              color: playlist.isLiked ? Colors.redAccent : Colors.white,
+              onTap: () {
+                Navigator.pop(context);
+                onLike?.call();
+              },
+            ),
+          if (onRepost != null)
+            _OptionRow(
+              key: const Key('playlist_option_repost'),
+              icon: Icons.repeat_outlined,
+              label: 'Repost',
+              onTap: () {
+                Navigator.pop(context);
+                onRepost?.call();
+              },
+            ),
+          if (onGoToArtistProfile != null)
+            _OptionRow(
+              key: const Key('playlist_option_go_to_artist'),
+              icon: Icons.person_outline,
+              label: 'Go to artist profile',
+              onTap: () {
+                Navigator.pop(context);
+                onGoToArtistProfile?.call();
+              },
+            ),
+          const Divider(color: Colors.white12, height: 1),
+          _OptionRow(
+            key: const Key('playlist_option_play_next'),
+            icon: Icons.queue_play_next_outlined,
+            label: 'Play Next',
+            onTap: () => Navigator.pop(context),
+          ),
+          _OptionRow(
+            key: const Key('playlist_option_play_last'),
+            icon: Icons.add_to_queue_outlined,
+            label: 'Play Last',
+            onTap: () => Navigator.pop(context),
+          ),
+          if (isDetailView)
+            _OptionRow(
+              icon: Icons.shuffle,
+              label: 'Shuffle play',
+              onTap: () {
+                Navigator.pop(context);
+                onShufflePlay?.call();
+              },
+            ),
+          SizedBox(height: bottomPadding + 8),
         ],
       ),
     );
@@ -360,3 +529,4 @@ class _DragHandle extends StatelessWidget {
     );
   }
 }
+

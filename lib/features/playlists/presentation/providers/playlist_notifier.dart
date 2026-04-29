@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/errors/failure.dart';
+import '../../../../core/errors/network_exceptions.dart';
 import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../../domain/config/playlist_limits.dart';
 import '../../domain/entities/collection_privacy.dart';
@@ -15,6 +17,8 @@ import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/usecases/playlist_usecases.dart';
 import 'playlist_providers.dart';
 import 'playlist_state.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 
 /// Drives all playlist / collection UI through a single [PlaylistState].
 ///
@@ -65,7 +69,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     } catch (e) {
       state = state.copyWith(
         isMyCollectionsLoading: false,
-        myCollectionsError: e.toString(),
+        myCollectionsError: _fetchErrorMessage(e),
       );
     }
   }
@@ -92,7 +96,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     } catch (e) {
       state = state.copyWith(
         isMyCollectionsLoading: false,
-        myCollectionsError: e.toString(),
+        myCollectionsError: _fetchErrorMessage(e),
       );
     }
   }
@@ -120,7 +124,10 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         isDetailLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isDetailLoading: false, detailError: e.toString());
+      state = state.copyWith(
+        isDetailLoading: false,
+        detailError: _fetchErrorMessage(e),
+      );
     }
   }
 
@@ -144,7 +151,10 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         isDetailLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isDetailLoading: false, detailError: e.toString());
+      state = state.copyWith(
+        isDetailLoading: false,
+        detailError: _fetchErrorMessage(e),
+      );
     }
   }
 
@@ -160,24 +170,22 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
   }) async {
     state = state.copyWith(isMutating: true, clearMutationError: true);
     try {
-      if (type == CollectionType.playlist) {
-        final playlistLimit = await _getPlaylistLimit();
-        if (playlistLimit != -1) {
-          final latestPlaylists = await _getMyPlaylists(
-            page: 1,
-            limit: 1,
-            type: CollectionType.playlist,
+      final playlistLimit = await _getPlaylistLimit();
+      if (playlistLimit != -1) {
+        final latestCollections = await _getMyPlaylists(
+          page: 1,
+          limit: 1,
+          type: type,
+        );
+        if (latestCollections.total >= playlistLimit) {
+          state = state.copyWith(
+            isMutating: false,
+            mutationError: playlistLimitReachedMessage(
+              playlistLimit,
+              includeUpgradeHint: true,
+            ),
           );
-          if (latestPlaylists.total >= playlistLimit) {
-            state = state.copyWith(
-              isMutating: false,
-              mutationError: playlistLimitReachedMessage(
-                playlistLimit,
-                includeUpgradeHint: true,
-              ),
-            );
-            return null;
-          }
+          return null;
         }
       }
 
@@ -213,7 +221,10 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       );
       return null;
     } catch (e) {
-      state = state.copyWith(isMutating: false, mutationError: e.toString());
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: _actionErrorMessage(e),
+      );
       return null;
     }
   }
@@ -222,6 +233,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
 
   Future<void> editCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -232,6 +244,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     try {
       final updated = await _editPlaylist(
         id: id,
+        type: type,
         title: title,
         description: description,
         privacy: privacy,
@@ -241,16 +254,24 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       final refreshedActive = state.activePlaylist?.id == id
           ? updated
           : state.activePlaylist;
+      final updatedSummary = _toSummary(updated);
       final updatedList = state.myCollections
-          .map((s) => s.id == id ? _toSummary(updated) : s)
+          .map((s) => s.id == id ? updatedSummary : s)
+          .where((s) => s.id != id || updated.id == id || s.id == updated.id)
           .toList();
+      if (!updatedList.any((s) => s.id == updated.id)) {
+        updatedList.insert(0, updatedSummary);
+      }
       state = state.copyWith(
         isMutating: false,
         activePlaylist: refreshedActive,
         myCollections: updatedList,
       );
     } catch (e) {
-      state = state.copyWith(isMutating: false, mutationError: e.toString());
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: _actionErrorMessage(e),
+      );
     }
   }
 
@@ -266,7 +287,10 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
         clearActivePlaylist: state.activePlaylist?.id == id,
       );
     } catch (e) {
-      state = state.copyWith(isMutating: false, mutationError: e.toString());
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: _actionErrorMessage(e),
+      );
     }
   }
 
@@ -278,11 +302,27 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
   }) async {
     state = state.copyWith(isMutating: true, clearMutationError: true);
     try {
+      final active = state.activePlaylist;
+      if (active != null &&
+          active.id == collectionId &&
+          active.type == CollectionType.album) {
+        final role = _currentUserRole();
+        if (role != 'ARTIST') {
+          state = state.copyWith(
+            isMutating: false,
+            mutationError: 'Only artists can add tracks to albums',
+          );
+          return;
+        }
+      }
       await _addTrack(collectionId: collectionId, trackId: trackId);
       await openPlaylist(collectionId);
       state = state.copyWith(isMutating: false);
     } catch (e) {
-      state = state.copyWith(isMutating: false, mutationError: e.toString());
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: _actionErrorMessage(e),
+      );
     }
   }
 
@@ -300,7 +340,10 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
           .toList();
       state = state.copyWith(isMutating: false, activeTracks: remaining);
     } catch (e) {
-      state = state.copyWith(isMutating: false, mutationError: e.toString());
+      state = state.copyWith(
+        isMutating: false,
+        mutationError: _actionErrorMessage(e),
+      );
     }
   }
 
@@ -355,7 +398,7 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       );
     } catch (e) {
       await openPlaylist(collectionId);
-      state = state.copyWith(mutationError: e.toString());
+      state = state.copyWith(mutationError: _actionErrorMessage(e));
     }
   }
 
@@ -378,10 +421,153 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
       if (state.activePlaylist?.id == id) {
         state = state.copyWith(
           activePlaylist: _withIsLiked(state.activePlaylist!, currentlyLiked),
-          mutationError: e.toString(),
+          mutationError: _actionErrorMessage(e),
         );
       }
     }
+  }
+
+  Future<void> repostCollection(String id) async {
+    try {
+      await _repository.followCollection(id);
+      final active = state.activePlaylist;
+      final updatedActive = active != null && active.id == id
+          ? active.copyWith(repostsCount: active.repostsCount + 1)
+          : active;
+      final updatedCollections = state.myCollections
+          .map(
+            (playlist) => playlist.id == id
+                ? PlaylistSummaryEntity(
+                    id: playlist.id,
+                    title: playlist.title,
+                    description: playlist.description,
+                    type: playlist.type,
+                    privacy: playlist.privacy,
+                    coverUrl: playlist.coverUrl,
+                    trackCount: playlist.trackCount,
+                    likeCount: playlist.likeCount,
+                    repostsCount: playlist.repostsCount + 1,
+                    ownerFollowerCount: playlist.ownerFollowerCount,
+                    isMine: playlist.isMine,
+                    isLiked: playlist.isLiked,
+                    createdAt: playlist.createdAt,
+                    updatedAt: playlist.updatedAt,
+                  )
+                : playlist,
+          )
+          .toList();
+      state = state.copyWith(
+        activePlaylist: updatedActive,
+        myCollections: updatedCollections,
+      );
+    } catch (e) {
+      state = state.copyWith(mutationError: _actionErrorMessage(e));
+    }
+  }
+
+  Future<void> convertToAlbum(String id) async {
+    final role = _currentUserRole();
+    if (role != 'ARTIST') {
+      state = state.copyWith(mutationError: 'Only artists can create albums');
+      return;
+    }
+
+    final active = state.activePlaylist;
+    final tracks = (active != null && active.id == id)
+        ? state.activeTracks
+        : (await _getTracksPerPlaylist(playlistId: id, limit: 200)).items;
+    final currentUserId = _currentUserId();
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      final notOwned = tracks
+          .where((track) => track.ownerId.trim() != currentUserId)
+          .toList(growable: false);
+      if (notOwned.isNotEmpty) {
+        state = state.copyWith(
+          mutationError:
+              'Cannot convert to album: ${notOwned.length} track(s) do not belong to you. Remove them first before converting to an album.',
+        );
+        return;
+      }
+    }
+    await editCollection(id: id, type: CollectionType.album);
+  }
+
+  Future<void> convertToPlaylist(String id) async {
+    await editCollection(id: id, type: CollectionType.playlist);
+  }
+
+  String _fetchErrorMessage(Object error) {
+    if (error is DioException) {
+      final failure = NetworkExceptions.fromDioException(error);
+      if (failure is ValidationFailure ||
+          failure is UnauthorizedFailure ||
+          failure is ForbiddenFailure ||
+          failure is ConflictFailure) {
+        return 'Action not permissible.';
+      }
+      return 'Could not fetch data. Please check your internet and try again.';
+    }
+    return 'Could not fetch data. Please try again.';
+  }
+
+  String _actionErrorMessage(Object error) {
+    if (error is DioException) {
+      final status = error.response?.statusCode;
+      final responseData = error.response?.data;
+      final responseMessage = responseData is Map<String, dynamic>
+          ? responseData['message']?.toString()
+          : null;
+      if (status == 403) {
+        final lowered = responseMessage?.toLowerCase() ?? '';
+        if (lowered.contains('artist') ||
+            lowered.contains('album') ||
+            lowered.contains('forbidden')) {
+          return 'Only artists can create albums';
+        }
+      }
+      if (status == 400 && responseMessage != null && responseMessage.isNotEmpty) {
+        if (responseMessage.toLowerCase().contains('cannot convert to album') ||
+            responseMessage.toLowerCase().contains('do not belong to you')) {
+          return responseMessage;
+        }
+      }
+      final failure = NetworkExceptions.fromDioException(error);
+      if (failure is ValidationFailure ||
+          failure is UnauthorizedFailure ||
+          failure is ForbiddenFailure ||
+          failure is ConflictFailure) {
+        return 'Action not permissible.';
+      }
+      if (failure is NetworkFailure || failure is ServerFailure) {
+        return 'Could not fetch data. Please check your internet and try again.';
+      }
+    }
+    final lowered = error.toString().toLowerCase();
+    if (lowered.contains('bad request') ||
+        lowered.contains('forbidden') ||
+        lowered.contains('unauthorized') ||
+        lowered.contains('not allowed')) {
+      return 'Action not permissible.';
+    }
+    return 'Could not fetch data. Please try again.';
+  }
+
+  String _currentUserRole() {
+    final profileRole = ref.read(profileProvider).profile?.role.toUpperCase();
+    final authRole = ref.read(authControllerProvider).value?.role.toUpperCase();
+    return (profileRole ?? authRole ?? 'USER').toUpperCase();
+  }
+
+  String? _currentUserId() {
+    final profileId = ref.read(profileProvider).profile?.id.trim();
+    if (profileId != null && profileId.isNotEmpty) {
+      return profileId;
+    }
+    final authId = ref.read(authControllerProvider).value?.id.trim();
+    if (authId != null && authId.isNotEmpty) {
+      return authId;
+    }
+    return null;
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────

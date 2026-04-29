@@ -8,6 +8,8 @@ import '../../../engagements_social_interactions/presentation/screens/comments_s
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart';
 import '../../../engagements_social_interactions/presentation/screens/reposters_screen.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
 import '../../../playlists/presentation/widgets/select_playlist_sheet.dart';
 
 class FeedInteractionButtons extends ConsumerStatefulWidget {
@@ -74,6 +76,8 @@ class _FeedInteractionButtonsState
     final commentsCount = state.engagementStatus == EngagementStatus.initial
         ? widget.fallbackCommentsCount
         : state.totalCommentsCount;
+    final role = ref.watch(authControllerProvider).value?.role.toUpperCase();
+    final isArtist = role == 'ARTIST';
 
     final children = [
       IconButton(
@@ -139,6 +143,31 @@ class _FeedInteractionButtonsState
                 trackId: widget.trackId,
               ),
               icon: const Icon(Icons.playlist_add, color: Colors.white),
+              padding: EdgeInsets.zero,
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+            )
+          : const SizedBox.shrink(),
+      (widget.feedViewMode == FeedViewMode.discover)
+          ? IconButton(
+              key: const Key('feed_album_add_button'),
+              onPressed: () {
+                if (!isArtist) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Only artists can add to albums'),
+                    ),
+                  );
+                  return;
+                }
+                showSelectPlaylistSheet(
+                  context: context,
+                  ref: ref,
+                  trackId: widget.trackId,
+                  collectionType: CollectionType.album,
+                );
+              },
+              icon: const Icon(Icons.album_outlined, color: Colors.white),
               padding: EdgeInsets.zero,
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,

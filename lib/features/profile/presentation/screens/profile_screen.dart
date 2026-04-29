@@ -14,6 +14,7 @@ import '../../../engagements_social_interactions/presentation/widgets/profile_re
 import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playlists/presentation/widgets/profile_playlists_section.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -207,6 +208,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ProfilePlaylistsSection(
                     isCurrentUser: true,
                     ownerName: profile?.displayName ?? profile?.userName,
+                  ),
+                  ProfilePlaylistsSection(
+                    isCurrentUser: true,
+                    ownerName: profile?.displayName ?? profile?.userName,
+                    collectionType: CollectionType.album,
+                    title: 'Albums',
                   ),
                   const ProfileLikesSection(),
                   const ProfileRepostsSection(),

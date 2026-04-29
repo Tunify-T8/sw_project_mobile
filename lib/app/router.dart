@@ -31,6 +31,7 @@ import '../features/notifications/presentation/screens/notification_preferences_
 import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
 import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
 import '../features/playlists/presentation/screens/playlist_screen.dart';
+import '../features/playlists/presentation/screens/albums_screen.dart';
 import '../features/playlists/presentation/utils/shared_playlist_link_parser.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
@@ -338,6 +339,11 @@ class AppRouter {
       case Routes.playlists:
         return _slide(
           const AuthProtectedScreen(child: PlaylistsScreen()),
+          settings,
+        );
+      case Routes.albums:
+        return _slide(
+          const AuthProtectedScreen(child: AlbumsScreen()),
           settings,
         );
 

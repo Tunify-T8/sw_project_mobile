@@ -62,6 +62,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
   @override
   Future<PlaylistEntity> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -70,6 +71,7 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
   }) async {
     final dto = await _api.updateCollection(
       id: id,
+      type: type,
       title: title,
       description: description,
       privacy: privacy,
@@ -119,6 +121,12 @@ class RealPlaylistRepositoryImpl implements PlaylistRepository {
 
   @override
   Future<void> unlikeCollection(String id) => _api.unlikeCollection(id);
+
+  @override
+  Future<void> followCollection(String id) => _api.followCollection(id);
+
+  @override
+  Future<void> unfollowCollection(String id) => _api.unfollowCollection(id);
 
   @override
   Future<String> getEmbedCode(String id) => _api.getEmbedCode(id);

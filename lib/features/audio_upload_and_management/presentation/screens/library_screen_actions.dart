@@ -2,8 +2,12 @@ part of 'library_screen.dart';
 
 extension _LibraryScreenActions on _LibraryScreenState {
   void _handleTap(BuildContext context, String label) {
-    if (label == 'Playlists' || label == 'Albums') {
+    if (label == 'Playlists') {
       Navigator.of(context).pushNamed(Routes.playlists);
+      return;
+    }
+    if (label == 'Albums') {
+      Navigator.of(context).pushNamed(Routes.albums);
       return;
     }
 

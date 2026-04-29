@@ -148,6 +148,7 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
   @override
   Future<PlaylistEntity> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -171,7 +172,7 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
       id: old.id,
       title: title ?? old.title,
       description: description ?? old.description,
-      type: old.type,
+      type: (type ?? CollectionType.fromJson(old.type)).toJson(),
       privacy: newPrivacy.toJson(),
       secretToken: newToken,
       coverUrl: cover != null ? old.coverUrl : (coverUrl ?? old.coverUrl),
@@ -437,6 +438,50 @@ class MockPlaylistRepositoryImpl implements PlaylistRepository {
       owner: col.owner,
       createdAt: col.createdAt,
       updatedAt: col.updatedAt,
+    );
+  }
+
+  @override
+  Future<void> followCollection(String id) async {
+    final col = _require(id);
+    _store.collections[id] = PlaylistDto(
+      id: col.id,
+      title: col.title,
+      description: col.description,
+      type: col.type,
+      privacy: col.privacy,
+      secretToken: col.secretToken,
+      coverUrl: col.coverUrl,
+      trackCount: col.trackCount,
+      likeCount: col.likeCount,
+      repostsCount: col.repostsCount + 1,
+      ownerFollowerCount: col.ownerFollowerCount,
+      isLiked: col.isLiked,
+      owner: col.owner,
+      createdAt: col.createdAt,
+      updatedAt: DateTime.now().toIso8601String(),
+    );
+  }
+
+  @override
+  Future<void> unfollowCollection(String id) async {
+    final col = _require(id);
+    _store.collections[id] = PlaylistDto(
+      id: col.id,
+      title: col.title,
+      description: col.description,
+      type: col.type,
+      privacy: col.privacy,
+      secretToken: col.secretToken,
+      coverUrl: col.coverUrl,
+      trackCount: col.trackCount,
+      likeCount: col.likeCount,
+      repostsCount: (col.repostsCount - 1).clamp(0, 999999),
+      ownerFollowerCount: col.ownerFollowerCount,
+      isLiked: col.isLiked,
+      owner: col.owner,
+      createdAt: col.createdAt,
+      updatedAt: DateTime.now().toIso8601String(),
     );
   }
 

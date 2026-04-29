@@ -21,6 +21,12 @@ class RealEngagementApi {
     return TrackEngagementDto.fromJson({...data, 'trackId': trackId});
   }
 
+  Future<int> getTrackTotalPlays(String trackId) async {
+    final res = await _dio.get(ApiEndpoints.trackPlayStats(trackId));
+    final data = res.data as Map<String, dynamic>;
+    return (data['totalPlays'] as num?)?.toInt() ?? 0;
+  }
+
   Future<TrackEngagementDto> likeTrack(String trackId) async {
     await _dio.post(ApiEndpoints.likeTrack(trackId));
     return getTrackEngagement(trackId);
@@ -174,14 +180,39 @@ class RealEngagementApi {
       String? artistAvatar;
       final rawArtist = map['artist'] ?? track['artist'];
       if (rawArtist is Map<String, dynamic>) {
-        artistId = rawArtist['id'] as String? ?? '';
+        artistId = (rawArtist['id'] ??
+                rawArtist['userId'] ??
+                rawArtist['ownerUserId'] ??
+                rawArtist['artistId'])
+            ?.toString()
+            .trim() ??
+            '';
         artistName = rawArtist['displayName'] as String?
             ?? rawArtist['username'] as String?
             ?? rawArtist['name'] as String?
             ?? '';
-        artistAvatar = rawArtist['avatarUrl'] as String?;
+        artistAvatar = (rawArtist['avatarUrl'] ?? rawArtist['avatar'])
+            ?.toString();
       } else if (rawArtist is String) {
         artistName = rawArtist;
+      }
+      if (artistId.isEmpty) {
+        artistId = (track['ownerUserId'] ??
+                track['userId'] ??
+                track['artistId'] ??
+                map['ownerUserId'] ??
+                map['userId'])
+            ?.toString()
+            .trim() ??
+            '';
+      }
+      if (artistName.isEmpty) {
+        artistName = (track['ownerDisplayName'] ??
+                track['ownerUsername'] ??
+                track['artistName'] ??
+                map['artistName'])
+            ?.toString() ??
+            '';
       }
       return LikedTrackEntity(
         trackId: (track['id'] ?? track['trackId'] ?? '').toString(),

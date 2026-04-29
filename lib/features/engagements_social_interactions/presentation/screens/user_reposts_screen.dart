@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/reposted_track_entity.dart';
 import '../provider/enagement_providers.dart';
 import '../utils/engagement_formatters.dart';
+import '../../../../shared/ui/patterns/error_message_view.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
+import '../../../../shared/ui/patterns/error_ui_mapper.dart';
 
 class UserRepostsScreen extends ConsumerStatefulWidget {
   /// null → current user (GET /users/me/reposts)
@@ -19,7 +22,7 @@ class UserRepostsScreen extends ConsumerStatefulWidget {
 class _UserRepostsScreenState extends ConsumerState<UserRepostsScreen> {
   List<RepostedTrackEntity> _tracks = [];
   bool _loading = true;
-  String? _error;
+  Object? _error;
 
   @override
   void initState() {
@@ -34,7 +37,7 @@ class _UserRepostsScreenState extends ConsumerState<UserRepostsScreen> {
           .call(userId: widget.userId);
       if (mounted) setState(() { _tracks = tracks; _loading = false; });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { _error = e; _loading = false; });
     }
   }
 
@@ -60,9 +63,9 @@ class _UserRepostsScreenState extends ConsumerState<UserRepostsScreen> {
       return const Center(child: CircularProgressIndicator(color: Colors.orangeAccent));
     }
     if (_error != null) {
-      return Center(
-        child: Text(_error!, style: const TextStyle(color: Colors.white54)),
-      );
+      final uiError = mapToUiErrorState(_error!);
+      if (uiError.retryable) return ErrorRetryView(onRetry: _load);
+      return ErrorMessageView(message: uiError.message);
     }
     if (_tracks.isEmpty) {
       return const Center(

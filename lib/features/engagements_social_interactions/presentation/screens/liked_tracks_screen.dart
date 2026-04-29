@@ -5,6 +5,9 @@ import '../../domain/entities/liked_track_entity.dart';
 import '../provider/enagement_providers.dart';
 import '../utils/engagement_formatters.dart';
 import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
+import '../../../../shared/ui/patterns/error_message_view.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
+import '../../../../shared/ui/patterns/error_ui_mapper.dart';
 import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 class LikedTracksScreen extends ConsumerStatefulWidget {
@@ -21,7 +24,7 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
   List<LikedTrackEntity> _tracks = [];
   List<LikedTrackEntity> _filtered = [];
   bool _loading = true;
-  String? _error;
+  Object? _error;
   final _searchController = TextEditingController();
 
   @override
@@ -66,7 +69,7 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
         setState(() { _tracks = tracks; _filtered = tracks; _loading = false; });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { _error = e; _loading = false; });
     }
   }
 
@@ -147,9 +150,9 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
       return const Center(child: CircularProgressIndicator(color: Colors.orangeAccent));
     }
     if (_error != null) {
-      return Center(
-        child: Text(_error!, style: const TextStyle(color: Colors.white54)),
-      );
+      final uiError = mapToUiErrorState(_error!);
+      if (uiError.retryable) return ErrorRetryView(onRetry: _load);
+      return ErrorMessageView(message: uiError.message);
     }
     if (_tracks.isEmpty) {
       return const Center(
@@ -179,6 +182,11 @@ class _LikedTrackTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final totalPlaysAsync = ref.watch(trackTotalPlaysProvider(track.trackId));
+    final playCount = totalPlaysAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => 0,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -210,9 +218,15 @@ class _LikedTrackTile extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  EngagementFormatters.timestamp(track.duration),
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                Row(
+                  children: [
+                    const Icon(Icons.play_arrow, color: Colors.white38, size: 14),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${EngagementFormatters.compactCount(playCount)} · ${EngagementFormatters.timestamp(track.duration)}',
+                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -222,8 +236,6 @@ class _LikedTrackTile extends ConsumerWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: () async {
-                print(track.artistId);
-
                 await showTrackOptionsMenu(
                   context: context,
                   trackId: track.trackId,

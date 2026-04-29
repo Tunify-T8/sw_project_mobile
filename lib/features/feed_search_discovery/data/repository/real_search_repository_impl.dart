@@ -61,6 +61,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
             PlaylistResultEntity(
               id: c.id,
               title: c.title,
+              creatorId: '',
               creatorName: c.artist,
               artworkUrl: c.coverUrl,
               trackCount: c.trackPreview.length,
@@ -236,6 +237,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
           (c) => PlaylistResultEntity(
             id: c.id,
             title: c.title,
+            creatorId: c.creatorId,
             creatorName: c.creatorName,
             artworkUrl: c.coverUrl,
             trackCount: c.trackCount,
@@ -401,6 +403,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
           (c) => PlaylistResultEntity(
             id: c.id,
             title: c.title,
+            creatorId: c.creatorId,
             creatorName: c.creatorName,
             artworkUrl: c.coverUrl,
             trackCount: c.trackCount,

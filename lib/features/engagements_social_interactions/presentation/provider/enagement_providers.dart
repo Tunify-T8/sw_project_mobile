@@ -34,6 +34,13 @@ final _realEngagementApiProvider = Provider<RealEngagementApi>((ref) {
   return RealEngagementApi(dio: ref.watch(dioProvider));
 });
 
+final trackTotalPlaysProvider = FutureProvider.family<int, String>((
+  ref,
+  trackId,
+) async {
+  return ref.watch(_realEngagementApiProvider).getTrackTotalPlays(trackId);
+});
+
 final engagementRepositoryProvider = Provider<EngagementRepository>((ref) {
   return RealEngagementRepositoryImpl(api: ref.watch(_realEngagementApiProvider));
 });

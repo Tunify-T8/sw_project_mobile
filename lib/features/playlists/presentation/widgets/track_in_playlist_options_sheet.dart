@@ -13,7 +13,9 @@ import '../../../engagements_social_interactions/presentation/provider/enagement
 import '../../../engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/playlist_track_entity.dart';
 
@@ -23,6 +25,21 @@ void showTrackInPlaylistOptionsSheet({
   required PlaylistTrackEntity track,
   required VoidCallback onRemoveFromPlaylist,
 }) {
+  final profileRole = ref.read(profileProvider).profile?.role.toUpperCase();
+  final authRole = ref.read(authControllerProvider).value?.role.toUpperCase();
+  final role = (profileRole ?? authRole ?? 'USER').toUpperCase();
+  final isListener = role == 'LISTENER';
+
+  if (isListener) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _ListenerQueueOnlySheet(outerRef: ref, track: track),
+    );
+    return;
+  }
+
   if (ref.read(engagementProvider(track.trackId)).engagementStatus ==
       EngagementStatus.initial) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,6 +56,63 @@ void showTrackInPlaylistOptionsSheet({
       onRemoveFromPlaylist: onRemoveFromPlaylist,
     ),
   );
+}
+
+class _ListenerQueueOnlySheet extends StatelessWidget {
+  const _ListenerQueueOnlySheet({
+    required this.outerRef,
+    required this.track,
+  });
+
+  final WidgetRef outerRef;
+  final PlaylistTrackEntity track;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF111111),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            YourUploadsOptionRow(
+              icon: Icons.queue_play_next_outlined,
+              label: 'Play Next',
+              onTap: () {
+                outerRef.read(playerProvider.notifier).addToQueueNext(track.trackId);
+                Navigator.pop(context);
+              },
+            ),
+            YourUploadsOptionRow(
+              icon: Icons.add_to_queue_outlined,
+              label: 'Play Last',
+              onTap: () {
+                outerRef.read(playerProvider.notifier).addToQueueLast(track.trackId);
+                Navigator.pop(context);
+              },
+            ),
+            SizedBox(height: bottomPadding + 8),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _TrackInPlaylistOptionsSheet extends ConsumerWidget {

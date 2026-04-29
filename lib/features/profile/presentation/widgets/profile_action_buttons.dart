@@ -51,13 +51,26 @@ class ProfileActionButtons extends ConsumerWidget {
                 tiktok: profile?.tiktok,
                 soundcloud: profile?.soundcloud,
                 userType: profile?.userType ?? 'ARTIST',
+                role: profile?.role ?? 'USER',
                 profileImageUrl: profile?.profileImagePath,
                 coverImageUrl: profile?.coverImagePath,
                 )),
               );
               if (result != null) {
+                if (profile == null) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Profile is still loading. Please try again.',
+                        ),
+                      ),
+                    );
+                  }
+                  return;
+                }
                 final updated = ProfileDto(
-                id: profile!.id,
+                id: profile.id,
                 email: profile.email,
                 role: profile.role,
                 tracksCount: profile.tracksCount,

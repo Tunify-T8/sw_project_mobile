@@ -24,6 +24,7 @@ abstract class Routes {
 
   // Module 7 — Playlists & Sets
   static const String playlists = '/playlists';
+  static const String albums = '/albums';
   static const String playlistDetail = '/playlist-detail';
   static const String playlistEdit = '/playlist-edit';
 }

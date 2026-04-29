@@ -38,6 +38,7 @@ abstract class PlaylistRepository {
   /// Updates a collection. Only send fields you want to change.
   Future<PlaylistEntity> updateCollection({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -80,6 +81,8 @@ abstract class PlaylistRepository {
 
   Future<void> likeCollection(String id);
   Future<void> unlikeCollection(String id);
+  Future<void> followCollection(String id);
+  Future<void> unfollowCollection(String id);
 
   // ─── Embed ───────────────────────────────────────────────────────────────
 

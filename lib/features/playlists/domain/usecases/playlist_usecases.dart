@@ -37,6 +37,7 @@ class EditPlaylistUseCase {
 
   Future<PlaylistEntity> call({
     required String id,
+    CollectionType? type,
     String? title,
     String? description,
     CollectionPrivacy? privacy,
@@ -44,6 +45,7 @@ class EditPlaylistUseCase {
     String? coverUrl,
   }) => _repository.updateCollection(
     id: id,
+    type: type,
     title: title,
     description: description,
     privacy: privacy,

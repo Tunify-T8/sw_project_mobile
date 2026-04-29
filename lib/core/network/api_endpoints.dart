@@ -8,7 +8,7 @@ class ApiEndpoints {
   static const String shareBaseUrl = 'https://tunify.duckdns.org';
 
   /// Builds a shareable track URL.
-  /// Private tracks include [privateToken] as a query parameter.
+  /// Private tracks include privateTokenas a query parameter.
   static String shareTrackUrl(String trackId, {String? privateToken}) {
     final base = Uri.parse(
       shareBaseUrl,
@@ -38,7 +38,7 @@ class ApiEndpoints {
   static const String resetPassword = '/auth/reset-password';
   static const String deleteAccount = '/auth/delete-account';
 
-  // Google OAuth ──────────────────────────────────────────────────────────
+  // Google OAuth 
   /// POST /auth/google
   /// Body: { "code": "authorization_code" }
   /// Handles new users, returning users, and triggers linking flow.
@@ -133,6 +133,7 @@ class ApiEndpoints {
   // Engagement & Social Interactions
   static String trackEngagement(String trackId) =>
       '/tracks/$trackId/engagement';
+  static String trackPlayStats(String trackId) => '/tracks/$trackId/play-stats';
   static String likeTrack(String trackId) => '/tracks/$trackId/like';
   static String repostTrack(String trackId) => '/tracks/$trackId/repost';
   static String trackComments(String trackId) => '/tracks/$trackId/comments';
@@ -180,6 +181,7 @@ class ApiEndpoints {
       '/collections/$id/tracks/reorder';
 
   static String collectionLike(String id) => '/collections/$id/like';
+  static String collectionFollow(String id) => '/collections/$id/follow';
   static String collectionEmbed(String id) => '/collections/$id/embed';
   static String collectionShare(String id) => '/collections/$id/share';
   static String collectionShareReset(String id) =>

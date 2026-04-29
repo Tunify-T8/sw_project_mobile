@@ -6,6 +6,9 @@ import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_summary_entity.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../providers/playlist_providers.dart';
+import '../../../../shared/ui/patterns/error_message_view.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
+import '../../../../shared/ui/patterns/error_ui_mapper.dart';
 
 class ProfilePlaylistsSection extends ConsumerStatefulWidget {
   const ProfilePlaylistsSection({
@@ -13,11 +16,15 @@ class ProfilePlaylistsSection extends ConsumerStatefulWidget {
     this.username,
     this.ownerName,
     this.isCurrentUser = false,
+    this.collectionType = CollectionType.playlist,
+    this.title = 'Playlists',
   });
 
   final String? username;
   final String? ownerName;
   final bool isCurrentUser;
+  final CollectionType collectionType;
+  final String title;
 
   @override
   ConsumerState<ProfilePlaylistsSection> createState() =>
@@ -28,7 +35,7 @@ class _ProfilePlaylistsSectionState
     extends ConsumerState<ProfilePlaylistsSection> {
   List<PlaylistSummaryEntity> _playlists = [];
   bool _loading = true;
-  String? _error;
+  Object? _error;
 
   @override
   void initState() {
@@ -67,13 +74,18 @@ class _ProfilePlaylistsSectionState
       final repo = ref.read(playlistRepositoryProvider);
       final result = widget.isCurrentUser
           ? await repo.getMyCollections(
-              type: CollectionType.playlist,
+              type: widget.collectionType,
               limit: 20,
             )
-          : await repo.getUserPlaylists(
-              username: widget.username!.trim(),
-              limit: 20,
-            );
+          : widget.collectionType == CollectionType.album
+              ? await repo.getUserAlbums(
+                  username: widget.username!.trim(),
+                  limit: 20,
+                )
+              : await repo.getUserPlaylists(
+                  username: widget.username!.trim(),
+                  limit: 20,
+                );
       final playlists = await _resolvePlaylistCovers(repo, result.items);
       if (!mounted) return;
       setState(() {
@@ -84,7 +96,7 @@ class _ProfilePlaylistsSectionState
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = e;
       });
     }
   }
@@ -97,7 +109,7 @@ class _ProfilePlaylistsSectionState
       playlists.map((playlist) async {
         if (playlist.coverUrl != null ||
             playlist.trackCount <= 0 ||
-            playlist.type != CollectionType.playlist) {
+            playlist.type != widget.collectionType) {
           return playlist;
         }
 
@@ -151,10 +163,10 @@ class _ProfilePlaylistsSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 9),
             child: Text(
-              'Playlists',
+              widget.title,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -174,11 +186,14 @@ class _ProfilePlaylistsSectionState
               ),
             )
           else if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 12),
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.white54, fontSize: 14),
+            SizedBox(
+              height: 130,
+              child: Builder(
+                builder: (_) {
+                  final uiError = mapToUiErrorState(_error!);
+                  if (uiError.retryable) return ErrorRetryView(onRetry: _load);
+                  return ErrorMessageView(message: uiError.message);
+                },
               ),
             )
           else if (_playlists.isEmpty)

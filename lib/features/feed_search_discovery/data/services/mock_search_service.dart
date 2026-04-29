@@ -417,6 +417,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_001',
       title: 'OCTANE DON TOLIVER ALBUM',
+      creatorId: 'user_gbp',
       creatorName: 'GBP',
       artworkUrl: null,
       trackCount: 7,
@@ -424,6 +425,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_002',
       title: 'OCTANE - DON TOLIVER | NE...',
+      creatorId: 'user_run_it_up',
       creatorName: 'RUN IT UP',
       artworkUrl: null,
       trackCount: 6,
@@ -431,6 +433,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_003',
       title: 'OCTANE - DON TOLIVER [2026...',
+      creatorId: 'user_wave_cache',
       creatorName: 'The Wave Cache',
       artworkUrl: null,
       trackCount: 8,
@@ -438,6 +441,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_004',
       title: 'Trap Leg Day',
+      creatorId: 'user_trending_music',
       creatorName: 'Trending Music',
       artworkUrl: null,
       trackCount: 33,
@@ -445,6 +449,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_005',
       title: 'Hip Hop & Rap',
+      creatorId: 'user_discovery_playlists',
       creatorName: 'Discovery Playlists',
       artworkUrl: null,
       trackCount: 50,

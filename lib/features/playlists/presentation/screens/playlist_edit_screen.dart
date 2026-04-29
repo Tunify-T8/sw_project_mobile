@@ -199,8 +199,8 @@ class _PlaylistEditScreenState extends ConsumerState<PlaylistEditScreen>
           unselectedLabelColor: Colors.white38,
           indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'Tracks'),
-            Tab(text: 'Details'),
+            const Tab(text: 'Tracks'),
+            const Tab(text: 'Details'),
           ],
         ),
       ),

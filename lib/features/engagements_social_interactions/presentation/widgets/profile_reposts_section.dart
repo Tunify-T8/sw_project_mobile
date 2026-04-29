@@ -6,6 +6,9 @@ import '../provider/enagement_providers.dart';
 import '../screens/user_reposts_screen.dart';
 import '../utils/engagement_formatters.dart';
 import '../../../../features/playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
+import '../../../../shared/ui/patterns/error_message_view.dart';
+import '../../../../shared/ui/patterns/error_retry_view.dart';
+import '../../../../shared/ui/patterns/error_ui_mapper.dart';
 import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 class ProfileRepostsSection extends ConsumerStatefulWidget {
@@ -25,6 +28,7 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
 
   List<RepostedTrackEntity> _tracks = [];
   bool _loading = true;
+  Object? _error;
 
   @override
   void initState() {
@@ -33,19 +37,25 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
   }
 
   Future<void> _load() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final tracks = await ref
           .read(getUserRepostsUsecaseProvider)
           .call(userId: widget.userId);
       if (mounted) setState(() { _tracks = tracks; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() { _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = e; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_loading && _tracks.isEmpty) return const SizedBox.shrink();
+    if (!_loading && _tracks.isEmpty && _error == null) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -90,6 +100,17 @@ class _ProfileRepostsSectionState extends ConsumerState<ProfileRepostsSection> {
                   color: Colors.orangeAccent,
                   strokeWidth: 2,
                 ),
+              ),
+            )
+          else if (_error != null)
+            SizedBox(
+              height: 120,
+              child: Builder(
+                builder: (_) {
+                  final uiError = mapToUiErrorState(_error!);
+                  if (uiError.retryable) return ErrorRetryView(onRetry: _load);
+                  return ErrorMessageView(message: uiError.message);
+                },
               ),
             )
           else

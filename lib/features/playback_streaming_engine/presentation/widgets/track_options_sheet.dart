@@ -36,6 +36,7 @@ import '../../../messaging_track_sharing/presentation/state/conversations_contro
 import '../../../premium_subscription/domain/entities/subscription_tier.dart';
 import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
 import '../../../playlists/presentation/widgets/select_playlist_sheet.dart';
 import '../../domain/entities/history_track.dart';
 import '../providers/listening_history_provider.dart';
@@ -319,6 +320,30 @@ class TrackOptionsSheetContent extends ConsumerWidget {
     return currentUserId == uploaderId;
   }
 
+  bool _isArtist() {
+    final role = ref.read(authControllerProvider).value?.role.toUpperCase();
+    return role == 'ARTIST';
+  }
+
+  void _openAddToAlbum(BuildContext context) {
+    final navigator = Navigator.of(context);
+    final targetContext = navigator.context;
+    if (!_isArtist()) {
+      navigator.pop();
+      ScaffoldMessenger.of(targetContext).showSnackBar(
+        const SnackBar(content: Text('Only artists can add to albums')),
+      );
+      return;
+    }
+    navigator.pop();
+    showSelectPlaylistSheet(
+      context: targetContext,
+      ref: ref,
+      trackId: info.trackId,
+      collectionType: CollectionType.album,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef watchRef) {
     final currentUserId = watchRef
@@ -472,6 +497,12 @@ class TrackOptionsSheetContent extends ConsumerWidget {
           );
         },
       ),
+      YourUploadsOptionRow(
+        key: const Key('track_options_add_to_album'),
+        icon: Icons.album_outlined,
+        label: 'Add to album',
+        onTap: () => _openAddToAlbum(context),
+      ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.graphic_eq,
@@ -558,15 +589,21 @@ class TrackOptionsSheetContent extends ConsumerWidget {
           );
         },
       ),
+      YourUploadsOptionRow(
+        key: const Key('track_options_add_to_album'),
+        icon: Icons.album_outlined,
+        label: 'Add to album',
+        onTap: () => _openAddToAlbum(context),
+      ),
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.person_outline,
         label: 'Go to profile',
-        onTap: () {
+        onTap: () async {
           final navigator = Navigator.of(context);
           final targetContext = navigator.context;
           navigator.pop();
-          _navigateToUploaderProfile(targetContext);
+          await _navigateToUploaderProfile(targetContext);
         },
       ),
       YourUploadsOptionRow(
@@ -619,7 +656,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
     ];
   }
 
-  void _navigateToUploaderProfile(BuildContext context) {
+  Future<void> _navigateToUploaderProfile(BuildContext context) async {
     String? userId = info.artistId?.trim();
 
     if (userId == null || userId.isEmpty) {
@@ -638,6 +675,17 @@ class TrackOptionsSheetContent extends ConsumerWidget {
           storeOwner.isNotEmpty &&
           storeOwner != '__global__') {
         userId = storeOwner;
+      }
+    }
+
+    if (userId == null || userId.isEmpty) {
+      try {
+        final ownerId = await ref.read(_trackOptionsOwnerProvider(info.trackId).future);
+        if (ownerId != null && ownerId.trim().isNotEmpty) {
+          userId = ownerId.trim();
+        }
+      } catch (_) {
+        // Keep fallback behavior below.
       }
     }
 

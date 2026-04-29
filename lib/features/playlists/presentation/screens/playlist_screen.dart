@@ -53,7 +53,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   Future<void> _reloadPlaylists() async {
     _resolvedCoverUrls.clear();
     _resolvingCoverIds.clear();
-    await ref.read(playlistNotifierProvider.notifier).loadMyCollections();
+    await ref
+        .read(playlistNotifierProvider.notifier)
+        .loadMyCollections(type: CollectionType.playlist);
   }
 
   Future<void> _resolvePlaylistCovers(
@@ -116,9 +118,10 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(playlistNotifierProvider);
     final profile = ref.watch(profileProvider).profile;
+    final isArtist = profile?.role.toUpperCase() == 'ARTIST';
     final ownerName = profile?.displayName ?? profile?.userName;
     final playlists = state.myCollections
-        .where((p) => p.isMine)
+        .where((p) => p.isMine && p.type == CollectionType.playlist)
         .map(_playlistForDisplay)
         .toList();
     final visible = _filtered(playlists);
@@ -308,6 +311,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     onMoreTap: () => showPlaylistOptionsSheet(
                       context: context,
                       playlist: pl,
+                      collectionType: CollectionType.playlist,
                       onShare: () => showPlaylistShareSheet(
                         context: context,
                         playlist: pl,
@@ -340,6 +344,21 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                       onDelete: () => ref
                           .read(playlistNotifierProvider.notifier)
                           .deleteCollection(pl.id),
+                      onConvertToAlbum: () {
+                        if (!isArtist) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Only artists can convert playlists to albums',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        ref
+                            .read(playlistNotifierProvider.notifier)
+                            .convertToAlbum(pl.id);
+                      },
                     ),
                   );
                 },
