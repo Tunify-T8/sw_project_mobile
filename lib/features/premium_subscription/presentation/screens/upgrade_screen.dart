@@ -46,6 +46,7 @@ class _UpgradeScreenState extends ConsumerState<UpgradeScreen> {
           ),
           actions: [
             TextButton(
+              key: const Key('artist_pro_unavailable_ok_button'),
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('OK'),
             ),
@@ -99,6 +100,7 @@ class _UpgradeScreenState extends ConsumerState<UpgradeScreen> {
         : 'For ${artistProPlan.currency} ${artistProPlan.monthlyPrice.toStringAsFixed(2)}, billed monthly.';
 
     return Scaffold(
+      key: const Key('upgrade_screen'),
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -109,12 +111,13 @@ class _UpgradeScreenState extends ConsumerState<UpgradeScreen> {
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
+                    key: const Key('upgrade_close_button'),
                     icon: const Icon(Icons.close, color: Colors.white, size: 24),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
           
-              const UpgradeImage(),
+              const UpgradeImage(key: Key('upgrade_image')),
           
               const SizedBox(height: 20),
           
@@ -200,6 +203,7 @@ class _UpgradeScreenState extends ConsumerState<UpgradeScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: TextButton(
+                        key: const Key('upgrade_get_artist_pro_button'),
                         onPressed: isOpeningPayment
                             ? null
                             : _openArtistProMonthlyPayment,
@@ -226,6 +230,7 @@ class _UpgradeScreenState extends ConsumerState<UpgradeScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: TextButton(
+                        key: const Key('upgrade_see_all_plans_button'),
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(

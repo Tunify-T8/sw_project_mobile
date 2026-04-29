@@ -236,6 +236,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
 
         if (canDownload && widget.allowDownloadAction) ...[
           TrackOptionMenuItem(
+            key: const Key('track_options_menu_download_premium_action'),
             icon: Icons.download_outlined,
             label: 'Download track',
             onTap: () => downloadTrackFromOptions(context, ref, info),

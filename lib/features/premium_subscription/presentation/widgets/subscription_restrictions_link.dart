@@ -11,6 +11,7 @@ class SubscriptionRestrictionsLink extends StatelessWidget {
 
   Widget _buildMenu() {
     return SizedBox(
+      key: Key('subscription_restrictions_sheet_${subscriptionPlan.name}'),
       width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -19,6 +20,7 @@ class SubscriptionRestrictionsLink extends StatelessWidget {
           children: [
             Text(
               "Restrictions Apply",
+              key: const Key('subscription_restrictions_sheet_title'),
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
@@ -35,6 +37,9 @@ class SubscriptionRestrictionsLink extends StatelessWidget {
                       : 'Artist Pro ',
                 ),
                 TextButton(
+                  key: Key(
+                    'subscription_restrictions_terms_${subscriptionPlan.name}',
+                  ),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
@@ -49,6 +54,9 @@ class SubscriptionRestrictionsLink extends StatelessWidget {
                 ),
                 Text(' & '),
                 TextButton(
+                  key: Key(
+                    'subscription_restrictions_privacy_${subscriptionPlan.name}',
+                  ),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: Size.zero,
@@ -75,6 +83,7 @@ class SubscriptionRestrictionsLink extends StatelessWidget {
       children: [
         const Text("Cancel anytime. "),
         TextButton(
+          key: Key('subscription_restrictions_link_${subscriptionPlan.name}'),
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: Size.zero,

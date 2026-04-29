@@ -78,6 +78,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         .currentSubscription;
 
     return Scaffold(
+      key: const Key('library_screen'),
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: CustomScrollView(
@@ -100,6 +101,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     const Spacer(),
                     if (currentSubscription.tier == SubscriptionTier.free) ...[
                       TextButton(
+                        key: const Key('library_get_pro_button'),
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(

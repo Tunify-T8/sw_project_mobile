@@ -54,6 +54,7 @@ class PaymentFields extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextFormField(
+          key: const Key('payment_card_number_field'),
           controller: cardNumberController,
           keyboardType: TextInputType.number,
           style: const TextStyle(color: Colors.white),
@@ -78,6 +79,7 @@ class PaymentFields extends StatelessWidget {
             Expanded(
               flex: 5,
               child: TextFormField(
+                key: const Key('payment_expiry_field'),
                 controller: expiryController,
                 keyboardType: TextInputType.datetime,
                 style: const TextStyle(color: Colors.white),
@@ -109,10 +111,11 @@ class PaymentFields extends StatelessWidget {
             ),
 
             const SizedBox(width: 10),
-  
+
             Expanded(
               flex: 4,
               child: TextFormField(
+                key: const Key('payment_cvv_field'),
                 controller: cvvController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
@@ -134,6 +137,7 @@ class PaymentFields extends StatelessWidget {
         const SizedBox(height: 10),
 
         TextFormField(
+          key: const Key('payment_cardholder_name_field'),
           controller: cardholderNameController,
           style: const TextStyle(color: Colors.white),
           cursorColor: const Color(0xFFFF5500),

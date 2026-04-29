@@ -102,22 +102,26 @@ class UserOptionsSheet extends ConsumerWidget {
         const Divider(color: Colors.white12),
 
         // Follow / Unfollow
-        ListTile(
-          leading: const Icon(Icons.person_outline, color: Colors.white),
-          title: Text(
-            isFollowing ? 'Unfollow' : 'Follow',
-            style: const TextStyle(color: Colors.white),
+        if (!isBlocked)
+          ListTile(
+            leading: const Icon(Icons.person_outline, color: Colors.white),
+            title: Text(
+              isFollowing ? 'Unfollow' : 'Follow',
+              style: const TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              onFollowChanged();
+            },
           ),
-          onTap: () {
-            Navigator.pop(context);
-            onFollowChanged();
-          },
-        ),
 
         // Start station
         ListTile(
           leading: const Icon(Icons.radio, color: Colors.white),
-          title: const Text('Start station', style: TextStyle(color: Colors.white)),
+          title: const Text(
+            'Start station',
+            style: TextStyle(color: Colors.white),
+          ),
           onTap: () => Navigator.pop(context),
         ),
 
@@ -133,7 +137,10 @@ class UserOptionsSheet extends ConsumerWidget {
         // Request Missing Music
         ListTile(
           leading: const Icon(Icons.edit_outlined, color: Colors.white),
-          title: const Text('Request Missing Music', style: TextStyle(color: Colors.white)),
+          title: const Text(
+            'Request Missing Music',
+            style: TextStyle(color: Colors.white),
+          ),
           onTap: () => Navigator.pop(context),
         ),
 
@@ -147,7 +154,10 @@ class UserOptionsSheet extends ConsumerWidget {
         // Block user
         ListTile(
           leading: const Icon(Icons.block, color: Colors.white),
-          title: Text(isBlocked ? 'Unblock' : 'Block user', style: const TextStyle(color: Colors.white)),
+          title: Text(
+            isBlocked ? 'Unblock' : 'Block user',
+            style: const TextStyle(color: Colors.white),
+          ),
           onTap: () {
             Navigator.pop(context);
             onBlockChanged();

@@ -401,6 +401,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
 
               if (canDownload) ...[
                 YourUploadsOptionRow(
+                  key: const Key('track_options_download_premium_action'),
                   icon: Icons.download_outlined,
                   label: 'Download track',
                   onTap: () => downloadTrackFromOptions(context, ref, info),

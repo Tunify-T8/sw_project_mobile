@@ -82,6 +82,7 @@ class SubscriptionCard extends ConsumerWidget {
     final canSubscribe = (currentSubscription.tier == SubscriptionTier.free);
 
     return Container(
+      key: Key('subscription_card_body_${plan.tier.name}_${subscriptionPeriod.name}'),
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
@@ -111,6 +112,9 @@ class SubscriptionCard extends ConsumerWidget {
             children: [
               Text(
                 _getTitle(),
+                key: Key(
+                  'subscription_card_title_${plan.tier.name}_${subscriptionPeriod.name}',
+                ),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
               ),
               SizedBox(width: 8),
@@ -120,6 +124,9 @@ class SubscriptionCard extends ConsumerWidget {
 
           Text(
             price,
+            key: Key(
+              'subscription_card_price_${plan.tier.name}_${subscriptionPeriod.name}',
+            ),
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
 
@@ -129,6 +136,9 @@ class SubscriptionCard extends ConsumerWidget {
             children: features
                 .map(
                   (feature) => Padding(
+                    key: Key(
+                      'subscription_card_feature_${plan.tier.name}_${subscriptionPeriod.name}_$feature',
+                    ),
                     padding: const EdgeInsets.only(bottom: 12),
                     child: buildFeatures(feature),
                   ),
@@ -140,6 +150,9 @@ class SubscriptionCard extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: TextButton(
+                key: Key(
+                  'subscription_subscribe_button_${plan.tier.name}_${subscriptionPeriod.name}',
+                ),
                 onPressed: () {
                   showModalBottomSheet(
                     context: context,
@@ -178,7 +191,12 @@ class SubscriptionCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 15),
-            SubscriptionRestrictionsLink(subscriptionPlan: plan.tier),
+            SubscriptionRestrictionsLink(
+              key: Key(
+                'subscription_restrictions_${plan.tier.name}_${subscriptionPeriod.name}',
+              ),
+              subscriptionPlan: plan.tier,
+            ),
           ],
         ],
       ),

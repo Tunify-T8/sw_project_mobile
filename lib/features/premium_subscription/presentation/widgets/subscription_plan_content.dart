@@ -33,16 +33,21 @@ class SubscriptionPlanContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state.isPlansLoading && !state.hasLoadedPlans) {
       return const Center(
+        key: Key('subscription_plans_loading'),
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
 
     if (state.plansError != null && state.plans.isEmpty) {
-      return ErrorRetryView(onRetry: onRetry);
+      return ErrorRetryView(
+        key: const Key('subscription_plans_error_retry'),
+        onRetry: onRetry,
+      );
     }
 
     if (paidPlans.isEmpty) {
       return const Center(
+        key: Key('subscription_plans_empty'),
         child: Text(
           'No subscription plans available.',
           style: TextStyle(
@@ -55,11 +60,13 @@ class SubscriptionPlanContent extends StatelessWidget {
     }
 
     return PageView(
+      key: const Key('subscription_plans_page_view'),
       controller: pageViewController,
       onPageChanged: onPageChanged,
       children: [
         for (final plan in paidPlans) ...[
           SubscriptionCard(
+            key: Key('subscription_card_${plan.tier.name}_monthly'),
             plan: plan,
             subscriptionPeriod: BillingCycle.monthly,
             onSubscribe: (paymentMethod) {
@@ -67,6 +74,7 @@ class SubscriptionPlanContent extends StatelessWidget {
             },
           ),
           SubscriptionCard(
+            key: Key('subscription_card_${plan.tier.name}_yearly'),
             plan: plan,
             subscriptionPeriod: BillingCycle.yearly,
             onSubscribe: (paymentMethod) {
