@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/payment_sheet_notifier.dart';
 
 import '../../../domain/entities/payment_method_entity.dart';
 import '../../../domain/entities/payment_method_type.dart';
@@ -6,7 +8,7 @@ import 'payment_fields.dart';
 import 'payment_option.dart';
 import 'payment_result.dart';
 
-class PaymentMethodSheet extends StatefulWidget {
+class PaymentMethodSheet extends ConsumerStatefulWidget {
   const PaymentMethodSheet({
     super.key,
     required this.price,
@@ -17,20 +19,24 @@ class PaymentMethodSheet extends StatefulWidget {
   final Future<String> Function(PaymentMethodEntity paymentMethod) onContinue;
 
   @override
-  State<PaymentMethodSheet> createState() => _PaymentMethodSheetState();
+  ConsumerState<PaymentMethodSheet> createState() => _PaymentMethodSheetState();
 }
 
-class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
+class _PaymentMethodSheetState extends ConsumerState<PaymentMethodSheet> {
   final _formKey = GlobalKey<FormState>();
   final _cardNumberController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _cardholderNameController = TextEditingController();
-  PaymentMethodType _selectedMethod = PaymentMethodType.card;
-  bool _isProcessing = false;
-  bool _isSuccessful = false;
-  String? _resultMessage;
-  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      ref.read(paymentSheetNotifierProvider.notifier).reset();
+    });
+  }
 
   String _methodLabel(PaymentMethodType method) {
     switch (method) {
@@ -54,17 +60,15 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
     }
   }
 
-  void _selectMethod(PaymentMethodType method) {
-    setState(() {
-      _selectedMethod = method;
-    });
-  }
-
   Future<void> _continue() async {
-    if (_isProcessing) return;
+    final sheetState = ref.read(paymentSheetNotifierProvider);
 
-    if (_selectedMethod != PaymentMethodType.card) {
-      await _submitPayment(PaymentMethodEntity(type: _selectedMethod));
+    if (sheetState.isProcessing) return;
+
+    if (sheetState.selectedMethod != PaymentMethodType.card) {
+      await _submitPayment(
+        PaymentMethodEntity(type: sheetState.selectedMethod),
+      );
       return;
     }
 
@@ -85,38 +89,18 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
   }
 
   Future<void> _submitPayment(PaymentMethodEntity paymentMethod) async {
-    setState(() {
-      _isProcessing = true;
-      _errorMessage = null;
-      _resultMessage = null;
-    });
+    final notifier = ref.read(paymentSheetNotifierProvider.notifier);
+
+    notifier.processPayment();
 
     try {
       final message = await widget.onContinue(paymentMethod);
-      if (!mounted) return;
-
-      setState(() {
-        _isProcessing = false;
-        _isSuccessful = true;
-        _resultMessage = message;
-      });
+      notifier.paymentSuccess(message);
     } catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _isProcessing = false;
-        _errorMessage = error.toString().replaceFirst('Exception: ', '');
-      });
+      notifier.paymentFailed(
+        error.toString().replaceFirst('Exception: ', ''),
+      );
     }
-  }
-
-  void _tryAgain() {
-    setState(() {
-      _errorMessage = null;
-      _resultMessage = null;
-      _isSuccessful = false;
-      _isProcessing = false;
-    });
   }
 
   String _digitsOnly(String value) {
@@ -139,6 +123,15 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final sheetState = ref.watch(paymentSheetNotifierProvider);
+    final notifier = ref.read(paymentSheetNotifierProvider.notifier);
+
+    final selectedMethod = sheetState.selectedMethod;
+    final isProcessing = sheetState.isProcessing;
+    final isSuccessful = sheetState.isSuccessful;
+    final resultMessage = sheetState.resultMessage;
+    final errorMessage = sheetState.errorMessage;
+
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(left: 20, right: 20),
@@ -149,11 +142,11 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
             const SizedBox(height: 8),
 
             Text(
-              _isSuccessful
+              isSuccessful
                   ? 'Payment Successful'
-                  : _errorMessage != null
-                      ? 'Payment Failed'
-                      : 'Payment method',
+                  : errorMessage != null
+                  ? 'Payment Failed'
+                  : 'Payment method',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -163,13 +156,16 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
 
             const SizedBox(height: 16),
 
-            if (_isSuccessful)
+            if (isSuccessful)
               PaymentResult(
-                responseMessage: _resultMessage ?? 'Subscription activated',
+                responseMessage: resultMessage ?? 'Subscription activated',
                 isSuccessful: true,
               )
-            else if (_errorMessage != null)
-              PaymentResult(responseMessage: _errorMessage!, isSuccessful: false,)
+            else if (errorMessage != null)
+              PaymentResult(
+                responseMessage: "Couldn't process payment",
+                isSuccessful: false,
+              )
             else ...[
               Row(
                 children: PaymentMethodType.values
@@ -182,9 +178,14 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
                           child: PaymentOption(
                             label: _methodLabel(method),
                             icon: _methodIcon(method),
-                            isSelected: (_selectedMethod == method),
+                            isSelected: (selectedMethod == method),
                             onTap: () {
-                              if (!_isProcessing) _selectMethod(method);
+                              if (!isProcessing) {
+                                ref
+                                    .read(paymentSheetNotifierProvider.notifier)
+                                    .selectMethod(method);
+                              }
+                              ;
                             },
                           ),
                         ),
@@ -195,7 +196,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
 
               const SizedBox(height: 18),
 
-              if (_selectedMethod == PaymentMethodType.card)
+              if (selectedMethod == PaymentMethodType.card)
                 Form(
                   key: _formKey,
                   autovalidateMode: AutovalidateMode.onUnfocus,
@@ -208,7 +209,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
                 )
               else
                 Text(
-                  '${_methodLabel(_selectedMethod)} coming soon.',
+                  '${_methodLabel(selectedMethod)} coming soon.',
                   style: const TextStyle(color: Colors.white70, fontSize: 15),
                 ),
 
@@ -238,13 +239,13 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
             SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: _isProcessing
+                onPressed: isProcessing
                     ? null
-                    : _isSuccessful
-                        ? () => Navigator.of(context).pop()
-                        : _errorMessage != null
-                            ? _tryAgain
-                            : _continue,
+                    : isSuccessful
+                    ? () => Navigator.of(context).pop()
+                    : errorMessage != null
+                    ? notifier.reset
+                    : _continue,
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
@@ -255,7 +256,7 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
                     borderRadius: BorderRadius.circular(26),
                   ),
                 ),
-                child: _isProcessing
+                child: isProcessing
                     ? const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -278,17 +279,17 @@ class _PaymentMethodSheetState extends State<PaymentMethodSheet> {
                         ],
                       )
                     : Text(
-                        _isSuccessful
+                        isSuccessful
                             ? 'Start Exploring'
-                            : _errorMessage != null
-                                ? 'Try Again'
-                                : 'Pay Now',
+                            : errorMessage != null
+                            ? 'Try Again'
+                            : 'Pay Now',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                ),
+              ),
             ),
           ],
         ),
