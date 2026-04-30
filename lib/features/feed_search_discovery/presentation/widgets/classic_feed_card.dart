@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_tab_type.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 
 import '../../domain/entities/feed_item_entity.dart';
@@ -37,16 +38,17 @@ class ClassicFeedCard extends ConsumerWidget {
             child: GestureDetector(
               onTap: () => navigateToProfile(
                 context,
-                item.actor.id,
+                item.actor!.id,
                 currentUserId: ref.read(authControllerProvider).value?.id,
               ),
               child: FeedActivityRow(
-                avatarUrl: item.actor.avatarUrl,
+                avatarUrl: item.actor!.avatarUrl,
                 timeAgo: item.timeAgo,
                 feedViewMode: FeedViewMode.classic,
                 source: item.source,
-                actorName: item.actor.username,
+                actorName: item.actor!.username,
                 trackName: item.track.title,
+                feedType: FeedType.following,
               ),
             ),
           ),

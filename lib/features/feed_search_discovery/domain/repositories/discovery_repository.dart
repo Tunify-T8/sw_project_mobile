@@ -10,6 +10,10 @@ abstract class DiscoveryRepository {
     String? sinceTimestamp,
   });
 
+  Future<List<FeedItemEntity>> getReccomendations({
+    int page = 1,
+    int limit = 20,
+  });
   Future<List<DiscoveryItemEntity>> getDiscover({int page = 1, int limit = 20});
 
   Future<TrendingGenreEntity> getTrending({required String genre});

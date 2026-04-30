@@ -10,7 +10,7 @@ extension TrackPreviewMapper on TrackPreviewDto {
       artistId: artistId,
       artistName: artistName,
       artistAvatar: artistAvatar,
-      artistVerified: artistVerified,
+      isArtistCertified: artistVerified,
       isFollowingArtist: isFollowingArtist,
       coverUrl: coverUrl,
       duration: duration,

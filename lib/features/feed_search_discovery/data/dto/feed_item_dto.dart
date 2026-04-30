@@ -2,7 +2,9 @@ import 'feed_action_dto.dart';
 
 class FeedItemDto {
   final String trackId;
-  final FeedActionDto action;
+  final FeedActionDto? action;
+  final String? reason;
+  final String? reasonType;
   final String title;
   final String artist;
   final String artistId;
@@ -22,7 +24,9 @@ class FeedItemDto {
 
   FeedItemDto({
     required this.trackId,
-    required this.action,
+    this.action,
+    this.reason,
+    this.reasonType,
     required this.title,
     required this.artist,
     required this.artistId,
@@ -44,9 +48,11 @@ class FeedItemDto {
   factory FeedItemDto.fromJson(Map<String, dynamic> json) {
     return FeedItemDto(
       trackId: json['trackId']?.toString() ?? '',
-      action: FeedActionDto.fromJson(
-        json['action'] as Map<String, dynamic>? ?? {},
-      ),
+      action: json['action'] is Map<String, dynamic>
+          ? FeedActionDto.fromJson(json['action'] as Map<String, dynamic>)
+          : null,
+      reason: json['reason']?.toString(),
+      reasonType: json['reasonType']?.toString(),
       title: json['title']?.toString() ?? '',
       artist: json['artist']?.toString() ?? '',
       artistId: json['artistId']?.toString() ?? '',
@@ -82,7 +88,7 @@ class PaginatedFeedResponseDto {
 
   factory PaginatedFeedResponseDto.fromJson(Map<String, dynamic> json) {
     return PaginatedFeedResponseDto(
-      items: (json['items'] as List<dynamic>? ?? [])
+      items: ((json['items'] ?? json['data']) as List<dynamic>? ?? [])
           .map((e) => FeedItemDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       page: json['page'] ?? 1,

@@ -158,6 +158,7 @@ class ApiEndpoints {
   static const String searchCollections = '/search/collections';
   static const String searchPeople = '/search/people';
   static const String searchAutocomplete = '/search/autocomplete';
+  static const String getReccomendations = '/reccomendations';
 
   //Premuim
   static const String getSubscriptionPlans = '/subscriptions/plans';

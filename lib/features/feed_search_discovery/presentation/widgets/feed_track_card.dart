@@ -21,8 +21,6 @@ class FeedTrackCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feedState = ref.watch(feedNotifierProvider);
 
-    // Feed preview entry point: tapping anywhere on the card, including the
-    // artwork below, toggles the 30-second preview playback for this track.
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -73,13 +71,15 @@ class FeedTrackCard extends ConsumerWidget {
                     const Expanded(flex: 2, child: SizedBox()),
 
                     FeedActivityRow(
-                      avatarUrl: item.actor.avatarUrl,
+                      avatarUrl: item.actor?.avatarUrl,
                       timeAgo: item.timeAgo,
                       createdAt: item.track.createdAt,
                       feedViewMode: FeedViewMode.discover,
                       source: item.source,
-                      actorName: item.actor.username,
+                      actorName: item.actor?.username,
+                      discoverReason: item.discoverReason,
                       trackName: item.track.title,
+                      feedType: tabType,
                     ),
 
                     const Expanded(flex: 1, child: SizedBox()),
@@ -88,8 +88,6 @@ class FeedTrackCard extends ConsumerWidget {
               ),
             ),
 
-            // The overlay invites the user to start preview playback. Once the
-            // preview starts, it is hidden so the artwork is visible.
             if (!feedState.isPreviewing) FeedPreviewOverlay(),
 
             Positioned(

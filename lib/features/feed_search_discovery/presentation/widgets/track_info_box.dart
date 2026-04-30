@@ -33,8 +33,6 @@ class TrackInfoBox extends ConsumerWidget {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        // Tapping the info box opens the full playback surface for the track.
-        // It also stops any active feed preview before launching the player.
         onTap: () => playFeedTrack(context, ref, track),
         child: Container(
           padding: const EdgeInsets.all(5.0),
@@ -72,6 +70,7 @@ class TrackInfoBox extends ConsumerWidget {
                           ),
                           child: CircleAvatar(
                             radius: 20.0,
+                            backgroundColor: Colors.grey,
                             backgroundImage: track.artistAvatar != null
                                 ? NetworkImage(track.artistAvatar!)
                                 : null,
@@ -97,7 +96,7 @@ class TrackInfoBox extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(width: 5.0),
-                              if (track.artistVerified)
+                              if (track.isArtistCertified)
                                 const Icon(
                                   Icons.verified,
                                   color: Colors.blue,

@@ -21,7 +21,7 @@ void main() {
         title: 'Midnight Drive',
         artistId: 'artist-1',
         artistName: 'Drake',
-        artistVerified: true,
+        isArtistCertified: true,
         coverUrl: coverUrl,
         duration: 215,
         listensCount: 12400,

@@ -20,7 +20,7 @@ void main() {
     artistId: 'artist-1',
     artistName: 'Duke',
     artistAvatar: 'avatar',
-    artistVerified: true,
+    isArtistCertified: true,
     isFollowingArtist: false,
     coverUrl: 'cover',
     duration: 210,

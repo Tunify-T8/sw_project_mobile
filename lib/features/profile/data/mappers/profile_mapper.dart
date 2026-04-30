@@ -119,7 +119,7 @@ static ProfileDto mergeSocialLinks(
 // no name, bio, location etc.
 //the merge combines both into one Profiledto
 
-// When real backend is ready — if the backend changes to 
+// When real backend is ready ï¿½ if the backend changes to 
 // return everything in one call, 
 // I just delete the second call in repository_impl 
 // and remove mergeSocialLinks. 
