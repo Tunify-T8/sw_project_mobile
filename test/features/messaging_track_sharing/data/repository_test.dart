@@ -211,7 +211,12 @@ class _MockMessagingApi {
   Future<PaginatedConversations> getConversations({int page = 1, int limit = 20}) async {
     lastGetConversationsPage = page;
     lastGetConversationsLimit = limit;
-    return PaginatedConversations(data: [], total: 0);
+    return const PaginatedConversations(
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    );
   }
 
   Future<void> getMessages(String conversationId, {int page = 1, int limit = 20}) async {

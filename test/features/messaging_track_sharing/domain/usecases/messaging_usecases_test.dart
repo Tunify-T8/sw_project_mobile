@@ -1,6 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/paginated_conversations.dart';
+import 'package:software_project/features/messaging_track_sharing/domain/entities/paginated_messages.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/conversation_entity.dart';
+import 'package:software_project/features/messaging_track_sharing/domain/entities/message_entity.dart';
+import 'package:software_project/features/messaging_track_sharing/domain/entities/realtime_event.dart';
+import 'package:software_project/features/messaging_track_sharing/domain/entities/send_message_draft.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/user_preview.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/usecases/get_conversations_usecase.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/usecases/get_messages_usecase.dart';
@@ -36,7 +40,7 @@ void main() {
       final result = await useCase();
 
       expect(result, isA<PaginatedConversations>());
-      expect(result.data, isNotEmpty);
+      expect(result.items, isNotEmpty);
     });
   });
 
@@ -68,7 +72,7 @@ void main() {
     test('calls repository to get unread count', () async {
       final repository = _MockMessagingRepository();
       repository.unreadCount = 5;
-      final useCase = GetUnreadCountUseCase(repository);
+      final useCase = GetUnreadMessageCountUseCase(repository);
 
       final count = await useCase();
 
@@ -79,7 +83,7 @@ void main() {
     test('returns zero when no unread messages', () async {
       final repository = _MockMessagingRepository();
       repository.unreadCount = 0;
-      final useCase = GetUnreadCountUseCase(repository);
+      final useCase = GetUnreadMessageCountUseCase(repository);
 
       final count = await useCase();
 
@@ -107,26 +111,19 @@ class _MockMessagingRepository implements MessagingRepository {
     lastGetConversationsLimit = limit;
 
     return PaginatedConversations(
-      data: [
+      items: [
         ConversationEntity(
-          id: 'conv-1',
+          conversationId: 'conv-1',
           otherUser: const UserPreview(
             id: 'user-1',
-            username: 'john_doe',
+            displayName: 'john_doe',
           ),
         ),
       ],
+      page: page,
+      limit: limit,
       total: 1,
     );
-  }
-
-  @override
-  Future<PaginatedConversations> searchConversations(
-    String query, {
-    int page = 1,
-    int limit = 20,
-  }) async {
-    return PaginatedConversations(data: [], total: 0);
   }
 
   @override
@@ -139,17 +136,21 @@ class _MockMessagingRepository implements MessagingRepository {
   Future<void> unarchiveConversation(String id) async {}
 
   @override
-  Future<void> blockConversation(
-    String id, {
-    bool removeComments = false,
-    bool reportSpam = false,
-  }) async {}
+  Future<void> blockConversation(String id) async {}
 
   @override
-  Stream<List<dynamic>> watchRealtimeEvents() => const Stream.empty();
-
-  @override
-  Future<void> sendMessage(String conversationId, dynamic draft) async {}
+  Future<MessageEntity> sendMessage(
+    String conversationId,
+    SendMessageDraft draft,
+  ) async =>
+      MessageEntity(
+        id: 'msg-1',
+        conversationId: conversationId,
+        senderId: 'user-1',
+        type: draft.type,
+        createdAt: DateTime.now(),
+        text: draft.text,
+      );
 
   @override
   Future<int> getUnreadCount() async {
@@ -158,7 +159,7 @@ class _MockMessagingRepository implements MessagingRepository {
   }
 
   @override
-  Future<PaginatedConversations> getMessages(
+  Future<PaginatedMessages> getMessages(
     String conversationId, {
     int page = 1,
     int limit = 20,
@@ -167,23 +168,50 @@ class _MockMessagingRepository implements MessagingRepository {
     lastGetMessagesPage = page;
     lastGetMessagesLimit = limit;
 
-    return PaginatedConversations(data: [], total: 0);
+    return PaginatedMessages(items: const [], page: page, limit: limit, total: 0);
   }
 
   @override
   Future<void> markConversationRead(String conversationId) async {}
 
   @override
-  Future<void> markConversationUnread(String conversationId) async {}
+  Future<void> enableReceiveFromAnyone() async {}
 
   @override
-  Future<void> unblockConversation(String blockedUserId) async {}
+  Future<void> disableReceiveFromAnyone() async {}
 
   @override
-  Future<void> enableAllowAll() async {}
+  Future<void> joinConversation(String conversationId) async {}
 
   @override
-  Future<void> disableAllowAll() async {}
+  Future<void> leaveConversation(String conversationId) async {}
+
+  @override
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> markMessageRead({
+    required String conversationId,
+    required String messageId,
+  }) async {}
+
+  @override
+  void startTyping(String conversationId) {}
+
+  @override
+  void stopTyping(String conversationId) {}
+
+  @override
+  Stream<RealtimeMessagingEvent> realtimeEvents() => const Stream.empty();
+
+  @override
+  Future<void> connectRealtime() async {}
+
+  @override
+  Future<void> disconnectRealtime() async {}
 
   @override
   Future<String> createOrGetConversation(String userId) async => 'conv-new';

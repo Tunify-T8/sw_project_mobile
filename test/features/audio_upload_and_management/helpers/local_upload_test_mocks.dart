@@ -50,7 +50,6 @@ ArtistToolsQuota _dummyArtistToolsQuota() => const ArtistToolsQuota(
       uploadMinutesLimit: 180,
       uploadMinutesUsed: 0,
       canReplaceFiles: false,
-      canUpgrade: true,
     );
 
 UploadedTrack _dummyUploadedTrack() => const UploadedTrack(
@@ -356,14 +355,12 @@ class MockLibraryUploadsApi extends Mock
         uploadMinutesLimit: 180,
         uploadMinutesUsed: 0,
         canReplaceFiles: false,
-        canUpgrade: true,
       )),
       returnValueForMissingStub: Future.value(const ArtistToolsQuotaDto(
         tier: 'free',
         uploadMinutesLimit: 180,
         uploadMinutesUsed: 0,
         canReplaceFiles: false,
-        canUpgrade: true,
       )),
     ) as Future<ArtistToolsQuotaDto>;
   }
@@ -434,14 +431,12 @@ class MockMockLibraryUploadsApi extends Mock
         uploadMinutesLimit: 180,
         uploadMinutesUsed: 0,
         canReplaceFiles: false,
-        canUpgrade: true,
       )),
       returnValueForMissingStub: Future.value(const ArtistToolsQuotaDto(
         tier: 'free',
         uploadMinutesLimit: 180,
         uploadMinutesUsed: 0,
         canReplaceFiles: false,
-        canUpgrade: true,
       )),
     ) as Future<ArtistToolsQuotaDto>;
   }

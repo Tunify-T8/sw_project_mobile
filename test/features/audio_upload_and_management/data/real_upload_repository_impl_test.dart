@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:software_project/core/network/api_endpoints.dart';
 import 'package:software_project/features/audio_upload_and_management/data/api/upload_api.dart';
 import 'package:software_project/features/audio_upload_and_management/data/dto/create_track_request_dto.dart';
 import 'package:software_project/features/audio_upload_and_management/data/dto/finalize_track_metadata_request_dto.dart';
@@ -11,6 +13,7 @@ import 'package:software_project/features/audio_upload_and_management/domain/ent
 import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_status.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/entities/uploaded_track.dart';
 
+import '../helpers/local_upload_test_mocks.dart';
 import '../helpers/upload_test_data.dart';
 
 class FakeUploadApi extends UploadApi {
@@ -107,17 +110,51 @@ void main() {
 
   group('getUploadQuota', () {
     test('maps the dto to the domain entity', () async {
-      fakeApi.quotaResponse = UploadQuotaDto.fromJson(sampleUploadQuotaJson());
+      final mockDio = MockDio();
+      final quotaRepository = RealUploadRepository(UploadApi(mockDio));
 
-      final result = await repository.getUploadQuota('user-1');
+      when(
+        mockDio.get(
+          ApiEndpoints.artistToolsQuota('user-1'),
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: sampleUploadQuotaJson(),
+          requestOptions: RequestOptions(
+            path: ApiEndpoints.artistToolsQuota('user-1'),
+          ),
+          statusCode: 200,
+        ),
+      );
+
+      when(
+        mockDio.get(
+          ApiEndpoints.myUploads,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer(
+        (_) async => Response(
+          data: const <dynamic>[],
+          requestOptions: RequestOptions(path: ApiEndpoints.myUploads),
+          statusCode: 200,
+        ),
+      );
+
+      final result = await quotaRepository.getUploadQuota('user-1');
 
       expect(result.tier, sampleUploadQuota.tier);
       expect(result.uploadMinutesLimit, sampleUploadQuota.uploadMinutesLimit);
-      expect(result.uploadMinutesUsed, sampleUploadQuota.uploadMinutesUsed);
-      expect(
-        result.uploadMinutesRemaining,
-        sampleUploadQuota.uploadMinutesRemaining,
-      );
+      expect(result.uploadMinutesUsed, 0);
+      expect(result.uploadMinutesRemaining, 180);
     });
   });
 

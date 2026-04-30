@@ -33,7 +33,6 @@ void main() {
       uploadMinutesLimit: 180,
       uploadMinutesUsed: 30,
       canReplaceFiles: true,
-      canUpgrade: false,
     );
 
     expect(quota.uploadMinutesRemaining, 150);
@@ -45,10 +44,9 @@ void main() {
     final dto = ArtistToolsQuotaDto.fromJson(const {});
 
     expect(dto.tier, 'free');
-    expect(dto.uploadMinutesLimit, 180);
+    expect(dto.uploadMinutesLimit, -1);
     expect(dto.uploadMinutesUsed, 0);
     expect(dto.canReplaceFiles, isFalse);
-    expect(dto.canUpgrade, isTrue);
     expect(dto.toJson()['tier'], 'free');
   });
 
