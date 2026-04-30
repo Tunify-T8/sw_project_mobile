@@ -10,14 +10,24 @@ class ConversationTile extends StatelessWidget {
     super.key,
     required this.conversation,
     required this.onTap,
+    this.currentUserId,
   });
 
   final ConversationEntity conversation;
   final VoidCallback onTap;
 
+  /// Used to avoid showing the "unread" highlight when the conversation's
+  /// last message was sent by the current user. The unread count from the
+  /// backend can lag behind / be ambiguous on its own.
+  final String? currentUserId;
+
   @override
   Widget build(BuildContext context) {
-    final hasUnread = conversation.unreadCount > 0;
+    final me = currentUserId?.trim();
+    final lastSender = conversation.lastMessageSenderId?.trim();
+    final lastFromMe =
+        me != null && me.isNotEmpty && lastSender != null && lastSender == me;
+    final hasUnread = conversation.unreadCount > 0 && !lastFromMe;
     final preview = conversation.lastMessagePreview ?? '';
     final timeStr = conversation.lastMessageAt != null
         ? MessagingTimeFormat.relativeShort(conversation.lastMessageAt!)
@@ -40,7 +50,11 @@ class ConversationTile extends StatelessWidget {
                     ? NetworkImage(conversation.otherUser.avatarUrl!)
                     : null,
                 child: conversation.otherUser.avatarUrl == null
-                    ? const Icon(Icons.person, color: Color(0xFF64B5F6), size: 28)
+                    ? const Icon(
+                        Icons.person,
+                        color: Color(0xFF64B5F6),
+                        size: 28,
+                      )
                     : null,
               ),
               const SizedBox(width: 12),
@@ -69,8 +83,9 @@ class ConversationTile extends StatelessWidget {
                             ? Colors.white70
                             : const Color(0xFF8A8A8A),
                         fontSize: 13,
-                        fontWeight:
-                            hasUnread ? FontWeight.w500 : FontWeight.w400,
+                        fontWeight: hasUnread
+                            ? FontWeight.w500
+                            : FontWeight.w400,
                       ),
                     ),
                   ],

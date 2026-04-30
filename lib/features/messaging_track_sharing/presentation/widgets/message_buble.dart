@@ -12,11 +12,21 @@ import '../utils/messaging_time_format.dart';
 
 /// A single chat bubble — text or attachment — plus the small h:mm AM/PM
 /// timestamp underneath.
+///
+/// [showStatus] controls whether the transient Sending indicator is rendered
+/// under the most recent outgoing bubble. Persistent delivery/read labels are
+/// intentionally hidden to keep the thread visually quiet.
 class MessageBubble extends StatelessWidget {
-  const MessageBubble({super.key, required this.message, required this.isMine});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    required this.isMine,
+    this.showStatus = false,
+  });
 
   final MessageEntity message;
   final bool isMine;
+  final bool showStatus;
 
   static const _bg = Color(0xFF1B1B1B);
   static const _border = Color(0xFF2A2A2A);
@@ -51,15 +61,14 @@ class MessageBubble extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          if (isMine)
+          if (isMine && showStatus && message.isPending)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                _statusLabel(message),
-                style: TextStyle(
-                  color: _statusColor(message),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+              padding: const EdgeInsets.only(top: 3),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: _StatusIndicator(
+                  key: const ValueKey('sending'),
+                  message: message,
                 ),
               ),
             ),
@@ -67,26 +76,43 @@ class MessageBubble extends StatelessWidget {
       ),
     );
   }
+}
 
-  static String _statusLabel(MessageEntity message) {
-    if (message.isFailed) return 'Not delivered';
-    if (message.isPending) return 'Sending...';
-    switch (message.deliveryStatus) {
-      case MessageDeliveryStatus.read:
-        return 'Seen';
-      case MessageDeliveryStatus.delivered:
-        return 'Delivered';
-      case MessageDeliveryStatus.sent:
-        return 'Not delivered';
-    }
+class _StatusIndicator extends StatelessWidget {
+  const _StatusIndicator({super.key, required this.message});
+
+  final MessageEntity message;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!message.isPending) return const SizedBox.shrink();
+    return _row(
+      icon: Icons.access_time,
+      label: 'Sending',
+      color: MessageBubble._timestampColor,
+    );
   }
 
-  static Color _statusColor(MessageEntity message) {
-    if (message.isFailed) return Colors.redAccent;
-    if (message.deliveryStatus == MessageDeliveryStatus.read) {
-      return const Color(0xFF64B5F6);
-    }
-    return _timestampColor;
+  Widget _row({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 }
 

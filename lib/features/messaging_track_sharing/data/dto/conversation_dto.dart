@@ -19,6 +19,11 @@ class ConversationDto {
   final UserPreviewDto otherUser;
   final String? lastMessagePreview;
   final DateTime? lastMessageAt;
+
+  /// Sender id of the conversation's last message, when known. Used by the
+  /// UI to suppress the "unread" highlight on conversations whose last
+  /// message was sent by the current user (see ConversationTile).
+  final String? lastMessageSenderId;
   final int unreadCount;
   final bool isBlocked;
   final bool isArchived;
@@ -35,6 +40,7 @@ class ConversationDto {
     this.user2Id = '',
     this.lastMessagePreview,
     this.lastMessageAt,
+    this.lastMessageSenderId,
     this.unreadCount = 0,
     this.isBlocked = false,
     this.isArchived = false,
@@ -137,7 +143,14 @@ class ConversationDto {
     String? lastPreview = _nullableString(
       j['lastMessagePreview'] ?? j['last_message_preview'] ?? j['preview'],
     );
-    DateTime? lastAt = j['lastMessageAt'] == null
+
+    // Prefer the embedded last-message's `createdAt` over the conversation's
+    // `lastMessageAt` field. The backend bumps `conversation.updatedAt`
+    // (which some payloads alias as `lastMessageAt`) on side-effects like
+    // markRead / archive / unblock — that would otherwise reorder the
+    // conversation list by "last touched" instead of "last messaged".
+    DateTime? lastAt = lastMessage?.createdAt;
+    lastAt ??= j['lastMessageAt'] == null
         ? null
         : DateTime.tryParse(j['lastMessageAt'].toString());
     lastAt ??= j['last_message_at'] == null
@@ -145,7 +158,6 @@ class ConversationDto {
         : DateTime.tryParse(j['last_message_at'].toString());
 
     if (lastMessage != null) {
-      lastAt ??= lastMessage.createdAt;
       if (lastPreview == null || lastPreview.trim().isEmpty) {
         lastPreview = _previewFor(lastMessage);
       }
@@ -155,6 +167,26 @@ class ConversationDto {
         ? null
         : DateTime.tryParse(j['updatedAt'].toString());
 
+    final lastSender = _nullableString(
+      lastMessage?.senderId ??
+          j['lastMessageSenderId'] ??
+          j['last_message_sender_id'] ??
+          j['lastSenderId'] ??
+          j['last_sender_id'] ??
+          j['lastMessageFromUserId'] ??
+          j['last_message_from_user_id'] ??
+          j['senderId'] ??
+          j['sender_id'] ??
+          _map(j['lastMessage'])?['senderId'] ??
+          _map(j['lastMessage'])?['sender_id'] ??
+          _map(j['last_message'])?['senderId'] ??
+          _map(j['last_message'])?['sender_id'] ??
+          _nullableString(
+            _idFromMap(_map(_map(j['lastMessage'])?['sender'])),
+          ) ??
+          _nullableString(_idFromMap(_map(_map(j['last_message'])?['sender']))),
+    );
+
     return ConversationDto(
       conversationId: id,
       user1Id: user1,
@@ -162,6 +194,7 @@ class ConversationDto {
       otherUser: other,
       lastMessagePreview: lastPreview,
       lastMessageAt: lastAt,
+      lastMessageSenderId: lastSender,
       unreadCount: _int(
         j['unreadCount'] ?? j['unread_count'] ?? j['unreadMessages'],
       ),

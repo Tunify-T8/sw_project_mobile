@@ -649,7 +649,27 @@ class _MessageList extends StatelessWidget {
     final widgets = <Widget>[];
     DateTime? lastDate;
 
-    for (final message in messages) {
+    bool isMineFor(MessageEntity message) {
+      return message.senderId == currentUserId ||
+          message.senderId == kOptimisticSenderMarker ||
+          message.senderId == 'me' ||
+          message.senderId == 'mock-user-001' ||
+          message.senderId == 'user_current_1';
+    }
+
+    // Only show the delivery indicator under the most recent outgoing
+    // message — matches the iMessage/WhatsApp pattern of one status line per
+    // thread instead of repeating it under every bubble.
+    int lastMineIndex = -1;
+    for (var i = messages.length - 1; i >= 0; i--) {
+      if (isMineFor(messages[i])) {
+        lastMineIndex = i;
+        break;
+      }
+    }
+
+    for (var i = 0; i < messages.length; i++) {
+      final message = messages[i];
       final messageDate = DateTime(
         message.createdAt.year,
         message.createdAt.month,
@@ -675,14 +695,15 @@ class _MessageList extends StatelessWidget {
         );
       }
 
-      final isMine =
-          message.senderId == currentUserId ||
-          message.senderId == kOptimisticSenderMarker ||
-          message.senderId == 'me' ||
-          message.senderId == 'mock-user-001' ||
-          message.senderId == 'user_current_1';
+      final isMine = isMineFor(message);
 
-      widgets.add(MessageBubble(message: message, isMine: isMine));
+      widgets.add(
+        MessageBubble(
+          message: message,
+          isMine: isMine,
+          showStatus: isMine && i == lastMineIndex,
+        ),
+      );
     }
 
     if (isTyping) {

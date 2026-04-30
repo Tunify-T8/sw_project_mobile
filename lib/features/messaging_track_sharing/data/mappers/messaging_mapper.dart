@@ -97,6 +97,7 @@ class MessagingMapper {
         otherUser: userPreview(d.otherUser),
         lastMessagePreview: d.lastMessagePreview,
         lastMessageAt: d.lastMessageAt,
+        lastMessageSenderId: d.lastMessageSenderId,
         unreadCount: d.unreadCount,
         isBlocked: d.isBlocked,
         isArchived: d.isArchived,

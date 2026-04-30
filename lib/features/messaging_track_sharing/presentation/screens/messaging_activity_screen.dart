@@ -6,6 +6,7 @@ import '../../../../core/routing/routes.dart';
 import '../../../notifications/presentation/state/notification_filter.dart';
 import '../../../notifications/presentation/state/notifications_controller.dart';
 import '../../../notifications/presentation/widgets/notifications_tab.dart';
+import '../providers/messaging_dependencies_provider.dart';
 import '../state/conversations_controller.dart';
 import '../state/messages_filter.dart';
 import '../widgets/conversation_tile.dart';
@@ -27,7 +28,8 @@ class _MessagingActivityScreenState
   Widget build(BuildContext context) {
     final convState = ref.watch(conversationsControllerProvider);
     final notifState = ref.watch(notificationsControllerProvider);
-    final hasUnread = convState.totalUnread > 0;
+    final currentUserId = ref.watch(messagingSessionUserIdProvider);
+    final hasUnread = convState.totalUnreadFor(currentUserId) > 0;
     final hasUnreadNotifs = notifState.unreadCount > 0;
 
     return Scaffold(
@@ -108,7 +110,10 @@ class _MessagingActivityScreenState
             Expanded(
               child: _selectedTabIndex == 0
                   ? const NotificationsTab()
-                  : _MessagesList(state: convState),
+                  : _MessagesList(
+                      state: convState,
+                      currentUserId: currentUserId,
+                    ),
             ),
           ],
         ),
@@ -187,9 +192,10 @@ class _UnreadDot extends StatelessWidget {
 }
 
 class _MessagesList extends ConsumerWidget {
-  const _MessagesList({required this.state});
+  const _MessagesList({required this.state, required this.currentUserId});
 
   final ConversationsState state;
+  final String? currentUserId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -199,7 +205,7 @@ class _MessagesList extends ConsumerWidget {
       );
     }
 
-    final conversations = state.visible;
+    final conversations = state.visibleFor(currentUserId);
 
     if (conversations.isEmpty) {
       return Center(
@@ -226,6 +232,7 @@ class _MessagesList extends ConsumerWidget {
 
           return ConversationTile(
             conversation: convo,
+            currentUserId: currentUserId,
             onTap: () {
               ref
                   .read(conversationsControllerProvider.notifier)
