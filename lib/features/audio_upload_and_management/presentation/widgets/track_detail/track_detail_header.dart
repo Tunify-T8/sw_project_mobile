@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../data/services/global_track_store.dart';
 import '../../../domain/entities/upload_item.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
+import '../../../../playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
+import '../../../../auth/presentation/providers/auth_provider.dart';
 
-class TrackDetailHeader extends StatelessWidget {
+class TrackDetailHeader extends ConsumerStatefulWidget {
   const TrackDetailHeader({
     super.key,
     required this.item,
@@ -17,7 +23,67 @@ class TrackDetailHeader extends StatelessWidget {
   final VoidCallback onTrackInfoTap;
 
   @override
+  ConsumerState<TrackDetailHeader> createState() => _TrackDetailHeaderState();
+}
+
+class _TrackDetailHeaderState extends ConsumerState<TrackDetailHeader> {
+  late String _resolvedArtistId;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedArtistId = _resolveArtistIdLocally();
+
+    if (_resolvedArtistId.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resolveArtistId());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TrackDetailHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.id == widget.item.id) return;
+
+    _resolvedArtistId = _resolveArtistIdLocally();
+    if (_resolvedArtistId.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resolveArtistId());
+    }
+  }
+
+  String _resolveArtistIdLocally() {
+    return resolveArtistIdForTrackLocally(ref, widget.item.id) ?? '';
+  }
+
+  Future<void> _resolveArtistId() async {
+    final trackId = widget.item.id;
+    final artistId = await resolveArtistIdForTrack(ref, trackId);
+    if (!mounted ||
+        widget.item.id != trackId ||
+        artistId == null ||
+        artistId == _resolvedArtistId) {
+      return;
+    }
+    setState(() => _resolvedArtistId = artistId);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final currentUserId =
+        ref.watch(authControllerProvider).asData?.value?.id.trim() ?? '';
+    final ownerUserId = ref
+        .watch(globalTrackStoreProvider)
+        .ownerUserIdForTrack(widget.item.id)
+        ?.trim();
+    final artistId = _resolvedArtistId.trim();
+    final isOwnedTrack =
+        currentUserId.isNotEmpty &&
+        ((ownerUserId != null &&
+                ownerUserId.isNotEmpty &&
+                ownerUserId != '__global__' &&
+                ownerUserId == currentUserId) ||
+            artistId == currentUserId);
+    final showFollowIcon = !isOwnedTrack && artistId.isNotEmpty;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
@@ -29,24 +95,25 @@ class TrackDetailHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _BlackTag(
-                    text: item.title,
+                    text: widget.item.title,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    onTap: onTrackInfoTap,
+                    onTap: widget.onTrackInfoTap,
                   ),
                   const SizedBox(height: 4),
                   _BlackTag(
-                    text: item.artistDisplay,
+                    key: const Key('track_detail_artist_tap'),
+                    text: widget.item.artistDisplay,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    onTap: onArtistTap,
+                    onTap: widget.onArtistTap,
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: onTrackInfoTap,
+                    onTap: widget.onTrackInfoTap,
                     child: Container(
-                      color: Colors.black.withOpacity(0.82),
+                      color: Colors.black.withValues(alpha: 0.82),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 8,
@@ -54,7 +121,11 @@ class TrackDetailHeader extends StatelessWidget {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.graphic_eq, color: Colors.white70, size: 17),
+                          Icon(
+                            Icons.graphic_eq,
+                            color: Colors.white70,
+                            size: 17,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Behind this track',
@@ -79,12 +150,12 @@ class TrackDetailHeader extends StatelessWidget {
                   backgroundColor: Colors.black,
                   icon: Icons.keyboard_arrow_down_rounded,
                   iconSize: 34,
-                  onTap: onDismiss,
+                  onTap: widget.onDismiss,
                 ),
-                const SizedBox(height: 28),
-                const _SideIcon(icon: Icons.person_add_alt_1_outlined),
-                const SizedBox(height: 28),
-                const _SideIcon(icon: Icons.devices_outlined),
+                if (showFollowIcon) ...[
+                  const SizedBox(height: 28),
+                  _FollowSideIcon(artistId: artistId),
+                ],
               ],
             ),
           ],
@@ -94,8 +165,34 @@ class TrackDetailHeader extends StatelessWidget {
   }
 }
 
+class _FollowSideIcon extends ConsumerWidget {
+  const _FollowSideIcon({required this.artistId});
+
+  final String artistId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final relationshipState = ref.watch(relationshipStatusProvider(artistId));
+    final isFollowing = relationshipState.isFollowing ?? false;
+
+    return GestureDetector(
+      onTap: () => ref
+          .read(relationshipStatusProvider(artistId).notifier)
+          .toggleFollow(),
+      child: Icon(
+        isFollowing
+            ? Icons.person_remove_alt_1_outlined
+            : Icons.person_add_alt_1_outlined,
+        color: Colors.white70,
+        size: 34,
+      ),
+    );
+  }
+}
+
 class _BlackTag extends StatelessWidget {
   const _BlackTag({
+    super.key,
     required this.text,
     required this.fontSize,
     required this.fontWeight,
@@ -113,7 +210,7 @@ class _BlackTag extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        color: Colors.black.withOpacity(0.82),
+        color: Colors.black.withValues(alpha: 0.82),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
           text,
@@ -160,16 +257,5 @@ class _CircleAction extends StatelessWidget {
         child: Icon(icon, color: Colors.white, size: iconSize),
       ),
     );
-  }
-}
-
-class _SideIcon extends StatelessWidget {
-  const _SideIcon({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Icon(icon, color: Colors.white70, size: 34);
   }
 }

@@ -1,3 +1,4 @@
+import '../../domain/entities/autocomplete_result_entity.dart';
 import '../../domain/entities/search_all_result_entity.dart';
 import '../../domain/entities/album_result_entity.dart';
 import '../../domain/entities/genre_detail_entity.dart';
@@ -9,17 +10,17 @@ import '../../domain/entities/search_filters_entity.dart';
 import '../../domain/entities/top_result_entity.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../api/discovery_api.dart';
-import '../dto/collection_dto.dart';
-import '../dto/user_preview_dto.dart';
 import '../dto/collection_search_response_dto.dart';
-import '../dto/user_search_response_dto.dart';
 import '../dto/trending_item_dto.dart';
-import '../dto/track_search_response_dto.dart';
+import '../dto/user_search_response_dto.dart';
+import '../../presentation/utils/genre_id_mapper.dart';
 
 class RealSearchRepositoryImpl implements SearchRepository {
   RealSearchRepositoryImpl(this._api);
 
   final DiscoveryApi _api;
+
+  // ── searchAll ─────────────────────────────────────────────────────────────
 
   @override
   Future<SearchAllResultEntity> searchAll(String query) async {
@@ -60,6 +61,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
             PlaylistResultEntity(
               id: c.id,
               title: c.title,
+              creatorId: '',
               creatorName: c.artist,
               artworkUrl: c.coverUrl,
               trackCount: c.trackPreview.length,
@@ -72,10 +74,11 @@ class RealSearchRepositoryImpl implements SearchRepository {
           ProfileResultEntity(
             id: u.id,
             username: u.username,
-            avatarUrl: null,
+            displayName: u.displayName,
+            avatarUrl: u.avatarUrl,
             location: u.location,
             followersCount: u.followersCount,
-            isVerified: u.isCertified,
+            isCertified: u.isCertified,
             isFollowing: u.isFollowing ?? false,
           ),
         );
@@ -97,7 +100,7 @@ class RealSearchRepositoryImpl implements SearchRepository {
       topResult = TopResultEntity(
         id: p.id,
         type: TopResultType.profile,
-        title: p.username,
+        title: p.displayLabel,
         subtitle: _formatFollowers(p.followersCount),
         artworkUrl: p.avatarUrl,
       );
@@ -111,6 +114,44 @@ class RealSearchRepositoryImpl implements SearchRepository {
       profiles: profiles,
     );
   }
+
+  // ── searchAutocomplete ────────────────────────────────────────────────────
+
+  @override
+  Future<AutocompleteResultEntity> searchAutocomplete(String query) async {
+    final dto = await _api.searchAutocomplete(q: query);
+    return AutocompleteResultEntity(
+      tracks: dto.tracks
+          .map(
+            (t) => AutocompleteTrackEntity(
+              id: t.id,
+              title: t.title,
+              artist: t.artist,
+            ),
+          )
+          .toList(),
+      users: dto.users
+          .map(
+            (u) => AutocompleteUserEntity(
+              id: u.id,
+              username: u.username,
+              displayName: u.displayName,
+            ),
+          )
+          .toList(),
+      collections: dto.collections
+          .map(
+            (c) => AutocompleteCollectionEntity(
+              id: c.id,
+              title: c.title,
+              artist: c.artist,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  // ── searchTracks ──────────────────────────────────────────────────────────
 
   @override
   Future<List<TrackResultEntity>> searchTracks(
@@ -143,6 +184,8 @@ class RealSearchRepositoryImpl implements SearchRepository {
         .toList();
   }
 
+  // ── searchProfiles ────────────────────────────────────────────────────────
+
   @override
   Future<List<ProfileResultEntity>> searchProfiles(
     String query, {
@@ -157,10 +200,23 @@ class RealSearchRepositoryImpl implements SearchRepository {
       location: filters.location,
       minFollowers: filters.minFollowers,
       verifiedOnly: filters.verifiedOnly,
-      sort: filters.sort.apiValue,
     );
-    return dto.items.map(_userDtoToEntity).toList();
+    return dto.items
+        .map(
+          (u) => ProfileResultEntity(
+            id: u.id,
+            username: u.username,
+            avatarUrl: u.avatarUrl,
+            location: u.location,
+            followersCount: u.followersCount,
+            isCertified: u.isCertified,
+            isFollowing: u.isFollowing,
+          ),
+        )
+        .toList();
   }
+
+  // ── searchPlaylists ───────────────────────────────────────────────────────
 
   @override
   Future<List<PlaylistResultEntity>> searchPlaylists(
@@ -177,9 +233,20 @@ class RealSearchRepositoryImpl implements SearchRepository {
     );
     return dto.items
         .where((c) => c.type.name == 'playlist')
-        .map(_collectionDtoToPlaylist)
+        .map(
+          (c) => PlaylistResultEntity(
+            id: c.id,
+            title: c.title,
+            creatorId: c.creatorId,
+            creatorName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
   }
+
+  // ── searchAlbums ──────────────────────────────────────────────────────────
 
   @override
   Future<List<AlbumResultEntity>> searchAlbums(
@@ -196,13 +263,23 @@ class RealSearchRepositoryImpl implements SearchRepository {
     );
     return dto.items
         .where((c) => c.type.name == 'album')
-        .map(_collectionDtoToAlbum)
+        .map(
+          (c) => AlbumResultEntity(
+            id: c.id,
+            title: c.title,
+            artistName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
   }
 
+  // ── getGenres ─────────────────────────────────────────────────────────────
   @override
   Future<List<SearchGenreEntity>> getGenres() async {
     return const [
+      // ── Left column ────────────────────────────────────────────────────────
       SearchGenreEntity(
         id: 'hip_hop_rap',
         label: 'Hip Hop & Rap',
@@ -216,7 +293,30 @@ class RealSearchRepositoryImpl implements SearchRepository {
         colorValue: 0xFF10A674,
       ),
       SearchGenreEntity(id: 'house', label: 'House', colorValue: 0xFFFF4FA3),
+      SearchGenreEntity(
+        id: 'at_home',
+        label: 'At Home',
+        colorValue: 0xFFA259FF,
+      ),
+      SearchGenreEntity(id: 'study', label: 'Study', colorValue: 0xFFFF4FA3),
       SearchGenreEntity(id: 'indie', label: 'Indie', colorValue: 0xFF2D6CDF),
+      SearchGenreEntity(
+        id: 'country',
+        label: 'Country',
+        colorValue: 0xFFFF8C42,
+      ),
+      SearchGenreEntity(id: 'rock', label: 'Rock', colorValue: 0xFFFF3D2E),
+      SearchGenreEntity(
+        id: 'ambient',
+        label: 'Ambient',
+        colorValue: 0xFF5E8C9E,
+      ),
+      SearchGenreEntity(
+        id: 'classical',
+        label: 'Classical',
+        colorValue: 0xFF8B5CF6,
+      ),
+      // ── Right column ───────────────────────────────────────────────────────
       SearchGenreEntity(
         id: 'electronic',
         label: 'Electronic',
@@ -225,20 +325,16 @@ class RealSearchRepositoryImpl implements SearchRepository {
       SearchGenreEntity(id: 'rnb', label: 'R&B', colorValue: 0xFF0FA3B1),
       SearchGenreEntity(id: 'party', label: 'Party', colorValue: 0xFFFF8C42),
       SearchGenreEntity(id: 'techno', label: 'Techno', colorValue: 0xFFFF4FA3),
-      SearchGenreEntity(id: 'folk', label: 'Folk', colorValue: 0xFFFF8C42),
-      SearchGenreEntity(id: 'soul', label: 'Soul', colorValue: 0xFF0FA3B1),
       SearchGenreEntity(
-        id: 'at_home',
-        label: 'At Home',
-        colorValue: 0xFFA259FF,
+        id: 'dance_edm',
+        label: 'Dance & EDM',
+        colorValue: 0xFF00B8D9,
       ),
-      SearchGenreEntity(id: 'study', label: 'Study', colorValue: 0xFFFF4FA3),
       SearchGenreEntity(
-        id: 'country',
-        label: 'Country',
-        colorValue: 0xFFFF8C42,
+        id: 'dancehall',
+        label: 'Dancehall',
+        colorValue: 0xFFFF6B35,
       ),
-      SearchGenreEntity(id: 'rock', label: 'Rock', colorValue: 0xFFFF3D2E),
       SearchGenreEntity(
         id: 'feel_good',
         label: 'Feel Good',
@@ -249,16 +345,33 @@ class RealSearchRepositoryImpl implements SearchRepository {
         label: 'Healing Era',
         colorValue: 0xFF2D6CDF,
       ),
+      SearchGenreEntity(id: 'folk', label: 'Folk', colorValue: 0xFFFF8C42),
+      SearchGenreEntity(id: 'soul', label: 'Soul', colorValue: 0xFF0FA3B1),
       SearchGenreEntity(id: 'latin', label: 'Latin', colorValue: 0xFFD94FFF),
     ];
   }
 
   @override
   Future<GenreDetailEntity> getGenreDetail(String genreId) async {
+    final backendUuid = GenreIdMapper.getId(genreId);
+    final hasUuid = backendUuid.isNotEmpty;
+    // Convert short id → human label for use as search keyword.
+    final label = _shortIdToLabel(genreId);
+
     final results = await Future.wait([
-      _api.getTrending(type: 'track', period: 'week'),
-      _api.searchCollections(q: genreId, tag: genreId, limit: 10),
-      _api.searchPeople(q: genreId, limit: 6),
+      _api.getTrending(
+        type: 'track',
+        period: 'week',
+        genreId: hasUuid ? backendUuid : null,
+      ),
+      // FIX: q must not be empty — use the genre label as the search keyword.
+      // The UUID is passed as tag so backend genre-filters correctly.
+      _api.searchCollections(
+        q: label,
+        tag: hasUuid ? backendUuid : null,
+        limit: 10,
+      ),
+      _api.searchPeople(q: label, limit: 6),
     ]);
 
     final trendingDto = results[0] as PaginatedTrendingResponseDto;
@@ -272,32 +385,62 @@ class RealSearchRepositoryImpl implements SearchRepository {
             title: i.name,
             artistName: i.artist,
             artworkUrl: i.coverUrl,
+            // TrendingItemDto has no durationSeconds — UI hides timer for 0.
             durationSeconds: 0,
-            playCount: _formatCount(i.score),
+            // FIX: score is non-nullable int — convert directly.
+            playCount: i.score.toString(),
           ),
         )
         .toList();
 
-    // First half goes to trending, second half to introducing/discover more
     final half = (allTracks.length / 2).ceil();
     final trendingTracks = allTracks.take(half).toList();
     final introducingTracks = allTracks.skip(half).toList();
 
     final playlists = collectionDto.items
         .where((c) => c.type.name == 'playlist')
-        .map(_collectionDtoToPlaylist)
+        .map(
+          (c) => PlaylistResultEntity(
+            id: c.id,
+            title: c.title,
+            creatorId: c.creatorId,
+            creatorName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
 
     final albums = collectionDto.items
         .where((c) => c.type.name == 'album')
-        .map(_collectionDtoToAlbum)
+        .map(
+          (c) => AlbumResultEntity(
+            id: c.id,
+            title: c.title,
+            artistName: c.creatorName,
+            artworkUrl: c.coverUrl,
+            trackCount: c.trackCount,
+          ),
+        )
         .toList();
 
-    final profiles = profileDto.items.map(_userDtoToEntity).toList();
+    final profiles = profileDto.items
+        .map(
+          (u) => ProfileResultEntity(
+            id: u.id,
+            username: u.username,
+            avatarUrl: u.avatarUrl,
+            location: u.location,
+            followersCount: u.followersCount,
+            isCertified: u.isCertified,
+            isFollowing: u.isFollowing,
+          ),
+        )
+        .toList();
 
     return GenreDetailEntity(
       genreId: genreId,
-      genreLabel: genreId,
+      genreLabel: label,
       trendingTracks: trendingTracks,
       introducingTracks: introducingTracks,
       playlists: playlists,
@@ -306,55 +449,48 @@ class RealSearchRepositoryImpl implements SearchRepository {
     );
   }
 
-  PlaylistResultEntity _collectionDtoToPlaylist(CollectionDto c) {
-    return PlaylistResultEntity(
-      id: c.id,
-      title: c.title,
-      creatorName: c.creatorName,
-      artworkUrl: c.coverUrl,
-      trackCount: c.trackCount,
-    );
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Converts a short genre id back to a human-readable label for display
+  /// and for use as a people-search keyword.
+  static const Map<String, String> _shortIdLabels = {
+    'hip_hop_rap': 'Hip Hop & Rap',
+    'pop': 'Pop',
+    'chill': 'Chill',
+    'workout': 'Workout',
+    'house': 'House',
+    'at_home': 'At Home',
+    'study': 'Study',
+    'indie': 'Indie',
+    'country': 'Country',
+    'rock': 'Rock',
+    'ambient': 'Ambient',
+    'classical': 'Classical',
+    'electronic': 'Electronic',
+    'rnb': 'R&B',
+    'party': 'Party',
+    'techno': 'Techno',
+    'dance_edm': 'Dance & EDM',
+    'dancehall': 'Dancehall',
+    'feel_good': 'Feel Good',
+    'healing_era': 'Healing Era',
+    'folk': 'Folk',
+    'soul': 'Soul',
+    'latin': 'Latin',
+  };
+
+  String _shortIdToLabel(String id) => _shortIdLabels[id] ?? id;
+
+  String _formatCount(int? n) {
+    if (n == null || n == 0) return '0';
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
+    return n.toString();
   }
 
-  AlbumResultEntity _collectionDtoToAlbum(CollectionDto c) {
-    return AlbumResultEntity(
-      id: c.id,
-      title: c.title,
-      artistName: c.creatorName,
-      artworkUrl: c.coverUrl,
-      trackCount: c.trackCount,
-    );
-  }
-
-  ProfileResultEntity _userDtoToEntity(UserPreviewDto u) {
-    return ProfileResultEntity(
-      id: u.id,
-      username: u.username,
-      avatarUrl: u.avatarUrl,
-      location: u.location,
-      followersCount: u.followersCount,
-      isVerified: u.verified,
-      isFollowing: u.isFollowing,
-    );
-  }
-
-  String _formatCount(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M';
-    }
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K';
-    }
-    return count.toString();
-  }
-
-  String _formatFollowers(int count) {
-    if (count >= 1000000) {
-      return '${(count / 1000000).toStringAsFixed(1)}M followers';
-    }
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(1)}K followers';
-    }
-    return '$count followers';
+  String _formatFollowers(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M followers';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K followers';
+    return '$n followers';
   }
 }

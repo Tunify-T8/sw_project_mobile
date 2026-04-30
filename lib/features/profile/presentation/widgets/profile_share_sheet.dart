@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/network/api_endpoints.dart';
+import '../../../audio_upload_and_management/presentation/widgets/your_uploads/your_uploads_options_actions.dart';
+
 class ProfileShareSheet {
   final BuildContext context;
   final String userName;
@@ -48,7 +51,11 @@ class ProfileShareSheet {
   Widget _buildSocialLinks() {
     final links = [
       if (instagram != null && instagram!.isNotEmpty)
-        {'icon': FontAwesomeIcons.instagram, 'url': instagram!, 'label': instagram!},
+        {
+          'icon': FontAwesomeIcons.instagram,
+          'url': instagram!,
+          'label': instagram!,
+        },
       if (twitter != null && twitter!.isNotEmpty)
         {'icon': FontAwesomeIcons.xTwitter, 'url': twitter!, 'label': twitter!},
       if (youtube != null && youtube!.isNotEmpty)
@@ -58,7 +65,11 @@ class ProfileShareSheet {
       if (tiktok != null && tiktok!.isNotEmpty)
         {'icon': FontAwesomeIcons.tiktok, 'url': tiktok!, 'label': tiktok!},
       if (soundcloud != null && soundcloud!.isNotEmpty)
-        {'icon': FontAwesomeIcons.soundcloud, 'url': soundcloud!, 'label': soundcloud!},
+        {
+          'icon': FontAwesomeIcons.soundcloud,
+          'url': soundcloud!,
+          'label': soundcloud!,
+        },
     ];
 
     if (links.isEmpty) return const SizedBox.shrink();
@@ -122,11 +133,12 @@ class ProfileShareSheet {
                   backgroundImage: profileImage != null
                       ? FileImage(profileImage!)
                       : _hasLocalProfileImage
-                          ? FileImage(File(profileImagePath!))
-                          : _hasRemoteProfileImage
-                              ? NetworkImage(profileImagePath!)
-                              : null,
-                  child: profileImage == null &&
+                      ? FileImage(File(profileImagePath!))
+                      : _hasRemoteProfileImage
+                      ? NetworkImage(profileImagePath!)
+                      : null,
+                  child:
+                      profileImage == null &&
                           !_hasLocalProfileImage &&
                           !_hasRemoteProfileImage
                       ? const Icon(Icons.person, color: Colors.white)
@@ -155,39 +167,8 @@ class ProfileShareSheet {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  buildShareAction(Icons.send, 'Message'),
-                  buildShareAction(
-                    Icons.copy,
-                    'Copy Link',
-                    onTap: () {
-                      Clipboard.setData(
-                        ClipboardData(
-                            text: 'https://soundcloud.com/$userName'),
-                      );
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Link copied to clipboard!'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-                  buildShareAction(FontAwesomeIcons.whatsapp, 'WhatsApp'),
-                  buildShareAction(Icons.message, 'SMS'),
-                  buildShareAction(FontAwesomeIcons.facebookMessenger, 'Messenger'),
-                  buildShareAction(FontAwesomeIcons.instagram, 'Instagram'),
-                  buildShareAction(FontAwesomeIcons.facebook, 'Facebook'),
-                  buildShareAction(Icons.more_horiz, 'More'),
-                ],
-              ),
-            ),
+            const SizedBox(height: 12),
+            _buildShareRow(context),
             const SizedBox(height: 12),
             ListTile(
               leading: const Icon(Icons.radio, color: Colors.white),
@@ -214,33 +195,154 @@ class ProfileShareSheet {
     );
   }
 
-  Widget buildShareAction(IconData icon, String label, {VoidCallback? onTap}) =>
-      SizedBox(
-        width: 80,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade800,
-                  shape: BoxShape.circle,
-                ),
-                child: FaIcon(icon, color: Colors.white, size: 24),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+  Widget _buildShareRow(BuildContext context) {
+    final profileUrl = ApiEndpoints.shareProfileUrl(userName);
+
+    void copyLink() {
+      Clipboard.setData(ClipboardData(text: profileUrl));
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Link copied to clipboard!'),
+          duration: Duration(seconds: 2),
         ),
       );
+    }
+
+    return SizedBox(
+      height: 88,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.send_outlined,
+              label: 'Message',
+              onTap: () async {
+                final text = Uri.encodeComponent(
+                  'Check out $userName on Tunify: $profileUrl',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$text'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
+          YourUploadsShareButton(
+            icon: Icons.copy_outlined,
+            label: 'Copy link',
+            onTap: copyLink,
+          ),
+          YourUploadsShareButton(icon: Icons.qr_code_2, label: 'QR code'),
+          SocialShareButton(
+            faIcon: FontAwesomeIcons.whatsapp,
+            iconColor: const Color(0xFF25D366),
+            label: 'WhatsApp',
+            onTap: () async {
+              final msg = Uri.encodeComponent(
+                'Check out $userName on Tunify: $profileUrl',
+              );
+              await launchUrl(
+                Uri.parse('https://wa.me/?text=$msg'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          if (Platform.isAndroid)
+            YourUploadsShareButton(
+              icon: Icons.sms_outlined,
+              label: 'SMS',
+              onTap: () async {
+                final text = Uri.encodeComponent(
+                  'Check out $userName on Tunify: $profileUrl',
+                );
+                await launchUrl(
+                  Uri.parse('sms:?body=$text'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+            ),
+          SocialShareButton(
+            faIcon: FontAwesomeIcons.instagram,
+            iconColor: const Color(0xFFE1306C),
+            label: 'Stories',
+            onTap: () async {
+              await launchUrl(
+                Uri.parse(
+                  'instagram://sharesheet?text=${Uri.encodeComponent('Check out $userName on Tunify: $profileUrl')}',
+                ),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          SocialShareButton(
+            faIcon: FontAwesomeIcons.snapchat,
+            iconColor: const Color(0xFFFFFC00),
+            label: 'Snapchat',
+            onTap: () async {
+              await launchUrl(
+                Uri.parse(
+                  'snapchat://send?text=${Uri.encodeComponent('Check out $userName on Tunify: $profileUrl')}',
+                ),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          SocialShareButton(
+            faIcon: FontAwesomeIcons.facebook,
+            iconColor: const Color(0xFF1877F2),
+            label: 'Facebook',
+            onTap: () async {
+              await launchUrl(
+                Uri.parse(
+                  'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(profileUrl)}',
+                ),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          SocialShareButton(
+            faIcon: FontAwesomeIcons.xTwitter,
+            iconColor: Colors.white,
+            label: 'X',
+            onTap: () async {
+              final text = Uri.encodeComponent(
+                'Check out $userName on Tunify: $profileUrl',
+              );
+              await launchUrl(
+                Uri.parse('https://twitter.com/intent/tweet?text=$text'),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          SocialShareButton(
+            faIcon: FontAwesomeIcons.facebookMessenger,
+            iconColor: const Color(0xFF0084FF),
+            label: 'Messenger',
+            onTap: () async {
+              await launchUrl(
+                Uri.parse(
+                  'fb-messenger://share?link=${Uri.encodeComponent(profileUrl)}',
+                ),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+          YourUploadsShareButton(
+            icon: Icons.more_horiz,
+            label: 'More',
+            onTap: () async {
+              await launchUrl(
+                Uri.parse(profileUrl),
+                mode: LaunchMode.externalApplication,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   void showInfoSheet() {
     showModalBottomSheet(

@@ -101,22 +101,15 @@ class _LibraryHistoryTile extends ConsumerWidget {
                 final playableHistory = queueTracks
                     .where((item) => item.status != PlaybackStatus.blocked)
                     .toList(growable: false);
-                final queueItems = playableHistory
-                    .map(
-                      (item) => _historyTrackToUploadItem(
-                        item,
-                        storedUploadItemForTrack(store, item.trackId),
-                      ),
-                    )
-                    .toList(growable: false);
                 final selected = _historyTrackToUploadItem(track, stored);
 
-                await openUploadItemPlayer(
+                await openHistorySourcedPlayer(
                   context,
                   ref,
                   selected,
-                  queueItems: queueItems,
+                  historyTracks: playableHistory,
                   openScreen: true,
+                  initialPositionSeconds: track.lastPositionSeconds.toDouble(),
                 );
               },
         child: Padding(
@@ -186,11 +179,14 @@ class _LibraryHistoryTile extends ConsumerWidget {
                 width: 32,
                 child: Center(
                   child: GestureDetector(
-                    onTap: () {
-                      showTrackOptionsSheet(
-                        context,
-                        info: TrackOptionInfo.fromHistory(track),
-                        ref: ref,
+                    onTap: () async {
+                      await showTrackOptionsMenu(
+                        context: context,
+                        trackId: track.trackId,
+                        title: track.title,
+                        artistId: track.artist.id,
+                        artistName: track.artist.name,
+                        coverUrl: track.coverUrl,
                       );
                     },
                     child: const Padding(

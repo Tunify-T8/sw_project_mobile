@@ -10,7 +10,11 @@ import '../providers/player_provider.dart';
 import '../widgets/blocked_track_view.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_waveform_bar.dart';
+import '../widgets/track_options_sheet.dart';
 import 'queue_screen.dart';
+import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../../../engagements_social_interactions/presentation/screens/likers_screen.dart'; // engagement addition
 
 part 'player_screen_body.dart';
 part 'player_screen_visuals.dart';
@@ -51,6 +55,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final playerState = ref.read(playerProvider).asData?.value;
       if (playerState?.isPlaying == true) _artworkController.forward();
+      final trackId = playerState?.bundle?.trackId;
+      if (trackId != null) {
+        ref
+            .read(engagementProvider(trackId).notifier)
+            .loadEngagement(); // engagement addition — load engagement for the initial track on screen open
+      }
     });
   }
 
@@ -71,18 +81,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         _artworkController.forward();
       } else if (!isPlaying && wasPlaying) {
         _artworkController.reverse();
-      }
-
-      // Reset swipe direction once the track actually changes so that
-      // subsequent rebuilds don't keep applying the slide offset.
-      final prevId = prev?.asData?.value.bundle?.trackId;
-      final nextId = next.asData?.value.bundle?.trackId;
-      if (prevId != null && nextId != null && prevId != nextId) {
-        // Use addPostFrameCallback so the AnimatedSwitcher picks up _swipeDir
-        // during the current frame before we clear it.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _swipeDir = 0);
-        });
       }
     });
 

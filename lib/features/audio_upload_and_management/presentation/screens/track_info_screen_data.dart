@@ -2,14 +2,12 @@ part of 'track_info_screen.dart';
 
 class _MockTrackStats {
   const _MockTrackStats({
-    required this.playCountText,
     required this.likeCountText,
     required this.commentCountText,
     required this.repostCountText,
     required this.releaseDateText,
   });
 
-  final String playCountText;
   final String likeCountText;
   final String commentCountText;
   final String repostCountText;
@@ -17,14 +15,12 @@ class _MockTrackStats {
 
   factory _MockTrackStats.fromItem(UploadItem item) {
     final seed = item.id.hashCode.abs();
-    final playCount = 450000 + (seed % 900000);
     final likes = 14000 + (seed % 22000);
     final comments = 70 + (seed % 300);
     final reposts = 40 + (seed % 220);
     final date = item.createdAt;
 
     return _MockTrackStats(
-      playCountText: _compactNumber(playCount),
       likeCountText: _compactNumber(likes),
       commentCountText: '$comments',
       repostCountText: '$reposts',
@@ -61,74 +57,114 @@ class _MockTrackStats {
   }
 }
 
-class _LeaderboardEntry {
-  const _LeaderboardEntry({required this.name, required this.plays});
+final _trackInfoArtistProfileProvider = FutureProvider.autoDispose
+    .family<ProfileDto?, String>((ref, trackId) async {
+      var artistId = _resolveTrackArtistIdFromProvider(ref, trackId);
+      if (artistId == null || artistId.isEmpty) {
+        try {
+          final bundle = await ref
+              .read(playerRepositoryProvider)
+              .getPlaybackBundle(trackId);
+          artistId = bundle.artist.id.trim();
+        } catch (_) {
+          artistId = null;
+        }
+      }
+      if (artistId == null || artistId.isEmpty) return null;
+      return ref.read(profileRepositoryProvider).getProfileById(artistId);
+    });
 
-  final String name;
-  final int plays;
-}
+final _artistPublicPlaylistsProvider = FutureProvider.autoDispose
+    .family<List<PlaylistSummaryEntity>, String>((ref, username) async {
+      final safeUsername = username.trim();
+      if (safeUsername.isEmpty) return const <PlaylistSummaryEntity>[];
 
-List<_LeaderboardEntry> _mockLeaderboard(UploadItem item) {
-  final seed = item.id.hashCode.abs();
-  const names = [
-    'Mody Mohamed',
-    'Reham Kareem',
-    'User 921620114',
-    'Adam Sharif',
-    'Abdalrahman Ahmed',
-  ];
-
-  return List.generate(names.length, (index) {
-    final plays = 110 + ((seed + index * 29) % 140);
-    return _LeaderboardEntry(name: names[index], plays: plays);
-  });
-}
-
-class _PlaylistCardData {
-  const _PlaylistCardData({
-    required this.title,
-    required this.owner,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final String owner;
-  final IconData icon;
-  final Color color;
-}
-
-List<_PlaylistCardData> _mockPlaylists(UploadItem item) {
-  final safeArtist = item.artistDisplay.split(',').first.trim();
-
-  return const [
-    _PlaylistCardData(
-      title: 'Summer Nights',
-      owner: 'Mosaab',
-      icon: Icons.nights_stay_outlined,
-      color: Color(0xFF6A4B2B),
-    ),
-    _PlaylistCardData(
-      title: 'el lol',
-      owner: 'Wilo Ellol',
-      icon: Icons.mic_none_rounded,
-      color: Color(0xFF8B6B49),
-    ),
-    _PlaylistCardData(
-      title: 'Arabic',
-      owner: 'Mirzana',
-      icon: Icons.queue_music_rounded,
-      color: Color(0xFF3E2C23),
-    ),
-  ].map((playlist) {
-    if (playlist.title == 'Summer Nights') {
-      return _PlaylistCardData(
-        title: item.title,
-        owner: safeArtist.isEmpty ? playlist.owner : safeArtist,
-        icon: playlist.icon,
-        color: playlist.color,
+      final repo = ref.read(playlistRepositoryProvider);
+      final result = await repo.getUserPlaylists(
+        username: safeUsername,
+        limit: 20,
       );
-    }
-    return playlist;
-  }).toList();
+      final publicPlaylists = result.items
+          .where(
+            (playlist) =>
+                playlist.type == CollectionType.playlist &&
+                playlist.privacy == CollectionPrivacy.public,
+          )
+          .toList(growable: false);
+      return _resolvePlaylistCovers(repo, publicPlaylists);
+    });
+
+String? _resolveTrackArtistIdFromProvider(Ref ref, String trackId) {
+  final storeOwner = ref
+      .read(globalTrackStoreProvider)
+      .ownerUserIdForTrack(trackId)
+      ?.trim();
+  if (storeOwner != null &&
+      storeOwner.isNotEmpty &&
+      storeOwner != '__global__') {
+    return storeOwner;
+  }
+
+  final bundle = ref.read(playerProvider).asData?.value.bundle;
+  if (bundle != null && bundle.trackId == trackId) {
+    final id = bundle.artist.id.trim();
+    if (id.isNotEmpty) return id;
+  }
+
+  return null;
+}
+
+Future<List<PlaylistSummaryEntity>> _resolvePlaylistCovers(
+  PlaylistRepository repo,
+  List<PlaylistSummaryEntity> playlists,
+) async {
+  final resolved = await Future.wait(
+    playlists.map((playlist) async {
+      if (playlist.coverUrl != null ||
+          playlist.trackCount <= 0 ||
+          playlist.type != CollectionType.playlist) {
+        return playlist;
+      }
+
+      try {
+        final tracks = await repo.getCollectionTracks(
+          collectionId: playlist.id,
+          limit: 1,
+        );
+        final firstTrackCover = tracks.items.isNotEmpty
+            ? tracks.items.first.coverUrl
+            : null;
+        if (firstTrackCover == null || firstTrackCover.isEmpty) {
+          return playlist;
+        }
+        return _copyPlaylistWithCover(playlist, firstTrackCover);
+      } catch (_) {
+        return playlist;
+      }
+    }),
+  );
+
+  return resolved;
+}
+
+PlaylistSummaryEntity _copyPlaylistWithCover(
+  PlaylistSummaryEntity playlist,
+  String coverUrl,
+) {
+  return PlaylistSummaryEntity(
+    id: playlist.id,
+    title: playlist.title,
+    description: playlist.description,
+    type: playlist.type,
+    privacy: playlist.privacy,
+    coverUrl: coverUrl,
+    trackCount: playlist.trackCount,
+    likeCount: playlist.likeCount,
+    repostsCount: playlist.repostsCount,
+    ownerFollowerCount: playlist.ownerFollowerCount,
+    isMine: playlist.isMine,
+    isLiked: playlist.isLiked,
+    createdAt: playlist.createdAt,
+    updatedAt: playlist.updatedAt,
+  );
 }

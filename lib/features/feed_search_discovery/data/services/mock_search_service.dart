@@ -40,6 +40,12 @@ class MockSearchService {
         artworkUrl: null,
       ),
       SearchGenreEntity(
+        id: 'ambient',
+        label: 'Ambient',
+        colorValue: 0xFF5E8C9E,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
         id: 'workout',
         label: 'Workout',
         colorValue: 0xFF10A674,
@@ -79,6 +85,24 @@ class MockSearchService {
         id: 'techno',
         label: 'Techno',
         colorValue: 0xFFFF4FA3,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'dance_edm',
+        label: 'Dance & EDM',
+        colorValue: 0xFF00B8D9,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'dancehall',
+        label: 'Dancehall',
+        colorValue: 0xFFFF6B35,
+        artworkUrl: null,
+      ),
+      SearchGenreEntity(
+        id: 'classical',
+        label: 'Classical',
+        colorValue: 0xFF8B5CF6,
         artworkUrl: null,
       ),
       SearchGenreEntity(
@@ -360,7 +384,7 @@ class MockSearchService {
       avatarUrl: null,
       location: 'United States',
       followersCount: 688000,
-      isVerified: true,
+      isCertified: true,
       isFollowing: false,
     ),
     ProfileResultEntity(
@@ -393,6 +417,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_001',
       title: 'OCTANE DON TOLIVER ALBUM',
+      creatorId: 'user_gbp',
       creatorName: 'GBP',
       artworkUrl: null,
       trackCount: 7,
@@ -400,6 +425,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_002',
       title: 'OCTANE - DON TOLIVER | NE...',
+      creatorId: 'user_run_it_up',
       creatorName: 'RUN IT UP',
       artworkUrl: null,
       trackCount: 6,
@@ -407,6 +433,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_003',
       title: 'OCTANE - DON TOLIVER [2026...',
+      creatorId: 'user_wave_cache',
       creatorName: 'The Wave Cache',
       artworkUrl: null,
       trackCount: 8,
@@ -414,6 +441,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_004',
       title: 'Trap Leg Day',
+      creatorId: 'user_trending_music',
       creatorName: 'Trending Music',
       artworkUrl: null,
       trackCount: 33,
@@ -421,6 +449,7 @@ class MockSearchService {
     PlaylistResultEntity(
       id: 'playlist_005',
       title: 'Hip Hop & Rap',
+      creatorId: 'user_discovery_playlists',
       creatorName: 'Discovery Playlists',
       artworkUrl: null,
       trackCount: 50,
@@ -470,8 +499,12 @@ class MockSearchService {
       'rnb': 'R&B',
       'party': 'Party',
       'chill': 'Chill',
+      'ambient': 'Ambient',
       'workout': 'Workout',
       'techno': 'Techno',
+      'dance_edm': 'Dance & EDM',
+      'dancehall': 'Dancehall',
+      'classical': 'Classical',
       'indie': 'Indie',
       'house': 'House',
       'soul': 'Soul',

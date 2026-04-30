@@ -9,8 +9,9 @@ import 'track_playback_bundle.dart';
 /// Lightweight fallback data used when we want to launch the player from
 /// Module 4 immediately using already-known upload details.
 ///
-/// This lets the UI play real uploaded audio right now while still supporting
-/// the dedicated Module 5 backend contract later.
+/// [resumePositionSeconds] is local-only Flutter state. It lets History and
+/// Recently Played resume from where the user stopped even when the backend
+/// does not store listening progress.
 class PlayerSeedTrack {
   const PlayerSeedTrack({
     required this.trackId,
@@ -21,6 +22,8 @@ class PlayerSeedTrack {
     this.waveformUrl,
     this.directAudioUrl,
     this.localFilePath,
+    this.resumePositionSeconds = 0,
+    this.playability,
   });
 
   final String trackId;
@@ -31,6 +34,8 @@ class PlayerSeedTrack {
   final String? waveformUrl;
   final String? directAudioUrl;
   final String? localFilePath;
+  final int resumePositionSeconds;
+  final PlayabilityInfo? playability;
 
   TrackPlaybackBundle toPlaybackBundle() {
     return TrackPlaybackBundle(
@@ -52,7 +57,7 @@ class PlayerSeedTrack {
         isReposted: false,
         isSaved: false,
       ),
-      playability: const PlayabilityInfo(
+      playability: playability ?? const PlayabilityInfo(
         status: PlaybackStatus.playable,
         regionBlocked: false,
         tierBlocked: false,

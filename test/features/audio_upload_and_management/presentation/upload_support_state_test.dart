@@ -29,7 +29,7 @@ import '../helpers/upload_test_data.dart';
 void main() {
   test('artist tools quota entity exposes derived getters', () {
     const quota = ArtistToolsQuota(
-      tier: ArtistTier.pro,
+      tier: ArtistTier.artist,
       uploadMinutesLimit: 180,
       uploadMinutesUsed: 30,
       canReplaceFiles: true,
@@ -109,6 +109,27 @@ void main() {
         const TrackMetadataState(title: 'Title', artists: ['Kevin']),
       ),
       isNull,
+    );
+    expect(
+      TrackMetadataValidator.validateForSave(
+        const TrackMetadataState(
+          title: 'Title',
+          artists: ['Kevin'],
+          availabilityType: 'exclusive_regions',
+        ),
+      ),
+      'Select at least one country for availability.',
+    );
+    expect(
+      TrackMetadataMapper.toEntity(
+        const TrackMetadataState(
+          title: 'Title',
+          artists: ['Kevin'],
+          availabilityType: 'excluded_regions',
+          availabilityRegionsText: 'Egypt, us, Egypt',
+        ),
+      ).availabilityRegions,
+      ['EG', 'US'],
     );
   });
 

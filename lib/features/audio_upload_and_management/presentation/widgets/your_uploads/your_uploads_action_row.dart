@@ -11,12 +11,14 @@ class YourUploadsActionRow extends StatelessWidget {
     required this.isUploadBusy,
     required this.onUploadTap,
     required this.onPlayTap,
+    required this.onShuffleTap,
   });
 
   final bool hasItems;
   final bool isUploadBusy;
   final VoidCallback onUploadTap;
   final VoidCallback onPlayTap;
+  final VoidCallback onShuffleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +54,7 @@ class YourUploadsActionRow extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            onPressed: hasItems ? () {} : null,
+            onPressed: hasItems ? onShuffleTap : null,
             icon: Icon(
               Icons.shuffle_rounded,
               color: hasItems ? Colors.white : Colors.white24,

@@ -1,10 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/network/connectivity_provider.dart';
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
 import '../../domain/entities/track_artist_summary.dart';
@@ -50,18 +51,36 @@ class ListeningHistoryState {
 
 class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
   static const int _pageSize = 20;
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   late GetListeningHistoryUsecase _getHistory;
   late PlayerRepository _repository;
 
   final List<HistoryTrack> _optimisticTracks = <HistoryTrack>[];
+  String _userId = '';
   bool _clearedLocally = false;
+  // Watermark recorded by clearHistory().  When non-null, any backend track
+  // whose playedAt is on-or-before this instant is dropped on load — that's
+  // how the client protects itself from a backend that silently failed to
+  // honour the clear request and keeps re-serving the old history.
+  DateTime? _clearedAt;
+
+  String get _historyKey => _userId.isEmpty
+      ? StorageKeys.cachedListeningHistory
+      : '${StorageKeys.cachedListeningHistory}_$_userId';
+
+  String get _clearedLocallyKey => _userId.isEmpty
+      ? StorageKeys.historyClearedLocally
+      : '${StorageKeys.historyClearedLocally}_$_userId';
+
+  String get _clearedAtKey => _userId.isEmpty
+      ? StorageKeys.historyClearedAt
+      : '${StorageKeys.historyClearedAt}_$_userId';
 
   @override
   Future<ListeningHistoryState> build() async {
     _repository = ref.watch(playerRepositoryProvider);
     _getHistory = GetListeningHistoryUsecase(_repository);
+    _userId = (await const TokenStorage().getUser())?.id.trim() ?? '';
 
     // When the device comes back online, flush any queued playback events and
     // pull the latest history from the server so local and remote stay in sync.
@@ -75,6 +94,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
 
     final cachedTracks = await _readCachedTracks();
     _clearedLocally = await _readClearedLocally();
+    _clearedAt = await _readClearedAt();
 
     if (_clearedLocally) {
       final localTracks = _applyOptimisticTo(const <HistoryTrack>[]);
@@ -89,7 +109,12 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
 
     try {
-      final backendTracks = await _getHistory(page: 1, limit: _pageSize);
+      // Drop any backend rows whose playedAt predates a previous clear.
+      // Defensive against a backend that silently failed to honour clear and
+      // keeps re-serving the pre-clear list.
+      final backendTracks = _filterByClearWatermark(
+        await _getHistory(page: 1, limit: _pageSize),
+      );
       final merged = _mergeLoadedTracks(
         backendTracks: backendTracks,
         cachedTracks: cachedTracks,
@@ -127,6 +152,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     state = await AsyncValue.guard(() async {
       final cachedTracks = await _readCachedTracks();
       _clearedLocally = await _readClearedLocally();
+      _clearedAt = await _readClearedAt();
 
       if (_clearedLocally) {
         final localTracks = _applyOptimisticTo(const <HistoryTrack>[]);
@@ -141,7 +167,9 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
         );
       }
 
-      final backendTracks = await _getHistory(page: 1, limit: _pageSize);
+      final backendTracks = _filterByClearWatermark(
+        await _getHistory(page: 1, limit: _pageSize),
+      );
       final merged = _mergeLoadedTracks(
         backendTracks: backendTracks,
         cachedTracks: cachedTracks,
@@ -173,7 +201,9 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     final nextPage = current.currentPage + 1;
 
     try {
-      final newTracks = await _getHistory(page: nextPage, limit: _pageSize);
+      final newTracks = _filterByClearWatermark(
+        await _getHistory(page: nextPage, limit: _pageSize),
+      );
       final existingIds = current.tracks.map((track) => track.trackId).toSet();
 
       final uniqueNewTracks = newTracks
@@ -204,6 +234,10 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     bool needsBackendSync = false,
   }) async {
     _clearedLocally = false;
+    // A new play resumes normal activity → the clear watermark is no longer
+    // meaningful. _persistLocalState below will delete the on-disk key as
+    // part of its wasClearedLocally:false branch.
+    _clearedAt = null;
     _rememberOptimisticTrack(track);
 
     final current = state.asData?.value;
@@ -230,9 +264,101 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     }
   }
 
+  // Called when a track has been deleted on the backend (soft-delete).
+  // Scrubs it from the in-memory list, the optimistic buffer, and the cached
+  // copy in secure storage — so the "recently played" view doesn't keep
+  // resurrecting a track that no longer exists. No-op if absent.
+  /// Updates only the locally saved resume position for an existing history item.
+  ///
+  /// This is the key part of Priority 2: Flutter keeps the user's
+  /// last listened position locally, so Recently Played / History can resume
+  /// from the right second even if the backend never stores progress.
+  Future<void> updateTrackProgress(
+    String trackId,
+    int positionSeconds,
+  ) async {
+    final safePosition = positionSeconds < 0 ? 0 : positionSeconds;
+
+    HistoryTrack updateOne(HistoryTrack track) {
+      if (track.trackId != trackId) return track;
+      final max = track.durationSeconds > 0 ? track.durationSeconds : safePosition;
+      final clamped = safePosition.clamp(0, max).toInt();
+      return track.copyWith(
+        lastPositionSeconds: clamped,
+        playedAt: DateTime.now(),
+      );
+    }
+
+    var touched = false;
+    for (var i = 0; i < _optimisticTracks.length; i++) {
+      if (_optimisticTracks[i].trackId == trackId) {
+        _optimisticTracks[i] = updateOne(_optimisticTracks[i]);
+        touched = true;
+        break;
+      }
+    }
+
+    final current = state.asData?.value;
+    if (current != null) {
+      final nextTracks = current.tracks.map((track) {
+        if (track.trackId == trackId) touched = true;
+        return updateOne(track);
+      }).toList(growable: false);
+
+      if (touched) {
+        state = AsyncData(current.copyWith(tracks: nextTracks));
+        await _persistLocalState(
+          nextTracks,
+          wasClearedLocally: current.wasClearedLocally,
+        );
+        return;
+      }
+    }
+
+    final cached = await _readCachedTracks();
+    final nextCached = cached.map((track) {
+      if (track.trackId == trackId) touched = true;
+      return updateOne(track);
+    }).toList(growable: false);
+
+    if (touched) {
+      await _persistLocalState(nextCached, wasClearedLocally: _clearedLocally);
+    }
+  }
+
+  Future<void> removeTrack(String trackId) async {
+    _optimisticTracks.removeWhere((track) => track.trackId == trackId);
+
+    final current = state.asData?.value;
+    if (current == null) {
+      // Still update the on-disk cache in case the provider is rebuilt later.
+      final cached = await _readCachedTracks();
+      final cleaned = cached.where((t) => t.trackId != trackId).toList();
+      if (cleaned.length != cached.length) {
+        await _persistLocalState(cleaned, wasClearedLocally: false);
+      }
+      return;
+    }
+
+    final filtered = current.tracks
+        .where((track) => track.trackId != trackId)
+        .toList();
+
+    // Nothing to do if the track wasn't in the list.
+    if (filtered.length == current.tracks.length) return;
+
+    state = AsyncData(current.copyWith(tracks: filtered));
+    await _persistLocalState(filtered, wasClearedLocally: false);
+  }
+
   Future<void> clearHistory() async {
     _optimisticTracks.clear();
     _clearedLocally = true;
+    // Stamp the moment of clear.  Used by build()/refresh() to ignore any
+    // backend entries with playedAt <= this timestamp, so a backend that
+    // never received (or silently dropped) the clear request can't
+    // resurrect the user's old history on next launch.
+    _clearedAt = DateTime.now();
 
     state = const AsyncData(
       ListeningHistoryState(
@@ -285,36 +411,68 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
 
   HistoryTrack _pickNewerTrack(HistoryTrack primary, HistoryTrack? secondary) {
     if (secondary == null) return primary;
-    return secondary.playedAt.isAfter(primary.playedAt) ? secondary : primary;
+    final chosen = secondary.playedAt.isAfter(primary.playedAt)
+        ? secondary
+        : primary;
+    final other = identical(chosen, primary) ? secondary : primary;
+    if (chosen.lastPositionSeconds <= 0 && other.lastPositionSeconds > 0) {
+      return chosen.copyWith(lastPositionSeconds: other.lastPositionSeconds);
+    }
+    return chosen;
+  }
+
+  /// Drops backend tracks whose playedAt is on-or-before the local clear
+  /// watermark, so a backend that lost (or ignored) the clear request can't
+  /// resurrect the user's old history on the next launch.  No-op if the
+  /// user has never cleared (watermark = null).
+  List<HistoryTrack> _filterByClearWatermark(List<HistoryTrack> tracks) {
+    final watermark = _clearedAt;
+    if (watermark == null) return tracks;
+    return tracks
+        .where((t) => t.playedAt.isAfter(watermark))
+        .toList(growable: false);
   }
 
   List<HistoryTrack> _applyOptimisticTo(List<HistoryTrack> tracks) {
-    final filtered = tracks
-        .where(
-          (track) => !_optimisticTracks.any(
-            (local) => local.trackId == track.trackId,
-          ),
-        )
-        .toList(growable: false);
+    // Build the final list with a single seen-set so:
+    //   - optimistic entries always come first (most recent activity)
+    //   - any duplicate trackId in `tracks` is collapsed to one entry
+    //   - any duplicate trackId between optimistic and `tracks` keeps the
+    //     optimistic version (it has the freshest playedAt)
+    //
+    // Bug-fix note: previously the filter and concat preserved duplicates
+    // that already existed inside `tracks`.  The user reported the same song
+    // appearing twice in History, and the cleanest guard is here at the
+    // funnel point that produces the list the UI actually renders.
+    final seen = <String>{};
+    final result = <HistoryTrack>[];
 
-    return [..._optimisticTracks, ...filtered];
+    for (final track in _optimisticTracks) {
+      if (seen.add(track.trackId)) result.add(track);
+    }
+    for (final track in tracks) {
+      if (seen.add(track.trackId)) result.add(track);
+    }
+
+    return result;
   }
 
   void _rememberOptimisticTrack(HistoryTrack track) {
-    // If this exact track was already recorded within the last 60 seconds,
-    // keep the existing entry instead of duplicating it. This prevents the
-    // same song from appearing twice when it is played from two different
-    // places (e.g. "My Uploads" and "Recently Played") in quick succession.
     final existingIdx = _optimisticTracks.indexWhere(
       (t) => t.trackId == track.trackId,
     );
+
     if (existingIdx != -1) {
-      final age = DateTime.now().difference(
-        _optimisticTracks[existingIdx].playedAt,
+      final existing = _optimisticTracks.removeAt(existingIdx);
+      final merged = track.copyWith(
+        lastPositionSeconds: track.lastPositionSeconds > 0
+            ? track.lastPositionSeconds
+            : existing.lastPositionSeconds,
       );
-      if (age.inSeconds < 60) return; // recent enough — keep existing entry
-      _optimisticTracks.removeAt(existingIdx);
+      _optimisticTracks.insert(0, merged);
+      return;
     }
+
     _optimisticTracks.insert(0, track);
   }
 
@@ -322,23 +480,35 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
     List<HistoryTrack> tracks, {
     required bool wasClearedLocally,
   }) async {
-    await _storage.write(
-      key: StorageKeys.cachedListeningHistory,
+    await SafeSecureStorage.write(
+      key: _historyKey,
       value: jsonEncode(tracks.map(_historyTrackToJson).toList()),
     );
 
     if (wasClearedLocally) {
-      await _storage.write(
-        key: StorageKeys.historyClearedLocally,
+      await SafeSecureStorage.write(
+        key: _clearedLocallyKey,
         value: 'true',
       );
+      // Watermark in lockstep with the flag so build()/refresh() can drop
+      // any backend rows older than the moment of clear, even if the
+      // backend's own clear request silently failed.
+      if (_clearedAt != null) {
+        await SafeSecureStorage.write(
+          key: _clearedAtKey,
+          value: _clearedAt!.toIso8601String(),
+        );
+      }
     } else {
-      await _storage.delete(key: StorageKeys.historyClearedLocally);
+      // Resumed normal activity (e.g. a new trackPlayed) — drop both the
+      // flag AND the watermark so future plays aren't filtered out.
+      await SafeSecureStorage.delete(_clearedLocallyKey);
+      await SafeSecureStorage.delete(_clearedAtKey);
     }
   }
 
   Future<List<HistoryTrack>> _readCachedTracks() async {
-    final raw = await _storage.read(key: StorageKeys.cachedListeningHistory);
+    final raw = await SafeSecureStorage.read(_historyKey);
     if (raw == null || raw.isEmpty) {
       return const <HistoryTrack>[];
     }
@@ -350,14 +520,20 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
           .map(_historyTrackFromJson)
           .toList(growable: false);
     } catch (_) {
-      await _storage.delete(key: StorageKeys.cachedListeningHistory);
+      await SafeSecureStorage.delete(_historyKey);
       return const <HistoryTrack>[];
     }
   }
 
   Future<bool> _readClearedLocally() async {
-    final raw = await _storage.read(key: StorageKeys.historyClearedLocally);
+    final raw = await SafeSecureStorage.read(_clearedLocallyKey);
     return raw == 'true';
+  }
+
+  Future<DateTime?> _readClearedAt() async {
+    final raw = await SafeSecureStorage.read(_clearedAtKey);
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
   }
 
   Map<String, dynamic> _historyTrackToJson(HistoryTrack track) {
@@ -374,6 +550,7 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       },
       'playedAt': track.playedAt.toIso8601String(),
       'durationSeconds': track.durationSeconds,
+      'lastPositionSeconds': track.lastPositionSeconds,
       'status': _statusToString(track.status),
       'coverUrl': track.coverUrl,
       'genre': track.genre,
@@ -402,7 +579,12 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       ),
       playedAt:
           DateTime.tryParse((json['playedAt'] ?? '').toString()) ??
-          DateTime.now(),
+          // Sentinel: epoch means "we don't know when". This makes the clear
+          // watermark filter (build/refresh/loadMore) correctly DROP this
+          // record instead of keeping it (DateTime.now() always passed the
+          // filter, so old cached tracks with missing playedAt would resurrect
+          // after the user cleared their history).
+          DateTime.fromMillisecondsSinceEpoch(0),
       durationSeconds: (json['durationSeconds'] as int?) ?? 0,
       status: _statusFromString((json['status'] ?? 'playable').toString()),
       coverUrl: json['coverUrl'] as String?,
@@ -410,6 +592,9 @@ class ListeningHistoryNotifier extends AsyncNotifier<ListeningHistoryState> {
       releaseDate: json['releaseDate'] == null
           ? null
           : DateTime.tryParse(json['releaseDate'].toString()),
+      lastPositionSeconds:
+          (json['lastPositionSeconds'] as int?) ??
+          ((json['positionSeconds'] as num?)?.round() ?? 0),
       likeCount: (json['likeCount'] as int?) ?? 0,
       commentCount: (json['commentCount'] as int?) ?? 0,
       repostCount: (json['repostCount'] as int?) ?? 0,

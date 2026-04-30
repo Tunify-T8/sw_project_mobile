@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 
 class EditProfileScreen extends StatefulWidget {
   final String userName;
+  final String displayName;
   final String bio;
   final String city;
   final String country;
@@ -26,12 +27,14 @@ class EditProfileScreen extends StatefulWidget {
   final String? tiktok;
   final String? soundcloud;
   final String userType;
+  final String role;
   final String? profileImageUrl;
   final String? coverImageUrl; //3lshan yfdal shayef el soora
 
   const EditProfileScreen({
     super.key,
     required this.userName,
+    this.displayName = '',
     required this.bio,
     required this.city,
     required this.country,
@@ -46,6 +49,7 @@ class EditProfileScreen extends StatefulWidget {
     this.profileImageUrl,
     this.coverImageUrl,
     this.userType = 'ARTIST',
+    this.role = 'USER',
   });
 
   @override
@@ -91,7 +95,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.userName);
+    _nameController = TextEditingController(text: widget.displayName);
     _cityController = TextEditingController(text: widget.city);
     _countryController = TextEditingController(text: widget.country);
     _bioController = TextEditingController(text: widget.bio);
@@ -110,7 +114,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _originalCoverImage = widget.coverImage;
     _originalProfileImageUrl = widget.profileImageUrl;
     _originalCoverImageUrl = widget.coverImageUrl;
-    _isArtist = widget.userType == 'ARTIST';
+    final normalizedUserType = widget.userType.toUpperCase();
+    final normalizedRole = widget.role.toUpperCase();
+    _isArtist = normalizedRole == 'ARTIST'
+        ? true
+        : normalizedRole == 'LISTENER'
+        ? false
+        : normalizedUserType == 'ARTIST';
   }
 
   @override
@@ -189,8 +199,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget buildSaveButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+      // Key: ProfileKeys.saveButton
       child: ElevatedButton(
+        key: const Key('edit_profile_save_button'),
         onPressed: () async {
+          if (_nameController.text.trim().isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Display name cannot be empty')),
+            );
+            return;
+          }
+
           String? profileUrl;
           String? coverUrl;
 
@@ -229,7 +248,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           Navigator.of(context).pop(
             ProfileDto(
-              userName: _nameController.text,
+              // userName: _nameController.text, // was editing username which rejects spaces
+              userName: widget.userName,
+              displayName: _nameController.text,
               city: _cityController.text,
               country: _countryController.text,
               bio: _bioController.text,
@@ -304,6 +325,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       picked = await _picker.pickImage(
         source: source,
+        imageQuality: 70,   // compress to ~70% to keep file size small
+        maxWidth: 1080,
+        maxHeight: 1080,
       ); //source 3lshan ya2ma camera ya2ma gallery
     } on PlatformException {
       if (!mounted) return;
@@ -429,7 +453,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ],
           ),
+          // Key: ProfileKeys.accountTypeSwitch
           Switch(
+            key: const Key('edit_profile_account_type_switch'),
             value: _isArtist,
             activeThumbColor: const Color(0xFF3A5F8A),
             onChanged: (val) {

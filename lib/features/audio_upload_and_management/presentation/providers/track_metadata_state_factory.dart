@@ -38,7 +38,7 @@ TrackMetadataState buildEditTrackMetadataState({
     hasScheduledRelease: item.scheduledReleaseDate != null,
     scheduledReleaseDate: item.scheduledReleaseDate,
     contentWarning: item.isExplicit,
-    allowDownloads: item.allowDownloads,
+    allowDownloads: true,
     offlineListening: item.offlineListening,
     includeInRss: item.includeInRss,
     displayEmbedCode: item.displayEmbedCode,

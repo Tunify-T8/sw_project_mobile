@@ -5,9 +5,15 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
+// Post-delete cleanup imports: after a track is deleted we stop playback if
+// it's the currently playing track and scrub it from listening history.
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../data/dto/upload_item_dto.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
@@ -15,6 +21,7 @@ import '../../shared/upload_error_helpers.dart';
 import 'library_uploads_filter.dart';
 import 'library_uploads_repository_provider.dart';
 import 'library_uploads_state.dart';
+import '../../../feed_search_discovery/presentation/providers/search_provider.dart';
 
 final libraryUploadsProvider =
     NotifierProvider<LibraryUploadsNotifier, LibraryUploadsState>(
@@ -22,8 +29,6 @@ final libraryUploadsProvider =
     );
 
 class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
-
   @override
   LibraryUploadsState build() => const LibraryUploadsState();
 
@@ -137,6 +142,19 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       await _persistCachedUploads(updated);
       _syncGlobalTrackStore(updated);
 
+      // Post-delete cleanup:
+      // 1) If this track is currently playing, stop audio and dismiss the
+      //    mini-player — the underlying stream URL is about to 404 anyway,
+      //    and the "still playing after delete" behaviour (M5-011B) was a
+      //    user-visible bug.
+      // 2) Remove the track from listening history so "recently played"
+      //    doesn't resurrect a track that no longer exists on the backend.
+      // Both helpers are no-ops when the track isn't present, so they're
+      // safe to call unconditionally.
+      await ref.read(playerProvider.notifier).stopIfPlaying(trackId);
+      await ref.read(listeningHistoryProvider.notifier).removeTrack(trackId);
+      ref.read(searchProvider.notifier).invalidateTrackFromRecents(trackId);
+
       state = state.copyWith(
         items: updated,
         filteredItems: _filtered(source: updated),
@@ -191,6 +209,9 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
             privacy: privacy,
             localArtworkPath: localArtworkPath,
           );
+      if (privacy == 'private') {
+        ref.read(searchProvider.notifier).invalidateTrackFromRecents(trackId);
+      }
       await refresh();
       state = state.copyWith(clearBusyTrackId: true);
     } catch (error, stackTrace) {
@@ -214,6 +235,20 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
     sort: sort ?? state.sortOrder,
     visibility: visibility ?? state.visibilityFilter,
   );
+
+  /// Returns the storage key for the current user's uploads cache.
+  ///
+  /// Scoped per user so signing in as a different account never loads the
+  /// previous user's upload list from disk.
+  Future<String> _uploadsKey() async {
+    final userId =
+        ref.read(authControllerProvider).asData?.value?.id.trim() ??
+        (await const TokenStorage().getUser())?.id.trim() ??
+        '';
+    return userId.isEmpty
+        ? StorageKeys.cachedLibraryUploads
+        : '${StorageKeys.cachedLibraryUploads}_$userId';
+  }
 
   Future<void> _persistCachedUploads(List<UploadItem> uploads) async {
     final payload = uploads
@@ -260,14 +295,15 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
         )
         .toList(growable: false);
 
-    await _storage.write(
-      key: StorageKeys.cachedLibraryUploads,
+    await SafeSecureStorage.write(
+      key: await _uploadsKey(),
       value: jsonEncode(payload),
     );
   }
 
   Future<List<UploadItem>> _readCachedUploads() async {
-    final raw = await _storage.read(key: StorageKeys.cachedLibraryUploads);
+    final key = await _uploadsKey();
+    final raw = await SafeSecureStorage.read(key);
     if (raw == null || raw.isEmpty) {
       return const <UploadItem>[];
     }
@@ -280,7 +316,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
           .map(_uploadItemFromDto)
           .toList(growable: false);
     } catch (_) {
-      await _storage.delete(key: StorageKeys.cachedLibraryUploads);
+      await SafeSecureStorage.delete(key);
       return const <UploadItem>[];
     }
   }
@@ -336,7 +372,7 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       tags: dto.tags,
       genreCategory: dto.genreCategory,
       genreSubGenre: dto.genreSubGenre,
-      visibility: dto.privacy == 'public'
+      visibility: dto.privacy.trim().toLowerCase() == 'public'
           ? UploadVisibility.public
           : UploadVisibility.private,
       status: _dtoStatusToEntityStatus(dto.status),
@@ -361,14 +397,26 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
   }
 
   UploadProcessingStatus _dtoStatusToEntityStatus(String value) {
-    switch (value) {
+    switch (value.trim().toLowerCase()) {
       case 'processing':
       case 'uploading':
+      case 'pending':
+      case 'queued':
+      case 'transcoding':
         return UploadProcessingStatus.processing;
       case 'failed':
+      case 'failure':
+      case 'error':
         return UploadProcessingStatus.failed;
       case 'deleted':
         return UploadProcessingStatus.deleted;
+      case 'finished':
+      case 'ready':
+      case 'completed':
+      case 'complete':
+      case 'succeeded':
+      case 'success':
+      case 'published':
       default:
         return UploadProcessingStatus.finished;
     }

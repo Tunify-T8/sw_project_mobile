@@ -58,25 +58,57 @@ extension TrackResponseDtoMapper on TrackResponseDto {
       licensing: licensing?.type,
       errorCode: errorCode,
       errorMessage: errorMessage,
+      privateToken: _readPrivateToken(this),
+      ownerUserId: ownerUserId,
     );
   }
 
   UploadStatus _mapStatus(String value) {
-    switch (value) {
+    switch (value.trim().toLowerCase()) {
       case 'idle':
         return UploadStatus.idle;
       case 'uploading':
         return UploadStatus.uploading;
       case 'processing':
+      case 'pending':
+      case 'queued':
+      case 'transcoding':
         return UploadStatus.processing;
       case 'finished':
+      case 'ready':
+      case 'completed':
+      case 'complete':
+      case 'succeeded':
+      case 'success':
+      case 'published':
         return UploadStatus.finished;
       case 'failed':
+      case 'failure':
+      case 'error':
         return UploadStatus.failed;
       case 'deleted':
         return UploadStatus.deleted;
       default:
-        return UploadStatus.failed;
+        return UploadStatus.finished;
     }
   }
+}
+
+String? _readPrivateToken(TrackResponseDto dto) {
+  final rawToken = dto.rawJson?['privateToken'];
+  if (rawToken is String && rawToken.trim().isNotEmpty) {
+    return rawToken.trim();
+  }
+
+  try {
+    final dynamic dynamicDto = dto;
+    final token = dynamicDto.privateToken;
+    if (token is String && token.trim().isNotEmpty) {
+      return token.trim();
+    }
+  } catch (_) {
+    // Older generated/test DTO shapes may not expose privateToken directly.
+  }
+
+  return null;
 }

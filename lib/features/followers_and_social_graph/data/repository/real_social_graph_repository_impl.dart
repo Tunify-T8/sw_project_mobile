@@ -37,6 +37,24 @@ class SocialGraphRepositoryImpl implements SocialGraphRepository {
   }
 
   @override
+  Future<bool> doesUserFollowMe(String otherUserId, String myUserId) async {
+    // Page through who the other user follows and check if my id is there.
+    // Stops early on the first match. Capped to avoid unbounded paging.
+    const pageSize = 100;
+    const maxPages = 20;
+    for (var page = 1; page <= maxPages; page++) {
+      final batch = await api.getUserFollowing(
+        userId: otherUserId,
+        page: page,
+        limit: pageSize,
+      );
+      if (batch.any((u) => u.id == myUserId)) return true;
+      if (batch.length < pageSize) return false;
+    }
+    return false;
+  }
+
+  @override
   Future<List<SocialUserEntity>> getUserFollowers({
     required String userId,
     int page = 1,

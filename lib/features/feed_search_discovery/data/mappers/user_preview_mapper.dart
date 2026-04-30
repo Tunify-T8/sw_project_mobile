@@ -8,7 +8,7 @@ extension UserPreviewMapper on UserPreviewDto {
       username: username,
       avatarUrl: avatarUrl,
       followersCount: followersCount,
-      verified: verified,
+      isCertified: isCertified,
       location: location,
       isFollowing: isFollowing,
     );

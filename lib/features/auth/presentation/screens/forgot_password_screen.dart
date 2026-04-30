@@ -12,13 +12,21 @@ import 'package:software_project/shared/ui/widgets/app_button.dart';
 import 'package:software_project/shared/ui/widgets/app_text_field.dart';
 import 'package:software_project/core/utils/url_launcher_util.dart';
 
-/// Forgot password screen.
+/// Forgot password screen — entry point for the password-reset flow.
 ///
-/// User enters their email and taps "Send reset link".
-/// Navigates directly to [ResetPasswordScreen]
-/// so the user can enter the code from their inbox immediately.
+/// The user enters their registered email and taps "Send reset link".
+/// The screen then navigates to [ResetPasswordScreen] regardless of whether
+/// the email exists in the database. This is intentional — never revealing
+/// email existence is a security requirement (prevents account enumeration).
+///
+/// ── Key assignment ────────────────────────────────────────────────────────────
+/// Widget keys follow `AuthKeys` in `test/features/auth/helpers/auth_selectors.dart`:
+///   - [AuthKeys.forgotPasswordEmailField] → email [AppTextField]
+///   - [AuthKeys.sendResetLinkButton]      → "Send reset link" [AppButton]
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
+  /// Optional pre-filled email (passed from [PasswordScreen] via route args).
   final String? initialEmail;
+
   const ForgotPasswordScreen({super.key, this.initialEmail});
 
   @override
@@ -29,6 +37,8 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   late final TextEditingController _emailController;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  /// Whether the "Send reset link" button is currently showing a spinner.
   bool _isLoading = false;
 
   @override
@@ -43,6 +53,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  /// Validates the email field and calls [AuthController.forgotPassword].
+  ///
+  /// Always navigates to [ResetPasswordScreen] after the call — even when the
+  /// email is not found — to prevent account enumeration (security spec).
   Future<void> _onSend() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -54,9 +68,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // Always navigate regardless of outcome — never reveal whether
-    // the email exists (API security spec).
-    // Goes to ResetPasswordScreen with email pre-filled.
     Navigator.pushNamed(
       context,
       AppRoutes.resetPassword,
@@ -74,7 +85,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header row ────────────────────────────────────────
+              // ── Header ────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.screenHorizontal,
@@ -94,8 +105,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Email field ───────────────────────────────
+                    // ── Email field ───────────────────────────────────
+                    // Key: AuthKeys.forgotPasswordEmailField
                     AppTextField(
+                      key: const Key('forgot_password_email_field'),
                       controller: _emailController,
                       hintText: 'Your email address',
                       keyboardType: TextInputType.emailAddress,
@@ -103,7 +116,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                     const SizedBox(height: AppSpacing.base),
 
-                    // Body copy explaining what happens after submission.
+                    // ── Help copy ─────────────────────────────────────
                     RichText(
                       text: TextSpan(
                         style: AppTextStyles.bodyMuted,
@@ -124,8 +137,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xl),
 
-                    // ── Send reset link ───────────────────────────
+                    // ── Send reset link button ─────────────────────────
+                    // Key: AuthKeys.sendResetLinkButton
                     AppButton(
+                      key: const Key('send_reset_link_button'),
                       label: 'Send reset link',
                       onPressed: _onSend,
                       style: AppButtonStyle.primary,

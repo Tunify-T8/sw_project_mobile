@@ -1,12 +1,16 @@
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
+import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/playback_status.dart';
+import '../../domain/entities/playback_queue.dart';
+import '../../domain/entities/player_seed_track.dart';
 import '../providers/listening_history_provider.dart';
 import '../providers/player_provider.dart';
+import '../providers/player_repository_provider.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/track_options_sheet.dart';
 
@@ -45,16 +49,16 @@ class QueueScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.shuffle, size: 22),
-            color: (queue?.shuffle == true) ? AppColors.primary : Colors.white54,
+            color: (queue?.shuffle == true)
+                ? AppColors.primary
+                : Colors.white54,
             onPressed: playerState?.queue != null
                 ? () => ref.read(playerProvider.notifier).toggleShuffle()
                 : null,
           ),
           IconButton(
             icon: Icon(
-              queue?.repeat == RepeatMode.one
-                  ? Icons.repeat_one
-                  : Icons.repeat,
+              queue?.repeat == RepeatMode.one ? Icons.repeat_one : Icons.repeat,
               size: 22,
             ),
             color: (queue != null && queue.repeat != RepeatMode.none)

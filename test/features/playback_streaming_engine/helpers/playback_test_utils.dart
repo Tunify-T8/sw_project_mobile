@@ -86,11 +86,32 @@ class FakeSecureStoragePlatform extends FlutterSecureStoragePlatform {
       : _values = {...?seededValues};
 
   final Map<String, String> _values;
+  Object? _writeError;
+  Object? _deleteError;
+  Object? _readError;
+  int _writeFailuresRemaining = 0;
+  int _deleteFailuresRemaining = 0;
+  int _readFailuresRemaining = 0;
 
   Map<String, String> get values => Map.unmodifiable(_values);
 
   void seed(String key, String value) {
     _values[key] = value;
+  }
+
+  void failNextWrites(Object error, {int count = 1}) {
+    _writeError = error;
+    _writeFailuresRemaining = count;
+  }
+
+  void failNextDeletes(Object error, {int count = 1}) {
+    _deleteError = error;
+    _deleteFailuresRemaining = count;
+  }
+
+  void failNextReads(Object error, {int count = 1}) {
+    _readError = error;
+    _readFailuresRemaining = count;
   }
 
   @override
@@ -99,6 +120,10 @@ class FakeSecureStoragePlatform extends FlutterSecureStoragePlatform {
     required String value,
     required Map<String, String> options,
   }) async {
+    if (_writeFailuresRemaining > 0) {
+      _writeFailuresRemaining -= 1;
+      throw _writeError ?? StateError('write failed');
+    }
     _values[key] = value;
   }
 
@@ -107,6 +132,10 @@ class FakeSecureStoragePlatform extends FlutterSecureStoragePlatform {
     required String key,
     required Map<String, String> options,
   }) async {
+    if (_readFailuresRemaining > 0) {
+      _readFailuresRemaining -= 1;
+      throw _readError ?? StateError('read failed');
+    }
     return _values[key];
   }
 
@@ -123,6 +152,10 @@ class FakeSecureStoragePlatform extends FlutterSecureStoragePlatform {
     required String key,
     required Map<String, String> options,
   }) async {
+    if (_deleteFailuresRemaining > 0) {
+      _deleteFailuresRemaining -= 1;
+      throw _deleteError ?? StateError('delete failed');
+    }
     _values.remove(key);
   }
 
@@ -495,6 +528,7 @@ class FakeStreamingApi extends StreamingApi {
   Future<StreamResponseDto> Function(
     String trackId, {
     String quality,
+    String? privateToken,
   })? requestStreamUrlHandler;
   Future<void> Function({
     required String trackId,
@@ -533,10 +567,11 @@ class FakeStreamingApi extends StreamingApi {
   Future<StreamResponseDto> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
     final handler = requestStreamUrlHandler;
     if (handler != null) {
-      return handler(trackId, quality: quality);
+      return handler(trackId, quality: quality, privateToken: privateToken);
     }
     return StreamResponseDto.fromJson(
       sampleStreamResponseJson(trackId: trackId),
@@ -635,6 +670,7 @@ class FakePlayerRepository implements PlayerRepository {
   Future<StreamUrl> Function(
     String trackId, {
     String quality,
+    String? privateToken,
   })? requestStreamUrlHandler;
   Future<void> Function(PlaybackEvent event)? reportPlaybackEventHandler;
   Future<PlaybackQueue> Function(PlaybackContextRequest request)?
@@ -666,10 +702,11 @@ class FakePlayerRepository implements PlayerRepository {
   Future<StreamUrl> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
     final handler = requestStreamUrlHandler;
     if (handler != null) {
-      return handler(trackId, quality: quality);
+      return handler(trackId, quality: quality, privateToken: privateToken);
     }
     return sampleStreamUrl(trackId: trackId);
   }
@@ -1194,6 +1231,7 @@ Map<String, dynamic> sampleQueueJson({
 }
 
 Map<String, dynamic> encodePlayerSession({
+  String authUserId = 'user-1',
   TrackPlaybackBundle? bundle,
   StreamUrl? streamUrl,
   PlaybackQueue? queue,
@@ -1218,6 +1256,7 @@ Map<String, dynamic> encodePlayerSession({
   );
 
   return <String, dynamic>{
+    'authUserId': authUserId,
     'bundle': sampleBundleJson(
       trackId: playerState.bundle!.trackId,
       status: playerState.bundle!.playability.status.name,

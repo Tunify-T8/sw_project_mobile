@@ -6,12 +6,16 @@ class _TrackInfo extends StatelessWidget {
     required this.artistName,
     required this.isLiked,
     required this.onLike,
+    required this.likeCount, // engagement addition — like count from engagementProvider
+    required this.onLikeCountTap, // engagement addition — navigates to LikersScreen
   });
 
   final String title;
   final String artistName;
   final bool isLiked;
   final VoidCallback onLike;
+  final int likeCount; // engagement addition
+  final VoidCallback onLikeCountTap; // engagement addition
 
   @override
   Widget build(BuildContext context) {
@@ -44,17 +48,34 @@ class _TrackInfo extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        GestureDetector(
-          onTap: onLike,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Icon(
-              isLiked ? Icons.favorite : Icons.favorite_border,
-              key: ValueKey(isLiked),
-              color: isLiked ? AppColors.primary : Colors.white54,
-              size: 26,
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Key: PlayerKeys.likeButton
+            GestureDetector(
+              key: const Key('player_like_button'),
+              onTap: onLike,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  key: ValueKey(isLiked),
+                  color: isLiked ? AppColors.primary : Colors.white54,
+                  size: 26,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 2),
+            // Key: PlayerKeys.likesCount
+            GestureDetector(
+              key: const Key('player_likes_count'),
+              onTap: onLikeCountTap, // engagement addition — tap count to open LikersScreen
+              child: Text(
+                likeCount.toString(),
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ),
+          ],
         ),
       ],
     );

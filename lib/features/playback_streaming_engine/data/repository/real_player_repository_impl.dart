@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../domain/entities/history_track.dart';
 import '../../domain/entities/offline_play_record.dart';
@@ -21,8 +21,6 @@ class RealPlayerRepository implements PlayerRepository {
   RealPlayerRepository(this._api);
 
   final StreamingApi _api;
-
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   final List<PlaybackEvent> _pendingEvents = [];
   Timer? _retryTimer;
@@ -50,8 +48,9 @@ class RealPlayerRepository implements PlayerRepository {
   Future<StreamUrl> requestStreamUrl(
     String trackId, {
     String quality = 'auto',
+    String? privateToken,
   }) async {
-    final dto = await _api.requestStreamUrl(trackId, quality: quality);
+    final dto = await _api.requestStreamUrl(trackId, quality: quality, privateToken: privateToken);
     return dto.toEntity();
   }
 
@@ -155,7 +154,7 @@ class RealPlayerRepository implements PlayerRepository {
     if (_hasLoadedOfflinePlays) return;
     _hasLoadedOfflinePlays = true;
 
-    final raw = await _storage.read(key: StorageKeys.pendingOfflinePlays);
+    final raw = await SafeSecureStorage.read(StorageKeys.pendingOfflinePlays);
     if (raw == null || raw.isEmpty) return;
 
     try {
@@ -168,7 +167,7 @@ class RealPlayerRepository implements PlayerRepository {
               .map(OfflinePlayRecord.fromJson),
         );
     } catch (_) {
-      await _storage.delete(key: StorageKeys.pendingOfflinePlays);
+      await SafeSecureStorage.delete(StorageKeys.pendingOfflinePlays);
     }
   }
 
@@ -195,11 +194,11 @@ class RealPlayerRepository implements PlayerRepository {
 
   Future<void> _persistOfflinePlays() async {
     if (_offlinePlays.isEmpty) {
-      await _storage.delete(key: StorageKeys.pendingOfflinePlays);
+      await SafeSecureStorage.delete(StorageKeys.pendingOfflinePlays);
       return;
     }
 
-    await _storage.write(
+    await SafeSecureStorage.write(
       key: StorageKeys.pendingOfflinePlays,
       value: jsonEncode(_offlinePlays.map((r) => r.toJson()).toList()),
     );
@@ -216,7 +215,7 @@ class RealPlayerRepository implements PlayerRepository {
   Future<void> _ensurePendingLoaded() async {
     if (_hasLoadedPendingEvents) return;
 
-    final raw = await _storage.read(key: StorageKeys.pendingPlaybackEvents);
+    final raw = await SafeSecureStorage.read(StorageKeys.pendingPlaybackEvents);
     _hasLoadedPendingEvents = true;
 
     if (raw == null || raw.isEmpty) return;
@@ -229,7 +228,7 @@ class RealPlayerRepository implements PlayerRepository {
           decoded.whereType<Map<String, dynamic>>().map(_eventFromJson),
         );
     } catch (_) {
-      await _storage.delete(key: StorageKeys.pendingPlaybackEvents);
+      await SafeSecureStorage.delete(StorageKeys.pendingPlaybackEvents);
     }
   }
 
@@ -295,12 +294,12 @@ class RealPlayerRepository implements PlayerRepository {
 
   Future<void> _persistPendingEvents() async {
     if (_pendingEvents.isEmpty) {
-      await _storage.delete(key: StorageKeys.pendingPlaybackEvents);
+      await SafeSecureStorage.delete(StorageKeys.pendingPlaybackEvents);
       return;
     }
 
     final payload = jsonEncode(_pendingEvents.map(_eventToJson).toList());
-    await _storage.write(
+    await SafeSecureStorage.write(
       key: StorageKeys.pendingPlaybackEvents,
       value: payload,
     );

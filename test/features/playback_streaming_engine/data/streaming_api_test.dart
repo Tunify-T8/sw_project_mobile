@@ -118,6 +118,38 @@ void main() {
       );
     });
 
+    test('forwards private token to GET stream endpoint', () async {
+      when(
+        mockDio.get(
+          ApiEndpoints.trackStream('track-private'),
+          queryParameters: <String, String>{'privateToken': 'secret'},
+          data: anyNamed('data'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).thenAnswer(
+        (_) async => response(sampleStreamResponseJson(trackId: 'track-private')),
+      );
+
+      final result = await api.requestStreamUrl(
+        'track-private',
+        privateToken: 'secret',
+      );
+
+      expect(result.trackId, 'track-private');
+      verify(
+        mockDio.get(
+          ApiEndpoints.trackStream('track-private'),
+          queryParameters: <String, String>{'privateToken': 'secret'},
+          data: anyNamed('data'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+          onReceiveProgress: anyNamed('onReceiveProgress'),
+        ),
+      ).called(1);
+    });
+
     test('falls back to POST for 404 and forwards quality', () async {
       when(
         mockDio.get(
@@ -334,9 +366,95 @@ void main() {
     });
   });
 
-  test('clearListeningHistory is intentionally a no-op', () async {
-    await api.clearListeningHistory();
-    verifyZeroInteractions(mockDio);
+  group('clearListeningHistory', () {
+    test('uses modern endpoint when available', () async {
+      when(
+        mockDio.delete(
+          ApiEndpoints.clearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).thenAnswer((_) async => response(const <String, dynamic>{'ok': true}));
+
+      await api.clearListeningHistory();
+
+      verify(
+        mockDio.delete(
+          ApiEndpoints.clearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).called(1);
+      verifyNever(
+        mockDio.delete(
+          ApiEndpoints.legacyClearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      );
+    });
+
+    test('falls back to legacy endpoint on 404', () async {
+      when(
+        mockDio.delete(
+          ApiEndpoints.clearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).thenThrow(dioError(404));
+      when(
+        mockDio.delete(
+          ApiEndpoints.legacyClearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).thenAnswer((_) async => response(const <String, dynamic>{'ok': true}));
+
+      await api.clearListeningHistory();
+
+      verify(
+        mockDio.delete(
+          ApiEndpoints.legacyClearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).called(1);
+    });
+
+    test('silently succeeds when neither route exists yet', () async {
+      when(
+        mockDio.delete(
+          ApiEndpoints.clearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).thenThrow(dioError(404));
+      when(
+        mockDio.delete(
+          ApiEndpoints.legacyClearListeningHistory,
+          data: anyNamed('data'),
+          queryParameters: anyNamed('queryParameters'),
+          options: anyNamed('options'),
+          cancelToken: anyNamed('cancelToken'),
+        ),
+      ).thenThrow(dioError(405));
+
+      await api.clearListeningHistory();
+    });
   });
 
   group('reportTrackCompleted', () {

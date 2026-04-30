@@ -8,7 +8,13 @@ import '../widgets/profile_share_sheet.dart';
 import '../widgets/profile_tracks_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
-import '../../../audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart';
+import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_reposts_section.dart';
+import '../../../engagements_social_interactions/presentation/widgets/profile_likes_section.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../playlists/presentation/widgets/profile_playlists_section.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -52,7 +58,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
+      if (!mounted) return;
       await ref.read(profileProvider.notifier).loadProfile();
+      if (!mounted) return;
       await ref.read(libraryUploadsProvider.notifier).load();
     });
   }
@@ -76,6 +84,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     print('CONSOLE: profile.isCertified = ${profile?.isCertified ?? false}');
 //to check bs mzboot or not
     return Scaffold(
+      bottomNavigationBar: const MiniPlayer(),
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -111,7 +120,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 style: const TextStyle(color: Colors.white),
               ),
             )
-          : SingleChildScrollView(
+          : RefreshIndicator(
+              color: Colors.orangeAccent,
+              onRefresh: () async {
+                await ref.read(profileProvider.notifier).loadProfile();
+                await ref.read(libraryUploadsProvider.notifier).load();
+              },
+              child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -124,6 +139,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   SizedBox(height: profileHeight / 2 + 8),
                   ProfileInfo(
+                    displayName: profile?.displayName ?? '',
                     userName: profile?.userName ?? '',
                     city: profile?.city ?? '',
                     country: profile?.country ?? '',
@@ -134,6 +150,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     nameStyle: nameStyle,
                     bioStyle: bioStyle,
                     followerStyle: followerStyle,
+                    userId: null,
                     onShowMore: () => ProfileShareSheet(
                       context: context,
                       userName: profile?.userName ?? '',
@@ -154,21 +171,56 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       profileImage: profileImage,
                       coverImage: coverImage,
                       userType: profile?.userType ?? 'ARTIST',
+                      onPlay: uploadedTracks.isEmpty
+                          ? null
+                          : () => openUploadItemPlayer(
+                                context,
+                                ref,
+                                uploadedTracks.first,
+                                queueItems: uploadedTracks,
+                                openScreen: false,
+                              ),
+                      onShuffle: uploadedTracks.isEmpty
+                          ? null
+                          : () {
+                              final shuffled = List.of(uploadedTracks)..shuffle();
+                              openUploadItemPlayer(
+                                context,
+                                ref,
+                                shuffled.first,
+                                queueItems: shuffled,
+                                openScreen: false,
+                              );
+                            },
                     ),
                   ),
                   ProfileTracksSection(
                     items: uploadedTracks,
                     onTrackTap: (item) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => TrackDetailScreen(item: item),
-                        ),
+                      openUploadItemPlayer(
+                        context,
+                        ref,
+                        item,
+                        queueItems: uploadedTracks,
                       );
                     },
                   ),
+                  ProfilePlaylistsSection(
+                    isCurrentUser: true,
+                    ownerName: profile?.displayName ?? profile?.userName,
+                  ),
+                  ProfilePlaylistsSection(
+                    isCurrentUser: true,
+                    ownerName: profile?.displayName ?? profile?.userName,
+                    collectionType: CollectionType.album,
+                    title: 'Albums',
+                  ),
+                  const ProfileLikesSection(),
+                  const ProfileRepostsSection(),
                 ],
               ),
             ),
+          ),
     );
   }
 }

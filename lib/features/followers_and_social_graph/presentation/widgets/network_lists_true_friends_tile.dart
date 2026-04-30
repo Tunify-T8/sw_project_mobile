@@ -10,8 +10,12 @@ class NetworkListsTrueFriendsTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(10.0),
       child: ListTile(
+        key: const Key('true_friends_list_tile'),
         onTap: onTap,
-        leading: const CircleAvatar(child: Icon(Icons.people)),
+        leading: const CircleAvatar(
+          backgroundColor: Color(0xFF2A2A2A),
+          child: Icon(Icons.people),
+        ),
         title: const Text(
           'People who follow you back',
           style: TextStyle(

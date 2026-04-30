@@ -144,12 +144,13 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
   }
 
   bool _beginSave() {
-    final error = TrackMetadataValidator.validateForSave(state);
+    final effectiveState = _effectiveAvailabilityStateForCurrentTier();
+    final error = TrackMetadataValidator.validateForSave(effectiveState);
     if (error != null) {
       state = state.copyWith(error: error);
       return false;
     }
-    state = state.copyWith(
+    state = effectiveState.copyWith(
       isSaving: true,
       isPolling: false,
       processingStatus: UploadStatus.idle,
@@ -157,6 +158,21 @@ class TrackMetadataNotifier extends Notifier<TrackMetadataState>
       error: null,
     );
     return true;
+  }
+
+  TrackMetadataState _effectiveAvailabilityStateForCurrentTier() {
+    final isPro = ref.read(uploadProvider).quota?.isUnlimited ?? false;
+    final stateWithRequiredPermissions = state.copyWith(
+      allowDownloads: true,
+      error: null,
+    );
+    if (isPro) return stateWithRequiredPermissions;
+
+    return stateWithRequiredPermissions.copyWith(
+      availabilityType: 'worldwide',
+      availabilityRegionsText: '',
+      error: null,
+    );
   }
 
   void _failSave(

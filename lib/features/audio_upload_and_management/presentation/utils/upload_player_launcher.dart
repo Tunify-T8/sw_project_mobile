@@ -1,23 +1,31 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
+import '../../../playback_streaming_engine/domain/entities/playability_info.dart';
+import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/domain/entities/player_seed_track.dart';
 import '../../../playback_streaming_engine/domain/entities/track_artist_summary.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_local_file_guard.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../profile/presentation/providers/profile_provider.dart';
 import '../../data/dto/upload_item_dto.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
 import '../providers/track_detail_item_provider.dart';
 import '../providers/track_detail_waveform_provider.dart';
 import '../screens/track_detail_screen.dart';
+import 'country_code_utils.dart';
 import 'playback_surface_item_mapper.dart';
 
 Future<void> openUploadItemPlayer(
@@ -27,30 +35,116 @@ Future<void> openUploadItemPlayer(
   List<UploadItem>? queueItems,
   bool openScreen = true,
 }) async {
-  if (!item.isPlayable) return;
-
   await _ensureCachedUploadsHydrated(ref);
 
-  final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
+  final preparedItem = await _preparePlayableTrackSurfaceItem(ref, item);
+  if (!preparedItem.isPlayable) return;
 
-  _optimisticallyPromoteHistory(ref, preparedItem);
+  final preparedQueueItems = _mergeQueueWithCachedItems(
+    ref,
+    preparedItem,
+    queueItems,
+  );
+  _cacheUploadItems(ref, [preparedItem, ...preparedQueueItems]);
 
-  unawaited(
-    ensureUploadItemPlayback(
-      ref,
-      preparedItem,
-      queueItems: queueItems,
-      autoPlay: true,
+  if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
+    _optimisticallyPromoteHistory(ref, preparedItem);
+  }
+
+  await ensureUploadItemPlayback(
+    ref,
+    preparedItem,
+    queueItems: preparedQueueItems,
+    autoPlay: true,
+  );
+
+  if (!openScreen || !context.mounted) return;
+  await Navigator.of(context).push(
+    PageRouteBuilder(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 340),
     ),
   );
+}
+
+/// Variant of [openUploadItemPlayer] used when the track is being played
+/// from the user's listening history. Builds the queue from the supplied
+/// history tracks and tags it with [QueueSource.history] so the "next up"
+/// list tracks the history, not "more by this artist".
+Future<void> openHistorySourcedPlayer(
+  BuildContext context,
+  WidgetRef ref,
+  UploadItem item, {
+  required List<HistoryTrack> historyTracks,
+  bool openScreen = true,
+  double? initialPositionSeconds,
+}) async {
+  await _ensureCachedUploadsHydrated(ref);
+
+  final preparedItem = await _resolvePrivateItemForPlayback(
+    ref,
+    await _preparePlayableTrackSurfaceItem(ref, item),
+  );
+  if (!preparedItem.isPlayable) return;
+  final privateToken = _normalizePrivateToken(preparedItem.privateToken);
+
+  if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
+    _optimisticallyPromoteHistory(ref, preparedItem);
+  }
+
+  final queueTrackIds = historyTracks
+      .where((h) => h.status != PlaybackStatus.blocked)
+      .map((h) => h.trackId)
+      .toList(growable: false);
+  final startIndex = queueTrackIds.indexOf(preparedItem.id);
+
+  final seedTrack = await _seedTrackForUploadItem(ref, preparedItem);
+
+  final notifier = ref.read(playerProvider.notifier);
+
+  if (startIndex >= 0 && queueTrackIds.length > 1) {
+    unawaited(
+      notifier.loadTrack(
+        preparedItem.id,
+        autoPlay: true,
+        seedTrack: seedTrack,
+        initialPositionSeconds: initialPositionSeconds,
+        privateToken: privateToken,
+        queue: PlaybackQueue(
+          trackIds: queueTrackIds,
+          currentIndex: startIndex,
+          shuffle: false,
+          repeat: RepeatMode.none,
+          source: QueueSource.history,
+        ),
+      ),
+    );
+  } else {
+    unawaited(
+      notifier.loadTrack(
+        preparedItem.id,
+        autoPlay: true,
+        seedTrack: seedTrack,
+        initialPositionSeconds: initialPositionSeconds,
+        privateToken: privateToken,
+      ),
+    );
+  }
 
   await _waitForTrackToBecomeCurrent(ref, preparedItem.id);
 
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -94,30 +188,49 @@ Future<void> ensureUploadItemPlayback(
   List<UploadItem>? queueItems,
   bool autoPlay = true,
 }) async {
-  if (!item.isPlayable) return;
-
   await _ensureCachedUploadsHydrated(ref);
+
+  // Private tracks from the library list never include privateToken (the list
+  // endpoint omits it). Fetch the full track detail here so we have the token
+  // before we attempt the stream request. Without it the backend returns 403.
+  final resolvedItem = await _resolvePrivateItemForPlayback(ref, item);
+
+  // Rebind item to the resolved copy (may have privateToken now).
+  // ignore: parameter_assignments
+  item = resolvedItem;
+  if (!item.isPlayable) {
+    // Stale library/cache rows can say "processing" even after the track
+    // has finished on the backend. Give details one patient chance before
+    // treating the upload as genuinely unplayable.
+    // ignore: parameter_assignments
+    item = await _preparePlayableTrackSurfaceItem(ref, item);
+  }
+  if (!item.isPlayable) return;
+  final privateToken = _normalizePrivateToken(item.privateToken);
 
   final notifier = ref.read(playerProvider.notifier);
   final current = ref.read(playerProvider).asData?.value;
   final isSameTrack = current?.bundle?.trackId == item.id;
   final store = ref.read(globalTrackStoreProvider);
-  final queue = _resolveArtistQueue(item, queueItems, store);
+  // Local pre-fetch: only same-artist tracks already in GlobalTrackStore
+  // (own uploads).  Listening history is intentionally NOT used here — those
+  // are tracks the user already played, not "more by this artist", and
+  // surfacing them as the queue was confusing.  The real artist catalog is
+  // fetched from the backend by enrichQueueWithArtistTracks (called from
+
+  // inside loadTrack once the real bundle lands).
+  final preparedQueueItems = _mergeQueueWithCachedItems(ref, item, queueItems);
+  _cacheUploadItems(ref, [item, ...preparedQueueItems]);
+
+  final queue = _resolveArtistQueue(item, preparedQueueItems, store);
   final queueIds = queue.map((track) => track.id).toList();
   final currentIndex = queueIds.indexOf(item.id);
 
-  final seedTrack = PlayerSeedTrack(
-    trackId: item.id,
-    title: item.title,
-    artistName: item.artistDisplay,
-    durationSeconds: item.durationSeconds,
-    coverUrl: item.artworkUrl,
-    waveformUrl: item.waveformUrl,
-    directAudioUrl: item.audioUrl,
-    localFilePath: item.localFilePath,
-  );
+  final seedTrack = await _seedTrackForUploadItem(ref, item);
 
-  if (isSameTrack) {
+  if (isSameTrack &&
+      current?.isBuffering != true &&
+      _hasUsableCurrentPlaybackSource(current)) {
     final hasUsefulQueue = (current?.queue?.trackIds.length ?? 0) > 1;
     if (!hasUsefulQueue && currentIndex >= 0 && queueIds.length > 1) {
       await notifier.loadTrackWithQueue(
@@ -127,6 +240,7 @@ Future<void> ensureUploadItemPlayback(
         repeat: RepeatMode.all,
         autoPlay: autoPlay || current?.isPlaying == true,
         seedTrack: seedTrack,
+        privateToken: privateToken,
       );
       return;
     }
@@ -145,12 +259,64 @@ Future<void> ensureUploadItemPlayback(
       repeat: RepeatMode.all,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
+      privateToken: privateToken,
     );
     return;
   }
 
-  await notifier.loadTrack(item.id, autoPlay: autoPlay, seedTrack: seedTrack);
+  await notifier.loadTrack(
+    item.id,
+    autoPlay: autoPlay,
+    seedTrack: seedTrack,
+    privateToken: privateToken,
+  );
 }
+
+bool _hasUsableCurrentPlaybackSource(PlayerState? current) {
+  if (current == null) return false;
+  if (existingPlaybackLocalFile(current.localFilePath) != null) {
+    return true;
+  }
+  return current.streamUrl?.url.trim().isNotEmpty == true;
+}
+
+String? _normalizePrivateToken(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return trimmed;
+}
+
+Future<UploadItem> _resolvePrivateItemForPlayback(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  if (item.visibility != UploadVisibility.private ||
+      _normalizePrivateToken(item.privateToken) != null) {
+    return item;
+  }
+
+  ref.invalidate(trackDetailItemProvider(item));
+  try {
+    final resolvedItem = await ref
+        .read(trackDetailItemProvider(item).future)
+        .timeout(const Duration(seconds: 5));
+    if (_normalizePrivateToken(resolvedItem.privateToken) == null) {
+      debugPrint('Private track ${item.id} has no privateToken after details.');
+    }
+    return resolvedItem;
+  } catch (error) {
+    debugPrint('Private track detail fetch failed for ${item.id}: $error');
+    return item;
+  }
+}
+
+// Fire-and-forget background fetch: pull the playing artist's full track
+// catalog from the backend and merge it into the live queue. Runs AFTER
+// NOTE: the previous _enrichQueueAfterLaunch polling helper was removed.
+// The "more by this artist" enrichment is now triggered from inside
+// loadTrack() itself, as soon as the real backend bundle is in state.
+// This is reliable — no timing race against the seed bundle — and removes
+// the need for the launcher to know anything about it.
 
 Future<void> toggleUploadItemPlayback(
   WidgetRef ref,
@@ -169,7 +335,9 @@ Future<void> toggleUploadItemPlayback(
     return;
   }
 
-  _optimisticallyPromoteHistory(ref, item);
+  if (!await _isRegionRestrictedForCurrentUser(ref, item)) {
+    _optimisticallyPromoteHistory(ref, item);
+  }
 
   await ensureUploadItemPlayback(
     ref,
@@ -177,6 +345,90 @@ Future<void> toggleUploadItemPlayback(
     queueItems: queueItems,
     autoPlay: true,
   );
+}
+
+Future<PlayerSeedTrack> _seedTrackForUploadItem(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final playability = await _regionPlayabilityOverrideFor(ref, item);
+
+  return PlayerSeedTrack(
+    trackId: item.id,
+    title: item.title,
+    artistName: item.artistDisplay,
+    durationSeconds: item.durationSeconds,
+    coverUrl: item.artworkUrl,
+    waveformUrl: item.waveformUrl,
+    directAudioUrl: item.audioUrl,
+    localFilePath: item.localFilePath,
+    playability: playability,
+  );
+}
+
+Future<PlayabilityInfo?> _regionPlayabilityOverrideFor(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  if (!await _isRegionRestrictedForCurrentUser(ref, item)) {
+    return null;
+  }
+
+  return const PlayabilityInfo(
+    status: PlaybackStatus.blocked,
+    regionBlocked: true,
+    tierBlocked: false,
+    requiresSubscription: false,
+    blockedReason: BlockedReason.regionRestricted,
+  );
+}
+
+Future<bool> _isRegionRestrictedForCurrentUser(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final availabilityType = item.availabilityType.trim().toLowerCase();
+  if (availabilityType == 'worldwide') return false;
+
+  final regions = item.availabilityRegions
+      .map((region) => CountryCodeUtils.normalizeCountryCode(region))
+      .whereType<String>()
+      .toSet();
+  if (regions.isEmpty) return false;
+
+  final userCountryCode = await _currentUserCountryCode(ref);
+  if (userCountryCode == null) {
+    return availabilityType == 'exclusive_regions';
+  }
+
+  final isSelectedCountry = regions.contains(userCountryCode);
+  if (availabilityType == 'exclusive_regions') {
+    return !isSelectedCountry;
+  }
+  if (availabilityType == 'excluded_regions') {
+    return isSelectedCountry;
+  }
+
+  return false;
+}
+
+Future<String?> _currentUserCountryCode(WidgetRef ref) async {
+  String? normalizeProfileCountry() {
+    final country = ref.read(profileProvider).profile?.country;
+    if (country == null || country.trim().isEmpty) return null;
+    return CountryCodeUtils.normalizeCountryCode(country);
+  }
+
+  final current = normalizeProfileCountry();
+  if (current != null) return current;
+
+  try {
+    await ref.read(profileProvider.notifier).loadProfile();
+  } catch (_) {
+    return null;
+  }
+
+  return normalizeProfileCountry();
 }
 
 Future<void> openCurrentPlaybackTrackSurface(
@@ -196,8 +448,8 @@ Future<void> openCurrentPlaybackTrackSurface(
   if (!context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: hydratedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -209,34 +461,76 @@ Future<void> openCurrentPlaybackTrackSurface(
   );
 }
 
+// Resolves the local same-artist queue used right at launch.
+//
+// Sources, in priority order:
+//   1. An explicit queueItems list (e.g. playlist context) — trust as-is.
+//   2. Same-artist tracks already in GlobalTrackStore — covers playing your
+//      own tracks (the store only holds the signed-in user's uploads today).
+//
+// History is intentionally NOT consulted here.  Recent plays aren't a queue —
+// they're a queue's *opposite* (tracks the user already heard).  The real
+// "more by this artist" queue for ANY artist is fetched from the backend by
+// enrichQueueWithArtistTracks, which fires from inside loadTrack as soon as
+// the real bundle is in state.
+//
+// Dedupes by trackId, always includes the current track.
 List<UploadItem> _resolveArtistQueue(
   UploadItem item,
   List<UploadItem>? queueItems,
   GlobalTrackStore store,
 ) {
   final explicitQueue = (queueItems ?? const <UploadItem>[])
-      .where((track) => track.isPlayable)
+      .map((track) => store.find(track.id) ?? track)
+      .where((track) => track.isPlayable && !track.isDeleted)
       .toList();
   if (explicitQueue.isNotEmpty) {
     return explicitQueue;
   }
 
-  final sameArtist =
-      store.all
-          .where(
-            (track) =>
-                track.isPlayable &&
-                track.artistDisplay.trim().toLowerCase() ==
-                    item.artistDisplay.trim().toLowerCase(),
-          )
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  final normalizedArtist = item.artistDisplay.trim().toLowerCase();
 
-  if (sameArtist.any((track) => track.id == item.id)) {
-    return sameArtist;
+  final fromStore = store.all
+      .where(
+        (track) =>
+            track.isPlayable &&
+            track.artistDisplay.trim().toLowerCase() == normalizedArtist,
+      )
+      .toList();
+
+  final seen = <String>{};
+  final merged = <UploadItem>[];
+  void addIfNew(UploadItem u) {
+    if (seen.add(u.id)) merged.add(u);
   }
 
-  return <UploadItem>[item];
+  for (final u in fromStore) {
+    addIfNew(u);
+  }
+  // Always include the current track even if it isn't in the store
+  // (e.g. another user's track launched from search/profile).
+  addIfNew(item);
+
+  merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return merged;
+}
+
+List<UploadItem> _mergeQueueWithCachedItems(
+  WidgetRef ref,
+  UploadItem current,
+  List<UploadItem>? queueItems,
+) {
+  if (queueItems == null || queueItems.isEmpty) {
+    return const <UploadItem>[];
+  }
+
+  final store = ref.read(globalTrackStoreProvider);
+  return queueItems
+      .map((item) {
+        if (item.id == current.id) return current;
+        return store.find(item.id) ?? item;
+      })
+      .toList(growable: false);
 }
 
 Future<UploadItem> _prepareTrackSurfaceItemFast(
@@ -251,6 +545,36 @@ Future<UploadItem> _prepareTrackSurfaceItemFast(
   } catch (_) {
     return item;
   }
+}
+
+Future<UploadItem> _preparePlayableTrackSurfaceItem(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final fastItem = _shouldWaitForWaveformBeforeOpening
+      ? await prepareTrackSurfaceItem(ref, item)
+      : await _prepareTrackSurfaceItemFast(ref, item);
+  if (fastItem.isPlayable) {
+    return fastItem;
+  }
+
+  try {
+    final detailedItem = await ref
+        .read(trackDetailItemProvider(fastItem).future)
+        .timeout(const Duration(seconds: 5));
+    if (detailedItem.isPlayable) {
+      return detailedItem;
+    }
+    return detailedItem;
+  } catch (_) {
+    return fastItem;
+  }
+}
+
+bool get _shouldWaitForWaveformBeforeOpening {
+  return defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS;
 }
 
 Future<void> _waitForTrackToBecomeCurrent(WidgetRef ref, String trackId) async {
@@ -292,8 +616,17 @@ Future<void> _ensureCachedUploadsHydrated(WidgetRef ref) async {
   final store = ref.read(globalTrackStoreProvider);
   if (store.all.isNotEmpty) return;
 
-  const storage = FlutterSecureStorage();
-  final raw = await storage.read(key: StorageKeys.cachedLibraryUploads);
+  // Resolve the user-scoped cache key so we never hydrate one user's offline
+  // uploads into another user's session.
+  final userId =
+      ref.read(authControllerProvider).asData?.value?.id.trim() ??
+      (await const TokenStorage().getUser())?.id.trim() ??
+      '';
+  final key = userId.isEmpty
+      ? StorageKeys.cachedLibraryUploads
+      : '${StorageKeys.cachedLibraryUploads}_$userId';
+
+  final raw = await SafeSecureStorage.read(key);
   if (raw == null || raw.isEmpty) return;
 
   try {
@@ -329,7 +662,7 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     tags: dto.tags,
     genreCategory: dto.genreCategory,
     genreSubGenre: dto.genreSubGenre,
-    visibility: dto.privacy == 'public'
+    visibility: dto.privacy.trim().toLowerCase() == 'public'
         ? UploadVisibility.public
         : UploadVisibility.private,
     status: _dtoStatusToEntityStatus(dto.status),
@@ -349,19 +682,32 @@ UploadItem _uploadItemFromDto(UploadItemDto dto) {
     availabilityType: dto.availabilityType,
     availabilityRegions: dto.availabilityRegions,
     licensing: dto.licensing,
+    privateToken: dto.privateToken,
     createdAt: DateTime.tryParse(dto.createdAt) ?? DateTime.now(),
   );
 }
 
 UploadProcessingStatus _dtoStatusToEntityStatus(String value) {
-  switch (value) {
+  switch (value.trim().toLowerCase()) {
     case 'processing':
     case 'uploading':
+    case 'pending':
+    case 'queued':
+    case 'transcoding':
       return UploadProcessingStatus.processing;
     case 'failed':
+    case 'failure':
+    case 'error':
       return UploadProcessingStatus.failed;
     case 'deleted':
       return UploadProcessingStatus.deleted;
+    case 'finished':
+    case 'ready':
+    case 'completed':
+    case 'complete':
+    case 'succeeded':
+    case 'success':
+    case 'published':
     default:
       return UploadProcessingStatus.finished;
   }
@@ -371,4 +717,12 @@ String _formatDuration(int totalSeconds) {
   final minutes = totalSeconds ~/ 60;
   final seconds = totalSeconds % 60;
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
+}
+
+void _cacheUploadItems(WidgetRef ref, List<UploadItem> items) {
+  final store = ref.read(globalTrackStoreProvider);
+  for (final item in items) {
+    if (item.id.trim().isEmpty) continue;
+    store.update(item);
+  }
 }

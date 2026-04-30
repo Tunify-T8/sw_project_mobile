@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
+import '../../../../../features/followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../../../domain/entities/profile_result_entity.dart';
 
+/// Search result tile for a user profile.
+///
+/// Follow button uses [RelationshipButton] so follow/unfollow works.
+/// [onTap] callback for profile navigation.
 class SearchResultTileProfile extends StatelessWidget {
-  const SearchResultTileProfile({super.key, required this.profile});
+  const SearchResultTileProfile({super.key, required this.profile, this.onTap});
+
   final ProfileResultEntity profile;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Second line: country if available, otherwise show verified badge text
     final secondLine = profile.location?.isNotEmpty == true
         ? profile.location!
-        : profile.isVerified
+        : profile.isCertified
         ? 'Verified'
         : null;
 
     return ListTile(
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: CircleAvatar(
         radius: 24,
@@ -30,7 +37,7 @@ class SearchResultTileProfile extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              profile.username,
+              profile.displayLabel,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -40,7 +47,7 @@ class SearchResultTileProfile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (profile.isVerified) ...[
+          if (profile.isCertified) ...[
             const SizedBox(width: 4),
             const Icon(Icons.verified, color: Colors.blue, size: 14),
           ],
@@ -68,31 +75,16 @@ class SearchResultTileProfile extends StatelessWidget {
           ),
         ],
       ),
-      trailing: OutlinedButton(
-        onPressed: () {},
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white38),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          minimumSize: const Size(64, 30),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-        child: Text(profile.isFollowing ? 'Following' : 'Follow'),
+      trailing: RelationshipButton(
+        userId: profile.id,
+        initialIsFollowing: profile.isFollowing,
       ),
     );
   }
 
   String _fmt(int n) {
-    if (n >= 1000000) {
-      return '${(n / 1000000).toStringAsFixed(1)}M';
-    }
-    if (n >= 1000) {
-      return '${(n / 1000).toStringAsFixed(0)}K';
-    }
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
     return n.toString();
   }
 }

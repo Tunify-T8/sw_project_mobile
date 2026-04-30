@@ -4,7 +4,6 @@ import 'package:software_project/features/profile/presentation/screens/other_use
 
 import '../../domain/entities/social_user_entity.dart';
 import '../providers/network_lists_notifier.dart';
-import '../providers/social_actions_notifier.dart';
 import 'suggested_user_item.dart';
 import '../../domain/entities/network_list_type.dart';
 
@@ -39,12 +38,6 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
     }
   }
 
-  Future<void> _handleFollowToggle(SocialUserEntity user) async {
-    await ref
-        .read(socialActionsProvider)
-        .toggleFollow(user: user, listType: widget.listType);
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(networkListsProvider);
@@ -61,25 +54,37 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
         users.isEmpty && !isLoading && error == null && hasLoadedOnce;
 
     if (showInitialLoading) {
-      return const SizedBox(
+      return SizedBox(
+        key: Key('${widget.listType.name}_loading'),
         height: 200,
-        child: Center(child: CircularProgressIndicator()),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (showInitialError) {
       return SizedBox(
+        key: Key('${widget.listType.name}_error'),
         height: 200,
-        child: Center(
-          child: Text(error, style: const TextStyle(color: Colors.red)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Something went wrong', style: TextStyle(color: Colors.white)),
+            TextButton(
+              key: Key('${widget.listType.name}_retry_button'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              onPressed: _loadSuggestedUsers,
+              child: const Text('Try Again'),
+            ),
+          ],
         ),
       );
     }
 
     if (showEmpty) {
-      return const SizedBox(
+      return SizedBox(
+        key: Key('${widget.listType.name}_empty'),
         height: 200,
-        child: Center(
+        child: const Center(
           child: Text(
             'No suggestions available',
             style: TextStyle(color: Colors.white),
@@ -89,14 +94,17 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
     }
 
     return SizedBox(
+      key: Key('${widget.listType.name}_section'),
       height: 200,
       child: ListView.builder(
+        key: Key('${widget.listType.name}_list'),
         scrollDirection: Axis.horizontal,
         itemCount: users.length,
         itemBuilder: (context, index) {
           final user = users[index];
 
           return SuggestedUserItem(
+            key: ValueKey('${widget.listType.name}_suggested_item_${user.id}'),
             user: user,
             onTap: () {
               Navigator.push(
@@ -104,7 +112,6 @@ class _SuggestedUsersSectionState extends ConsumerState<SuggestedUsersSection> {
                 MaterialPageRoute(builder: (_) => OtherUserProfileScreen(userId: user.id)),
               );
             },
-            onFollowToggle: () => _handleFollowToggle(user),
           );
         },
       ),

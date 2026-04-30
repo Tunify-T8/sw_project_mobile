@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/design_system/colors.dart';
+import '../../../../engagements_social_interactions/presentation/provider/enagement_providers.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/provider/engagement_state.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/screens/comments_screen.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/screens/likers_screen.dart'; // engagement addition
+import '../../../../engagements_social_interactions/presentation/widgets/comment_input_bar.dart'; // engagement addition
 import '../../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../domain/entities/upload_item.dart';
 import '../../providers/track_detail_waveform_provider.dart';
@@ -16,16 +21,22 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
     required this.item,
     required this.state,
     required this.onMoreTap,
+    required this.onShareTap,
     required this.onQueueTap,
     required this.onPlayPauseTap,
+    required this.onPreviousTap,
+    required this.onNextTap,
     required this.onSeekFraction,
   });
 
   final UploadItem item;
   final TrackDetailWaveformState state;
   final VoidCallback onMoreTap;
+  final VoidCallback onShareTap;
   final VoidCallback onQueueTap;
   final VoidCallback onPlayPauseTap;
+  final VoidCallback onPreviousTap;
+  final VoidCallback onNextTap;
   final ValueChanged<double> onSeekFraction;
 
   @override
@@ -36,12 +47,17 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
     final playerState = ref.watch(playerProvider).asData?.value;
     final isCurrentTrack = playerState?.bundle?.trackId == item.id;
     final isPlaying = isCurrentTrack && playerState?.isPlaying == true;
+    final isPlayerLoading =
+        isCurrentTrack && (playerState?.isBuffering ?? false);
+    final showWaveformSurface = isPlaying || isPlayerLoading;
     final durationSeconds = isCurrentTrack
         ? (playerState?.visualDurationSeconds ?? item.durationSeconds)
         : item.durationSeconds;
     final progress = isCurrentTrack
         ? (playerState?.normalizedProgress ?? 0.0)
         : 0.0;
+    final isWaveformLoading =
+        item.waveformBars == null && waveformBarsAsync.isLoading;
 
     return Positioned.fill(
       child: SafeArea(
@@ -62,15 +78,13 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
                 duration: const Duration(milliseconds: 220),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeOutCubic,
-                child: isPlaying
+                child: showWaveformSurface
                     ? _PlayingWaveform(
                         key: const ValueKey('playing'),
                         item: item,
                         state: state,
                         bars: bars,
-                        isLoading:
-                            item.waveformBars == null &&
-                            waveformBarsAsync.isLoading,
+                        isLoading: isPlayerLoading || isWaveformLoading,
                         progress: progress,
                         onSeekFraction: onSeekFraction,
                       )
@@ -80,13 +94,27 @@ class TrackDetailWaveformPanel extends ConsumerWidget {
                         progress: progress,
                         durationSeconds: durationSeconds,
                         onPlayPauseTap: onPlayPauseTap,
+                        onPreviousTap: onPreviousTap,
+                        onNextTap: onNextTap,
                         onSeekFraction: onSeekFraction,
                       ),
               ),
               const SizedBox(height: 16),
-              const _CommentComposerBar(),
+              CommentInputBar(
+                // engagement addition
+                trackId: item.id,
+              ),
               const SizedBox(height: 16),
-              _BottomActionBar(onMoreTap: onMoreTap, onQueueTap: onQueueTap),
+              _BottomActionBar(
+                // engagement addition
+                trackId: item.id,
+                coverUrl: item.artworkUrl,
+                trackTitle: item.title,
+                artistName: item.artistDisplay,
+                onMoreTap: onMoreTap,
+                onShareTap: onShareTap,
+                onQueueTap: onQueueTap,
+              ),
             ],
           ),
         ),

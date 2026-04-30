@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/network_list_type.dart';
 import '../../domain/entities/social_user_entity.dart';
+import 'relationship_button.dart';
 
 class UserSocialTile extends StatelessWidget {
   final SocialUserEntity user;
   final NetworkListType listType;
+  final String? myId;
   final VoidCallback? onTap;
-  final VoidCallback? onFollowToggle;
   final VoidCallback? onToggleNotifications;
-  final VoidCallback? onBlock;
 
   const UserSocialTile({
     super.key,
     required this.user,
     required this.listType,
+    this.myId,
     this.onTap,
-    this.onFollowToggle,
     this.onToggleNotifications,
-    this.onBlock,
   });
 
   @override
@@ -26,23 +25,17 @@ class UserSocialTile extends StatelessWidget {
     final bool blockedList = (listType == NetworkListType.blocked)
         ? true
         : false;
-    final String buttonText;
-
-    if (blockedList) {
-      buttonText = user.isBlocked ? 'Unblock' : 'Block';
-    } else {
-      buttonText = user.isFollowing ? 'Following' : 'Follow';
-    }
 
     return GestureDetector(
+      key: Key('user_tile_${user.id}'),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Row(
           children: [
             CircleAvatar(
-              //check if back end will have default value
               radius: 30.0,
+              backgroundColor: Color(0xFF2A2A2A),
               backgroundImage: avatar != null && avatar.isNotEmpty
                   ? NetworkImage(avatar)
                   : null,
@@ -104,24 +97,17 @@ class UserSocialTile extends StatelessWidget {
 
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
-              child: TextButton(
-                onPressed: blockedList ? onBlock : onFollowToggle,
-                style: TextButton.styleFrom(
-                  backgroundColor:
-                      (blockedList ? user.isBlocked : user.isFollowing)
-                      ? const Color(0xFF303030)
-                      : Colors.white,
-                  foregroundColor:
-                      (blockedList ? user.isBlocked : user.isFollowing)
-                      ? Colors.white
-                      : Colors.black,
-                ),
-                child: Text(buttonText, style: const TextStyle(fontSize: 15.0)),
+              child: RelationshipButton(
+                userId: user.id,
+                initialIsFollowing: user.isFollowing,
+                initialIsBlocked: user.isBlocked,
+                isBlockMode: blockedList,
               ),
             ),
 
-            if (listType == NetworkListType.following)
+            if (listType == NetworkListType.following && user.id != myId)
               IconButton(
+                key: Key('notification_button_${user.id}'),
                 onPressed: onToggleNotifications,
                 icon: Icon(
                   user.isNotificationEnabled

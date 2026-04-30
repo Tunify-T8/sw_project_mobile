@@ -2,6 +2,8 @@
 // Purpose: Library screen for viewing, filtering, editing, replacing, and deleting the user's uploaded tracks.
 // Used by: artist_home_screen, library_screen
 // Concerns: Multi-format support; Track visibility.
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,7 +24,6 @@ import '../widgets/your_uploads/your_uploads_filter_sheet.dart';
 import '../widgets/your_uploads/your_uploads_options_sheet.dart';
 import '../widgets/your_uploads/your_uploads_track_tile.dart';
 import 'edit_track_screen.dart';
-import 'track_detail_screen.dart';
 
 part 'your_uploads_screen_actions.dart';
 
@@ -102,6 +103,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
                       isUploadBusy: isUploadBusy,
                       onUploadTap: _handleUploadTap,
                       onPlayTap: () => _openFirst(state.filteredItems),
+                      onShuffleTap: () => _openRandom(state.filteredItems),
                     )
                   : const SizedBox.shrink(),
             ),
@@ -142,7 +144,7 @@ class _YourUploadsScreenState extends ConsumerState<YourUploadsScreen> {
                       child: YourUploadsTrackTile(
                         item: item,
                         isBusy: state.busyTrackId == item.id,
-                        onTap: () => _openDetail(item),
+                        onTap: _openDetail,
                         onMoreTap: () => _showOptions(item),
                       ),
                     );

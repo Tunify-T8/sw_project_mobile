@@ -1,133 +1,143 @@
+/// Auth feature — main provider barrel + [AuthController].
+///
+/// ── WHAT THIS FILE CONTAINS ──────────────────────────────────────────────────
+///   1. [authControllerProvider] — the single Riverpod entry point that screens
+///      and widgets use to read auth state and call auth operations.
+///   2. [AuthController] — the Notifier that orchestrates all auth use cases
+///      and manages the global [AsyncValue<AuthUserEntity?>] state.
+///   3. [GoogleSignInOutcome] — the return type of [AuthController.loginWithGoogle].
+///
+/// ── WHAT MOVED OUT ───────────────────────────────────────────────────────────
+///   - Infrastructure providers  → `auth_infrastructure_providers.dart`
+///   - Repository provider       → `auth_repository_provider.dart`
+///   - Use-case providers        → `auth_use_case_providers.dart`
+///
+/// ── RE-EXPORTS ───────────────────────────────────────────────────────────────
+/// All split files are re-exported here so existing imports of
+/// `auth_provider.dart` continue to work without modification.
+library;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/errors/failure.dart';
-import 'package:software_project/core/network/dio_client.dart';
 import 'package:software_project/core/storage/token_storage.dart';
-import 'package:software_project/features/auth/data/api/auth_api.dart';
-import 'package:software_project/features/auth/data/mock/mock_auth_config.dart';
-import 'package:software_project/features/auth/data/mock/mock_auth_repository.dart';
-import 'package:software_project/features/auth/data/repository/auth_repository_impl.dart';
-import 'package:software_project/features/auth/data/services/google_sign_in_service.dart';
 import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
-import 'package:software_project/features/auth/domain/repositories/auth_repository.dart';
-import 'package:software_project/features/auth/domain/usecases/check_email_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/delete_account_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/forgot_password_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/link_google_account_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/login_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/logout_all_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/logout_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/oauth_google_sign_in_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/register_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/resend_verification_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/reset_password_usecase.dart';
-import 'package:software_project/features/auth/domain/usecases/verify_email_usecase.dart';
+import 'package:software_project/features/auth/data/services/google_sign_in_service.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/listening_history_provider.dart';
 import 'package:software_project/features/playback_streaming_engine/presentation/providers/player_provider.dart';
+import 'auth_infrastructure_providers.dart';
+import 'auth_use_case_providers.dart';
+import '../../../feed_search_discovery/presentation/providers/search_provider.dart';
 
-// ─── Infrastructure ───────────────────────────────────────────────────────────
+// Re-export split files so callers that import only `auth_provider.dart`
+// still have access to every provider they need.
+export 'auth_infrastructure_providers.dart';
+export 'auth_repository_provider.dart';
+export 'auth_use_case_providers.dart';
 
-final tokenStorageProvider = Provider<TokenStorage>(
-  (_) => const TokenStorage(),
-);
+// ─── Controller provider ──────────────────────────────────────────────────────
 
-final authApiProvider = Provider<AuthApi>((ref) {
-  return AuthApi(DioClient.create(ref.read(tokenStorageProvider)));
-});
-
-final googleSignInServiceProvider = Provider<GoogleSignInService>(
-  (_) => GoogleSignInService(),
-);
-
-// ─── Repository ───────────────────────────────────────────────────────────────
-
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final tokenStorage = ref.read(tokenStorageProvider);
-
-  if (MockAuthConfig.useMock) {
-    return MockAuthRepository(tokenStorage: tokenStorage);
-  }
-
-  return AuthRepositoryImpl(ref.read(authApiProvider), tokenStorage);
-});
-
-// ─── Use Cases ────────────────────────────────────────────────────────────────
-
-final checkEmailUseCaseProvider = Provider<CheckEmailUseCase>(
-  (ref) => CheckEmailUseCase(ref.read(authRepositoryProvider)),
-);
-final registerUseCaseProvider = Provider<RegisterUseCase>(
-  (ref) => RegisterUseCase(ref.read(authRepositoryProvider)),
-);
-final verifyEmailUseCaseProvider = Provider<VerifyEmailUseCase>(
-  (ref) => VerifyEmailUseCase(ref.read(authRepositoryProvider)),
-);
-final resendVerificationUseCaseProvider = Provider<ResendVerificationUseCase>(
-  (ref) => ResendVerificationUseCase(ref.read(authRepositoryProvider)),
-);
-final loginUseCaseProvider = Provider<LoginUseCase>(
-  (ref) => LoginUseCase(ref.read(authRepositoryProvider)),
-);
-final oauthGoogleSignInUseCaseProvider = Provider<OAuthGoogleSignInUseCase>(
-  (ref) => OAuthGoogleSignInUseCase(ref.read(authRepositoryProvider)),
-);
-final linkGoogleAccountUseCaseProvider = Provider<LinkGoogleAccountUseCase>(
-  (ref) => LinkGoogleAccountUseCase(ref.read(authRepositoryProvider)),
-);
-final logoutUseCaseProvider = Provider<LogoutUseCase>(
-  (ref) => LogoutUseCase(ref.read(authRepositoryProvider)),
-);
-final logoutAllUseCaseProvider = Provider<LogoutAllUseCase>(
-  (ref) => LogoutAllUseCase(ref.read(authRepositoryProvider)),
-);
-final forgotPasswordUseCaseProvider = Provider<ForgotPasswordUseCase>(
-  (ref) => ForgotPasswordUseCase(ref.read(authRepositoryProvider)),
-);
-final resetPasswordUseCaseProvider = Provider<ResetPasswordUseCase>(
-  (ref) => ResetPasswordUseCase(ref.read(authRepositoryProvider)),
-);
-final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>(
-  (ref) => DeleteAccountUseCase(ref.read(authRepositoryProvider)),
-);
-
-// ─── Controller ───────────────────────────────────────────────────────────────
-
+/// The global auth controller provider.
+///
+/// Screens and widgets interact with authentication exclusively through this
+/// provider:
+///   - `ref.watch(authControllerProvider)` — reactive [AsyncValue<AuthUserEntity?>] state.
+///   - `ref.read(authControllerProvider.notifier)` — call auth operations.
+///
+/// State lifecycle:
+///   - `AsyncData(null)`  — signed out (initial).
+///   - `AsyncLoading()`   — an operation is in progress.
+///   - `AsyncData(user)`  — authenticated; [AuthUserEntity] holds the user.
+///   - `AsyncError(e, s)` — the last operation failed; [e] is a [Failure].
 final authControllerProvider =
     NotifierProvider<AuthController, AsyncValue<AuthUserEntity?>>(
       AuthController.new,
     );
 
+// ─── Controller ───────────────────────────────────────────────────────────────
+
+/// Orchestrates all Module 1 authentication operations.
+///
+/// Each method delegates to a use case and updates [state] accordingly.
+/// Screens listen to [state] via `ref.listen` for side-effects (navigation,
+/// snackbars) and read `ref.watch` for loading spinners.
+///
+/// Never construct this directly — use [authControllerProvider].
 class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
-  CheckEmailUseCase get _checkEmail => ref.read(checkEmailUseCaseProvider);
-  RegisterUseCase get _register => ref.read(registerUseCaseProvider);
-  VerifyEmailUseCase get _verifyEmail => ref.read(verifyEmailUseCaseProvider);
-  ResendVerificationUseCase get _resendVerification =>
-      ref.read(resendVerificationUseCaseProvider);
-  LoginUseCase get _login => ref.read(loginUseCaseProvider);
-  OAuthGoogleSignInUseCase get _oauthGoogleSignIn =>
-      ref.read(oauthGoogleSignInUseCaseProvider);
-  LinkGoogleAccountUseCase get _linkGoogleAccount =>
-      ref.read(linkGoogleAccountUseCaseProvider);
-  LogoutUseCase get _logout => ref.read(logoutUseCaseProvider);
-  LogoutAllUseCase get _logoutAll => ref.read(logoutAllUseCaseProvider);
-  ForgotPasswordUseCase get _forgotPassword =>
-      ref.read(forgotPasswordUseCaseProvider);
-  ResetPasswordUseCase get _resetPassword =>
-      ref.read(resetPasswordUseCaseProvider);
-  DeleteAccountUseCase get _deleteAccount =>
-      ref.read(deleteAccountUseCaseProvider);
+  // ── Use case accessors ──────────────────────────────────────────────────
+  // Lazy-read from the Riverpod container so the controller is testable:
+  // tests override the provider, not the controller constructor.
+
+  /// Checks whether an email is already registered (no state change).
+  // ignore: library_private_types_in_public_api
+  get _checkEmail => ref.read(checkEmailUseCaseProvider);
+
+  /// Registers a new account.
+  get _register => ref.read(registerUseCaseProvider);
+
+  /// Verifies email with OTP token.
+  get _verifyEmail => ref.read(verifyEmailUseCaseProvider);
+
+  /// Re-sends the verification email.
+  get _resendVerification => ref.read(resendVerificationUseCaseProvider);
+
+  /// Signs in with email + password.
+  get _login => ref.read(loginUseCaseProvider);
+
+  /// Signs in with Google authorization code.
+  get _oauthGoogleSignIn => ref.read(oauthGoogleSignInUseCaseProvider);
+
+  /// Links a Google account to an existing local account.
+  get _linkGoogleAccount => ref.read(linkGoogleAccountUseCaseProvider);
+
+  /// Signs out the current device.
+  get _logout => ref.read(logoutUseCaseProvider);
+
+  /// Signs out all devices.
+  get _logoutAll => ref.read(logoutAllUseCaseProvider);
+
+  /// Sends a password reset email.
+  get _forgotPassword => ref.read(forgotPasswordUseCaseProvider);
+
+  /// Resets the password with a 6-char token.
+  get _resetPassword => ref.read(resetPasswordUseCaseProvider);
+
+  /// Deletes the authenticated account.
+  get _deleteAccount => ref.read(deleteAccountUseCaseProvider);
+
+  /// Google Sign-In SDK wrapper.
   GoogleSignInService get _googleSignInService =>
       ref.read(googleSignInServiceProvider);
+
+  /// Secure token/session storage.
   TokenStorage get _tokenStorage => ref.read(tokenStorageProvider);
+
+  // ── Notifier lifecycle ──────────────────────────────────────────────────
 
   @override
   AsyncValue<AuthUserEntity?> build() => const AsyncData<AuthUserEntity?>(null);
 
+  // ── Session helpers ─────────────────────────────────────────────────────
+
+  /// Reads the persisted user from secure storage and updates [state].
+  ///
+  /// Called by [AuthProtectedScreen] on every protected-route mount to
+  /// re-hydrate the session after a hot-restart or cold launch.
+  /// Returns the restored [AuthUserEntity], or `null` if no session exists.
   Future<AuthUserEntity?> restoreSession() async {
     final user = await _tokenStorage.getUser();
     state = AsyncData<AuthUserEntity?>(user);
     return user;
   }
 
+  /// Updates the in-memory and persisted user identity after a profile edit.
+  ///
+  /// Called by the profile feature when the user changes their display name
+  /// or avatar so the controller state stays consistent with the profile data.
+  ///
+  /// [username] — the new display name / username.
+  /// [avatarUrl] — the new avatar URL, or `null` to clear it.
+  ///
+  /// Returns the updated [AuthUserEntity], or `null` if no session was found.
   Future<AuthUserEntity?> syncProfileIdentity({
     required String username,
     required String? avatarUrl,
@@ -149,6 +159,12 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     return updatedUser;
   }
 
+  // ── Auth operations ─────────────────────────────────────────────────────
+
+  /// Checks whether [email] is already registered.
+  ///
+  /// Does not change loading state — purely returns a bool.
+  /// On failure sets state to [AsyncError] and returns `false`.
   Future<bool> checkEmail(String email) async {
     try {
       return await _checkEmail(email);
@@ -158,6 +174,11 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Registers a new account with the given credentials.
+  ///
+  /// On success: state → `AsyncData(null)`. Navigation to verify-email is
+  /// handled by the screen via `ref.listen`.
+  /// On failure: state → `AsyncError(failure)`. Screen shows snackbar.
   Future<void> register({
     required String email,
     required String username,
@@ -180,9 +201,15 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Verifies the user's email with the 6-character OTP [token].
+  ///
+  /// On success: state → `AsyncData(user)`. Navigation to home is handled
+  /// by the screen.
+  /// On failure (wrong/expired token): state → `AsyncError(UnauthorizedFailure)`.
   Future<void> verifyEmail(String email, String token) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _verifyEmail(email, token);
       state = AsyncData<AuthUserEntity?>(user);
     } catch (e, s) {
@@ -190,6 +217,10 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Re-sends the 6-character verification code to [email].
+  ///
+  /// Does not update loading state — the screen shows its own spinner.
+  /// On failure sets state to [AsyncError] but the screen can still recover.
   Future<void> resendVerification(String email) async {
     try {
       await _resendVerification(email);
@@ -198,9 +229,15 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Signs in with [email] and [password].
+  ///
+  /// On success: state → `AsyncData(user)`.
+  /// On unverified: state → `AsyncError(UnverifiedUserFailure)`.
+  /// On wrong password: state → `AsyncError(UnauthorizedFailure)`.
   Future<void> login(String email, String password) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _login(email, password);
       state = AsyncData<AuthUserEntity?>(user);
     } catch (e, s) {
@@ -210,14 +247,15 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
 
   /// Signs in with Google using the authorization code flow.
   ///
-  /// Returns one of three outcomes via [GoogleSignInOutcome]:
-  ///   - [GoogleSignInOutcome.success] → user authenticated, navigate to home.
-  ///   - [GoogleSignInOutcome.cancelled] → user dismissed dialog, do nothing.
-  ///   - [GoogleSignInOutcome.requiresLinking] → show linking screen.
-  ///     Access [pendingLinkingToken] and [pendingLinkingEmail] for the UI.
+  /// Returns a [GoogleSignInOutcome] so the screen knows which action to take:
+  ///   - [GoogleSignInOutcome.success]         → navigate to home.
+  ///   - [GoogleSignInOutcome.cancelled]        → do nothing.
+  ///   - [GoogleSignInOutcome.requiresLinking]  → show linking screen;
+  ///     read [GoogleAccountLinkingRequiredFailure] from controller state.
+  ///   - [GoogleSignInOutcome.error]            → show error snackbar.
   ///
-  /// The authorization code expires in ~60 seconds — this method
-  /// calls the backend immediately after receiving it from Google.
+  /// The authorization code expires in ~60 seconds — this method sends it
+  /// to the backend immediately after receiving it from Google.
   Future<GoogleSignInOutcome> loginWithGoogle() async {
     try {
       final result = await _googleSignInService.signIn();
@@ -225,13 +263,13 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
 
       state = const AsyncLoading<AuthUserEntity?>();
 
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _oauthGoogleSignIn(
         authorizationCode: result.authorizationCode,
       );
       state = AsyncData<AuthUserEntity?>(user);
       return GoogleSignInOutcome.success;
     } on GoogleAccountLinkingRequiredFailure catch (e, s) {
-      // Scenario 3 — store the linking data, signal UI to show linking screen.
       state = AsyncError<AuthUserEntity?>(e, s);
       return GoogleSignInOutcome.requiresLinking;
     } catch (e, s) {
@@ -240,17 +278,22 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
-  /// Completes account linking after [loginWithGoogle] returns
-  /// [GoogleSignInOutcome.requiresLinking].
+  /// Links a Google account to an existing local account.
+  ///
+  /// Called only after [loginWithGoogle] returns [GoogleSignInOutcome.requiresLinking].
   ///
   /// [linkingToken] — from [GoogleAccountLinkingRequiredFailure.linkingToken].
-  /// [password] — the user's existing Tunify password.
+  ///                  Expires in 10 minutes.
+  /// [password]     — the user's existing local password.
+  ///
+  /// On success: state → `AsyncData(user)`. Navigation handled by the screen.
   Future<void> linkGoogleAccount({
     required String linkingToken,
     required String password,
   }) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
+      await _clearPlaybackBeforeAccountSwitch();
       final user = await _linkGoogleAccount(
         linkingToken: linkingToken,
         password: password,
@@ -261,32 +304,63 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Signs out the current device.
+  ///
+  /// Revokes the stored refresh token, clears all local session data,
+  /// invalidates the player and listening history, and resets state to
+  /// `AsyncData(null)`.
   Future<void> logout() async {
+    await _clearPlaybackBeforeAccountSwitch();
     await _logout();
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
     ref.invalidate(playerProvider);
+    ref.read(searchProvider.notifier).clearRecentResults();
     state = const AsyncData<AuthUserEntity?>(null);
   }
 
+  /// Signs out all devices.
+  ///
+  /// Same as [logout] but revokes every refresh token for the account, not
+  /// just the current one.
   Future<void> logoutAll() async {
+    await _clearPlaybackBeforeAccountSwitch();
     await _logoutAll();
     await _googleSignInService.signOut();
     ref.invalidate(listeningHistoryProvider);
     ref.invalidate(playerProvider);
+    ref.read(searchProvider.notifier).clearRecentResults();
     state = const AsyncData<AuthUserEntity?>(null);
   }
 
+  Future<void> _clearPlaybackBeforeAccountSwitch() async {
+    try {
+      await ref.read(playerProvider.notifier).clearPlaybackSession();
+    } catch (_) {}
+  }
+
+  /// Sends a password reset code to [email].
+  ///
+  /// Never reveals whether the email exists (API security spec) — always
+  /// navigates to [ResetPasswordScreen] regardless of outcome.
+  /// Only propagates [ValidationFailure] (malformed email) to the UI.
   Future<void> forgotPassword(String email) async {
     try {
       await _forgotPassword(email);
     } on ValidationFailure catch (e, s) {
       state = AsyncError<AuthUserEntity?>(e, s);
     } catch (_) {
-      // Intentionally swallowed — never reveal whether email exists.
+      // Intentionally swallowed — do not reveal whether the email exists.
     }
   }
 
+  /// Resets the password using the 6-char [token] from the reset email.
+  ///
+  /// [signoutAll] — when `true` (default), all active sessions are revoked
+  /// so an attacker who triggered the reset cannot stay logged in elsewhere.
+  ///
+  /// On success: state → `AsyncData(null)`.
+  /// On expired/invalid token: state → `AsyncError(UnauthorizedFailure)`.
   Future<void> resetPassword({
     required String email,
     required String token,
@@ -309,6 +383,14 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
     }
   }
 
+  /// Soft-deletes the authenticated account.
+  ///
+  /// [password] is required for local (email/password) accounts.
+  /// Omit for accounts that only have a linked Google identity.
+  ///
+  /// On success: state → `AsyncData(null)`. Navigation to landing handled
+  /// by the screen.
+  /// On wrong password: state → `AsyncError(UnauthorizedFailure)`.
   Future<void> deleteAccount({String? password}) async {
     state = const AsyncLoading<AuthUserEntity?>();
     try {
@@ -320,21 +402,28 @@ class AuthController extends Notifier<AsyncValue<AuthUserEntity?>> {
   }
 }
 
-/// Result of [AuthController.loginWithGoogle].
+// ─── Supporting enum ──────────────────────────────────────────────────────────
+
+/// The four possible outcomes of [AuthController.loginWithGoogle].
+///
+/// The screen switches on this value to decide what to do after
+/// [AuthController.loginWithGoogle] returns.
 enum GoogleSignInOutcome {
-  /// Scenario 1/2 — user authenticated successfully. Navigate to home.
+  /// Scenario 1/2 — user authenticated successfully.
+  /// Navigate to home. Controller state is `AsyncData(user)`.
   success,
 
-  /// User dismissed the Google account picker. Do nothing.
+  /// User dismissed the Google account picker without signing in.
+  /// Do nothing. Controller state is unchanged.
   cancelled,
 
-  /// Scenario 3 — email already registered locally.
-  /// Show the account linking screen.
-  /// Extract [GoogleAccountLinkingRequiredFailure] from controller state
-  /// to get the [linkingToken] and [email].
+  /// Scenario 3 — the Google email is already registered as a local account.
+  /// Show the account-linking screen.
+  /// Read [GoogleAccountLinkingRequiredFailure] from controller state to
+  /// get the [linkingToken] and [email].
   requiresLinking,
 
-  /// Unexpected error (network, serverClientId not set, etc.)
-  /// Controller state is [AsyncError] with the failure details.
+  /// An unexpected error occurred (network issue, misconfigured serverClientId, etc.).
+  /// Show an error snackbar. Controller state is `AsyncError`.
   error,
 }

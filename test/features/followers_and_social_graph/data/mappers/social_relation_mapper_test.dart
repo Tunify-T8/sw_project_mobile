@@ -6,8 +6,6 @@ void main() {
   group('SocialRelationDtoMapper.toEntity', () {
     final dto = SocialRelationDTO(
       isFollowing: true,
-      isFollowedBy: true,
-      isMutual: false,
       isBlocked: true,
     );
 
@@ -15,8 +13,6 @@ void main() {
       final entity = dto.toEntity('target-user-1');
 
       expect(entity.isFollowing, dto.isFollowing);
-      expect(entity.isFollowedBy, dto.isFollowedBy);
-      expect(entity.isMutual, dto.isMutual);
       expect(entity.isBlocked, dto.isBlocked);
     });
 

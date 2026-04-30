@@ -2,7 +2,7 @@ import '../dto/profile_dto.dart';
 // This file:
 //Receives the raw JSON
 // Converts it into a proper Dart object
-// Splits "Cairo, Egypt" → city + country
+// Splits "Cairo, Egypt" ? city + country
 // Merges profile + social links together
 // Returns a clean ProfileDto
 
@@ -19,7 +19,7 @@ class ProfileMapper {
     final country = commaIndex >= 0 ? locationRaw.substring(commaIndex + 1).trim() : '';
 
     return ProfileDto(
-      id: user['id'] ?? '',          
+      id: user['id'] ?? '',
       userName: user['username'] ?? '',
       displayName: user['displayName'], 
       email: user['email'] ?? '',     
@@ -110,16 +110,16 @@ static ProfileDto mergeSocialLinks(
 }
 }
 ///logic for me to remember the flow:
-// Call 1 → GET /users/1
+// Call 1 ? GET /users/1
 // Returns: name, bio, location, followers etc.
 // no instagram, twitter, website
 
-// Call 2 → GET /social_links/1  
+// Call 2 ? GET /social_links/1  
 // Returns: instagram, twitter, website
 // no name, bio, location etc.
 //the merge combines both into one Profiledto
 
-// When real backend is ready — if the backend changes to 
+// When real backend is ready � if the backend changes to 
 // return everything in one call, 
 // I just delete the second call in repository_impl 
 // and remove mergeSocialLinks. 

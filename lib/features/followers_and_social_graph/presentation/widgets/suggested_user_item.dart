@@ -1,25 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/social_user_entity.dart';
+import 'relationship_button.dart';
 
 class SuggestedUserItem extends StatelessWidget {
   final SocialUserEntity user;
   final VoidCallback? onTap;
-  final VoidCallback onFollowToggle;
 
-  const SuggestedUserItem({
-    super.key,
-    required this.user,
-    this.onTap,
-    required this.onFollowToggle,
-  });
+  const SuggestedUserItem({super.key, required this.user, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isFollowing = user.isFollowing;
-
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: GestureDetector(
+        key: Key('suggested_user_item_${user.id}'),
         onTap: onTap,
         child: SizedBox(
           width: 140,
@@ -27,12 +21,17 @@ class SuggestedUserItem extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 50,
+                backgroundColor: Color(0xFF2A2A2A),
                 backgroundImage:
                     user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                     ? NetworkImage(user.avatarUrl!)
                     : null,
                 child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                    ? const Icon(Icons.person, size: 40)
+                    ? const Icon(
+                        Icons.person,
+                        color: Color(0xFF6A8AAA),
+                        size: 40,
+                      )
                     : null,
               ),
 
@@ -52,28 +51,9 @@ class SuggestedUserItem extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              SizedBox(
-                height: 38,
-                child: TextButton(
-                  onPressed: onFollowToggle,
-                  style: TextButton.styleFrom(
-                    backgroundColor: isFollowing
-                        ? const Color(0xFF303030)
-                        : Colors.white,
-                    foregroundColor: isFollowing ? Colors.white : Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: Text(
-                    isFollowing ? 'Following' : 'Follow',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+              RelationshipButton(
+                userId: user.id,
+                initialIsFollowing: user.isFollowing,
               ),
             ],
           ),

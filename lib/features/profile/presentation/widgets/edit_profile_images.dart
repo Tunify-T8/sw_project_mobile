@@ -100,7 +100,9 @@ class EditProfileImages extends StatelessWidget {
       coverContent = const SizedBox.shrink();
     }
 
+    // Key: ProfileKeys.coverPicker
     return GestureDetector(
+      key: const Key('edit_profile_cover_picker'),
       onTap: () => showImageOptions(context, isCover: true),
       child: Stack(
         children: [
@@ -151,7 +153,9 @@ class EditProfileImages extends StatelessWidget {
       );
     }
 
+    // Key: ProfileKeys.avatarPicker
     return GestureDetector(
+      key: const Key('edit_profile_avatar_picker'),
       onTap: () => showImageOptions(context, isCover: false),
       child: Stack(
         children: [

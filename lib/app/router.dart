@@ -4,6 +4,7 @@ import '../core/routing/routes.dart';
 import '../features/audio_upload_and_management/domain/entities/upload_item.dart';
 import '../features/audio_upload_and_management/presentation/screens/edit_track_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/track_detail_screen.dart';
+import '../features/audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../features/audio_upload_and_management/presentation/screens/track_metadata_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/upload_entry_screen.dart';
 import '../features/audio_upload_and_management/presentation/screens/upload_progress_screen.dart';
@@ -22,10 +23,22 @@ import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/tell_us_more_screen.dart';
 import '../features/auth/presentation/screens/verify_email_screen.dart';
 import '../features/auth/presentation/screens/google_account_linking_screen.dart';
+import '../features/messaging_track_sharing/presentation/screens/messaging_activity_screen.dart';
+import '../features/messaging_track_sharing/domain/entities/message_attachment.dart';
+import '../features/messaging_track_sharing/presentation/screens/chat_screen.dart';
+import '../features/messaging_track_sharing/presentation/screens/inbox_settings_screen.dart';
+import '../features/notifications/presentation/screens/notification_preferences_screen.dart';
+import '../features/playlists/presentation/screens/playlist_detail_screen.dart';
+import '../features/playlists/presentation/screens/playlist_edit_screen.dart';
+import '../features/playlists/presentation/screens/playlist_screen.dart';
+import '../features/playlists/presentation/screens/albums_screen.dart';
+import '../features/playlists/presentation/utils/shared_playlist_link_parser.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/player_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/queue_screen.dart';
 import '../features/playback_streaming_engine/presentation/screens/listening_history_screen.dart';
+import '../features/playback_streaming_engine/presentation/screens/shared_track_link_screen.dart';
+import '../features/playback_streaming_engine/presentation/utils/shared_track_link_opener.dart';
 import '../shared/ui/screens/settings_screen.dart';
 import 'main_shell_screen.dart';
 import 'route_guards.dart';
@@ -51,6 +64,11 @@ class AppRoutes {
   static const String deleteAccount = '/delete-account';
   static const String googleAccountLinking = '/google-account-linking';
   static const String home = '/home';
+
+  /// Internal entry path to open a track when all we have is (trackId,
+  /// optional privateToken) — used by the private-link flow.
+  /// Arguments: { 'trackId': String, 'privateToken': String? }
+  static const String privateTrack = '/private-track';
 }
 
 Route<dynamic> generateRoute(RouteSettings settings) =>
@@ -61,6 +79,34 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = _readArgs(settings.arguments);
+    final sharedPlaylistLink = settings.name == null
+        ? null
+        : parsePlaylistShareLink(settings.name!);
+    final sharedTrackLink = settings.name == null
+        ? null
+        : parseTrackShareLink(settings.name!);
+    if (sharedPlaylistLink != null) {
+      return _slideUp(
+        AuthProtectedScreen(
+          child: PlaylistDetailScreen(
+            playlistId: sharedPlaylistLink.playlistId,
+            secretToken: sharedPlaylistLink.secretToken,
+          ),
+        ),
+        settings,
+      );
+    }
+    if (sharedTrackLink != null) {
+      return _slideUp(
+        AuthProtectedScreen(
+          child: SharedTrackLinkScreen(
+            trackId: sharedTrackLink.trackId,
+            privateToken: sharedTrackLink.privateToken,
+          ),
+        ),
+        settings,
+      );
+    }
 
     switch (settings.name) {
       case AppRoutes.authGate:
@@ -221,6 +267,18 @@ class AppRouter {
           settings,
         );
 
+      case AppRoutes.privateTrack:
+        final trackId = (args['trackId'] as String?)?.trim() ?? '';
+        final privateToken = args['privateToken'] as String?;
+        final stub = TrackLinkHelper.buildStubUploadItem(
+          trackId,
+          privateToken: privateToken,
+        );
+        return _slide(
+          AuthProtectedScreen(child: TrackDetailScreen(item: stub)),
+          settings,
+        );
+
       case Routes.yourUploads:
         return _slide(
           const AuthProtectedScreen(child: YourUploadsScreen()),
@@ -242,6 +300,69 @@ class AppRouter {
       case Routes.listeningHistory:
         return _slide(
           const AuthProtectedScreen(child: ListeningHistoryScreen()),
+          settings,
+        );
+
+      case Routes.messagingActivity:
+        return _slide(
+          const AuthProtectedScreen(child: MessagingActivityScreen()),
+          settings,
+        );
+
+      case Routes.inboxSettings:
+        return _slide(
+          const AuthProtectedScreen(child: InboxSettingsScreen()),
+          settings,
+        );
+
+      case Routes.chat:
+        return _slide(
+          AuthProtectedScreen(
+            child: ChatScreen(
+              conversationId: args['conversationId'] as String? ?? '',
+              otherUserId: args['otherUserId'] as String?,
+              otherUserName: args['otherUserName'] as String? ?? '',
+              otherUserAvatar: args['otherUserAvatar'] as String?,
+              pendingAttachment:
+                  args['pendingAttachment'] as MessageAttachment?,
+            ),
+          ),
+          settings,
+        );
+
+      case Routes.notificationPreferences:
+        return _slide(
+          const AuthProtectedScreen(child: NotificationPreferencesScreen()),
+          settings,
+        );
+
+      case Routes.playlists:
+        return _slide(
+          const AuthProtectedScreen(child: PlaylistsScreen()),
+          settings,
+        );
+      case Routes.albums:
+        return _slide(
+          const AuthProtectedScreen(child: AlbumsScreen()),
+          settings,
+        );
+
+      case Routes.playlistDetail:
+        final id = args['playlistId'] as String? ?? '';
+        final isMine = args['isMine'] as bool? ?? true;
+        return _slide(
+          AuthProtectedScreen(
+            child: PlaylistDetailScreen(playlistId: id, isMine: isMine),
+          ),
+          settings,
+        );
+
+      case Routes.playlistEdit:
+        final collectionId = args['collectionId'] as String? ?? '';
+        return _slide(
+          AuthProtectedScreen(
+            child: PlaylistEditScreen(collectionId: collectionId),
+          ),
           settings,
         );
 

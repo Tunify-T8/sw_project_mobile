@@ -1,7 +1,30 @@
-part of 'your_uploads_options_sheet.dart';
+// Upload Feature Guide:
+// Purpose: Legacy body widget for the Your Uploads track options sheet.
+// Used by: internal — the shared track_options_sheet now drives this UI.
+// Concerns: Multi-format support; Track visibility.
+//
+// This file was originally a `part of 'your_uploads_options_sheet.dart'` body.
+// The parent was refactored to delegate to the shared track options sheet, so
+// this file is kept as a self-contained standalone widget that preserves the
+// exact same logic (header + share row + option rows + copy/WhatsApp actions)
+// in case any surface wants to mount the old, upload-specific sheet directly.
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
-class _TrackOptionsSheet extends ConsumerWidget {
-  const _TrackOptionsSheet({
+import '../../../../../core/network/api_endpoints.dart';
+import '../../../domain/entities/upload_item.dart';
+import '../../providers/track_detail_item_provider.dart';
+import '../../../../playback_streaming_engine/presentation/providers/player_provider.dart';
+import '../../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
+import '../upload_artwork_view.dart';
+import 'your_uploads_options_actions.dart';
+
+class YourUploadsTrackOptionsSheet extends ConsumerWidget {
+  const YourUploadsTrackOptionsSheet({
+    super.key,
     required this.item,
     required this.onEditTap,
     required this.onDeleteTap,
@@ -103,23 +126,56 @@ class _TrackOptionsSheet extends ConsumerWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
+                children: [
                   YourUploadsShareButton(
                     icon: Icons.send_outlined,
                     label: 'Message',
+                    onTap: () {
+                      final navigator = Navigator.of(context);
+                      navigator.pop();
+                      navigator.push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => TrackShareToScreen(
+                            info: TrackOptionInfo.fromUploadItem(resolvedItem),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   YourUploadsShareButton(
                     icon: Icons.copy_outlined,
                     label: 'Copy link',
+                    onTap: () =>
+                        _copyUploadShareLink(context, ref, resolvedItem),
                   ),
-                  YourUploadsShareButton(
+                  const YourUploadsShareButton(
                     icon: Icons.qr_code_2,
                     label: 'QR code',
                   ),
                   YourUploadsShareButton(
-                    icon: Icons.sms_outlined,
-                    label: 'SMS',
+                    icon: Icons.chat_outlined,
+                    label: 'WhatsApp',
+                    onTap: () async {
+                      final url = await _buildUploadShareUrl(
+                        context,
+                        ref,
+                        resolvedItem,
+                      );
+                      if (url == null) return;
+                      final msg = Uri.encodeComponent(
+                        'Check out "${resolvedItem.title}" on Tunify: $url',
+                      );
+                      await launchUrl(
+                        Uri.parse('https://wa.me/?text=$msg'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
                   ),
+                  if (Platform.isAndroid)
+                    const YourUploadsShareButton(
+                      icon: Icons.sms_outlined,
+                      label: 'SMS',
+                    ),
                 ],
               ),
             ),
@@ -138,7 +194,9 @@ class _TrackOptionsSheet extends ConsumerWidget {
               icon: Icons.queue_play_next,
               label: 'Play next',
               onTap: () {
-                ref.read(playerProvider.notifier).addToQueueNext(resolvedItem.id);
+                ref
+                    .read(playerProvider.notifier)
+                    .addToQueueNext(resolvedItem.id);
                 Navigator.pop(context);
               },
             ),
@@ -146,7 +204,9 @@ class _TrackOptionsSheet extends ConsumerWidget {
               icon: Icons.playlist_play,
               label: 'Play last',
               onTap: () {
-                ref.read(playerProvider.notifier).addToQueueLast(resolvedItem.id);
+                ref
+                    .read(playerProvider.notifier)
+                    .addToQueueLast(resolvedItem.id);
                 Navigator.pop(context);
               },
             ),
@@ -179,4 +239,58 @@ class _TrackOptionsSheet extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _copyUploadShareLink(
+  BuildContext context,
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  final url = await _buildUploadShareUrl(context, ref, item);
+  if (url == null) return;
+
+  await Clipboard.setData(ClipboardData(text: url));
+  if (!context.mounted) return;
+  Navigator.pop(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Link copied to clipboard'),
+      duration: Duration(seconds: 2),
+    ),
+  );
+}
+
+Future<String?> _buildUploadShareUrl(
+  BuildContext context,
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  var shareItem = item;
+  ref.invalidate(trackDetailItemProvider(item));
+  shareItem = await ref
+      .read(trackDetailItemProvider(item).future)
+      .timeout(const Duration(seconds: 5), onTimeout: () => item);
+
+  final privateToken = shareItem.privateToken?.trim();
+  final shouldUsePrivateLink =
+      item.visibility == UploadVisibility.private ||
+      shareItem.visibility == UploadVisibility.private ||
+      (privateToken != null && privateToken.isNotEmpty);
+
+  if (shouldUsePrivateLink && (privateToken == null || privateToken.isEmpty)) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not create private link. Token is missing.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+    return null;
+  }
+
+  return ApiEndpoints.shareTrackUrl(
+    shareItem.id,
+    privateToken: shouldUsePrivateLink ? privateToken : null,
+  );
 }

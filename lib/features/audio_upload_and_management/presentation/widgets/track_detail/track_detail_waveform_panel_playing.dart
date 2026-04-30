@@ -27,11 +27,34 @@ class _PlayingWaveform extends StatelessWidget {
       child: SizedBox(
         key: const ValueKey('waveform'),
         height: 250,
-        child: TrackDetailSoundcloudWaveform(
-          state: state,
-          bars: bars,
-          isLoading: isLoading,
-          progress: progress,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            TrackDetailSoundcloudWaveform(
+              state: state,
+              bars: bars,
+              isLoading: isLoading,
+              progress: progress,
+            ),
+            if (isLoading)
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.42),
+                  shape: BoxShape.circle,
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -59,6 +82,8 @@ class _PausedSurface extends ConsumerWidget {
     required this.progress,
     required this.durationSeconds,
     required this.onPlayPauseTap,
+    required this.onPreviousTap,
+    required this.onNextTap,
     required this.onSeekFraction,
   });
 
@@ -66,6 +91,8 @@ class _PausedSurface extends ConsumerWidget {
   final double progress;
   final int durationSeconds;
   final VoidCallback onPlayPauseTap;
+  final VoidCallback onPreviousTap;
+  final VoidCallback onNextTap;
   final ValueChanged<double> onSeekFraction;
 
   @override
@@ -81,7 +108,7 @@ class _PausedSurface extends ConsumerWidget {
             children: [
               _PauseCircleButton(
                 icon: Icons.skip_previous_rounded,
-                onTap: () => ref.read(playerProvider.notifier).previous(),
+                onTap: onPreviousTap,
               ),
               _PauseCircleButton(
                 icon: Icons.play_arrow_rounded,
@@ -91,7 +118,7 @@ class _PausedSurface extends ConsumerWidget {
               ),
               _PauseCircleButton(
                 icon: Icons.skip_next_rounded,
-                onTap: () => ref.read(playerProvider.notifier).next(),
+                onTap: onNextTap,
               ),
             ],
           ),

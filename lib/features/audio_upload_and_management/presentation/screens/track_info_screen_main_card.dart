@@ -38,8 +38,19 @@ class _MainTrackCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.profile),
+                        key: const Key('track_info_main_artist_tap'),
+                        onTap: () {
+                          final artistId = _resolveTrackArtistId(ref, item.id);
+                          if (artistId == null || artistId.isEmpty) return;
+
+                          final currentUserId =
+                              ref.read(authControllerProvider).value?.id;
+                          navigateToProfile(
+                            context,
+                            artistId,
+                            currentUserId: currentUserId,
+                          );
+                        },
                         child: Text(
                           item.artistDisplay,
                           style: const TextStyle(
@@ -51,10 +62,10 @@ class _MainTrackCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '${stats.playCountText} plays  ${item.durationLabel}  ${stats.releaseDateText}',
+                        '${item.durationLabel}  ${stats.releaseDateText}',
                         style: const TextStyle(
                           color: Colors.white54,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -102,52 +113,40 @@ class _MainTrackCard extends ConsumerWidget {
               _MetricIconText(icon: Icons.repeat, text: stats.repostCountText),
               const SizedBox(width: 28),
               GestureDetector(
-                onTap: () {
-                  showTrackOptionsSheet(
-                    context,
-                    info: TrackOptionInfo.fromUploadItem(item),
-                    ref: ref,
+                onTap: () async {
+                  // Track info page is reached from many paths (feed, search,
+                  // history, own uploads). Resolve ownership and artist id
+                  // via the shared lookup so the sheet shows the right
+                  // layout regardless of how we got here.
+                  final bundle = ref.read(playerProvider).asData?.value.bundle;
+                  final artistId =
+                      (bundle?.trackId == item.id &&
+                          bundle!.artist.id.trim().isNotEmpty)
+                      ? bundle.artist.id
+                      : null;
+                  await showTrackOptionsMenu(
+                    context: context,
+                    trackId: item.id,
+                    title: item.title,
+                    artistId: artistId ?? '',
+                    artistName: item.artistDisplay,
+                    coverUrl: item.artworkUrl,
+                    isBehindTrack: true,
                   );
                 },
                 child: const Padding(
                   padding: EdgeInsets.all(4),
-                  child: Icon(Icons.more_horiz, color: Colors.white70, size: 28),
+                  child: Icon(
+                    Icons.more_horiz,
+                    color: Colors.white70,
+                    size: 28,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Text(
-            _buildTrackDescription(item),
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Show more',
-            style: TextStyle(
-              color: Colors.blue.shade400,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
         ],
       ),
     );
-  }
-
-  String _buildTrackDescription(UploadItem item) {
-    final cleaned = item.description?.trim();
-    if (cleaned != null && cleaned.isNotEmpty) {
-      return cleaned;
-    }
-
-    return 'Lyrics: Ahmed Ali Mousa\n'
-        'Composition: Sherif Tag\n'
-        'Arrangement: Tarek Madkour\n\n'
-        'Lyrics:';
   }
 }

@@ -28,11 +28,15 @@ class TrackDetailBackground extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final safeProgress = progress.clamp(0.0, 1.0);
-            final extraPanWidth = constraints.maxWidth * 0.68;
+            final isDesktopWidth = MediaQuery.sizeOf(context).width >= 900;
+            final extraPanWidth = isDesktopWidth
+                ? (constraints.maxWidth * 0.18).clamp(0.0, 220.0).toDouble()
+                : constraints.maxWidth * 0.68;
             final artworkWidth = constraints.maxWidth + extraPanWidth;
             final translateX = -(extraPanWidth * safeProgress);
 
-            Widget art = item.localArtworkPath != null ||
+            Widget art =
+                item.localArtworkPath != null ||
                     (item.artworkUrl?.trim().isNotEmpty == true)
                 ? UploadArtworkView(
                     localPath: item.localArtworkPath,
@@ -69,7 +73,9 @@ class TrackDetailBackground extends StatelessWidget {
                       height: constraints.maxHeight,
                       child: ColorFiltered(
                         colorFilter: ColorFilter.mode(
-                          Colors.black.withOpacity(isPlaying ? 0.14 : 0.34),
+                          Colors.black.withValues(
+                            alpha: isPlaying ? 0.14 : 0.34,
+                          ),
                           BlendMode.darken,
                         ),
                         child: art,
@@ -85,10 +91,14 @@ class TrackDetailBackground extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(isPlaying ? 0.02 : 0.08),
+                          Colors.black.withValues(
+                            alpha: isPlaying ? 0.02 : 0.08,
+                          ),
                           Colors.transparent,
-                          Colors.black.withOpacity(isPlaying ? 0.18 : 0.20),
-                          Colors.black.withOpacity(0.28),
+                          Colors.black.withValues(
+                            alpha: isPlaying ? 0.18 : 0.20,
+                          ),
+                          Colors.black.withValues(alpha: 0.28),
                         ],
                         stops: const [0, 0.36, 0.68, 1],
                       ),
@@ -118,8 +128,8 @@ class _GradientFallback extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             color,
-            color.withOpacity(0.72),
-            Colors.black.withOpacity(0.9),
+            color.withValues(alpha: 0.72),
+            Colors.black.withValues(alpha: 0.9),
           ],
         ),
       ),

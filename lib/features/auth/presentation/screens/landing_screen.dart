@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:software_project/app/router.dart';
-import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/core/design_system/spacing.dart';
-import 'package:software_project/shared/ui/widgets/app_button.dart';
 
 /// Landing screen shown to unauthenticated users.
 ///
-/// Displays a full-screen background image and offers primary actions to
-/// create an account or log in.
+/// Full-screen background image (`assets/images/landing_background.png`)
+/// with two pill buttons floating near the bottom of the screen:
+///   - "Create an account" — white pill, black text (primary CTA)
+///   - "Log in"            — light blue pill (#C6D8F8), black text (secondary)
+///
+/// No card, no tagline, no logo — just the background art and the two buttons.
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
 
@@ -18,13 +20,8 @@ class LandingScreen extends StatefulWidget {
 class _LandingScreenState extends State<LandingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _cardFade;
-  late Animation<Offset> _cardSlide;
-
-  /// Replace this with a local asset path when available.
-  /// Free abstract line art: https://unsplash.com/s/photos/abstract-lines-dark
-  static const String backgroundImageUrl =
-      'https://media.istockphoto.com/id/1974844448/vector/modern-abstract-blue-pink-and-purple-gradient-circle-line-on-dark-black-background-design.jpg?s=612x612&w=0&k=20&c=cTWHagIWLjzyYploCH0NtR5LLwhDA3ivVuddLlU_xCI=';
+  late Animation<double> _buttonsFade;
+  late Animation<Offset> _buttonsSlide;
 
   @override
   void initState() {
@@ -33,12 +30,12 @@ class _LandingScreenState extends State<LandingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _cardFade = CurvedAnimation(
+    _buttonsFade = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
     );
-    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
-        .animate(
+    _buttonsSlide =
+        Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(
           CurvedAnimation(
             parent: _controller,
             curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
@@ -56,107 +53,93 @@ class _LandingScreenState extends State<LandingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF0D0D0D),
       body: Stack(
         children: [
-          // ── Background image ─────────────────────────────────────────────
+          // ── Background image — fills entire screen ──────────────────────
+          // File: assets/images/landing_background.png
+          // Dark abstract art with teal, purple, and orange line shapes.
           Positioned.fill(
-            child: Image.network(
-              backgroundImageUrl,
-              fit: BoxFit.fitHeight,
+            child: Image.asset(
+              'assets/images/landing_background.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
               errorBuilder: (context, error, stackTrace) =>
-                  Container(color: const Color(0xFF0D1B2A)),
+                  Container(color: const Color(0xFF0D0D0D)),
             ),
           ),
 
-          // ── Bottom content card ──────────────────────────────────────────
+          // ── Two buttons, anchored near the bottom ───────────────────────
           Align(
             alignment: Alignment.bottomCenter,
             child: FadeTransition(
-              opacity: _cardFade,
+              opacity: _buttonsFade,
               child: SlideTransition(
-                position: _cardSlide,
-                child: _BottomCard(
-                  onCreateAccount: () =>
-                      Navigator.pushNamed(context, AppRoutes.signInOrCreate),
-                  onLogIn: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.signInOrCreate,
-                    arguments: {'mode': 'login'},
+                position: _buttonsSlide,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.screenHorizontal,
+                    0,
+                    AppSpacing.screenHorizontal,
+                    35,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── Create an account ───────────────────────────────
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.signInOrCreate,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            shape: const StadiumBorder(),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: const Text('Create an account'),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // ── Log in ─────────────────────────────────────────
+                      // Light blue — original AppColors.buttonSecondary (#C6D8F8)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.signInOrCreate,
+                            arguments: {'mode': 'login'},
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC6D8F8),
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            shape: const StadiumBorder(),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: const Text('Log in'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Bottom card ───────────────────────────────────────────────────────────────
-
-/// The sliding card at the bottom of the landing screen.
-///
-/// Contains the app tagline and primary action buttons.
-class _BottomCard extends StatelessWidget {
-  /// Called when the user taps "Create an account".
-  final VoidCallback onCreateAccount;
-
-  /// Called when the user taps "Log in".
-  final VoidCallback onLogIn;
-
-  const _BottomCard({required this.onCreateAccount, required this.onLogIn});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Color(0xFF5B7FA6),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screenHorizontal,
-        AppSpacing.xl,
-        AppSpacing.screenHorizontal,
-        AppSpacing.screenBottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // App logo placeholder.
-          const Icon(Icons.graphic_eq, color: Color(0xFF2C3E50), size: 44),
-
-          const SizedBox(height: AppSpacing.base),
-
-          const Text(
-            'Where artists & fans connect.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1A2433),
-              height: 1.2,
-              letterSpacing: -0.5,
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.xl),
-
-          AppButton(
-            label: 'Create an account',
-            onPressed: onCreateAccount,
-            style: AppButtonStyle.primary,
-          ),
-
-          const SizedBox(height: AppSpacing.md),
-
-          AppButton(
-            label: 'Log in',
-            onPressed: onLogIn,
-            style: AppButtonStyle.secondary,
           ),
         ],
       ),

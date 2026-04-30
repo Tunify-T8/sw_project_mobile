@@ -1,23 +1,53 @@
 class GenreIdMapper {
-  static const Map<String, String> _genreIds = {
-    'Jazz': '1ab2245e-a50c-4d1e-b8ee-a1afd48a196d',
-    'Rock, Metal, Punk': '55d2eefb-6a30-4782-aa06-60ab404d4f06',
-    'Soul': 'd60c837b-0531-45db-a241-d460a18d327c',
-    'Pop': 'e36de581-0571-4b78-b0c9-4fa70d467d3',
-    'Hip Hop & Rap': '52b04ead-052b-43b7-bf5c-438fa58beb35',
-    'House': '8a1251cd-924b-4177-910e-75b09fed2b64',
-    'SoundCloud': '99b82a1f-7203-47fb-8d04-c39a990ff608',
-    'R&B': 'd60c837b-0531-45db-a241-d460a18d327c',
-    'Folk': '3d35597e-6535-4eca-a304-870cc9427350',
-    'Latin': 'ed35fe7b-0f4f-48b5-a9e3-b2059593e7b6',
-    'Indie': 'd66ccd61-48da-4d85-944e-9cce177836c4',
-    'Techno': '104e78d4-2204-47f6-b1e2-a16ef8da6873',
-    'Country': 'ec8ab1bd-9f9c-4b10-a532-16f0b27786c0',
-    'Reggae': '483b8cf2-b9b9-41bf-a61b-b4945a6ee7e3',
-    'Electronic': 'f57c36fc-83d0-42aa-94f2-093e9e7f7029',
+  static const Map<String, String> _byLabel = {
+    'Jazz': '',
+    'Ambient': '1474b9a9-60ff-44ce-9af2-4205c6ae36aa',
+    'Rock, Metal, Punk': 'b1ef24ad-24b3-4f9a-a56e-355409b1fdec',
+    'Soul': 'abf4ab62-e8e9-4360-bc10-8ae4e6c6239a',
+    'Pop': '3b4aa26f-2def-4e4d-8629-e0007c9da02d',
+    'Hip Hop & Rap': 'd606420e-e214-448e-8801-017da0b4fbd3',
+    'House': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'Classical': '31a75bce-49f7-4c4e-9c72-96416d8eec06',
+    'Dance & EDM': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'Dancehall': 'd496ab34-4c74-443b-9eb0-3484696bc2a8',
+    'SoundCloud': '',
+    'R&B': 'ac9a0a15-5ad6-4ba1-b36b-28e063b2c3c2',
+    'Folk': '7ce713ba-6e12-4ca7-abe1-97510c81bdff',
+    'Latin': 'acd7a6a1-a465-4f07-94c9-cd0248092065',
+    'Indie': '0efb127a-3dd6-4cec-83d8-7e209e1bb851',
+    'Techno': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'Country': '62131a16-16fd-4586-b501-f098a772ef34',
+    'Reggae': '',
+    'Electronic': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
   };
 
-  static String getId(String genreName) {
-    return _genreIds[genreName] ?? '';
+  static const Map<String, String> _byShortId = {
+    'hip_hop_rap': 'd606420e-e214-448e-8801-017da0b4fbd3',
+    'pop': '3b4aa26f-2def-4e4d-8629-e0007c9da02d',
+    'house': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'indie': '0efb127a-3dd6-4cec-83d8-7e209e1bb851',
+    'electronic': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'rnb': 'ac9a0a15-5ad6-4ba1-b36b-28e063b2c3c2',
+    'techno': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'folk': '7ce713ba-6e12-4ca7-abe1-97510c81bdff',
+    'soul': 'abf4ab62-e8e9-4360-bc10-8ae4e6c6239a',
+    'country': '62131a16-16fd-4586-b501-f098a772ef34',
+    'rock': 'b1ef24ad-24b3-4f9a-a56e-355409b1fdec',
+    'latin': 'acd7a6a1-a465-4f07-94c9-cd0248092065',
+    'ambient': '1474b9a9-60ff-44ce-9af2-4205c6ae36aa',
+    'classical': '31a75bce-49f7-4c4e-9c72-96416d8eec06',
+    'dance_edm': 'f28ddd17-08e0-4b1b-a8d7-6af40c40609b',
+    'dancehall': 'd496ab34-4c74-443b-9eb0-3484696bc2a8',
+    'chill': '1474b9a9-60ff-44ce-9af2-4205c6ae36aa',
+    'workout': '',
+    'at_home': '',
+    'study': '',
+    'party': '',
+    'feel_good': '',
+    'healing_era': '',
+  };
+
+  static String getId(String genreIdOrLabel) {
+    return _byShortId[genreIdOrLabel] ?? _byLabel[genreIdOrLabel] ?? '';
   }
 }

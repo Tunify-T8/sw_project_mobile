@@ -3,6 +3,10 @@ part of 'player_provider.dart';
 extension PlayerNotifierQueue on PlayerNotifier {
   Future<void> next() async {
     final current = _current;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] next ignored while player is busy");
+      return;
+    }
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
@@ -22,6 +26,10 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   Future<void> previous() async {
     final current = _current;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] previous ignored while player is busy");
+      return;
+    }
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
@@ -45,12 +53,16 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
   Future<void> jumpToQueueIndex(int index) async {
     final current = _current;
+    if (_isLoadingTrack || _isTransportBusy || current?.isBuffering == true) {
+      debugPrint("[M5 Player] queue jump ignored while player is busy");
+      return;
+    }
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
     if (index < 0 || index >= queue.trackIds.length) return;
 
-    await _jumpToIndex(index, queue, autoPlay: current.isPlaying);
+    await _jumpToIndex(index, queue, autoPlay: true);
   }
 
   Future<void> buildAndLoadQueue({
@@ -61,8 +73,9 @@ extension PlayerNotifierQueue on PlayerNotifier {
     RepeatMode repeat = RepeatMode.none,
     String? privateToken,
     bool autoPlay = true,
+    PlayerSeedTrack? seedTrack,
   }) async {
-    final queue = await _buildQueue(
+    final queue = (await _buildQueue(
       PlaybackContextRequest(
         contextType: contextType,
         contextId: contextId,
@@ -70,14 +83,14 @@ extension PlayerNotifierQueue on PlayerNotifier {
         shuffle: shuffle,
         repeat: repeat,
       ),
-    );
+    )).copyWith(source: _queueSourceForContext(contextType));
 
     await loadTrack(
       startTrackId,
       privateToken: privateToken,
       queue: queue,
       autoPlay: autoPlay,
-      seedTrack: _seedTrackForTrackId(startTrackId),
+      seedTrack: seedTrack ?? _seedTrackForTrackId(startTrackId),
     );
   }
 
@@ -102,10 +115,21 @@ extension PlayerNotifierQueue on PlayerNotifier {
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    if (index <= queue.currentIndex || index >= queue.trackIds.length) return;
+    if (index < 0 || index >= queue.trackIds.length) return;
+    if (index == queue.currentIndex) return;
 
     final newIds = List<String>.from(queue.trackIds)..removeAt(index);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    var newCurrentIndex = queue.currentIndex;
+    if (index < queue.currentIndex) {
+      newCurrentIndex -= 1;
+    }
+    if (newCurrentIndex >= newIds.length) {
+      newCurrentIndex = newIds.isEmpty ? 0 : newIds.length - 1;
+    }
+
+    final next = current.copyWith(
+      queue: queue.copyWith(trackIds: newIds, currentIndex: newCurrentIndex),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -150,8 +174,14 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final queue = current.queue!;
     final insertIndex = queue.currentIndex + 1;
-    final newIds = List<String>.from(queue.trackIds)..insert(insertIndex, trackId);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final newIds = List<String>.from(queue.trackIds)
+      ..insert(insertIndex, trackId);
+    final newOriginalIds = queue.originalTrackIds == null
+        ? null
+        : (List<String>.from(queue.originalTrackIds!)..add(trackId));
+    final next = current.copyWith(
+      queue: queue.copyWith(trackIds: newIds, originalTrackIds: newOriginalIds),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -189,8 +219,18 @@ extension PlayerNotifierQueue on PlayerNotifier {
     }
 
     final queue = current.queue!;
-    final newIds = List<String>.from(queue.trackIds)..add(trackId);
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final newIds = List<String>.from(queue.trackIds)
+      ..insert(queue.currentIndex, trackId);
+    final newOriginalIds = queue.originalTrackIds == null
+        ? null
+        : (List<String>.from(queue.originalTrackIds!)..add(trackId));
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: queue.currentIndex + 1,
+        originalTrackIds: newOriginalIds,
+      ),
+    );
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -198,24 +238,137 @@ extension PlayerNotifierQueue on PlayerNotifier {
   /// Reorders a queued track.
   ///
   /// Both indexes are relative to the visible "Playing next" list,
-  /// not the full underlying queue. So we offset them by the current track.
+  /// not the full underlying queue. The visible list is circular from the
+  /// current track, so rebuild the queue in that same visible order instead of
+  /// trying to map the drop target back onto a linear absolute index.
   void reorderQueue(int oldIndex, int newIndex) {
     final current = _current;
     if (current?.queue == null) return;
 
     final queue = current!.queue!;
-    final offset = queue.currentIndex + 1;
-    final absOld = offset + oldIndex;
-    final absNew = offset + newIndex;
+    if (queue.trackIds.length <= 1) return;
+    if (queue.currentIndex < 0 || queue.currentIndex >= queue.trackIds.length) {
+      return;
+    }
 
-    if (absOld < offset || absOld >= queue.trackIds.length) return;
-    if (absNew < offset || absNew > queue.trackIds.length) return;
+    final visibleNext = <String>[
+      for (var offset = 1; offset < queue.trackIds.length; offset++)
+        queue.trackIds[(queue.currentIndex + offset) % queue.trackIds.length],
+    ];
+    if (oldIndex < 0 || oldIndex >= visibleNext.length) return;
 
-    final newIds = List<String>.from(queue.trackIds);
-    final item = newIds.removeAt(absOld);
-    newIds.insert(absNew, item);
+    final item = visibleNext.removeAt(oldIndex);
+    final safeNewIndex = newIndex.clamp(0, visibleNext.length).toInt();
+    visibleNext.insert(safeNewIndex, item);
 
-    final next = current.copyWith(queue: queue.copyWith(trackIds: newIds));
+    final currentTrackId = queue.trackIds[queue.currentIndex];
+    final newIds = <String>[currentTrackId, ...visibleNext];
+
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: 0,
+        clearOriginalTrackIds: queue.shuffle,
+      ),
+    );
+    _setPlayerState(next);
+    unawaited(_persistCurrentSession(playerState: next, force: true));
+  }
+
+  /// Asynchronously fetch [artistUserId]'s public catalog and merge the tracks
+  /// into the live queue. Called right after a track starts playing so the
+  /// "Next up" list populates without blocking the play action itself.
+  ///
+  /// Behaviour notes:
+  ///   - No-op if the user is no longer playing the same track by the time the
+  ///     network call returns (they may have skipped to something else).
+  ///   - Tracks already in the queue are skipped — we never duplicate.
+  ///   - The currently playing track keeps its position; new IDs are appended
+  ///     after the current index.
+  ///   - When shuffle is on, new IDs append to BOTH the visible (shuffled)
+  ///     trackIds AND the originalTrackIds snapshot, so toggling shuffle off
+  ///     later doesn't drop them.
+  ///   - All errors are swallowed (the API client itself returns [] on failure).
+  Future<void> enrichQueueWithArtistTracks({
+    required String artistUserId,
+    required String anchorTrackId,
+  }) async {
+    if (artistUserId.trim().isEmpty) return;
+
+    // History-sourced queues are sacred: the user opened the track from
+    // Listening history and expects "next" to mean "next in history",
+    // NOT "more by this artist". Skip enrichment entirely.
+    final currentBeforeFetch = _current;
+    if (currentBeforeFetch?.queue?.source == QueueSource.history ||
+        currentBeforeFetch?.queue?.source == QueueSource.playlist) {
+      return;
+    }
+
+    final api = ref.read(userTracksApiProvider);
+    final fetched = await api.getUserTracks(artistUserId);
+    if (fetched.isEmpty) return;
+    _cacheFetchedArtistTracks(fetched, ownerUserId: artistUserId);
+
+    // The user may have moved on while the request was in flight.
+    final after = _current;
+    if (after == null || after.bundle?.trackId != anchorTrackId) return;
+
+    // Double-check source after the async gap — the user may have tapped
+    // a history track while the fetch was in flight.
+    if (after.queue?.source == QueueSource.history ||
+        after.queue?.source == QueueSource.playlist) {
+      return;
+    }
+
+    final existingQueue = after.queue;
+    final existingIds = existingQueue?.trackIds ?? <String>[];
+    final existingSet = existingIds.toSet();
+
+    // Keep playable tracks that aren't already queued, and never re-add the
+    // currently playing track (it must stay at its current index).
+    final newIds = fetched
+        .where((t) => t.isPlayable)
+        .map((t) => t.id)
+        .where((id) => id.isNotEmpty && !existingSet.contains(id))
+        .toList(growable: false);
+
+    if (newIds.isEmpty) return;
+
+    if (existingQueue == null) {
+      // No queue yet — build a fresh one with the current track at index 0
+      // followed by the artist's other tracks.
+      final fullIds = <String>[anchorTrackId, ...newIds];
+      final newQueue = PlaybackQueue(
+        trackIds: fullIds,
+        currentIndex: 0,
+        shuffle: false,
+        repeat: RepeatMode.all,
+      );
+      final next = after.copyWith(queue: newQueue);
+      _setPlayerState(next);
+      unawaited(_persistCurrentSession(playerState: next, force: true));
+      return;
+    }
+
+    // Existing queue — splice the new IDs in after the current index.
+    final updatedIds = <String>[
+      ...existingIds.sublist(0, existingQueue.currentIndex + 1),
+      ...newIds,
+      ...existingIds.sublist(existingQueue.currentIndex + 1),
+    ];
+
+    // Mirror the additions into the original-order snapshot so unshuffling
+    // doesn't lose the freshly fetched tracks.
+    final updatedOriginal = existingQueue.originalTrackIds == null
+        ? null
+        : <String>[...existingQueue.originalTrackIds!, ...newIds];
+
+    final updatedQueue = existingQueue.copyWith(
+      trackIds: updatedIds,
+      originalTrackIds: updatedOriginal,
+    );
+
+    final next = after.copyWith(queue: updatedQueue);
     _setPlayerState(next);
     unawaited(_persistCurrentSession(playerState: next, force: true));
   }
@@ -237,9 +390,9 @@ extension PlayerNotifierQueue on PlayerNotifier {
 
     final historyState = ref.read(listeningHistoryProvider).asData?.value;
     final historyTrack = historyState?.tracks.cast<HistoryTrack?>().firstWhere(
-          (track) => track?.trackId == trackId,
-          orElse: () => null,
-        );
+      (track) => track?.trackId == trackId,
+      orElse: () => null,
+    );
 
     if (historyTrack == null) {
       return null;
@@ -252,5 +405,53 @@ extension PlayerNotifierQueue on PlayerNotifier {
       durationSeconds: historyTrack.durationSeconds,
       coverUrl: historyTrack.coverUrl,
     );
+  }
+
+  QueueSource _queueSourceForContext(PlaybackContextType contextType) {
+    switch (contextType) {
+      case PlaybackContextType.history:
+        return QueueSource.history;
+      case PlaybackContextType.playlist:
+        return QueueSource.playlist;
+      case PlaybackContextType.feed:
+      case PlaybackContextType.profile:
+        return QueueSource.explicit;
+      case PlaybackContextType.track:
+        return QueueSource.singleTrack;
+    }
+  }
+
+  void _cacheFetchedArtistTracks(
+    List<UserTrackSummaryDto> tracks, {
+    required String ownerUserId,
+  }) {
+    final store = GlobalTrackStore.instance;
+    for (final track in tracks) {
+      if (!track.isPlayable || track.id.trim().isEmpty) continue;
+      final title = track.title.trim();
+      final artist = track.artistName.trim();
+      store.update(
+        UploadItem(
+          id: track.id,
+          title: title.isEmpty ? 'Track' : title,
+          artistDisplay: artist,
+          durationLabel: _formatQueueDuration(track.durationSeconds),
+          durationSeconds: track.durationSeconds,
+          artworkUrl: track.coverUrl,
+          visibility: UploadVisibility.public,
+          status: UploadProcessingStatus.finished,
+          isExplicit: false,
+          createdAt: DateTime.now(),
+        ),
+        ownerUserId: ownerUserId,
+      );
+    }
+  }
+
+  String _formatQueueDuration(int totalSeconds) {
+    final safe = totalSeconds < 0 ? 0 : totalSeconds;
+    final minutes = safe ~/ 60;
+    final seconds = safe % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

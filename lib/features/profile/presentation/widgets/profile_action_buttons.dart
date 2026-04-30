@@ -4,17 +4,22 @@ import '../../data/dto/profile_dto.dart';
 import '../screens/edit_profile_screen.dart';
 import '../providers/profile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/ui/widgets/play_button.dart';
 
 class ProfileActionButtons extends ConsumerWidget {
   final File? profileImage;
   final File? coverImage;
   final String userType;
+  final VoidCallback? onPlay;
+  final VoidCallback? onShuffle;
 
   const ProfileActionButtons({
     super.key,
     this.profileImage,
     this.coverImage,
     required this.userType,
+    this.onPlay,
+    this.onShuffle,
   });
 
   @override
@@ -25,12 +30,15 @@ class ProfileActionButtons extends ConsumerWidget {
       child: Row(
         children: [
           IconButton(
+            // Key: ProfileKeys.editButton
+            key: const Key('profile_edit_button'),
             icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 28),
             onPressed: () async {
               final result = await Navigator.push<ProfileDto>(
                 context,
                 MaterialPageRoute(builder: (_) => EditProfileScreen(
                 userName: profile?.userName ?? '',
+                displayName: profile?.displayName ?? '',
                 bio: profile?.bio ?? '',
                 city: profile?.city ?? '',
                 country: profile?.country ?? '',
@@ -43,24 +51,36 @@ class ProfileActionButtons extends ConsumerWidget {
                 tiktok: profile?.tiktok,
                 soundcloud: profile?.soundcloud,
                 userType: profile?.userType ?? 'ARTIST',
-                profileImageUrl: profile?.profileImagePath, 
-                coverImageUrl: profile?.coverImagePath,      
+                role: profile?.role ?? 'USER',
+                profileImageUrl: profile?.profileImagePath,
+                coverImageUrl: profile?.coverImagePath,
                 )),
               );
               if (result != null) {
+                if (profile == null) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Profile is still loading. Please try again.',
+                        ),
+                      ),
+                    );
+                  }
+                  return;
+                }
                 final updated = ProfileDto(
-                // server-controlled
-                id: profile!.id,               
-                email: profile.email,          
-                role: profile.role,            
-                tracksCount: profile.tracksCount,    
-                likesReceived: profile.likesReceived, 
-                isActive: profile.isActive,           
-                isCertified: profile.isCertified,     
-                followersCount: profile.followersCount, 
-                followingCount: profile.followingCount, 
-                // user-editable
+                id: profile.id,
+                email: profile.email,
+                role: profile.role,
+                tracksCount: profile.tracksCount,
+                likesReceived: profile.likesReceived,
+                isActive: profile.isActive,
+                isCertified: profile.isCertified,
+                followersCount: profile.followersCount,
+                followingCount: profile.followingCount,
                 userName: result.userName,
+                displayName: result.displayName,
                 bio: result.bio,
                 city: result.city,
                 country: result.country,
@@ -72,10 +92,10 @@ class ProfileActionButtons extends ConsumerWidget {
                 tiktok: result.tiktok,
                 soundcloud: result.soundcloud,
                 userType: result.userType,
-                profileImagePath: result.profileImagePath == ''  // ← HERE
+                profileImagePath: result.profileImagePath == ''
                     ? null
                     : (result.profileImagePath ?? profile.profileImagePath),
-                coverImagePath: result.coverImagePath == ''      
+                coverImagePath: result.coverImagePath == ''
                     ? null
                     : (result.coverImagePath ?? profile.coverImagePath),
                 );
@@ -84,20 +104,8 @@ class ProfileActionButtons extends ConsumerWidget {
             },
           ),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.shuffle, color: Colors.white, size: 28),
-            onPressed: () {},
-          ),
-          Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
-              onPressed: () {},
-            ),
-          ),
+          ShuffleButton(onTap: onShuffle),
+          PlayButton(onTap: onPlay),
         ],
       ),
     );

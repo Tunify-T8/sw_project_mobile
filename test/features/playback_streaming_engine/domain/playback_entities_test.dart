@@ -115,6 +115,31 @@ void main() {
       expect(bundle.engagement.likeCount, 0);
     });
 
+    test('can carry a local region-blocked playability override', () {
+      const seed = PlayerSeedTrack(
+        trackId: 'blocked-track',
+        title: 'Blocked',
+        artistName: 'Artist',
+        durationSeconds: 180,
+        playability: PlayabilityInfo(
+          status: PlaybackStatus.blocked,
+          regionBlocked: true,
+          tierBlocked: false,
+          requiresSubscription: false,
+          blockedReason: BlockedReason.regionRestricted,
+        ),
+      );
+
+      final bundle = seed.toPlaybackBundle();
+
+      expect(bundle.playability.status, PlaybackStatus.blocked);
+      expect(bundle.playability.regionBlocked, isTrue);
+      expect(
+        bundle.playability.blockedReason,
+        BlockedReason.regionRestricted,
+      );
+    });
+
     test('infers direct stream formats and ignores blank urls', () {
       const wavSeed = PlayerSeedTrack(
         trackId: 'wav',

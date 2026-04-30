@@ -2,14 +2,28 @@ part of 'library_screen.dart';
 
 extension _LibraryScreenActions on _LibraryScreenState {
   void _handleTap(BuildContext context, String label) {
+    if (label == 'Playlists') {
+      Navigator.of(context).pushNamed(Routes.playlists);
+      return;
+    }
+    if (label == 'Albums') {
+      Navigator.of(context).pushNamed(Routes.albums);
+      return;
+    }
+
+    if (label == 'Your likes') {
+      // engagement addition — navigate to liked tracks screen
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LikedTracksScreen()));
+      return;
+    }
+
     if (label == 'Following') {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => const NetworkListsScreen(
-            userId: 'u2',
-            listType: NetworkListType.following,
-            isMyProfile: true,
-          ),
+          builder: (_) =>
+              const NetworkListsScreen(listType: NetworkListType.following),
         ),
       );
       return;
@@ -28,6 +42,20 @@ extension _LibraryScreenActions on _LibraryScreenState {
             onOpenSubscription: widget.onOpenSubscription,
           ),
         ),
+      );
+      return;
+    }
+
+    if (label == 'Open shared link') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const OpenSharedTrackLinkScreen()),
+      );
+      return;
+    }
+
+    if (label == 'Listening history') {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ListeningHistoryScreen()),
       );
       return;
     }

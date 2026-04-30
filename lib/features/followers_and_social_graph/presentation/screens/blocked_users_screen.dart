@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/network_list_type.dart';
-import '../../domain/entities/social_user_entity.dart';
 import '../providers/network_lists_notifier.dart';
-import '../providers/social_actions_notifier.dart';
 import '../widgets/network_lists_empty_state.dart';
 import '../widgets/network_lists_error_state.dart';
 import '../widgets/user_social_tile.dart';
+import '../../../../../core/utils/navigation_utils.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class BlockedUsersScreen extends ConsumerStatefulWidget {
   const BlockedUsersScreen({super.key});
@@ -36,12 +36,6 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
     await ref.read(networkListsProvider.notifier).loadBlockedUsers();
   }
 
-  Future<void> _handleBlockAction(SocialUserEntity user) async {
-    await ref
-        .read(socialActionsProvider)
-        .toggleBlock(user: user, listType: NetworkListType.blocked);
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(networkListsProvider);
@@ -56,11 +50,13 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
     final showEmpty = users.isEmpty && !isLoading && error == null && hasLoaded;
 
     return Scaffold(
+      key: const Key('blocked_users_screen'),
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
         foregroundColor: Colors.white,
         leading: IconButton(
+          key: const Key('followers_social_graph_back_button'),
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
         ),
@@ -68,24 +64,31 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
       ),
       body: SafeArea(
         child: showInitialLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(key: Key('followers_social_graph_loading_indicator'), child: CircularProgressIndicator())
             : showInitialError
-            ? NetworkListsErrorState(error: error, onRetry: _loadBlockedUsers)
+            ? NetworkListsErrorState(key: const Key('followers_social_graph_error_state'), onRetry: _loadBlockedUsers)
             : showEmpty
-            ? const NetworkListsEmptyState()
+            ? const NetworkListsEmptyState(key: Key('followers_social_graph_empty_state'))
             : RefreshIndicator(
+                key: const Key('blocked_users_refresh'),
                 onRefresh: _loadBlockedUsers,
                 child: ListView.builder(
+                  key: const Key('blocked_users_list'),
                   itemCount: users.length,
                   itemBuilder: (context, index) {
                     final user = users[index];
 
+                    final currentUserId = ref.read(authControllerProvider).value?.id;
                     return UserSocialTile(
+                      key: ValueKey('blocked_user_tile_${user.id}'),
+                      onTap: () => navigateToProfile(
+                        context,
+                        user.id,
+                        currentUserId: currentUserId,
+                      ),
                       user: user,
                       listType: NetworkListType.blocked,
-                      onFollowToggle: null,
                       onToggleNotifications: null,
-                      onBlock: () => _handleBlockAction(user),
                     );
                   },
                 ),

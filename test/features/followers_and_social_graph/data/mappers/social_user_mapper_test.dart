@@ -10,12 +10,8 @@ void main() {
         username: 'mapper_user',
         avatarUrl: 'https://example.com/avatar.png',
         coverUrl: 'https://example.com/cover.png',
-        userType: 'LISTENER',
         location: 'Alexandria',
         followersCount: 300,
-        followingCount: 120,
-        tracksUploadedCount: 14,
-        mutualFollowersCount: 9,
         isCertified: true,
         isFollowing: true,
         isNotificationEnabled: true,
@@ -27,13 +23,8 @@ void main() {
       expect(entity.id, dto.id);
       expect(entity.username, dto.username);
       expect(entity.avatarUrl, dto.avatarUrl);
-      expect(entity.coverUrl, dto.coverUrl);
-      expect(entity.userType, dto.userType);
       expect(entity.location, dto.location);
       expect(entity.followersCount, dto.followersCount);
-      expect(entity.followingCount, dto.followingCount);
-      expect(entity.tracksUploadedCount, dto.tracksUploadedCount);
-      expect(entity.mutualFollowersCount, dto.mutualFollowersCount);
       expect(entity.isCertified, dto.isCertified);
       expect(entity.isFollowing, dto.isFollowing);
       expect(entity.isNotificationEnabled, dto.isNotificationEnabled);

@@ -3,6 +3,7 @@ import 'package:software_project/features/audio_upload_and_management/data/dto/f
 import 'package:software_project/features/audio_upload_and_management/data/dto/track_response_dto.dart';
 import 'package:software_project/features/audio_upload_and_management/data/mappers/upload_mappers.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/entities/track_metadata.dart';
+import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_item.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/entities/upload_status.dart';
 import 'package:software_project/features/audio_upload_and_management/domain/entities/uploaded_track.dart';
 import 'package:software_project/features/audio_upload_and_management/presentation/providers/track_detail_item_provider.dart';
@@ -99,4 +100,35 @@ void main() {
     expect(merged.appPlaybackEnabled, isFalse);
     expect(merged.licensing, 'creative_commons');
   });
+
+  test('mergeTrackDetailItem refreshes stale upload processing status', () {
+    final merged = mergeTrackDetailItem(
+      base: sampleUploadItem.copyWith(
+        status: UploadProcessingStatus.processing,
+      ),
+      details: const UploadedTrack(
+        trackId: 'track-1',
+        status: UploadStatus.finished,
+      ),
+    );
+
+    expect(merged.status, UploadProcessingStatus.finished);
+    expect(merged.isPlayable, isTrue);
+  });
+
+  test(
+    'mergeTrackDetailItem keeps private token when details token is blank',
+    () {
+      final merged = mergeTrackDetailItem(
+        base: sampleUploadItem.copyWith(privateToken: 'existing-token'),
+        details: const UploadedTrack(
+          trackId: 'track-1',
+          status: UploadStatus.finished,
+          privateToken: '  ',
+        ),
+      );
+
+      expect(merged.privateToken, 'existing-token');
+    },
+  );
 }

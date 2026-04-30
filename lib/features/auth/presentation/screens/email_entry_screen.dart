@@ -22,10 +22,6 @@ import 'package:software_project/core/utils/url_launcher_util.dart';
 ///   - Email EXISTS      → go to PasswordScreen (happy path, no notice)
 ///   - Email is NEW      → go to RegisterDetailScreen (guide them to create)
 ///
-/// ── TESTING ──────────────────────────────────────────────────────────────────
-/// Change [MockAuthConfig.emailScenario] in mock_auth_config.dart to simulate
-/// existing/new email. The mock is handled at the repository level —
-/// this screen always calls the controller regardless of mock mode.
 class EmailEntryScreen extends ConsumerStatefulWidget {
   final String? initialEmail;
   final String mode;
@@ -38,13 +34,19 @@ class EmailEntryScreen extends ConsumerStatefulWidget {
 
 class _EmailEntryScreenState extends ConsumerState<EmailEntryScreen> {
   late final TextEditingController _emailController;
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+
+  // ── Reactive validity ─────────────────────────────────────────────────────
+  // Recomputed on every keystroke. Button reads this directly.
+  bool get _emailValid => Validators.email(_emailController.text) == null;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail ?? '');
+    // Rebuild on every keystroke so _emailValid (and therefore the button
+    // enabled state) stays in sync without needing a Form/GlobalKey.
+    _emailController.addListener(() => setState(() {}));
   }
 
   @override
@@ -54,15 +56,12 @@ class _EmailEntryScreenState extends ConsumerState<EmailEntryScreen> {
   }
 
   Future<void> _onContinue() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Guard is redundant (button is null when !_emailValid) but kept for safety.
+    if (!_emailValid) return;
     setState(() => _isLoading = true);
 
     final email = _emailController.text.trim();
 
-    // Always goes through the controller → use case → repository chain.
-    // In mock mode, authRepositoryProvider returns MockAuthRepository.
-    // In real mode, it returns AuthRepositoryImpl.
-    // This screen never needs to know which one is active.
     final exists = await ref
         .read(authControllerProvider.notifier)
         .checkEmail(email);
@@ -112,62 +111,69 @@ class _EmailEntryScreenState extends ConsumerState<EmailEntryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screenHorizontal,
-                  AppSpacing.lg,
-                  AppSpacing.screenHorizontal,
-                  0,
-                ),
-                child: AppBackButtonRow(title: 'Sign in or create an account'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenHorizontal,
+                AppSpacing.lg,
+                AppSpacing.screenHorizontal,
+                0,
               ),
+              child: AppBackButtonRow(title: 'Sign in or create an account'),
+            ),
 
-              const SizedBox(height: AppSpacing.xxl),
+            const SizedBox(height: AppSpacing.xxl),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenHorizontal,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppTextField(
-                      controller: _emailController,
-                      hintText: 'Your email address or profile URL',
-                      keyboardType: TextInputType.emailAddress,
-                      validator: Validators.email,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    AppButton(
-                      label: 'Continue',
-                      onPressed: _onContinue,
-                      style: AppButtonStyle.primary,
-                      isLoading: _isLoading,
-                      borderRadius: 4,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    GestureDetector(
-                      onTap: () => UrlLauncherUtil.open(
-                        context,
-                        UrlLauncherUtil.helpCenter,
-                      ),
-                      child: const Text(
-                        'Need help?',
-                        style: TextStyle(fontSize: 14, color: AppColors.link),
-                      ),
-                    ),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenHorizontal,
               ),
-            ],
-          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Key added for test automation (M1-003 assert fix).
+                  AppTextField(
+                    key: const Key('email_entry_field'),
+                    controller: _emailController,
+                    hintText: 'Your email address or profile URL',
+                    keyboardType: TextInputType.emailAddress,
+                    // Keep validator for inline error text feedback.
+                    validator: Validators.email,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // onPressed is null (greyed out) until a valid email is typed.
+                  // Key added for test automation (M1-004A / M1-003 assert fix).
+                  AppButton(
+                    key: const Key('email_entry_continue_button'),
+                    label: 'Continue',
+                    onPressed: _emailValid ? _onContinue : null,
+                    style: AppButtonStyle.primary,
+                    isLoading: _isLoading,
+                    borderRadius: 4,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  GestureDetector(
+                    onTap: () => UrlLauncherUtil.open(
+                      context,
+                      UrlLauncherUtil.helpCenter,
+                    ),
+                    child: const Text(
+                      'Need help?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.link,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

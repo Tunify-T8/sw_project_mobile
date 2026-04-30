@@ -33,8 +33,11 @@ class TrackResponseDto {
   final String? createdAt;
   final String? updatedAt;
   final AudioMetadataDto? audioMetadata;
+  final String? privateToken;
+  final String? ownerUserId;
   final String? errorCode;
   final String? errorMessage;
+  final Map<String, dynamic>? rawJson;
 
   TrackResponseDto({
     required this.trackId,
@@ -63,8 +66,11 @@ class TrackResponseDto {
     this.createdAt,
     this.updatedAt,
     this.audioMetadata,
+    this.privateToken,
+    this.ownerUserId,
     this.errorCode,
     this.errorMessage,
+    this.rawJson,
   });
 
   factory TrackResponseDto.fromJson(Map<String, dynamic> json) {
@@ -150,12 +156,36 @@ class TrackResponseDto {
       audioMetadata: audioMetadataJson is Map<String, dynamic>
           ? AudioMetadataDto.fromJson(audioMetadataJson)
           : null,
+      privateToken: (json['privateToken'] ?? json['private_token']) as String?,
+      ownerUserId: _readOwnerUserId(json),
       errorCode: error is Map<String, dynamic>
           ? error['code'] as String?
           : null,
       errorMessage: error is Map<String, dynamic>
           ? error['message'] as String?
           : null,
+      rawJson: json,
     );
   }
+}
+
+String? _readOwnerUserId(Map<String, dynamic> json) {
+  final direct = (json['ownerUserId'] ?? json['userId'] ?? json['artistId'])
+      ?.toString()
+      .trim();
+  if (direct != null && direct.isNotEmpty) return direct;
+
+  final user = json['user'];
+  if (user is Map<String, dynamic>) {
+    final userId = (user['userId'] ?? user['id'])?.toString().trim();
+    if (userId != null && userId.isNotEmpty) return userId;
+  }
+
+  final artist = json['artist'];
+  if (artist is Map<String, dynamic>) {
+    final artistId = (artist['userId'] ?? artist['id'])?.toString().trim();
+    if (artistId != null && artistId.isNotEmpty) return artistId;
+  }
+
+  return null;
 }

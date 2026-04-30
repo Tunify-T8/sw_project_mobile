@@ -20,11 +20,13 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       unawaited(_persistCurrentSession(force: true));
 
       final current = _current;
-      if (current?.bundle != null) {
+      final bundle = current?.bundle;
+      if (current != null && bundle != null) {
+        _rememberCurrentHistoryPosition(current, force: true);
         unawaited(
           _safeReportEvent(
             PlaybackEvent(
-              trackId: current!.bundle!.trackId,
+              trackId: bundle.trackId,
               action: current.isPlaying
                   ? PlaybackAction.progress
                   : PlaybackAction.pause,
@@ -37,8 +39,9 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
   }
 
   Future<PlayerState> _restorePersistedSession() async {
-    final raw = await PlayerNotifier._storage.read(
-      key: StorageKeys.cachedPlayerSession,
+    final raw = await _readStorageKey(
+      StorageKeys.cachedPlayerSession,
+      deleteCachedSessionOnFailure: true,
     );
     if (raw == null || raw.isEmpty) {
       return const PlayerState();
@@ -46,6 +49,15 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
 
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final cachedUserId = decoded['authUserId'] as String?;
+      final currentUserId = await _currentAuthUserId();
+      if (cachedUserId == null ||
+          currentUserId == null ||
+          cachedUserId != currentUserId) {
+        await _deleteCachedPlayerSession();
+        return const PlayerState();
+      }
+
       final bundleJson = decoded['bundle'] as Map<String, dynamic>?;
       if (bundleJson == null) {
         return const PlayerState();
@@ -95,9 +107,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
 
       return restored;
     } catch (_) {
-      await PlayerNotifier._storage.delete(
-        key: StorageKeys.cachedPlayerSession,
-      );
+      await _deleteCachedPlayerSession();
       return const PlayerState();
     }
   }
@@ -108,9 +118,7 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
   }) async {
     final current = playerState ?? _current;
     if (current == null || current.bundle == null) {
-      await PlayerNotifier._storage.delete(
-        key: StorageKeys.cachedPlayerSession,
-      );
+      await _deleteCachedPlayerSession();
       return;
     }
 
@@ -122,8 +130,14 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       return;
     }
     _lastSessionPersistAt = now;
+    final authUserId = await _currentAuthUserId();
+    if (authUserId == null || authUserId.isEmpty) {
+      await _deleteCachedPlayerSession();
+      return;
+    }
 
     final payload = <String, dynamic>{
+      'authUserId': authUserId,
       'bundle': _bundleToJson(current.bundle!),
       'streamUrl': current.streamUrl == null
           ? null
@@ -137,10 +151,42 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       'mediaDurationSeconds': current.mediaDurationSeconds,
     };
 
-    await PlayerNotifier._storage.write(
+    await _writeCachedPlayerSession(jsonEncode(payload));
+  }
+
+  Future<String?> _currentAuthUserId() async {
+    final raw = await _readStorageKey(StorageKeys.user);
+    if (raw == null || raw.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final id = decoded['id']?.toString().trim();
+      return id == null || id.isEmpty ? null : id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _readStorageKey(
+    String key, {
+    bool deleteCachedSessionOnFailure = false,
+  }) async {
+    final value = await SafeSecureStorage.read(key);
+    if (value == null && deleteCachedSessionOnFailure) {
+      await _deleteCachedPlayerSession();
+    }
+    return value;
+  }
+
+  Future<void> _writeCachedPlayerSession(String value) {
+    return SafeSecureStorage.write(
       key: StorageKeys.cachedPlayerSession,
-      value: jsonEncode(payload),
+      value: value,
     );
+  }
+
+  Future<void> _deleteCachedPlayerSession() {
+    return SafeSecureStorage.delete(StorageKeys.cachedPlayerSession);
   }
 
   Map<String, dynamic> _bundleToJson(TrackPlaybackBundle bundle) {
@@ -266,11 +312,17 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       'currentIndex': queue.currentIndex,
       'shuffle': queue.shuffle,
       'repeat': _repeatModeToString(queue.repeat),
+      'source': queue.source.name,
+      // Pre-shuffle snapshot so unshuffling after an app restart still works.
+      if (queue.originalTrackIds != null)
+        'originalTrackIds': queue.originalTrackIds,
     };
   }
 
   PlaybackQueue _queueFromJson(Map<String, dynamic> json) {
     final rawTrackIds = json['trackIds'] as List<dynamic>? ?? const <dynamic>[];
+    final rawOriginal = json['originalTrackIds'] as List<dynamic>?;
+    final rawSource = json['source']?.toString();
     return PlaybackQueue(
       trackIds: rawTrackIds
           .map((value) => value.toString())
@@ -278,7 +330,27 @@ extension _PlayerNotifierPersistence on PlayerNotifier {
       currentIndex: (json['currentIndex'] as int?) ?? 0,
       shuffle: json['shuffle'] as bool? ?? false,
       repeat: _repeatModeFromString((json['repeat'] ?? 'none').toString()),
+      originalTrackIds: rawOriginal
+          ?.map((value) => value.toString())
+          .toList(growable: false),
+      source: _queueSourceFromString(rawSource),
     );
+  }
+
+  QueueSource _queueSourceFromString(String? raw) {
+    switch (raw) {
+      case 'history':
+        return QueueSource.history;
+      case 'artistCatalog':
+        return QueueSource.artistCatalog;
+      case 'playlist':
+        return QueueSource.playlist;
+      case 'explicit':
+        return QueueSource.explicit;
+      case 'singleTrack':
+      default:
+        return QueueSource.singleTrack;
+    }
   }
 
   String _playbackStatusToString(PlaybackStatus status) {

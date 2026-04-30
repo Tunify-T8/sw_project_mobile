@@ -25,7 +25,7 @@ extension UploadItemDtoMapper on UploadItemDto {
       tags: tags,
       genreCategory: genreCategory,
       genreSubGenre: genreSubGenre,
-      visibility: privacy == 'public'
+      visibility: privacy.trim().toLowerCase() == 'public'
           ? UploadVisibility.public
           : UploadVisibility.private,
       status: _mapStatus(status),
@@ -45,19 +45,32 @@ extension UploadItemDtoMapper on UploadItemDto {
       availabilityType: availabilityType,
       availabilityRegions: availabilityRegions,
       licensing: licensing,
+      privateToken: privateToken,
       createdAt: DateTime.tryParse(createdAt) ?? DateTime.now(),
     );
   }
 
   static UploadProcessingStatus _mapStatus(String value) {
-    switch (value) {
+    switch (value.trim().toLowerCase()) {
       case 'processing':
       case 'uploading':
+      case 'pending':
+      case 'queued':
+      case 'transcoding':
         return UploadProcessingStatus.processing;
       case 'failed':
+      case 'failure':
+      case 'error':
         return UploadProcessingStatus.failed;
       case 'deleted':
         return UploadProcessingStatus.deleted;
+      case 'finished':
+      case 'ready':
+      case 'completed':
+      case 'complete':
+      case 'succeeded':
+      case 'success':
+      case 'published':
       default:
         return UploadProcessingStatus.finished;
     }
@@ -73,11 +86,10 @@ extension UploadItemDtoMapper on UploadItemDto {
 extension ArtistToolsQuotaDtoMapper on ArtistToolsQuotaDto {
   ArtistToolsQuota toEntity() {
     return ArtistToolsQuota(
-      tier: tier == 'pro' ? ArtistTier.pro : ArtistTier.free,
+      tier: ArtistTier.values.byName(tier.replaceAll('-', '')),
       uploadMinutesLimit: uploadMinutesLimit,
       uploadMinutesUsed: uploadMinutesUsed,
       canReplaceFiles: canReplaceFiles,
-      canUpgrade: canUpgrade,
     );
   }
 }

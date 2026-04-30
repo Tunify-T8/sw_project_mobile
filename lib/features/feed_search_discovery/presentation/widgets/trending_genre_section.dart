@@ -2,17 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/trending_notifier.dart';
+import '../utils/search_track_playback.dart';
 import '../widgets/trending_genre_bar.dart';
 import '../widgets/trending_track_tile.dart';
+import '../../domain/entities/track_result_entity.dart';
 import '../../domain/entities/trending_track_entity.dart';
+
+const defaultTrendingGenres = [
+  'Jazz',
+  'Ambient',
+  'Rock, Metal, Punk',
+  'Soul',
+  'Pop',
+  'Hip Hop & Rap',
+  'House',
+  'Classical',
+  'Dance & EDM',
+  'Dancehall',
+  'SoundCloud',
+  'R&B',
+  'Folk',
+  'Latin',
+  'Indie',
+  'Techno',
+  'Country',
+  'Reggae',
+  'Electronic',
+];
 
 class TrendingGenreSection extends ConsumerStatefulWidget {
   final List<String> genres;
 
-  const TrendingGenreSection({
-    super.key,
-    required this.genres,
-  });
+  const TrendingGenreSection({super.key, this.genres = defaultTrendingGenres});
 
   @override
   ConsumerState<TrendingGenreSection> createState() =>
@@ -27,17 +48,14 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
   void initState() {
     super.initState();
 
-    _tabController = TabController(
-      length: widget.genres.length,
-      vsync: this,
-    );
+    _tabController = TabController(length: widget.genres.length, vsync: this);
 
     _tabController.addListener(_handleTabChange);
 
     Future.microtask(() {
-      ref.read(trendingNotifierProvider.notifier).loadTrending(
-            genre: widget.genres[0],
-          );
+      ref
+          .read(trendingNotifierProvider.notifier)
+          .loadTrending(genre: widget.genres[0]);
     });
   }
 
@@ -46,9 +64,9 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
 
     final selectedGenre = widget.genres[_tabController.index];
 
-    ref.read(trendingNotifierProvider.notifier).loadTrending(
-          genre: selectedGenre,
-        );
+    ref
+        .read(trendingNotifierProvider.notifier)
+        .loadTrending(genre: selectedGenre);
   }
 
   Widget _buildTrendingContent({
@@ -57,14 +75,27 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
     required List<TrendingTrackEntity> tracks,
   }) {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     } else if (error != null) {
-      return Center(
-        child: Text(
-          error,
-          style: const TextStyle(color: Colors.white),
+      return SizedBox(
+        height: 200,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Something went wrong',
+              style: TextStyle(color: Colors.white),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              onPressed: () {
+                ref
+                    .read(trendingNotifierProvider.notifier)
+                    .loadTrending(genre: widget.genres[_tabController.index]);
+              },
+              child: const Text('Try Again'),
+            ),
+          ],
         ),
       );
     } else if (tracks.isEmpty) {
@@ -83,9 +114,7 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
           itemCount: pageCount,
           itemBuilder: (context, pageIndex) {
             final start = pageIndex * 3;
-            final end = (start + 3 > tracks.length)
-                ? tracks.length
-                : start + 3;
+            final end = (start + 3 > tracks.length) ? tracks.length : start + 3;
             final pageTracks = tracks.sublist(start, end);
 
             return Column(
@@ -93,7 +122,12 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
               children: pageTracks.map((track) {
                 return TrendingTrackTile(
                   track: track,
-                  onTap: () {},
+                  onTap: () => playSearchTrack(
+                    context,
+                    ref,
+                    _toTrackResult(track),
+                    queueTracks: tracks.map(_toTrackResult).toList(),
+                  ),
                 );
               }).toList(),
             );
@@ -123,12 +157,20 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TrendingGenreBar(
-          controller: _tabController,
-          genres: widget.genres,
-        ),
+        TrendingGenreBar(controller: _tabController, genres: widget.genres),
+        SizedBox(height: 10),
         content,
       ],
     );
   }
+}
+
+TrackResultEntity _toTrackResult(TrendingTrackEntity track) {
+  return TrackResultEntity(
+    id: track.trackId,
+    title: track.title,
+    artistName: track.artistName,
+    artworkUrl: track.coverUrl,
+    durationSeconds: 0,
+  );
 }

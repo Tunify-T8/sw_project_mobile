@@ -1,5 +1,14 @@
 part of 'queue_screen.dart';
 
+class _VisibleQueueEntry {
+  const _VisibleQueueEntry({
+    required this.trackId,
+    required this.absoluteIndex,
+  });
+  final String trackId;
+  final int absoluteIndex;
+}
+
 // ── Body ─────────────────────────────────────────────────────────────────────
 
 class _QueueBody extends ConsumerWidget {
@@ -22,12 +31,19 @@ class _QueueBody extends ConsumerWidget {
         .take(3)
         .toList();
 
-    // Playing next: queue tracks after current index
-    final queueNextIds = <String>[];
-    if (queue != null && queue.trackIds.isNotEmpty) {
-      final start = queue.currentIndex + 1;
-      if (start < queue.trackIds.length) {
-        queueNextIds.addAll(queue.trackIds.sublist(start));
+    // Playing next: show the rest of the queue in circular order.
+    // This keeps Next Up useful even when the current track is the last item.
+    final queueNextEntries = <_VisibleQueueEntry>[];
+    if (queue != null && queue.trackIds.length > 1) {
+      for (var offset = 1; offset < queue.trackIds.length; offset++) {
+        final absoluteIndex =
+            (queue.currentIndex + offset) % queue.trackIds.length;
+        queueNextEntries.add(
+          _VisibleQueueEntry(
+            trackId: queue.trackIds[absoluteIndex],
+            absoluteIndex: absoluteIndex,
+          ),
+        );
       }
     }
 
@@ -40,7 +56,8 @@ class _QueueBody extends ConsumerWidget {
             actionLabel: 'Clear',
             onAction: () => _confirmClearHistory(context, ref),
           ),
-          for (final track in historyItems) _HistoryTile(track: track),
+          for (final track in historyItems)
+            _HistoryTile(track: track, allHistoryTracks: historyTracks),
         ],
 
         // ── Currently playing ─────────────────────────────────────────────
@@ -52,7 +69,7 @@ class _QueueBody extends ConsumerWidget {
         // ── Playing next (hidden in repeat-one mode) ──────────────────────
         if (!isRepeatOne) ...[
           _SectionLabel('Playing next'),
-          if (queueNextIds.isNotEmpty)
+          if (queueNextEntries.isNotEmpty)
             ReorderableListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -64,17 +81,19 @@ class _QueueBody extends ConsumerWidget {
                     .reorderQueue(oldIndex, newIndex);
               },
               children: [
-                for (int i = 0; i < queueNextIds.length; i++)
+                for (int i = 0; i < queueNextEntries.length; i++)
                   _QueueTrackTile(
-                    key: ValueKey(queueNextIds[i]),
+                    key: ValueKey(
+                      "${queueNextEntries[i].trackId}-${queueNextEntries[i].absoluteIndex}",
+                    ),
                     index: i,
-                    trackId: queueNextIds[i],
+                    trackId: queueNextEntries[i].trackId,
                     onTap: () => ref
                         .read(playerProvider.notifier)
-                        .jumpToQueueIndex((queue?.currentIndex ?? 0) + 1 + i),
+                        .jumpToQueueIndex(queueNextEntries[i].absoluteIndex),
                     onRemove: () => ref
                         .read(playerProvider.notifier)
-                        .removeFromQueue((queue?.currentIndex ?? 0) + 1 + i),
+                        .removeFromQueue(queueNextEntries[i].absoluteIndex),
                   ),
               ],
             )
@@ -191,14 +210,16 @@ class _SectionLabelWithAction extends StatelessWidget {
 // ── History tile ──────────────────────────────────────────────────────────────
 
 class _HistoryTile extends ConsumerWidget {
-  const _HistoryTile({required this.track});
+  const _HistoryTile({required this.track, required this.allHistoryTracks});
 
   final HistoryTrack track;
+  final List<HistoryTrack> allHistoryTracks;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      onTap: () => _playHistoryTrack(ref),
       leading: _Cover(url: track.coverUrl, size: 48),
       title: Text(
         track.title,
@@ -225,6 +246,61 @@ class _HistoryTile extends ConsumerWidget {
           child: Icon(Icons.more_horiz, color: Colors.white54, size: 20),
         ),
       ),
+    );
+  }
+
+  Future<void> _playHistoryTrack(WidgetRef ref) async {
+    if (track.status == PlaybackStatus.blocked) return;
+
+    final stored = ref.read(globalTrackStoreProvider).find(track.trackId);
+    final privateToken = stored?.privateToken?.trim();
+
+    final playableHistory = allHistoryTracks
+        .where((item) => item.status != PlaybackStatus.blocked)
+        .toList(growable: false);
+
+    final queueTrackIds = playableHistory
+        .map((item) => item.trackId)
+        .toList(growable: false);
+
+    final startIndex = queueTrackIds.indexOf(track.trackId);
+
+    await ref
+        .read(playerProvider.notifier)
+        .loadTrack(
+          track.trackId,
+          autoPlay: true,
+          seedTrack: _seedTrackFromHistory(track, stored),
+          initialPositionSeconds: track.lastPositionSeconds.toDouble(),
+          privateToken: privateToken == null || privateToken.isEmpty
+              ? null
+              : privateToken,
+          queue: startIndex >= 0
+              ? PlaybackQueue(
+                  trackIds: queueTrackIds,
+                  currentIndex: startIndex,
+                  shuffle: false,
+                  repeat: RepeatMode.none,
+                  source: QueueSource.history,
+                )
+              : null,
+        );
+  }
+
+  PlayerSeedTrack _seedTrackFromHistory(
+    HistoryTrack track,
+    UploadItem? stored,
+  ) {
+    return PlayerSeedTrack(
+      trackId: track.trackId,
+      title: stored?.title ?? track.title,
+      artistName: stored?.artistDisplay ?? track.artist.name,
+      durationSeconds: stored?.durationSeconds ?? track.durationSeconds,
+      coverUrl: stored?.artworkUrl ?? track.coverUrl,
+      waveformUrl: stored?.waveformUrl,
+      directAudioUrl: stored?.audioUrl,
+      resumePositionSeconds: track.lastPositionSeconds,
+      localFilePath: stored?.localFilePath,
     );
   }
 }
@@ -368,7 +444,9 @@ class _QueueTrackTileState extends ConsumerState<_QueueTrackTile>
 
   @override
   Widget build(BuildContext context) {
-    final info = _resolveTrackInfo(widget.trackId, ref);
+    final hydratedInfo = ref.watch(_queueTrackInfoProvider(widget.trackId));
+    final info =
+        hydratedInfo.asData?.value ?? _resolveTrackInfo(widget.trackId, ref);
 
     return SizedBox(
       key: widget.key,
@@ -536,16 +614,69 @@ class _Cover extends StatelessWidget {
 // ── Track info resolver ───────────────────────────────────────────────────────
 
 class _TrackInfo {
-  const _TrackInfo({
-    required this.title,
-    required this.artist,
-    this.coverUrl,
-  });
+  const _TrackInfo({required this.title, required this.artist, this.coverUrl});
 
   final String title;
   final String artist;
   final String? coverUrl;
 }
+
+final _queueTrackInfoProvider = FutureProvider.autoDispose
+    .family<_TrackInfo, String>((ref, trackId) async {
+      final stored = ref.read(globalTrackStoreProvider).find(trackId);
+      if (stored != null) {
+        return _TrackInfo(
+          title: stored.title,
+          artist: stored.artistDisplay,
+          coverUrl: stored.artworkUrl,
+        );
+      }
+
+      final historyTracks =
+          ref.read(listeningHistoryProvider).asData?.value.tracks ?? const [];
+      for (final track in historyTracks) {
+        if (track.trackId == trackId) {
+          return _TrackInfo(
+            title: track.title,
+            artist: track.artist.name,
+            coverUrl: track.coverUrl,
+          );
+        }
+      }
+
+      if (trackId.startsWith('track-')) {
+        return _TrackInfo(title: 'Track $trackId', artist: '');
+      }
+
+      final bundle = await ref
+          .read(playerRepositoryProvider)
+          .getPlaybackBundle(trackId);
+      final artistName = bundle.artist.name.trim();
+      final coverUrl = bundle.coverUrl.trim().isEmpty ? null : bundle.coverUrl;
+      final title = bundle.title.trim().isEmpty ? 'Track' : bundle.title.trim();
+
+      ref
+          .read(globalTrackStoreProvider)
+          .update(
+            UploadItem(
+              id: bundle.trackId,
+              title: title,
+              artistDisplay: artistName,
+              durationLabel: _formatQueueDuration(bundle.durationSeconds),
+              durationSeconds: bundle.durationSeconds,
+              artworkUrl: coverUrl,
+              visibility: UploadVisibility.public,
+              status: UploadProcessingStatus.finished,
+              isExplicit: false,
+              createdAt: DateTime.now(),
+            ),
+            ownerUserId: bundle.artist.id.trim().isEmpty
+                ? null
+                : bundle.artist.id.trim(),
+          );
+
+      return _TrackInfo(title: title, artist: artistName, coverUrl: coverUrl);
+    });
 
 _TrackInfo _resolveTrackInfo(String trackId, WidgetRef ref) {
   // 1. GlobalTrackStore (uploaded tracks — fastest, in-memory)
@@ -572,5 +703,15 @@ _TrackInfo _resolveTrackInfo(String trackId, WidgetRef ref) {
   }
 
   // 3. Fall back to ID (unknown track not yet in local stores)
+  if (trackId.startsWith('track-')) {
+    return _TrackInfo(title: 'Track $trackId', artist: '');
+  }
   return const _TrackInfo(title: 'Track', artist: '');
+}
+
+String _formatQueueDuration(int totalSeconds) {
+  final safe = totalSeconds < 0 ? 0 : totalSeconds;
+  final minutes = safe ~/ 60;
+  final seconds = safe % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
