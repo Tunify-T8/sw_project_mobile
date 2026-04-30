@@ -2,7 +2,7 @@ import 'message_attachment.dart';
 
 enum MessageType { text, attachment }
 
-enum MessageDeliveryStatus { sent, delivered, read }
+enum MessageDeliveryStatus { notDelivered, sent, delivered, read }
 
 /// Domain entity representing a single chat message.
 class MessageEntity {

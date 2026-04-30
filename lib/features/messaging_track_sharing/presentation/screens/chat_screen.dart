@@ -63,9 +63,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool jump = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
+
+      if (jump) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        Future<void>.delayed(const Duration(milliseconds: 80), () {
+          if (!mounted || !_scrollController.hasClients) return;
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        });
+        return;
+      }
 
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -105,6 +114,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     ref.listen(chatControllerProvider(widget.conversationId), (previous, next) {
+      if ((previous?.isLoading ?? true) &&
+          !next.isLoading &&
+          next.messages.isNotEmpty) {
+        _scrollToBottom(jump: true);
+        return;
+      }
       if ((previous?.messages.length ?? 0) < next.messages.length) {
         _scrollToBottom();
       }

@@ -57,6 +57,7 @@ class ChatController extends Notifier<ChatState> {
   final Map<String, Timer> _typingTimeouts = {};
   final Set<String> _deliveredMessageIds = {};
   final Set<String> _readMessageIds = {};
+  final Map<String, MessageDeliveryStatus> _pendingStatusesByMessageId = {};
   Timer? _outgoingTypingTimer;
   bool _isTypingOutgoing = false;
 
@@ -110,6 +111,19 @@ class ChatController extends Notifier<ChatState> {
       );
     }
     return message;
+  }
+
+  MessageEntity _normalizeOutgoingPayloadStatus(MessageEntity message) {
+    if (!_isMine(message)) return message;
+    final targetedStatus = _pendingStatusesByMessageId[message.id];
+    if (targetedStatus != null) return message;
+    if (message.deliveryStatus == MessageDeliveryStatus.notDelivered) {
+      return message;
+    }
+    return message.copyWith(
+      deliveryStatus: MessageDeliveryStatus.sent,
+      isRead: false,
+    );
   }
 
   MessageEntity _optimisticMessageFromDraft(SendMessageDraft draft) {
@@ -180,7 +194,10 @@ class ChatController extends Notifier<ChatState> {
           switch (event) {
             case MessageReceivedEvent(:final message):
               if (message.conversationId != _conversationId) return;
-              final attributed = _attributeToMe(message);
+              final attributed = _withPendingDeliveryStatus(
+                _normalizeOutgoingPayloadStatus(_attributeToMe(message)),
+                outgoingServerEcho: true,
+              );
               // Drop the optimistic placeholder if the canonical version arrives.
               final filtered = state.messages.where((m) {
                 if (m.id == attributed.id) return false;
@@ -199,18 +216,35 @@ class ChatController extends Notifier<ChatState> {
                     .read(conversationsControllerProvider.notifier)
                     .markRead(_conversationId),
               );
-            case MessageDeliveredEvent(:final conversationId, :final messageId):
+            case MessageDeliveredEvent(
+              :final conversationId,
+              :final messageId,
+              :final readerUserId,
+            ):
               if (conversationId != _conversationId) return;
+              if (readerUserId.isNotEmpty && readerUserId == _currentUserId()) {
+                return;
+              }
               _applyDeliveryStatus(messageId, MessageDeliveryStatus.delivered);
-            case MessageReadEvent(:final conversationId, :final messageId):
+            case MessageReadEvent(
+              :final conversationId,
+              :final messageId,
+              :final readerUserId,
+            ):
               if (conversationId != _conversationId) return;
+              if (readerUserId.isNotEmpty && readerUserId == _currentUserId()) {
+                return;
+              }
               _applyDeliveryStatus(messageId, MessageDeliveryStatus.read);
             case MessageUndeliveredEvent(
               :final conversationId,
               :final messageId,
             ):
               if (conversationId != _conversationId) return;
-              _applyDeliveryStatus(messageId, MessageDeliveryStatus.sent);
+              _applyDeliveryStatus(
+                messageId,
+                MessageDeliveryStatus.notDelivered,
+              );
             case ConversationBlockedEvent():
               break;
             case TypingEvent(
@@ -263,12 +297,26 @@ class ChatController extends Notifier<ChatState> {
     String? messageId,
     MessageDeliveryStatus deliveryStatus,
   ) {
+    if (messageId == null || messageId.isEmpty) {
+      return;
+    }
+
+    final hasMessage = state.messages.any(
+      (message) => _isMine(message) && message.id == messageId,
+    );
+    if (!hasMessage && deliveryStatus == MessageDeliveryStatus.read) {
+      return;
+    }
+
+    final cached = _pendingStatusesByMessageId[messageId];
+    if (cached == null || _statusRank(cached) <= _statusRank(deliveryStatus)) {
+      _pendingStatusesByMessageId[messageId] = deliveryStatus;
+    }
+
     var changed = false;
     final updated = state.messages.map((message) {
       if (!_isMine(message)) return message;
-      if (messageId != null &&
-          messageId.isNotEmpty &&
-          message.id != messageId) {
+      if (message.id != messageId) {
         return message;
       }
       if (_statusRank(message.deliveryStatus) > _statusRank(deliveryStatus)) {
@@ -283,9 +331,34 @@ class ChatController extends Notifier<ChatState> {
     if (changed) state = state.copyWith(messages: updated);
   }
 
+  MessageEntity _withPendingDeliveryStatus(
+    MessageEntity message, {
+    bool outgoingServerEcho = false,
+  }) {
+    final status = _pendingStatusesByMessageId[message.id];
+    if (status == null) {
+      if (outgoingServerEcho && _isMine(message)) {
+        return message.copyWith(
+          deliveryStatus: MessageDeliveryStatus.sent,
+          isRead: false,
+        );
+      }
+      return message;
+    }
+    if (_statusRank(message.deliveryStatus) > _statusRank(status)) {
+      return message;
+    }
+    return message.copyWith(
+      deliveryStatus: status,
+      isRead: status == MessageDeliveryStatus.read,
+    );
+  }
+
   int _statusRank(MessageDeliveryStatus status) {
     switch (status) {
       case MessageDeliveryStatus.sent:
+        return 0;
+      case MessageDeliveryStatus.notDelivered:
         return 0;
       case MessageDeliveryStatus.delivered:
         return 1;
@@ -430,7 +503,10 @@ class ChatController extends Notifier<ChatState> {
           .unarchiveConversation(_conversationId);
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
 
-      final attributed = _attributeToMe(message);
+      final attributed = _withPendingDeliveryStatus(
+        _normalizeOutgoingPayloadStatus(_attributeToMe(message)),
+        outgoingServerEcho: true,
+      );
       final alreadyInList = state.messages.any((m) => m.id == attributed.id);
       var didReplace = false;
       final replaced = state.messages.map((m) {

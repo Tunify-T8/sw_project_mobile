@@ -71,7 +71,12 @@ class MessagingMapper {
         return MessageDeliveryStatus.read;
       case 'DELIVERED':
         return MessageDeliveryStatus.delivered;
+      case 'UNDELIVERED':
+      case 'NOT_DELIVERED':
+      case 'FAILED':
+        return MessageDeliveryStatus.notDelivered;
       case 'SENT':
+        return MessageDeliveryStatus.sent;
       default:
         return d.isRead
             ? MessageDeliveryStatus.read
@@ -97,6 +102,7 @@ class MessagingMapper {
         otherUser: userPreview(d.otherUser),
         lastMessagePreview: d.lastMessagePreview,
         lastMessageAt: d.lastMessageAt,
+        lastMessageSenderId: d.lastMessage?.senderId,
         unreadCount: d.unreadCount,
         isBlocked: d.isBlocked,
         isArchived: d.isArchived,

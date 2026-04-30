@@ -48,6 +48,7 @@ class RealMessagingSocket implements MessagingSocket {
   /// disconnect — instead they're re-emitted on every `onConnect` so the
   /// caller doesn't need to know about reconnects.
   final Set<String> _activeRooms = <String>{};
+  final Map<String, int> _roomRefCounts = <String, int>{};
 
   @override
   Stream<RealtimeMessagingEvent> get events => _controller.stream;
@@ -98,6 +99,10 @@ class RealMessagingSocket implements MessagingSocket {
   @override
   Future<void> joinConversation(String conversationId) async {
     if (conversationId.isEmpty) return;
+    final nextCount = (_roomRefCounts[conversationId] ?? 0) + 1;
+    _roomRefCounts[conversationId] = nextCount;
+    if (nextCount > 1) return;
+
     _activeRooms.add(conversationId);
     if (!_connected) {
       unawaited(connect());
@@ -109,6 +114,12 @@ class RealMessagingSocket implements MessagingSocket {
   @override
   Future<void> leaveConversation(String conversationId) async {
     if (conversationId.isEmpty) return;
+    final currentCount = _roomRefCounts[conversationId] ?? 0;
+    if (currentCount > 1) {
+      _roomRefCounts[conversationId] = currentCount - 1;
+      return;
+    }
+    _roomRefCounts.remove(conversationId);
     _activeRooms.remove(conversationId);
     if (!_connected) return;
     _socket?.emit('conversation:leave', {'conversationId': conversationId});
@@ -299,7 +310,7 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.on('message:delivered', (data) {
       final m = _safeMap(data);
       final convoId = (m['conversationId'] ?? '').toString();
-      final messageId = (m['messageId'] ?? '').toString();
+      final messageId = _messageIdFromEnvelope(m);
       final readerId = (m['readerId'] ?? m['userId'] ?? '').toString();
       if (convoId.isEmpty) return;
       _controller.add(
@@ -314,7 +325,7 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.on('message:read', (data) {
       final m = _safeMap(data);
       final convoId = (m['conversationId'] ?? '').toString();
-      final messageId = (m['messageId'] ?? '').toString();
+      final messageId = _messageIdFromEnvelope(m);
       final readerId = (m['readerId'] ?? m['userId'] ?? '').toString();
       if (convoId.isEmpty) return;
       _controller.add(
@@ -329,7 +340,7 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.on('message:unread', (data) {
       final m = _safeMap(data);
       final convoId = (m['conversationId'] ?? '').toString();
-      final messageId = (m['messageId'] ?? '').toString();
+      final messageId = _messageIdFromEnvelope(m);
       if (convoId.isEmpty) return;
       _controller.add(
         MessageUndeliveredEvent(
@@ -342,7 +353,7 @@ class RealMessagingSocket implements MessagingSocket {
     _socket!.on('message:undelivered', (data) {
       final m = _safeMap(data);
       final convoId = (m['conversationId'] ?? '').toString();
-      final messageId = (m['messageId'] ?? '').toString();
+      final messageId = _messageIdFromEnvelope(m);
       if (convoId.isEmpty) return;
       _controller.add(
         MessageUndeliveredEvent(
@@ -489,6 +500,22 @@ class RealMessagingSocket implements MessagingSocket {
       return value.map((key, val) => MapEntry(key.toString(), val));
     }
     return <String, dynamic>{};
+  }
+
+  String _messageIdFromEnvelope(Map<String, dynamic> envelope) {
+    final direct =
+        (envelope['messageId'] ?? envelope['message_id'] ?? envelope['id'])
+            ?.toString()
+            .trim();
+    if (direct != null && direct.isNotEmpty) return direct;
+
+    final message = _safeMap(envelope['message']);
+    return (message['messageId'] ??
+            message['message_id'] ??
+            message['id'] ??
+            '')
+        .toString()
+        .trim();
   }
 
   String _safeError(Object? error) {
