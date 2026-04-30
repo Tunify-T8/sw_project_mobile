@@ -23,11 +23,11 @@ class ConversationTile extends StatelessWidget {
         ? MessagingTimeFormat.relativeShort(conversation.lastMessageAt!)
         : '';
 
-    return InkWell(
-      onTap: onTap,
-      splashColor: Colors.white10,
-      child: Container(
-        color: hasUnread ? const Color(0xFF1A1A2E) : Colors.transparent,
+    return Material(
+      color: hasUnread ? const Color(0xFF141414) : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: Colors.white10,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -40,11 +40,7 @@ class ConversationTile extends StatelessWidget {
                     ? NetworkImage(conversation.otherUser.avatarUrl!)
                     : null,
                 child: conversation.otherUser.avatarUrl == null
-                    ? const Icon(
-                        Icons.person,
-                        color: Color(0xFF64B5F6),
-                        size: 28,
-                      )
+                    ? const Icon(Icons.person, color: Color(0xFF64B5F6), size: 28)
                     : null,
               ),
               const SizedBox(width: 12),
@@ -57,12 +53,10 @@ class ConversationTile extends StatelessWidget {
                       conversation.otherUser.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
-                        fontWeight: hasUnread
-                            ? FontWeight.w700
-                            : FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -75,9 +69,8 @@ class ConversationTile extends StatelessWidget {
                             ? Colors.white70
                             : const Color(0xFF8A8A8A),
                         fontSize: 13,
-                        fontWeight: hasUnread
-                            ? FontWeight.w500
-                            : FontWeight.w400,
+                        fontWeight:
+                            hasUnread ? FontWeight.w500 : FontWeight.w400,
                       ),
                     ),
                   ],

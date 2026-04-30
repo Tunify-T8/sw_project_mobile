@@ -70,8 +70,6 @@ class ConversationsController extends Notifier<ConversationsState> {
   /// Client-side unarchive set — conversations explicitly re-opened by the
   /// user that should appear even if the backend still says ARCHIVED.
   final Set<String> _localUnarchivedIds = {};
-  final Set<String> _locallyCountedUnreadMessageIds = {};
-  final Set<String> _joinedConversationIds = {};
   final Map<String, DateTime> _localReadWatermarks = {};
   bool _loadedReadWatermarks = false;
   String? _loadedReadWatermarksUserId;
@@ -81,16 +79,7 @@ class ConversationsController extends Notifier<ConversationsState> {
     final userId = ref.watch(messagingSessionUserIdProvider);
     unawaited(_eventsSub?.cancel());
     _eventsSub = null;
-    ref.onDispose(() async {
-      await _eventsSub?.cancel();
-      final repo = ref.read(messagingRepositoryProvider);
-      for (final conversationId in _joinedConversationIds) {
-        try {
-          await repo.leaveConversation(conversationId);
-        } catch (_) {}
-      }
-      _joinedConversationIds.clear();
-    });
+    ref.onDispose(() => _eventsSub?.cancel());
     if (userId == null || userId.isEmpty) {
       return const ConversationsState();
     }
@@ -105,7 +94,6 @@ class ConversationsController extends Notifier<ConversationsState> {
   List<ConversationEntity> _applyLocalOverrides(
     List<ConversationEntity> items,
   ) {
-    final currentUserId = ref.read(messagingSessionUserIdProvider);
     return items.map((c) {
       var next = c;
       if (_localUnarchivedIds.contains(c.conversationId)) {
@@ -117,11 +105,6 @@ class ConversationsController extends Notifier<ConversationsState> {
 
       final readAt = _localReadWatermarks[c.conversationId];
       final lastMessageAt = c.lastMessageAt;
-      if (currentUserId != null &&
-          currentUserId.isNotEmpty &&
-          c.lastMessageSenderId == currentUserId) {
-        next = next.copyWith(unreadCount: 0);
-      }
       if (readAt != null &&
           (lastMessageAt == null || !lastMessageAt.isAfter(readAt))) {
         next = next.copyWith(unreadCount: 0);
@@ -185,12 +168,10 @@ class ConversationsController extends Notifier<ConversationsState> {
 
       final page = await ref.read(getConversationsUseCaseProvider).call();
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
-      final items = await _verifyUnreadConversationSenders(
-        _applyLocalOverrides(page.items),
-        userId,
+      state = state.copyWith(
+        isLoading: false,
+        items: _applyLocalOverrides(page.items),
       );
-      await _joinConversationRooms(items);
-      state = state.copyWith(isLoading: false, items: items);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -204,78 +185,13 @@ class ConversationsController extends Notifier<ConversationsState> {
       await _ensureReadWatermarksLoaded(userId);
       final page = await ref.read(getConversationsUseCaseProvider).call();
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
-      final items = await _verifyUnreadConversationSenders(
-        _applyLocalOverrides(page.items),
-        userId,
+      state = state.copyWith(
+        isRefreshing: false,
+        items: _applyLocalOverrides(page.items),
       );
-      await _joinConversationRooms(items);
-      state = state.copyWith(isRefreshing: false, items: items);
     } catch (e) {
       state = state.copyWith(isRefreshing: false, error: e.toString());
     }
-  }
-
-  Future<List<ConversationEntity>> _verifyUnreadConversationSenders(
-    List<ConversationEntity> items,
-    String currentUserId,
-  ) async {
-    final next = [...items];
-    for (var i = 0; i < next.length; i++) {
-      final conversation = next[i];
-      if (conversation.unreadCount <= 0) continue;
-      if (conversation.lastMessageSenderId == currentUserId) {
-        next[i] = conversation.copyWith(unreadCount: 0);
-        continue;
-      }
-
-      try {
-        final page = await ref
-            .read(getMessagesUseCaseProvider)
-            .call(conversation.conversationId, page: 1, limit: 1);
-        if (page.items.isEmpty) continue;
-        final latest = [...page.items]
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        final message = latest.first;
-        if (message.senderId != currentUserId) continue;
-
-        final readAt = conversation.lastMessageAt;
-        _localReadWatermarks[conversation.conversationId] =
-            readAt != null && readAt.isAfter(message.createdAt)
-            ? readAt
-            : message.createdAt;
-        unawaited(_persistReadWatermarks(currentUserId));
-        next[i] = conversation.copyWith(
-          lastMessageSenderId: currentUserId,
-          unreadCount: 0,
-        );
-      } catch (_) {
-        // Keep backend state if latest-message verification is unavailable.
-      }
-    }
-    return next;
-  }
-
-  Future<void> _joinConversationRooms(List<ConversationEntity> items) async {
-    final repo = ref.read(messagingRepositoryProvider);
-    final desired = items
-        .where((conversation) => !conversation.isBlocked)
-        .map((conversation) => conversation.conversationId)
-        .where((id) => id.trim().isNotEmpty)
-        .toSet();
-
-    for (final conversationId in desired.difference(_joinedConversationIds)) {
-      try {
-        await repo.joinConversation(conversationId);
-        _joinedConversationIds.add(conversationId);
-      } catch (_) {}
-    }
-
-    for (final conversationId in _joinedConversationIds.difference(desired)) {
-      try {
-        await repo.leaveConversation(conversationId);
-      } catch (_) {}
-    }
-    _joinedConversationIds.removeWhere((id) => !desired.contains(id));
   }
 
   void setFilter(MessagesFilter filter) {
@@ -324,15 +240,6 @@ class ConversationsController extends Notifier<ConversationsState> {
   }
 
   void handleLocalMessageSent(MessageEntity message) {
-    final userId = ref.read(messagingSessionUserIdProvider);
-    if (userId != null && userId.isNotEmpty) {
-      final current = _localReadWatermarks[message.conversationId];
-      if (current == null || message.createdAt.isAfter(current)) {
-        _localReadWatermarks[message.conversationId] = message.createdAt;
-        unawaited(_persistReadWatermarks(userId));
-      }
-    }
-
     final index = state.items.indexWhere(
       (c) => c.conversationId == message.conversationId,
     );
@@ -348,49 +255,7 @@ class ConversationsController extends Notifier<ConversationsState> {
     next[index] = next[index].copyWith(
       lastMessagePreview: _previewFor(message),
       lastMessageAt: message.createdAt,
-      lastMessageSenderId: message.senderId,
       unreadCount: 0,
-      isArchived: false,
-    );
-    next.sort((a, b) {
-      final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bTime.compareTo(aTime);
-    });
-    state = state.copyWith(items: next);
-  }
-
-  void handleIncomingMessageReceived(MessageEntity message) {
-    final userId = ref.read(messagingSessionUserIdProvider);
-    if (message.senderId == '__me__' ||
-        (userId != null && userId.isNotEmpty && message.senderId == userId)) {
-      handleLocalMessageSent(message);
-      return;
-    }
-
-    _localUnarchivedIds.add(message.conversationId);
-    _localArchivedIds.remove(message.conversationId);
-
-    final index = state.items.indexWhere(
-      (c) => c.conversationId == message.conversationId,
-    );
-    if (index == -1) {
-      unawaited(refresh());
-      return;
-    }
-
-    final current = state.items[index];
-    final shouldCountUnread =
-        message.id.isEmpty || _locallyCountedUnreadMessageIds.add(message.id);
-
-    final next = [...state.items];
-    next[index] = current.copyWith(
-      lastMessagePreview: _previewFor(message),
-      lastMessageAt: message.createdAt,
-      lastMessageSenderId: message.senderId,
-      unreadCount: shouldCountUnread
-          ? (current.unreadCount <= 0 ? 1 : current.unreadCount + 1)
-          : current.unreadCount,
       isArchived: false,
     );
     next.sort((a, b) {
@@ -453,9 +318,7 @@ class ConversationsController extends Notifier<ConversationsState> {
           // already updated by the time the event arrives, so this is a cheap
           // in-memory read in mock mode and a single network call in real mode.
           switch (event) {
-            case MessageReceivedEvent(:final message):
-              handleIncomingMessageReceived(message);
-              break;
+            case MessageReceivedEvent():
             case MessageReadEvent():
             case MessageDeliveredEvent():
             case MessageUndeliveredEvent():

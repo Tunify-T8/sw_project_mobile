@@ -51,9 +51,42 @@ class MessageBubble extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+          if (isMine)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                _statusLabel(message),
+                style: TextStyle(
+                  color: _statusColor(message),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  static String _statusLabel(MessageEntity message) {
+    if (message.isFailed) return 'Not delivered';
+    if (message.isPending) return 'Sending...';
+    switch (message.deliveryStatus) {
+      case MessageDeliveryStatus.read:
+        return 'Seen';
+      case MessageDeliveryStatus.delivered:
+        return 'Delivered';
+      case MessageDeliveryStatus.sent:
+        return 'Not delivered';
+    }
+  }
+
+  static Color _statusColor(MessageEntity message) {
+    if (message.isFailed) return Colors.redAccent;
+    if (message.deliveryStatus == MessageDeliveryStatus.read) {
+      return const Color(0xFF64B5F6);
+    }
+    return _timestampColor;
   }
 }
 
