@@ -32,6 +32,7 @@ class TrackInfoBox extends ConsumerWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
+        key: ValueKey('feed_track_info_box_${track.trackId}'),
         behavior: HitTestBehavior.opaque,
         onTap: () => playFeedTrack(context, ref, track),
         child: Container(
@@ -60,6 +61,9 @@ class TrackInfoBox extends ConsumerWidget {
                     Row(
                       children: [
                         GestureDetector(
+                          key: ValueKey(
+                            'feed_track_artist_avatar_${track.artistId}',
+                          ),
                           onTap: () => navigateToProfile(
                             context,
                             track.artistId,
@@ -118,6 +122,7 @@ class TrackInfoBox extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
                 child: FeedPlayButton(
+                  key: ValueKey('feed_track_play_button_${track.trackId}'),
                   progress: progress,
                   isPlaying: isPlaying,
                   onTap: () => playFeedTrack(context, ref, track),

@@ -33,6 +33,7 @@ class TrackSocialActions extends ConsumerWidget {
       children: [
         /// Go to profile
         TrackOptionMenuItem(
+          key: const Key('track_options_go_to_profile_item'),
           icon: Icons.person_outline,
           label: 'Go to profile',
           onTap: () {

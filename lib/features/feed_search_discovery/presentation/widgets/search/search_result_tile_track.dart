@@ -30,6 +30,7 @@ class SearchResultTileTrack extends ConsumerWidget {
         : null;
 
     return ListTile(
+      key: ValueKey('search_track_tile_${track.id}'),
       onTap: track.isUnavailable ? null : onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: SizedBox(
@@ -99,6 +100,7 @@ class SearchResultTileTrack extends ConsumerWidget {
         ],
       ),
       trailing: IconButton(
+        key: ValueKey('search_track_more_${track.id}'),
         icon: const Icon(Icons.more_vert, color: Colors.white38, size: 20),
         padding: EdgeInsets.zero,
         splashColor: Colors.transparent,

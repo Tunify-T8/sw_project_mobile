@@ -10,10 +10,11 @@ class FeedTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TabBar(
+      key: const Key('feed_tab_bar'),
       controller: controller,
       tabs: const [
-        Tab(text: 'Discover'),
-        Tab(text: 'Following'),
+        Tab(key: Key('feed_tab_discover'), text: 'Discover'),
+        Tab(key: Key('feed_tab_following'), text: 'Following'),
       ],
       overlayColor: WidgetStateProperty.all(Colors.transparent),
       dividerColor: Colors.transparent,

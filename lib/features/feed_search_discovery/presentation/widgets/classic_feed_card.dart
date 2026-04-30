@@ -29,6 +29,7 @@ class ClassicFeedCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
+      key: ValueKey('classic_feed_card_${item.track.trackId}'),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 36),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,6 +37,7 @@ class ClassicFeedCard extends ConsumerWidget {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
+              key: ValueKey('classic_feed_actor_${item.actor!.id}'),
               onTap: () => navigateToProfile(
                 context,
                 item.actor!.id,
@@ -59,6 +61,7 @@ class ClassicFeedCard extends ConsumerWidget {
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
+                  key: ValueKey('classic_feed_cover_${item.track.trackId}'),
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _playTrack(context, ref),
                   child: Container(
@@ -134,6 +137,9 @@ class ClassicFeedCard extends ConsumerWidget {
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
+                          key: ValueKey(
+                            'classic_feed_artist_${item.track.artistId}',
+                          ),
                           onTap: () => navigateToProfile(
                             context,
                             item.track.artistId,
@@ -200,6 +206,7 @@ class ClassicFeedCard extends ConsumerWidget {
               ),
               const Spacer(),
               IconButton(
+                key: ValueKey('classic_feed_more_${item.track.trackId}'),
                 onPressed: () async {
                   await showTrackOptionsMenu(
                     context: context,

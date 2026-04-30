@@ -13,9 +13,12 @@ class TrendingGenreBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TabBar(
+      key: const Key('trending_genre_bar'),
       controller: controller,
       isScrollable: true,
-      tabs: genres.map((genre) => Tab(text: genre)).toList(),
+      tabs: genres
+          .map((genre) => Tab(key: ValueKey('trending_genre_tab_$genre'), text: genre))
+          .toList(),
       overlayColor: WidgetStateProperty.all(Colors.transparent),
       dividerColor: Colors.transparent,
       labelStyle: const TextStyle(

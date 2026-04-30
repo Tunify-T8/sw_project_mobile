@@ -59,14 +59,19 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     required FeedType tabType,
   }) {
     if (isLoading || !hasLoaded) {
-      return Center(child: CircularProgressIndicator());
+      return Center(
+        key: ValueKey('feed_${tabType.name}_loading'),
+        child: CircularProgressIndicator(),
+      );
     } else if (error != null) {
       return ErrorRetryView(
+        key: ValueKey('feed_${tabType.name}_error'),
         onRetry: () =>
             ref.read(feedNotifierProvider.notifier).loadFeed(tab: tabType),
       );
     } else if (items.isEmpty) {
       return Column(
+        key: ValueKey('feed_${tabType.name}_empty'),
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           emptyIcon,
@@ -84,6 +89,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
       );
     } else {
       return PageView.builder(
+        key: ValueKey('feed_${tabType.name}_page_view'),
         scrollDirection: Axis.vertical,
         itemCount: items.length,
         onPageChanged: (index) {
@@ -155,6 +161,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
             top: 65.0,
             left: 16.0,
             child: IconButton(
+              key: const Key('feed_refresh_button'),
               onPressed: () {
                 if (_tabController.index == 0) {
                   ref

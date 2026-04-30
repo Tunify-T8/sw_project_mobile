@@ -24,6 +24,7 @@ class FeedTrackCard extends ConsumerWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
+        key: ValueKey('feed_track_card_${item.track.trackId}'),
         onTap: () {
           final wasPreviewing = ref.read(feedNotifierProvider).isPreviewing;
           ref.read(feedNotifierProvider.notifier).togglePreview();
@@ -94,6 +95,7 @@ class FeedTrackCard extends ConsumerWidget {
               top: 63.0,
               right: 20.0,
               child: IconButton(
+                key: ValueKey('feed_track_more_${item.track.trackId}'),
                 onPressed: () async {
                   await showTrackOptionsMenu(
                     context: context,

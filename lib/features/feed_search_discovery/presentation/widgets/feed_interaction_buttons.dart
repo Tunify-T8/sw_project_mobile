@@ -130,6 +130,7 @@ class _FeedInteractionButtonsState
         highlightColor: Colors.transparent,
       ),
       Text(
+        key: const Key('feed_comments_count'),
         commentsCount.toString(),
         style: const TextStyle(color: Colors.white, fontSize: 15),
       ),
@@ -217,6 +218,7 @@ class _RepostButton extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
+          key: const Key('feed_repost_button'),
           onTap: () {
             if (isReposted) {
               ref.read(engagementProvider(trackId).notifier).removeRepost();
@@ -245,6 +247,7 @@ class _RepostButton extends ConsumerWidget {
         ),
         SizedBox(width: 8,),
         GestureDetector(
+          key: const Key('feed_reposts_count'),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => RepostersScreen(trackId: trackId),

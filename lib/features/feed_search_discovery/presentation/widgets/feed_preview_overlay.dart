@@ -13,6 +13,7 @@ class FeedPreviewOverlay extends StatelessWidget {
       right: 12.0,
       bottom: 20.0,
       child: Container(
+        key: const Key('feed_preview_overlay'),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Color(0x70494949),

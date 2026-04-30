@@ -53,6 +53,7 @@ class FeedActivityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      key: ValueKey('feed_activity_row_${feedViewMode.name}_$trackName'),
       children: [
         (feedType == FeedType.following)
             ? CircleAvatar(
