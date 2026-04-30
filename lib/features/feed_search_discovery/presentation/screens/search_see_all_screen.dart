@@ -36,6 +36,7 @@ class SearchSeeAllScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      key: ValueKey('search_see_all_screen_$title'),
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -56,6 +57,7 @@ class SearchSeeAllScreen extends ConsumerWidget {
   Widget _buildBody(BuildContext context, WidgetRef ref) {
     if (tracks.isNotEmpty) {
       return ListView.builder(
+        key: const Key('search_see_all_tracks_list'),
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: tracks.length,
         itemBuilder: (_, i) {
@@ -71,6 +73,7 @@ class SearchSeeAllScreen extends ConsumerWidget {
 
     if (playlists.isNotEmpty) {
       return ListView.builder(
+        key: const Key('search_see_all_playlists_list'),
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: playlists.length,
         itemBuilder: (_, i) => SearchResultTilePlaylist(playlist: playlists[i]),
@@ -79,6 +82,7 @@ class SearchSeeAllScreen extends ConsumerWidget {
 
     if (profiles.isNotEmpty) {
       return ListView.builder(
+        key: const Key('search_see_all_profiles_list'),
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: profiles.length,
         itemBuilder: (_, i) {
@@ -98,6 +102,7 @@ class SearchSeeAllScreen extends ConsumerWidget {
 
     if (albums.isNotEmpty) {
       return ListView.builder(
+        key: const Key('search_see_all_albums_list'),
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: albums.length,
         itemBuilder: (_, i) => SearchResultTileAlbum(album: albums[i]),

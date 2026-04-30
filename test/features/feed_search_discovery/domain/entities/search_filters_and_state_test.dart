@@ -21,7 +21,7 @@ void main() {
     title: 'Track',
     artistId: 'artist-1',
     artistName: 'Artist',
-    artistVerified: true,
+    isArtistCertified: true,
     duration: 180,
     likesCount: 10,
     repostsCount: 2,

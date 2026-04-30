@@ -32,9 +32,8 @@ class TrackInfoBox extends ConsumerWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
+        key: ValueKey('feed_track_info_box_${track.trackId}'),
         behavior: HitTestBehavior.opaque,
-        // Tapping the info box opens the full playback surface for the track.
-        // It also stops any active feed preview before launching the player.
         onTap: () => playFeedTrack(context, ref, track),
         child: Container(
           padding: const EdgeInsets.all(5.0),
@@ -62,6 +61,9 @@ class TrackInfoBox extends ConsumerWidget {
                     Row(
                       children: [
                         GestureDetector(
+                          key: ValueKey(
+                            'feed_track_artist_avatar_${track.artistId}',
+                          ),
                           onTap: () => navigateToProfile(
                             context,
                             track.artistId,
@@ -72,6 +74,7 @@ class TrackInfoBox extends ConsumerWidget {
                           ),
                           child: CircleAvatar(
                             radius: 20.0,
+                            backgroundColor: Colors.grey,
                             backgroundImage: track.artistAvatar != null
                                 ? NetworkImage(track.artistAvatar!)
                                 : null,
@@ -97,7 +100,7 @@ class TrackInfoBox extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(width: 5.0),
-                              if (track.artistVerified)
+                              if (track.isArtistCertified)
                                 const Icon(
                                   Icons.verified,
                                   color: Colors.blue,
@@ -119,6 +122,7 @@ class TrackInfoBox extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
                 child: FeedPlayButton(
+                  key: ValueKey('feed_track_play_button_${track.trackId}'),
                   progress: progress,
                   isPlaying: isPlaying,
                   onTap: () => playFeedTrack(context, ref, track),

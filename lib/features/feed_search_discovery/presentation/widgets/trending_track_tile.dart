@@ -14,6 +14,7 @@ class TrendingTrackTile extends StatelessWidget {
           ? SystemMouseCursors.basic
           : SystemMouseCursors.click,
       child: GestureDetector(
+        key: ValueKey('trending_track_tile_${track.trackId}'),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -69,6 +70,7 @@ class TrendingTrackTile extends StatelessWidget {
                 ),
               ),
               IconButton(
+                key: ValueKey('trending_track_more_${track.trackId}'),
                 onPressed: () {},
                 icon: const Icon(Icons.more_horiz, color: Colors.white54),
                 splashColor: Colors.transparent,

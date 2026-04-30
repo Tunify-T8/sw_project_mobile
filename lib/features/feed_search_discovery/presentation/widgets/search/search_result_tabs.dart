@@ -172,6 +172,7 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
       children: [
         // ── Tab bar ────────────────────────────────────────────────────────
         TabBar(
+          key: const Key('search_results_tab_bar'),
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -187,6 +188,7 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
 
         // ── Tab body ───────────────────────────────────────────────────────
         Expanded(
+          key: const Key('search_results_body'),
           child: widget.state.isLoading
               ? const Center(
                   child: CircularProgressIndicator(color: Colors.white),

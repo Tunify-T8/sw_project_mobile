@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_tab_type.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 
 import '../../domain/entities/feed_item_entity.dart';
@@ -28,6 +29,7 @@ class ClassicFeedCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
+      key: ValueKey('classic_feed_card_${item.track.trackId}'),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 36),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,18 +37,20 @@ class ClassicFeedCard extends ConsumerWidget {
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
+              key: ValueKey('classic_feed_actor_${item.actor!.id}'),
               onTap: () => navigateToProfile(
                 context,
-                item.actor.id,
+                item.actor!.id,
                 currentUserId: ref.read(authControllerProvider).value?.id,
               ),
               child: FeedActivityRow(
-                avatarUrl: item.actor.avatarUrl,
+                avatarUrl: item.actor!.avatarUrl,
                 timeAgo: item.timeAgo,
                 feedViewMode: FeedViewMode.classic,
                 source: item.source,
-                actorName: item.actor.username,
+                actorName: item.actor!.username,
                 trackName: item.track.title,
+                feedType: FeedType.following,
               ),
             ),
           ),
@@ -57,6 +61,7 @@ class ClassicFeedCard extends ConsumerWidget {
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
+                  key: ValueKey('classic_feed_cover_${item.track.trackId}'),
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _playTrack(context, ref),
                   child: Container(
@@ -132,6 +137,9 @@ class ClassicFeedCard extends ConsumerWidget {
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
                         child: GestureDetector(
+                          key: ValueKey(
+                            'classic_feed_artist_${item.track.artistId}',
+                          ),
                           onTap: () => navigateToProfile(
                             context,
                             item.track.artistId,
@@ -198,6 +206,7 @@ class ClassicFeedCard extends ConsumerWidget {
               ),
               const Spacer(),
               IconButton(
+                key: ValueKey('classic_feed_more_${item.track.trackId}'),
                 onPressed: () async {
                   await showTrackOptionsMenu(
                     context: context,

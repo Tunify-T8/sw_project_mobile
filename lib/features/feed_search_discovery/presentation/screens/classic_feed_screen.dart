@@ -56,7 +56,6 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
             .refreshFeed(tab: FeedType.following);
       },
       child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(0, 24, 0, 24),
         itemCount: items.isEmpty ? 2 : items.length + 1,
         itemBuilder: (context, index) {
@@ -133,7 +132,11 @@ class _ClassicFeedScreenState extends ConsumerState<ClassicFeedScreen> {
             );
           }
 
-          return ClassicFeedCard(item: items[index - 1]);
+          final item = items[index - 1];
+          if (item.actor == null) {
+            return const SizedBox.shrink();
+          }
+          return ClassicFeedCard(item: item);
         },
       ),
     );

@@ -54,6 +54,7 @@ class GenreDetailScreen extends ConsumerWidget {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
+        key: ValueKey('genre_detail_screen_$genreId'),
         backgroundColor: Colors.black,
         body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -62,6 +63,7 @@ class GenreDetailScreen extends ConsumerWidget {
               expandedHeight: 160,
               pinned: true,
               leading: IconButton(
+                key: const Key('genre_detail_back_button'),
                 icon: const Icon(
                   Icons.arrow_back_ios_new,
                   color: Colors.white,
@@ -94,6 +96,7 @@ class GenreDetailScreen extends ConsumerWidget {
                 ),
               ),
               bottom: TabBar(
+                key: const Key('genre_detail_tab_bar'),
                 indicatorColor: Colors.white,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white54,
@@ -109,10 +112,10 @@ class GenreDetailScreen extends ConsumerWidget {
                       .setActiveTab(tabs[i]);
                 },
                 tabs: const [
-                  Tab(text: 'All'),
-                  Tab(text: 'Tracks'),
-                  Tab(text: 'Playlists'),
-                  Tab(text: 'Albums'),
+                  Tab(key: Key('genre_detail_tab_all'), text: 'All'),
+                  Tab(key: Key('genre_detail_tab_tracks'), text: 'Tracks'),
+                  Tab(key: Key('genre_detail_tab_playlists'), text: 'Playlists'),
+                  Tab(key: Key('genre_detail_tab_albums'), text: 'Albums'),
                 ],
               ),
             ),
@@ -130,16 +133,24 @@ class GenreDetailScreen extends ConsumerWidget {
               : TabBarView(
                   children: [
                     _GenreAllTab(
+                      key: const Key('genre_detail_all_tab'),
                       detail: state.detail,
                       genreId: genreId,
                       genreLabel: genreLabel,
                       currentUserId: ref.read(authControllerProvider).value?.id,
                     ),
-                    _GenreTrackList(tracks: state.detail?.trendingTracks ?? []),
+                    _GenreTrackList(
+                      key: const Key('genre_detail_tracks_tab'),
+                      tracks: state.detail?.trendingTracks ?? [],
+                    ),
                     _GenrePlaylistList(
+                      key: const Key('genre_detail_playlists_tab'),
                       playlists: state.detail?.playlists ?? [],
                     ),
-                    _GenreAlbumList(albums: state.detail?.albums ?? []),
+                    _GenreAlbumList(
+                      key: const Key('genre_detail_albums_tab'),
+                      albums: state.detail?.albums ?? [],
+                    ),
                   ],
                 ),
         ),
@@ -152,6 +163,7 @@ class GenreDetailScreen extends ConsumerWidget {
 
 class _GenreAllTab extends StatelessWidget {
   const _GenreAllTab({
+    super.key,
     required this.detail,
     required this.genreId,
     required this.genreLabel,
@@ -185,6 +197,7 @@ class _GenreAllTab extends StatelessWidget {
     }
 
     return ListView(
+      key: ValueKey('genre_detail_all_list_$genreId'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         // ── Trending tracks ─────────────────────────────────────────────────
@@ -448,7 +461,7 @@ class _GenreAllTab extends StatelessWidget {
 // ─── Tab list views ───────────────────────────────────────────────────────────
 
 class _GenreTrackList extends ConsumerWidget {
-  const _GenreTrackList({required this.tracks});
+  const _GenreTrackList({super.key, required this.tracks});
   final List<TrackResultEntity> tracks;
 
   @override
@@ -457,6 +470,7 @@ class _GenreTrackList extends ConsumerWidget {
       return const _GenreEmptyState(message: 'No trending tracks yet.');
     }
     return ListView.builder(
+      key: const Key('genre_detail_tracks_list'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: tracks.length,
       itemBuilder: (context, i) {
@@ -472,7 +486,7 @@ class _GenreTrackList extends ConsumerWidget {
 }
 
 class _GenrePlaylistList extends ConsumerWidget {
-  const _GenrePlaylistList({required this.playlists});
+  const _GenrePlaylistList({super.key, required this.playlists});
   final List<PlaylistResultEntity> playlists;
 
   @override
@@ -483,6 +497,7 @@ class _GenrePlaylistList extends ConsumerWidget {
     final currentUserId =
         ref.watch(authControllerProvider).value?.id.trim() ?? '';
     return ListView.builder(
+      key: const Key('genre_detail_playlists_list'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: playlists.length,
       itemBuilder: (context, i) {
@@ -502,7 +517,7 @@ class _GenrePlaylistList extends ConsumerWidget {
 }
 
 class _GenreAlbumList extends StatelessWidget {
-  const _GenreAlbumList({required this.albums});
+  const _GenreAlbumList({super.key, required this.albums});
   final List<AlbumResultEntity> albums;
 
   @override
@@ -511,6 +526,7 @@ class _GenreAlbumList extends StatelessWidget {
       return const _GenreEmptyState(message: 'No albums yet.');
     }
     return ListView.builder(
+      key: const Key('genre_detail_albums_list'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: albums.length,
       itemBuilder: (context, i) => SearchResultTileAlbum(
@@ -535,6 +551,7 @@ class _IntroducingCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
+      key: ValueKey('genre_introducing_track_${track.id}'),
       onTap: () => playSearchTrack(context, ref, track, queueTracks: allTracks),
       child: SizedBox(
         width: 140,
@@ -597,6 +614,7 @@ class _CollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: ValueKey('genre_collection_card_$title'),
       onTap: onTap,
       child: SizedBox(
         width: 140,
@@ -633,6 +651,7 @@ class _CollectionCard extends StatelessWidget {
                 ),
                 if (onMoreTap != null)
                   InkWell(
+                    key: ValueKey('genre_collection_more_$title'),
                     onTap: onMoreTap,
                     borderRadius: BorderRadius.circular(12),
                     child: const Padding(
@@ -672,6 +691,7 @@ class _GenreProfileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: ValueKey('genre_profile_tile_${profile.id}'),
       onTap: () => _open(context),
       child: SizedBox(
         width: 80,
@@ -766,6 +786,7 @@ class _GenreErrorState extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         TextButton(
+          key: const Key('genre_detail_retry_button'),
           onPressed: onRetry,
           child: const Text('Try again', style: TextStyle(color: Colors.white)),
         ),

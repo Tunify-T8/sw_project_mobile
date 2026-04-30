@@ -21,6 +21,7 @@ class SearchResultTileProfile extends StatelessWidget {
         : null;
 
     return ListTile(
+      key: ValueKey('search_profile_tile_${profile.id}'),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: CircleAvatar(

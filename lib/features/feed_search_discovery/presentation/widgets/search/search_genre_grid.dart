@@ -79,6 +79,7 @@ class SearchGenreGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (isLoading) {
       return const Center(
+        key: Key('search_genre_grid_loading'),
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
@@ -124,6 +125,7 @@ class SearchGenreGrid extends ConsumerWidget {
     }
 
     return ListView(
+      key: const Key('search_genre_grid'),
       padding: const EdgeInsets.fromLTRB(12, 16, 12, 80),
       children: [
         const Text(
@@ -167,6 +169,7 @@ class _GenreTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = Color(genre.colorValue);
     return GestureDetector(
+      key: ValueKey('search_genre_tile_${genre.id}'),
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),

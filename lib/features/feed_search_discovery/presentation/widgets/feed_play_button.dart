@@ -18,6 +18,7 @@ class FeedPlayButton extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
+        key: const Key('feed_play_button'),
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: SizedBox(

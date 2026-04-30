@@ -70,6 +70,7 @@ class _HomeLikesTileState extends ConsumerState<HomeLikesTile> {
           ).push(MaterialPageRoute(builder: (_) => const LikedTracksScreen()));
         },
         child: Container(
+          key: const Key('likes_see_all_button'),
           height: 65,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: const BoxDecoration(

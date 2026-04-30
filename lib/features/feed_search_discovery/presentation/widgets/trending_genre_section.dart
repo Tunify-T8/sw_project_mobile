@@ -75,7 +75,10 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
     required List<TrendingTrackEntity> tracks,
   }) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        key: Key('trending_tracks_loading'),
+        child: CircularProgressIndicator(),
+      );
     } else if (error != null) {
       return SizedBox(
         height: 200,
@@ -87,6 +90,7 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
               style: TextStyle(color: Colors.white),
             ),
             TextButton(
+              key: const Key('trending_tracks_retry_button'),
               style: TextButton.styleFrom(foregroundColor: Colors.white70),
               onPressed: () {
                 ref
@@ -109,6 +113,7 @@ class _TrendingGenreSectionState extends ConsumerState<TrendingGenreSection>
       final pageCount = (tracks.length / 3).ceil();
 
       return SizedBox(
+        key: const Key('trending_tracks_pages'),
         height: 220,
         child: PageView.builder(
           itemCount: pageCount,

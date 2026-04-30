@@ -30,6 +30,16 @@ class DiscoveryRepositoryImpl implements DiscoveryRepository {
   }
 
   @override
+  Future<List<FeedItemEntity>> getReccomendations({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final dtos = await api.getReccomendations(page: page, limit: limit);
+
+    return dtos.items.map((dto) => dto.toEntity()).toList();
+  }
+
+  @override
   Future<List<DiscoveryItemEntity>> getDiscover({
     int page = 1,
     int limit = 20,

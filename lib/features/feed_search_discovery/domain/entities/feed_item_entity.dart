@@ -3,16 +3,18 @@ import 'track_preview_entity.dart';
 import 'feed_actor_entity.dart';
 
 class FeedItemEntity {
-  final FeedItemSource source;
+  final FeedItemSource? source;
   final String timeAgo;
   final TrackPreviewEntity track;
-  final FeedActorEntity actor;
+  final FeedActorEntity? actor;
+  final String? discoverReason;
 
   FeedItemEntity({
-    required this.source,
+    this.source,
     required this.timeAgo,
     required this.track,
-    required this.actor,
+    this.actor,
+    this.discoverReason
   });
 
   FeedItemEntity copyWith({
@@ -21,12 +23,14 @@ class FeedItemEntity {
     String? timeAgo,
     TrackPreviewEntity? track,
     FeedActorEntity? actor,
+    String? discoverReason
   }) {
     return FeedItemEntity(
       source: source ?? this.source,
       timeAgo: timeAgo ?? this.timeAgo,
       track: track ?? this.track,
       actor: actor ?? this.actor,
+      discoverReason: discoverReason ?? this.discoverReason
     );
   }
 }

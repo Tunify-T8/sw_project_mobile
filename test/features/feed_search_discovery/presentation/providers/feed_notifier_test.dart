@@ -41,7 +41,7 @@ void main() {
         artistId: 'artist-$suffix',
         artistName: 'Artist $suffix',
         artistAvatar: 'https://example.com/artist-$suffix.png',
-        artistVerified: true,
+        isArtistCertified: true,
         isFollowingArtist: suffix != '0',
         coverUrl: 'https://example.com/cover-$suffix.png',
         duration: 180,

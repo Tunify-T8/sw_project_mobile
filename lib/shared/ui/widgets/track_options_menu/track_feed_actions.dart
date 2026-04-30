@@ -19,6 +19,7 @@ class TrackFeedActions extends ConsumerWidget {
       children: [
         if (isDiscoverFeed)
           TrackOptionMenuItem(
+            key: const Key('track_options_show_fewer_like_this'),
             icon: Icons.thumb_down,
             label: 'Show me fewer posts like this',
             onTap: () {
@@ -30,6 +31,7 @@ class TrackFeedActions extends ConsumerWidget {
           ),
 
         TrackOptionMenuItem(
+          key: const Key('track_options_switch_to_classic_feed'),
           icon: Icons.swap_horiz,
           label: 'Switch to Classic feed',
           onTap: () {
