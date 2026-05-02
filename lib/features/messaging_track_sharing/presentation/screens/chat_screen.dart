@@ -242,7 +242,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return Scaffold(
         backgroundColor: AppColors.background,
         resizeToAvoidBottomInset: true,
-        bottomNavigationBar: keyboardOpen ? null : const MessagingBottomShell(),
+        bottomNavigationBar: keyboardOpen
+            ? null
+            : const MessagingBottomShell(showMiniPlayer: false),
         body: SafeArea(
           bottom: false,
           child: Padding(
@@ -269,7 +271,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: true,
-      bottomNavigationBar: keyboardOpen ? null : const MessagingBottomShell(),
+      bottomNavigationBar: keyboardOpen
+          ? null
+          : const MessagingBottomShell(showMiniPlayer: false),
       body: SafeArea(
         bottom: false,
         child: GestureDetector(
