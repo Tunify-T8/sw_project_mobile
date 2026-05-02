@@ -152,6 +152,9 @@ class LibraryUploadsNotifier extends Notifier<LibraryUploadsState> {
       // Both helpers are no-ops when the track isn't present, so they're
       // safe to call unconditionally.
       await ref.read(playerProvider.notifier).stopIfPlaying(trackId);
+      // Also scrub the deleted track from the active queue so swipe/next/previous
+      // and the "Next up" list never resurrect a 404'd id.
+      await ref.read(playerProvider.notifier).removeTrackById(trackId);
       await ref.read(listeningHistoryProvider.notifier).removeTrack(trackId);
       ref.read(searchProvider.notifier).invalidateTrackFromRecents(trackId);
 

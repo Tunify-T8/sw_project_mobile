@@ -212,20 +212,32 @@ Future<void> showTrackShareSheet(
   );
 }
 
+class _TrackOptionsMeta {
+  const _TrackOptionsMeta({this.ownerUserId, this.privacy});
+  final String? ownerUserId;
+  final String? privacy;
+}
+
 final _trackOptionsOwnerProvider = FutureProvider.autoDispose
-    .family<String?, String>((ref, trackId) async {
+    .family<_TrackOptionsMeta, String>((ref, trackId) async {
       final details = await ref
           .read(uploadRepositoryProvider)
           .getTrackDetails(trackId)
           .timeout(const Duration(seconds: 5));
       final ownerUserId = details.ownerUserId?.trim();
+      final privacy = details.privacy?.trim().toLowerCase();
       final stored = ref.read(globalTrackStoreProvider).find(trackId);
       if (stored != null && ownerUserId != null && ownerUserId.isNotEmpty) {
         ref
             .read(globalTrackStoreProvider)
             .update(stored, ownerUserId: ownerUserId);
       }
-      return ownerUserId == null || ownerUserId.isEmpty ? null : ownerUserId;
+      return _TrackOptionsMeta(
+        ownerUserId: ownerUserId == null || ownerUserId.isEmpty
+            ? null
+            : ownerUserId,
+        privacy: privacy == null || privacy.isEmpty ? null : privacy,
+      );
     });
 
 class TrackShareSheetContent extends ConsumerWidget {
@@ -351,15 +363,27 @@ class TrackOptionsSheetContent extends ConsumerWidget {
         .value
         ?.id
         .trim();
-    final backendOwnerUserId = watchRef
+    final backendMeta = watchRef
         .watch(_trackOptionsOwnerProvider(info.trackId))
         .asData
-        ?.value
-        ?.trim();
+        ?.value;
+    final backendOwnerUserId = backendMeta?.ownerUserId?.trim();
     final isOwned = _resolveIsOwned(
       currentUserId: currentUserId,
       backendOwnerUserId: backendOwnerUserId,
     );
+    // Hide all share/send-to surfaces for non-owners viewing a private track.
+    // The track may be playable (chat-shared or via private link) but only
+    // the owner is allowed to forward it any further.
+    final storedVisibility = ref
+        .read(globalTrackStoreProvider)
+        .find(info.trackId)
+        ?.visibility;
+    final isPrivate =
+        info.isPrivate ||
+        backendMeta?.privacy == 'private' ||
+        storedVisibility == UploadVisibility.private;
+    final canShare = isOwned || !isPrivate;
     final conversations = watchRef.watch(conversationsControllerProvider).items;
     final subscriptionState = watchRef.watch(subscriptionNotifierProvider);
     final currentSubscription = subscriptionState.currentSubscription;
@@ -413,17 +437,18 @@ class TrackOptionsSheetContent extends ConsumerWidget {
               FrostedTrackHeader(info: info),
               const SizedBox(height: 4),
 
-              // ── Send To ──────────────────────────────────────────────
-              if (conversations.isNotEmpty) ...[
-                SectionLabel(label: 'SEND TO'),
-                SendToRow(info: info, conversations: conversations),
+              // ── Send To / Share ──────────────────────────────────────
+              // Suppressed for non-owners of a private track: they may play,
+              // like, and comment, but must not forward the song any further.
+              if (canShare) ...[
+                if (conversations.isNotEmpty) ...[
+                  SectionLabel(label: 'SEND TO'),
+                  SendToRow(info: info, conversations: conversations),
+                ],
+                SectionLabel(label: 'SHARE'),
+                ShareRow(info: info, ref: ref),
+                const Divider(color: Colors.white12, height: 1),
               ],
-
-              // ── Share ────────────────────────────────────────────────
-              SectionLabel(label: 'SHARE'),
-              ShareRow(info: info, ref: ref),
-
-              const Divider(color: Colors.white12, height: 1),
 
               if (canDownload) ...[
                 YourUploadsOptionRow(
@@ -680,9 +705,10 @@ class TrackOptionsSheetContent extends ConsumerWidget {
 
     if (userId == null || userId.isEmpty) {
       try {
-        final ownerId = await ref.read(_trackOptionsOwnerProvider(info.trackId).future);
-        if (ownerId != null && ownerId.trim().isNotEmpty) {
-          userId = ownerId.trim();
+        final meta = await ref.read(_trackOptionsOwnerProvider(info.trackId).future);
+        final ownerId = meta.ownerUserId?.trim();
+        if (ownerId != null && ownerId.isNotEmpty) {
+          userId = ownerId;
         }
       } catch (_) {
         // Keep fallback behavior below.

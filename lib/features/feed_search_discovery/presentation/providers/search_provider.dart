@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:software_project/core/network/dio_client.dart';
+import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
+import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import '../../data/api/discovery_api.dart';
 import '../../data/repository/mock_search_repository_impl.dart';
 import '../../data/repository/real_search_repository_impl.dart';
@@ -353,7 +355,8 @@ class SearchNotifier extends Notifier<SearchState> {
 
     try {
       final raw = await ref.read(searchAllUseCaseProvider).call(trimmed);
-      final result = _reScoreTopResult(raw, trimmed);
+      final withOwnPrivates = _injectOwnPrivateTracks(raw, trimmed);
+      final result = _reScoreTopResult(withOwnPrivates, trimmed);
       state = state.copyWith(isLoading: false, allResult: result);
     } catch (e) {
       state = state.copyWith(
@@ -431,7 +434,7 @@ class SearchNotifier extends Notifier<SearchState> {
               );
           state = state.copyWith(
             isLoading: false,
-            tracks: results,
+            tracks: _mergeOwnPrivateTracks(results, query),
             hasMore: results.length == _pageSize,
           );
           break;
@@ -581,7 +584,8 @@ class SearchNotifier extends Notifier<SearchState> {
       switch (activeTab) {
         case SearchTab.all:
           final raw = await ref.read(searchAllUseCaseProvider).call(query);
-          final result = _reScoreTopResult(raw, query);
+          final withOwnPrivates = _injectOwnPrivateTracks(raw, query);
+          final result = _reScoreTopResult(withOwnPrivates, query);
           debugPrint(
             '[SearchProvider] all → tracks:${result.tracks.length} profiles:${result.profiles.length} playlists:${result.playlists.length} albums:${result.albums.length}',
           );
@@ -608,12 +612,13 @@ class SearchNotifier extends Notifier<SearchState> {
           final seeded = results.isNotEmpty
               ? results
               : (state.allResult?.tracks ?? const []);
+          final merged = _mergeOwnPrivateTracks(seeded, query);
           debugPrint(
-            '[SearchProvider] tracks using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${seeded.length}',
+            '[SearchProvider] tracks using ${results.isNotEmpty ? "endpoint" : "allResult seed"}: ${merged.length}',
           );
           state = state.copyWith(
             isLoading: false,
-            tracks: seeded,
+            tracks: merged,
             hasMore: results.length >= _pageSize,
             clearError: true,
           );
@@ -762,6 +767,64 @@ class SearchNotifier extends Notifier<SearchState> {
       ...state.recentSearches.where((s) => s != query),
     ].take(8).toList();
     state = state.copyWith(recentSearches: updated);
+  }
+
+  // ── Own-private-track injection ────────────────────────────────────────────
+  // Backend search hides private tracks from everyone (including the owner),
+  // so the owner can't find their own private uploads. Merge them in locally
+  // by matching the query against title/artist of the user's own uploads.
+
+  List<TrackResultEntity> _matchingOwnPrivateTracks(
+    String query,
+    Iterable<TrackResultEntity> existing,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final library = ref.read(libraryUploadsProvider).items;
+    if (library.isEmpty) return const [];
+    final existingIds = existing.map((t) => t.id).toSet();
+
+    final matches = <TrackResultEntity>[];
+    for (final item in library) {
+      if (item.visibility != UploadVisibility.private) continue;
+      if (existingIds.contains(item.id)) continue;
+      final hay = '${item.title} ${item.artistDisplay}'.toLowerCase();
+      if (!hay.contains(q)) continue;
+      matches.add(
+        TrackResultEntity(
+          id: item.id,
+          title: item.title,
+          artistName: item.artistDisplay,
+          artworkUrl: item.artworkUrl,
+          durationSeconds: item.durationSeconds,
+        ),
+      );
+    }
+    return matches;
+  }
+
+  List<TrackResultEntity> _mergeOwnPrivateTracks(
+    List<TrackResultEntity> tracks,
+    String query,
+  ) {
+    final extra = _matchingOwnPrivateTracks(query, tracks);
+    if (extra.isEmpty) return tracks;
+    return [...extra, ...tracks];
+  }
+
+  SearchAllResultEntity _injectOwnPrivateTracks(
+    SearchAllResultEntity result,
+    String query,
+  ) {
+    final extra = _matchingOwnPrivateTracks(query, result.tracks);
+    if (extra.isEmpty) return result;
+    return SearchAllResultEntity(
+      topResult: result.topResult,
+      tracks: [...extra, ...result.tracks],
+      playlists: result.playlists,
+      profiles: result.profiles,
+      albums: result.albums,
+    );
   }
 
   // ── Top-result re-scoring ──────────────────────────────────────────────────

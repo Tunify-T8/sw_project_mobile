@@ -160,7 +160,7 @@ void main() {
 
   group('PlayerWaveformBar', () {
     testWidgets('maps taps to normal track seek positions', (tester) async {
-      final seeks = <int>[];
+      final seeks = <double>[];
 
       await tester.pumpWidget(
         ProviderScope(
@@ -189,7 +189,7 @@ void main() {
     });
 
     testWidgets('maps drags within preview window', (tester) async {
-      final seeks = <int>[];
+      final seeks = <double>[];
 
       await tester.pumpWidget(
         ProviderScope(

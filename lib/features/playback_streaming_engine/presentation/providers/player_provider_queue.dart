@@ -110,6 +110,48 @@ extension PlayerNotifierQueue on PlayerNotifier {
     );
   }
 
+  /// Removes every occurrence of [trackId] from the active queue (and the
+  /// pre-shuffle snapshot). Safe to call when there is no queue, when the
+  /// id is not present, or when the queue ends up empty.
+  ///
+  /// Used by the delete-track flow so a deleted track stops appearing in
+  /// "Next up" and is skipped by next/previous.
+  Future<void> removeTrackById(String trackId) async {
+    final current = _current;
+    if (current?.queue == null) return;
+    final queue = current!.queue!;
+    if (!queue.trackIds.contains(trackId)) return;
+
+    final newIds = queue.trackIds.where((id) => id != trackId).toList();
+    final newOriginal = queue.originalTrackIds
+        ?.where((id) => id != trackId)
+        .toList();
+
+    if (newIds.isEmpty) {
+      final cleared = current.copyWith(queue: null);
+      _setPlayerState(cleared);
+      await _persistCurrentSession(playerState: cleared, force: true);
+      return;
+    }
+
+    final currentTrackId = queue.currentTrackId;
+    var newIndex = currentTrackId == null || currentTrackId == trackId
+        ? queue.currentIndex.clamp(0, newIds.length - 1)
+        : newIds.indexOf(currentTrackId);
+    if (newIndex < 0) newIndex = 0;
+
+    final next = current.copyWith(
+      queue: queue.copyWith(
+        trackIds: newIds,
+        currentIndex: newIndex,
+        originalTrackIds: newOriginal,
+        clearOriginalTrackIds: newOriginal == null,
+      ),
+    );
+    _setPlayerState(next);
+    await _persistCurrentSession(playerState: next, force: true);
+  }
+
   void removeFromQueue(int index) {
     final current = _current;
     if (current?.queue == null) return;

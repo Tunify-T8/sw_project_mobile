@@ -79,14 +79,17 @@ class LibraryUploadsApi {
         .where((t) => t.status == 'finished')
         .fold<int>(0, (sum, t) => sum + t.durationSeconds);
     final computedUsedMinutes = (computedUsedSeconds / 60).ceil();
-    final limit = (map['uploadMinutesLimit'] as num?)?.toInt() ?? 99;
+    final rawLimit = (map['uploadMinutesLimit'] as num?)?.toInt() ?? 99;
+    // Backend uses negative values to mean "unlimited" for premium/artist
+    // accounts, and may also return a limit smaller than what the user has
+    // already uploaded. Both cases produced "Invalid argument(s): 0" from
+    // int.clamp because lowerLimit (0) > upperLimit (negative).
+    final limit = rawLimit < 0 ? 0 : rawLimit;
+    final remaining = limit - computedUsedMinutes;
 
     final correctedMap = Map<String, dynamic>.from(map)
       ..['uploadMinutesUsed'] = computedUsedMinutes
-      ..['uploadMinutesRemaining'] = (limit - computedUsedMinutes).clamp(
-        0,
-        limit,
-      );
+      ..['uploadMinutesRemaining'] = remaining < 0 ? 0 : remaining;
 
     return ArtistToolsQuotaDto.fromJson(correctedMap);
   }

@@ -60,20 +60,25 @@ UploadItem _publicTrackJsonToUploadItem(Map<String, dynamic> json) {
   final createdAtRaw = json['createdAt'];
   final scheduledRaw = json['scheduledReleaseDate'];
 
+  // Backend response uses `trackId` / `artworkUrl` / `artists[]` / `user{}` /
+  // `genre.category`. Older clients expected flat `id` / `coverUrl` /
+  // `artist` / `genre` and silently dropped every track (empty id → filtered
+  // out, "No uploaded tracks yet" on profiles even with dozens of uploads).
   return UploadItem(
-    id: (json['id'] ?? '').toString(),
+    id: (json['id'] ?? json['trackId'] ?? '').toString(),
     title: (json['title'] as String?) ?? '',
-    artistDisplay: _artistDisplay(json['artist']),
+    artistDisplay: _artistDisplay(json['artist'] ?? json['artists'] ?? json['user']),
     durationLabel: _formatDuration(duration),
     durationSeconds: duration,
-    artworkUrl: json['coverUrl'] as String?,
+    audioUrl: json['audioUrl'] as String?,
+    artworkUrl: (json['coverUrl'] ?? json['artworkUrl']) as String?,
     waveformUrl: json['waveformUrl'] as String?,
     visibility: privacyRaw == 'private'
         ? UploadVisibility.private
         : UploadVisibility.public,
     status: _statusFromString(statusRaw),
     isExplicit: false,
-    genreCategory: (json['genre'] as String?) ?? '',
+    genreCategory: _genreCategory(json['genre']),
     scheduledReleaseDate: scheduledRaw is String
         ? DateTime.tryParse(scheduledRaw)
         : null,
@@ -94,6 +99,26 @@ String _artistDisplay(dynamic raw) {
     if (username is String && username.trim().isNotEmpty) {
       return username.trim();
     }
+    final name = raw['name'];
+    if (name is String && name.trim().isNotEmpty) {
+      return name.trim();
+    }
+  }
+  if (raw is List) {
+    final names = raw
+        .map(_artistDisplay)
+        .where((value) => value.isNotEmpty)
+        .toList();
+    return names.join(', ');
+  }
+  return '';
+}
+
+String _genreCategory(dynamic raw) {
+  if (raw is String) return raw;
+  if (raw is Map<String, dynamic>) {
+    final category = raw['category'];
+    if (category is String) return category;
   }
   return '';
 }

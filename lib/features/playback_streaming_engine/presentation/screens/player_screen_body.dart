@@ -238,7 +238,7 @@ class _TrackContent extends ConsumerWidget {
 
   final PlayerState playerState;
   final Animation<double> artworkScale;
-  final void Function(int positionSeconds) onSeek;
+  final void Function(double positionSeconds) onSeek;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

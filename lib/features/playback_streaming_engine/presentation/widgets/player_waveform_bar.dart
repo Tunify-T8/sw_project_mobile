@@ -14,7 +14,7 @@ import '../../../../core/design_system/colors.dart';
 /// The bar fills to exactly 100% when the track finishes because of the
 /// near-end guard: once [positionSeconds] is within 0.25 s of [activeEnd]
 /// the progress is pinned to 1.0.
-class PlayerWaveformBar extends StatelessWidget {
+class PlayerWaveformBar extends StatefulWidget {
   const PlayerWaveformBar({
     super.key,
     required this.waveformUrl,
@@ -35,49 +35,84 @@ class PlayerWaveformBar extends StatelessWidget {
   final bool isPreviewOnly;
   final int previewStartSeconds;
   final int previewDurationSeconds;
-  final void Function(int positionSeconds) onSeek;
+
+  /// Commits a seek. Receives a fractional second so the audio player lands on
+  /// the exact pixel the user dragged to instead of snapping to a whole second.
+  /// Fired on tap-down and drag-end only; drag-update is handled locally so
+  /// the audio player isn't spammed with seeks (each one stalls the buffer).
+  final void Function(double positionSeconds) onSeek;
+
+  @override
+  State<PlayerWaveformBar> createState() => _PlayerWaveformBarState();
+}
+
+class _PlayerWaveformBarState extends State<PlayerWaveformBar> {
+  /// Non-null while the user is actively scrubbing. Overrides the position
+  /// stream so the thumb tracks the finger 1:1 instead of fighting the audio
+  /// player's lagging position events.
+  double? _scrubSeconds;
 
   @override
   Widget build(BuildContext context) {
-    final activeStart = isPreviewOnly ? previewStartSeconds.toDouble() : 0.0;
-    final activeEnd = isPreviewOnly
-        ? (previewStartSeconds + previewDurationSeconds).toDouble()
-        : durationSeconds.toDouble();
-    final activeWindow = (activeEnd - activeStart)
-        .clamp(1.0, durationSeconds == 0 ? 1.0 : durationSeconds.toDouble());
+    final activeStart = widget.isPreviewOnly
+        ? widget.previewStartSeconds.toDouble()
+        : 0.0;
+    final activeEnd = widget.isPreviewOnly
+        ? (widget.previewStartSeconds + widget.previewDurationSeconds)
+              .toDouble()
+        : widget.durationSeconds.toDouble();
+    final activeWindow = (activeEnd - activeStart).clamp(
+      1.0,
+      widget.durationSeconds == 0 ? 1.0 : widget.durationSeconds.toDouble(),
+    );
+
+    final renderedPosition = _scrubSeconds ?? widget.positionSeconds;
 
     // Near-end guard: pin to 1.0 within 0.25 s of the end so the bar always
     // reaches 100% even if the final position event fires slightly early.
-    final clampedPosition = positionSeconds.clamp(activeStart, activeEnd);
-    final double progress = positionSeconds >= activeEnd - 0.25
+    final clampedPosition = renderedPosition.clamp(activeStart, activeEnd);
+    final double progress = renderedPosition >= activeEnd - 0.25
         ? 1.0
         : ((clampedPosition - activeStart) / activeWindow).clamp(0.0, 1.0);
 
-    final previewCapFraction = durationSeconds > 0
-        ? ((previewStartSeconds + previewDurationSeconds) / durationSeconds)
-            .clamp(0.0, 1.0)
-            .toDouble()
+    final previewCapFraction = widget.durationSeconds > 0
+        ? ((widget.previewStartSeconds + widget.previewDurationSeconds) /
+                  widget.durationSeconds)
+              .clamp(0.0, 1.0)
+              .toDouble()
         : 0.0;
 
-    int mapLocalRatioToPosition(double ratio) {
-      final relativePosition = (ratio * activeWindow).round();
-      return activeStart.round() + relativePosition;
+    double mapLocalRatioToSeconds(double ratio) {
+      return activeStart + ratio * activeWindow;
+    }
+
+    double ratioFromGlobal(Offset globalPosition) {
+      final box = context.findRenderObject() as RenderBox?;
+      if (box == null || box.size.width <= 0) return 0.0;
+      final localPos = box.globalToLocal(globalPosition);
+      return (localPos.dx / box.size.width).clamp(0.0, 1.0);
     }
 
     return GestureDetector(
+      onHorizontalDragStart: (details) {
+        final ratio = ratioFromGlobal(details.globalPosition);
+        setState(() => _scrubSeconds = mapLocalRatioToSeconds(ratio));
+      },
       onHorizontalDragUpdate: (details) {
-        final box = context.findRenderObject() as RenderBox?;
-        if (box == null) return;
-        final localPos = box.globalToLocal(details.globalPosition);
-        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0);
-        onSeek(mapLocalRatioToPosition(ratio));
+        final ratio = ratioFromGlobal(details.globalPosition);
+        setState(() => _scrubSeconds = mapLocalRatioToSeconds(ratio));
+      },
+      onHorizontalDragEnd: (_) {
+        final committed = _scrubSeconds;
+        setState(() => _scrubSeconds = null);
+        if (committed != null) widget.onSeek(committed);
+      },
+      onHorizontalDragCancel: () {
+        setState(() => _scrubSeconds = null);
       },
       onTapDown: (details) {
-        final box = context.findRenderObject() as RenderBox?;
-        if (box == null) return;
-        final localPos = box.globalToLocal(details.globalPosition);
-        final ratio = (localPos.dx / box.size.width).clamp(0.0, 1.0);
-        onSeek(mapLocalRatioToPosition(ratio));
+        final ratio = ratioFromGlobal(details.globalPosition);
+        widget.onSeek(mapLocalRatioToSeconds(ratio));
       },
       child: SizedBox(
         height: 44,
@@ -95,7 +130,7 @@ class PlayerWaveformBar extends StatelessWidget {
                 ),
               ),
               // Preview-only cap (lighter region showing max playable range).
-              if (isPreviewOnly && durationSeconds > 0)
+              if (widget.isPreviewOnly && widget.durationSeconds > 0)
                 FractionallySizedBox(
                   widthFactor: previewCapFraction,
                   child: Container(
@@ -112,7 +147,7 @@ class PlayerWaveformBar extends StatelessWidget {
               // of continuous 60 fps movement without the cost of 33 rebuilds/s.
               // ValueKey on durationSeconds resets the animation on track change.
               TweenAnimationBuilder<double>(
-                key: ValueKey(durationSeconds),
+                key: ValueKey(widget.durationSeconds),
                 tween: Tween<double>(end: progress),
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.linear,
