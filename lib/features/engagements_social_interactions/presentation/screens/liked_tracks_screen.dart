@@ -8,14 +8,15 @@ import '../../../../features/playback_streaming_engine/presentation/widgets/trac
 import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 
 class LikedTracksScreen extends ConsumerStatefulWidget {
-  const LikedTracksScreen({super.key});
+  const LikedTracksScreen({super.key, this.userId});
+
+  final String? userId;
 
   @override
   ConsumerState<LikedTracksScreen> createState() => _LikedTracksScreenState();
 }
 
 class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
-  static const String _viewerId = 'user_current_1';
 
   List<LikedTrackEntity> _tracks = [];
   List<LikedTrackEntity> _filtered = [];
@@ -51,7 +52,7 @@ class _LikedTracksScreenState extends ConsumerState<LikedTracksScreen> {
     try {
       final tracks = await ref
           .read(getLikedTracksUsecaseProvider)
-          .call(viewerId: _viewerId);
+          .call(viewerId: widget.userId ?? '');
       if (mounted) {
         for (final t in tracks) {
           ref.read(engagementProvider(t.trackId).notifier).seedFromFeed(

@@ -145,9 +145,16 @@ class RealEngagementApi {
     }
   }
 
-  Future<List<LikedTrackEntity>> getLikedTracks({int page = 1, int limit = 10}) async {
+  Future<List<LikedTrackEntity>> getLikedTracks({
+    String? userId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    final endpoint = (userId != null && userId.trim().isNotEmpty)
+        ? ApiEndpoints.userLikes(userId)
+        : ApiEndpoints.myLikedTracks;
     final res = await _dio.get(
-      ApiEndpoints.myLikedTracks,
+      endpoint,
       queryParameters: {'page': page, 'limit': limit},
     );
     final data = res.data as Map<String, dynamic>;
@@ -158,11 +165,14 @@ class RealEngagementApi {
       final track = map['track'] is Map<String, dynamic>
           ? map['track'] as Map<String, dynamic>
           : map;
-      // Artist may arrive as a nested object or a plain string
+      // Artist may arrive in either:
+      // 1) map['artist'] (users/:id/likes response)
+      // 2) track['artist'] (legacy/other response shapes)
+      // 3) a plain artist string
       String artistId = '';
       String artistName = '';
       String? artistAvatar;
-      final rawArtist = track['artist'];
+      final rawArtist = map['artist'] ?? track['artist'];
       if (rawArtist is Map<String, dynamic>) {
         artistId = rawArtist['id'] as String? ?? '';
         artistName = rawArtist['displayName'] as String?

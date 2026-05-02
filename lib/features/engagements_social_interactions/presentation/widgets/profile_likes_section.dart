@@ -81,7 +81,7 @@ class _ProfileLikesSectionState extends ConsumerState<ProfileLikesSection> {
                 key: const Key('likes_see_all_button'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const LikedTracksScreen(),
+                    builder: (_) => LikedTracksScreen(userId: widget.userId),
                   ),
                 ),
                 child: const Text(

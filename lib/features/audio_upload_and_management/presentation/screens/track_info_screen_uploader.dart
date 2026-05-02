@@ -52,7 +52,19 @@ class _UploaderCard extends ConsumerWidget {
           const SizedBox(width: 16),
           Expanded(
             child: GestureDetector(
-              onTap: () => Navigator.of(context).pushNamed(AppRoutes.profile),
+              key: const Key('track_info_uploader_artist_tap'),
+              onTap: () {
+                final artistId = _resolveTrackArtistId(ref, item.id);
+                if (artistId == null || artistId.isEmpty) return;
+
+                final currentUserId =
+                    ref.read(authControllerProvider).value?.id;
+                navigateToProfile(
+                  context,
+                  artistId,
+                  currentUserId: currentUserId,
+                );
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

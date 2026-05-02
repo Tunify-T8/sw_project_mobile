@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../app/router.dart';
+import '../../../../core/utils/navigation_utils.dart';
 import '../../data/services/global_track_store.dart';
 import '../../domain/entities/upload_item.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../../playback_streaming_engine/presentation/screens/queue_screen.dart';
+import '../../../playback_streaming_engine/presentation/utils/track_artist_resolver.dart';
 import '../providers/track_detail_item_provider.dart';
 import '../providers/track_detail_waveform_provider.dart';
 import '../utils/playback_surface_item_mapper.dart';
@@ -107,8 +109,21 @@ class _TrackDetailScreenState extends ConsumerState<TrackDetailScreen> {
           TrackDetailHeader(
             item: resolvedItem,
             onDismiss: () => Navigator.of(context).pop(),
-            onArtistTap: () =>
-                Navigator.of(context).pushNamed(AppRoutes.profile),
+            onArtistTap: () async {
+              final artistId = await resolveArtistIdForTrack(
+                ref,
+                resolvedItem.id,
+              );
+              if (artistId == null || artistId.isEmpty) return;
+
+              final currentUserId = ref.read(authControllerProvider).value?.id;
+              if (!mounted) return;
+              navigateToProfile(
+                context,
+                artistId,
+                currentUserId: currentUserId,
+              );
+            },
             onTrackInfoTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(

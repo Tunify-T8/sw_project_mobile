@@ -36,6 +36,7 @@ class TrackDetailHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   _BlackTag(
+                    key: const Key('track_detail_artist_tap'),
                     text: item.artistDisplay,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -96,6 +97,7 @@ class TrackDetailHeader extends StatelessWidget {
 
 class _BlackTag extends StatelessWidget {
   const _BlackTag({
+    super.key,
     required this.text,
     required this.fontSize,
     required this.fontWeight,
