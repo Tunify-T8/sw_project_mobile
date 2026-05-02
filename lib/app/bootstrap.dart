@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:software_project/core/design_system/colors.dart';
 import 'package:software_project/features/notifications/data/services/push_notification_service.dart';
+import 'package:software_project/features/notifications/presentation/utils/notification_navigation.dart';
 import 'router.dart';
 
 /// Initialises the Flutter framework and launches the app.
@@ -41,9 +44,46 @@ Future<void> bootstrap() async {
   runApp(const ProviderScope(child: TunifyApp()));
 }
 
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// The root widget of the application.
-class TunifyApp extends StatelessWidget {
+class TunifyApp extends ConsumerStatefulWidget {
   const TunifyApp({super.key});
+
+  @override
+  ConsumerState<TunifyApp> createState() => _TunifyAppState();
+}
+
+class _TunifyAppState extends ConsumerState<TunifyApp> {
+  StreamSubscription<String?>? _pushTapSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _pushTapSub = PushNotificationService.instance.onNotificationTap.listen(
+      _openPushPayload,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final payload
+          in PushNotificationService.instance.takePendingTapPayloads()) {
+        _openPushPayload(payload);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pushTapSub?.cancel();
+    super.dispose();
+  }
+
+  void _openPushPayload(String? payload) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _rootNavigatorKey.currentContext;
+      if (!mounted || context == null) return;
+      unawaited(NotificationNavigation.openPushPayload(context, ref, payload));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +96,7 @@ class TunifyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Tunify',
       debugShowCheckedModeBanner: false,
+      navigatorKey: _rootNavigatorKey,
       theme: _buildTheme(),
       onGenerateRoute: AppRouter.onGenerateRoute,
       // Use initialRoute instead of home so that generateRoute handles

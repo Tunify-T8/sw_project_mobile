@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,12 +11,27 @@ import '../../../engagements_social_interactions/presentation/screens/comments_s
 import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
 import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
+import '../../domain/entities/notification_actor.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/entities/notification_type.dart';
 import '../state/notifications_controller.dart';
 
 class NotificationNavigation {
   NotificationNavigation._();
+
+  static Future<void> openPushPayload(
+    BuildContext context,
+    WidgetRef ref,
+    String? payload,
+  ) async {
+    final notification = _notificationFromPushPayload(payload);
+    if (notification == null) {
+      await Navigator.of(context).pushNamed(Routes.messagingActivity);
+      return;
+    }
+
+    await openDefault(context, ref, notification);
+  }
 
   static Future<void> openDefault(
     BuildContext context,
@@ -57,12 +74,15 @@ class NotificationNavigation {
       return;
     }
 
+    final otherUserName =
+        actor?.username ?? _messageActorName(notification.message);
+
     if (otherUserId != null && otherUserId.isNotEmpty) {
       ref
           .read(mockMessagingStoreProvider)
           .registerUserPreview(
             id: otherUserId,
-            displayName: actor?.username ?? otherUserId,
+            displayName: otherUserName ?? otherUserId,
             avatarUrl: actor?.avatarUrl,
           );
     }
@@ -72,7 +92,7 @@ class NotificationNavigation {
       arguments: {
         'conversationId': conversationId,
         'otherUserId': otherUserId,
-        'otherUserName': actor?.username ?? '',
+        'otherUserName': otherUserName ?? '',
         'otherUserAvatar': actor?.avatarUrl,
       },
     );
@@ -225,6 +245,96 @@ class NotificationNavigation {
     return null;
   }
 
+  static NotificationEntity? _notificationFromPushPayload(String? payload) {
+    final data = _payloadMap(payload);
+    if (data == null) return null;
+
+    final typeText = _stringOrNull(data['type'] ?? data['notificationType']);
+    if (typeText == null) return null;
+
+    final type = NotificationType.fromString(typeText);
+    final message = _stringOrNull(
+      data['message'] ?? data['body'] ?? data['text'],
+    );
+    final referenceType = _stringOrNull(
+      data['referenceType'] ??
+          data['reference_type'] ??
+          data['targetType'] ??
+          data['entityType'],
+    );
+    final referenceId = _stringOrNull(
+      data['referenceId'] ??
+          data['reference_id'] ??
+          data['targetId'] ??
+          data['entityId'],
+    );
+
+    final actorId =
+        _stringOrNull(
+          data['actorId'] ?? data['senderId'] ?? data['fromUserId'],
+        ) ??
+        (type == NotificationType.newMessage &&
+                _isUserReferenceType(_normalizedReferenceType(referenceType))
+            ? referenceId
+            : null);
+    final actorName =
+        _stringOrNull(
+          data['actorName'] ??
+              data['senderName'] ??
+              data['fromUserName'] ??
+              data['username'],
+        ) ??
+        (type == NotificationType.newMessage
+            ? _messageActorName(message)
+            : null);
+    final actorAvatar = _stringOrNull(
+      data['actorAvatarUrl'] ?? data['senderAvatarUrl'] ?? data['avatarUrl'],
+    );
+
+    return NotificationEntity(
+      id: _stringOrNull(data['id'] ?? data['notificationId']) ?? '',
+      type: type,
+      actor: actorId == null
+          ? null
+          : NotificationActor(
+              id: actorId,
+              username: actorName ?? actorId,
+              avatarUrl: actorAvatar,
+            ),
+      referenceType: referenceType,
+      referenceId: referenceId,
+      message: message ?? 'You have a new notification',
+      isRead: _stringOrNull(data['id'] ?? data['notificationId']) == null,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  static Map<String, dynamic>? _payloadMap(String? payload) {
+    final raw = payload?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) {
+        return decoded.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (_) {
+      return {'id': raw};
+    }
+
+    return null;
+  }
+
+  static String? _messageActorName(String? message) {
+    final text = message?.trim();
+    if (text == null || text.isEmpty) return null;
+    final marker = ' sent you a message';
+    final index = text.toLowerCase().indexOf(marker);
+    if (index <= 0) return null;
+    return text.substring(0, index).trim();
+  }
+
   static String? _messageSenderId(NotificationEntity notification) {
     final actorId = notification.actor?.id.trim();
     if (actorId != null && actorId.isNotEmpty) return actorId;
@@ -233,6 +343,11 @@ class NotificationNavigation {
     final referenceId = notification.referenceId?.trim();
     if (referenceId == null || referenceId.isEmpty) return null;
     if (_isUserReferenceType(referenceType)) return referenceId;
+    if (notification.type == NotificationType.newMessage &&
+        referenceType == null &&
+        !_looksLikeConversationId(referenceId)) {
+      return referenceId;
+    }
     return null;
   }
 
@@ -244,7 +359,8 @@ class NotificationNavigation {
     final referenceId = notification.referenceId?.trim();
     if (referenceId != null &&
         referenceId.isNotEmpty &&
-        _isConversationReferenceType(referenceType)) {
+        (_isConversationReferenceType(referenceType) ||
+            (referenceType == null && _looksLikeConversationId(referenceId)))) {
       return referenceId;
     }
 
@@ -303,6 +419,15 @@ class NotificationNavigation {
         referenceType == 'chat' ||
         referenceType == 'thread' ||
         referenceType == 'message';
+  }
+
+  static bool _looksLikeConversationId(String value) {
+    final normalized = value.toLowerCase();
+    return normalized.contains(':') ||
+        normalized.startsWith('conv') ||
+        normalized.startsWith('conversation') ||
+        normalized.startsWith('chat') ||
+        normalized.startsWith('thread');
   }
 
   static List<String> _trackIdsFromResponse(Object? raw) {
