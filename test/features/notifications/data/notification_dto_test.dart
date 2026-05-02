@@ -44,11 +44,7 @@ void main() {
     });
 
     test('handles nullable avatar URL', () {
-      final json = {
-        'id': 'user-1',
-        'username': 'john_doe',
-        'avatarUrl': null,
-      };
+      final json = {'id': 'user-1', 'username': 'john_doe', 'avatarUrl': null};
 
       final actor = NotificationActorDto.fromJson(json);
 
@@ -92,10 +88,7 @@ void main() {
       final json = {
         'id': 'notif-1',
         'type': 'like',
-        'actor': {
-          'id': 'user-1',
-          'username': 'john_doe',
-        },
+        'actor': {'id': 'user-1', 'username': 'john_doe'},
         'message': 'john_doe liked your track',
         'createdAt': '2024-01-01T10:00:00Z',
       };
@@ -120,6 +113,40 @@ void main() {
 
       expect(dto.referenceType, 'track');
       expect(dto.referenceId, 'track-123');
+    });
+
+    test('maps new message conversation id as a conversation reference', () {
+      final json = {
+        'id': 'notif-1',
+        'type': 'new_message',
+        'conversationId': 'conv-123',
+        'sender': {'id': 'user-1', 'username': 'Youssef'},
+        'message': 'Youssef sent you a message',
+        'createdAt': '2024-01-01T10:00:00Z',
+      };
+
+      final dto = NotificationDto.fromJson(json);
+
+      expect(dto.referenceType, 'conversation');
+      expect(dto.referenceId, 'conv-123');
+      expect(dto.actor?.id, 'user-1');
+    });
+
+    test('maps message alias sender id as a user reference', () {
+      final json = {
+        'id': 'notif-1',
+        'type': 'message',
+        'senderId': 'user-1',
+        'senderName': 'Youssef',
+        'message': 'Youssef sent you a message',
+        'createdAt': '2024-01-01T10:00:00Z',
+      };
+
+      final dto = NotificationDto.fromJson(json);
+
+      expect(dto.referenceType, 'user');
+      expect(dto.referenceId, 'user-1');
+      expect(dto.actor?.username, 'Youssef');
     });
 
     test('handles read status and timestamp', () {
