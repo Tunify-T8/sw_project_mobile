@@ -10,7 +10,9 @@ extension PlayerNotifierLoading on PlayerNotifier {
     double? initialPositionSeconds,
   }) async {
     if (_isLoadingTrack) {
-      debugPrint('[M5 Player] loadTrack ignored while another track is loading');
+      debugPrint(
+        '[M5 Player] loadTrack ignored while another track is loading',
+      );
       return;
     }
 
@@ -34,7 +36,8 @@ extension PlayerNotifierLoading on PlayerNotifier {
       _loadedSourceKey = null;
 
       final provisionalBundle = seedTrack?.toPlaybackBundle();
-      final provisionalPosition = initialPositionSeconds ??
+      final provisionalPosition =
+          initialPositionSeconds ??
           (provisionalBundle == null
               ? 0.0
               : _initialPositionFor(provisionalBundle).toDouble());
@@ -79,8 +82,8 @@ extension PlayerNotifierLoading on PlayerNotifier {
                 seedTrack: seedTrack,
               );
 
-          final playableBundle = localBlockedBundle != null ||
-                  seedTrack?.playability == null
+          final playableBundle =
+              localBlockedBundle != null || seedTrack?.playability == null
               ? bundle
               : bundle.copyWith(playability: seedTrack!.playability);
 
@@ -92,7 +95,8 @@ extension PlayerNotifierLoading on PlayerNotifier {
                   privateToken: privateToken,
                 );
 
-          final initialPosition = initialPositionSeconds ??
+          final initialPosition =
+              initialPositionSeconds ??
               _initialPositionFor(playableBundle).toDouble();
 
           final nextState = PlayerState(
@@ -121,7 +125,9 @@ extension PlayerNotifierLoading on PlayerNotifier {
                 Duration(milliseconds: (initialPosition * 1000).round()),
               );
             } on just_audio.PlayerInterruptedException {
-              debugPrint('[M5 Player] initial seek ignored because loading was interrupted');
+              debugPrint(
+                '[M5 Player] initial seek ignored because loading was interrupted',
+              );
             }
           }
 
@@ -152,7 +158,8 @@ extension PlayerNotifierLoading on PlayerNotifier {
     if (landed != null &&
         landed.bundle?.trackId == trackId &&
         landedArtistId != null &&
-        landedArtistId.trim().isNotEmpty) {
+        landedArtistId.trim().isNotEmpty &&
+        privateToken == null) {
       unawaited(
         enrichQueueWithArtistTracks(
           artistUserId: landedArtistId,

@@ -31,6 +31,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _showAllTracks = false;
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => loadArtistDashboardData(ref));
+  }
+
+  @override
   Widget build(BuildContext context) {
     ref.listen(uploadProvider, (_, next) {
       if (next.error != null && context.mounted) {

@@ -10,6 +10,8 @@ import 'track_more_actions.dart';
 
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../core/utils/navigation_utils.dart';
+import '../../../../features/audio_upload_and_management/data/services/global_track_store.dart';
+import '../../../../features/audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
 import '../../../../features/engagements_social_interactions/presentation/provider/engagement_state.dart';
 import '../../../../features/engagements_social_interactions/presentation/screens/comments_screen.dart';
@@ -188,6 +190,8 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
 
     final conversations = ref.watch(conversationsControllerProvider).items;
 
+    final stored = ref.read(globalTrackStoreProvider).find(widget.trackId);
+    final isPrivate = stored?.visibility == UploadVisibility.private;
     final info = TrackOptionInfo(
       trackId: widget.trackId,
       title: widget.title,
@@ -196,13 +200,18 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
       coverUrl: widget.coverUrl,
       localArtworkPath: widget.localArtworkPath,
       isOwned: ref.read(authControllerProvider).value?.id == _resolvedArtistId,
+      isPrivate: isPrivate,
+      privateToken: stored?.privateToken,
     );
 
     final String? myId = ref.read(authControllerProvider).value?.id;
     final isMyTrack = (myId == _resolvedArtistId);
+    final canUseForwardingActions = isMyTrack || !isPrivate;
     final subscriptionState = ref.watch(subscriptionNotifierProvider);
     final currentSubscription = subscriptionState.currentSubscription;
-    final canDownload = currentSubscription.tier != SubscriptionTier.free;
+    final canDownload =
+        currentSubscription.tier != SubscriptionTier.free &&
+        canUseForwardingActions;
 
     if (!subscriptionState.hasLoadedCurrent &&
         !subscriptionState.isCurrentLoading) {
@@ -238,15 +247,16 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
                 },
         ),
 
-        if (conversations.isNotEmpty) ...[
+        if (canUseForwardingActions && conversations.isNotEmpty) ...[
           const SectionLabel(label: 'SEND TO'),
           SendToRow(info: info, conversations: conversations),
         ],
 
-        const SectionLabel(label: 'SHARE'),
-        ShareRow(info: info, ref: ref),
-
-        const Divider(color: Colors.white12, height: 1),
+        if (canUseForwardingActions) ...[
+          const SectionLabel(label: 'SHARE'),
+          ShareRow(info: info, ref: ref),
+          const Divider(color: Colors.white12, height: 1),
+        ],
 
         if (canDownload && widget.allowDownloadAction) ...[
           TrackOptionMenuItem(
@@ -274,11 +284,12 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
           isMyTrack: isMyTrack,
           isDiscoverFeed: widget.isDiscoverFeed,
           isFollowingFeed: widget.isFollowingFeed,
+          canUseForwardingActions: canUseForwardingActions,
         ),
 
         const Divider(color: Colors.white12),
 
-        if (!isMyTrack) ...[
+        if (!isMyTrack && canUseForwardingActions) ...[
           TrackSocialActions(
             trackId: widget.trackId,
             artistId: _resolvedArtistId,

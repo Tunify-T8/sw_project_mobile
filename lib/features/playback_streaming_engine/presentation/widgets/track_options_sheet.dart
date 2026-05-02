@@ -384,10 +384,12 @@ class TrackOptionsSheetContent extends ConsumerWidget {
         backendMeta?.privacy == 'private' ||
         storedVisibility == UploadVisibility.private;
     final canShare = isOwned || !isPrivate;
+    final canUseForwardingActions = isOwned || !isPrivate;
     final conversations = watchRef.watch(conversationsControllerProvider).items;
     final subscriptionState = watchRef.watch(subscriptionNotifierProvider);
     final currentSubscription = subscriptionState.currentSubscription;
-    final canDownload = currentSubscription.tier != SubscriptionTier.free;
+    final canDownload =
+        currentSubscription.tier != SubscriptionTier.free && canShare;
     final engagementState = watchRef.watch(engagementProvider(info.trackId));
     final engagement = engagementState.engagement;
     final isLiked = engagement?.isLiked ?? false;
@@ -467,6 +469,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
                       context,
                       isLiked: isLiked,
                       isReposted: isReposted,
+                      canUseForwardingActions: canUseForwardingActions,
                     )),
 
               const SizedBox(height: 8),
@@ -571,6 +574,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
     BuildContext context, {
     required bool isLiked,
     required bool isReposted,
+    required bool canUseForwardingActions,
   }) {
     return [
       YourUploadsOptionRow(
@@ -583,43 +587,45 @@ class TrackOptionsSheetContent extends ConsumerWidget {
           Navigator.pop(context);
         },
       ),
-      YourUploadsOptionRow(
-        icon: Icons.queue_play_next,
-        label: 'Play next',
-        onTap: () {
-          ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
-          Navigator.pop(context);
-        },
-      ),
-      YourUploadsOptionRow(
-        icon: Icons.playlist_play,
-        label: 'Play last',
-        onTap: () {
-          ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
-          Navigator.pop(context);
-        },
-      ),
-      YourUploadsOptionRow(
-        key: const Key('track_options_add_to_playlist'),
-        icon: Icons.playlist_add,
-        label: 'Add to playlist',
-        onTap: () {
-          final navigator = Navigator.of(context);
-          final targetContext = navigator.context;
-          navigator.pop();
-          showSelectPlaylistSheet(
-            context: targetContext,
-            ref: ref,
-            trackId: info.trackId,
-          );
-        },
-      ),
-      YourUploadsOptionRow(
-        key: const Key('track_options_add_to_album'),
-        icon: Icons.album_outlined,
-        label: 'Add to album',
-        onTap: () => _openAddToAlbum(context),
-      ),
+      if (canUseForwardingActions) ...[
+        YourUploadsOptionRow(
+          icon: Icons.queue_play_next,
+          label: 'Play next',
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueueNext(info.trackId);
+            Navigator.pop(context);
+          },
+        ),
+        YourUploadsOptionRow(
+          icon: Icons.playlist_play,
+          label: 'Play last',
+          onTap: () {
+            ref.read(playerProvider.notifier).addToQueueLast(info.trackId);
+            Navigator.pop(context);
+          },
+        ),
+        YourUploadsOptionRow(
+          key: const Key('track_options_add_to_playlist'),
+          icon: Icons.playlist_add,
+          label: 'Add to playlist',
+          onTap: () {
+            final navigator = Navigator.of(context);
+            final targetContext = navigator.context;
+            navigator.pop();
+            showSelectPlaylistSheet(
+              context: targetContext,
+              ref: ref,
+              trackId: info.trackId,
+            );
+          },
+        ),
+        YourUploadsOptionRow(
+          key: const Key('track_options_add_to_album'),
+          icon: Icons.album_outlined,
+          label: 'Add to album',
+          onTap: () => _openAddToAlbum(context),
+        ),
+      ],
       const Divider(color: Colors.white12, height: 1),
       YourUploadsOptionRow(
         icon: Icons.person_outline,
@@ -644,30 +650,34 @@ class TrackOptionsSheetContent extends ConsumerWidget {
           );
         },
       ),
-      YourUploadsOptionRow(
-        key: const Key('track_options_repost'),
-        icon: isReposted ? Icons.repeat_on : Icons.repeat,
-        label: isReposted ? 'Reposted' : 'Repost on SoundCloud',
-        color: isReposted ? Colors.orange : Colors.white,
-        onTap: () {
-          final navigator = Navigator.of(context);
-          final targetContext = navigator.context;
-          navigator.pop();
-          if (isReposted) {
-            ref.read(engagementProvider(info.trackId).notifier).removeRepost();
-            return;
-          }
+      if (canUseForwardingActions) ...[
+        YourUploadsOptionRow(
+          key: const Key('track_options_repost'),
+          icon: isReposted ? Icons.repeat_on : Icons.repeat,
+          label: isReposted ? 'Reposted' : 'Repost on SoundCloud',
+          color: isReposted ? Colors.orange : Colors.white,
+          onTap: () {
+            final navigator = Navigator.of(context);
+            final targetContext = navigator.context;
+            navigator.pop();
+            if (isReposted) {
+              ref
+                  .read(engagementProvider(info.trackId).notifier)
+                  .removeRepost();
+              return;
+            }
 
-          RepostCaptionSheet.show(
-            targetContext,
-            trackId: info.trackId,
-            trackTitle: info.title,
-            artistName: info.artist,
-            coverUrl: info.coverUrl,
-          );
-        },
-      ),
-      const Divider(color: Colors.white12, height: 1),
+            RepostCaptionSheet.show(
+              targetContext,
+              trackId: info.trackId,
+              trackTitle: info.title,
+              artistName: info.artist,
+              coverUrl: info.coverUrl,
+            );
+          },
+        ),
+        const Divider(color: Colors.white12, height: 1),
+      ],
       YourUploadsOptionRow(
         icon: Icons.graphic_eq,
         label: 'Behind this track',
@@ -705,7 +715,9 @@ class TrackOptionsSheetContent extends ConsumerWidget {
 
     if (userId == null || userId.isEmpty) {
       try {
-        final meta = await ref.read(_trackOptionsOwnerProvider(info.trackId).future);
+        final meta = await ref.read(
+          _trackOptionsOwnerProvider(info.trackId).future,
+        );
         final ownerId = meta.ownerUserId?.trim();
         if (ownerId != null && ownerId.isNotEmpty) {
           userId = ownerId;
@@ -1760,6 +1772,8 @@ MessageAttachment _trackMessageAttachment(TrackOptionInfo info) {
     title: info.title,
     subtitle: info.artist,
     artworkUrl: info.coverUrl,
+    isPrivate: info.isPrivate,
+    privateToken: info.privateToken,
   );
 }
 

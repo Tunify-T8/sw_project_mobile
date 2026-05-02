@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/colors.dart';
+import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
@@ -14,8 +15,7 @@ class AttachContentSheet extends ConsumerStatefulWidget {
   const AttachContentSheet({super.key});
 
   @override
-  ConsumerState<AttachContentSheet> createState() =>
-      _AttachContentSheetState();
+  ConsumerState<AttachContentSheet> createState() => _AttachContentSheetState();
 }
 
 class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
@@ -140,18 +140,9 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _LikesTab(
-                  isSelected: _isSelected,
-                  onToggle: _toggle,
-                ),
-                _PlaylistsTab(
-                  isSelected: _isSelected,
-                  onToggle: _toggle,
-                ),
-                _UploadsTab(
-                  isSelected: _isSelected,
-                  onToggle: _toggle,
-                ),
+                _LikesTab(isSelected: _isSelected, onToggle: _toggle),
+                _PlaylistsTab(isSelected: _isSelected, onToggle: _toggle),
+                _UploadsTab(isSelected: _isSelected, onToggle: _toggle),
               ],
             ),
           ),
@@ -162,10 +153,7 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
 }
 
 class _LikesTab extends ConsumerWidget {
-  const _LikesTab({
-    required this.isSelected,
-    required this.onToggle,
-  });
+  const _LikesTab({required this.isSelected, required this.onToggle});
 
   final bool Function(String id) isSelected;
   final ValueChanged<MessageAttachment> onToggle;
@@ -218,10 +206,7 @@ class _LikesTab extends ConsumerWidget {
 }
 
 class _PlaylistsTab extends ConsumerWidget {
-  const _PlaylistsTab({
-    required this.isSelected,
-    required this.onToggle,
-  });
+  const _PlaylistsTab({required this.isSelected, required this.onToggle});
 
   final bool Function(String id) isSelected;
   final ValueChanged<MessageAttachment> onToggle;
@@ -283,10 +268,7 @@ class _PlaylistsTab extends ConsumerWidget {
 }
 
 class _UploadsTab extends ConsumerWidget {
-  const _UploadsTab({
-    required this.isSelected,
-    required this.onToggle,
-  });
+  const _UploadsTab({required this.isSelected, required this.onToggle});
 
   final bool Function(String id) isSelected;
   final ValueChanged<MessageAttachment> onToggle;
@@ -321,6 +303,8 @@ class _UploadsTab extends ConsumerWidget {
           title: item.title,
           subtitle: item.artistDisplay,
           artworkUrl: item.artworkUrl,
+          isPrivate: item.visibility == UploadVisibility.private,
+          privateToken: item.privateToken,
         );
 
         return _ContentTile(
@@ -381,10 +365,7 @@ class _ContentTile extends StatelessWidget {
         subtitle,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Color(0xFF8A8A8A),
-          fontSize: 13,
-        ),
+        style: const TextStyle(color: Color(0xFF8A8A8A), fontSize: 13),
       ),
       trailing: Container(
         width: 24,
@@ -405,18 +386,14 @@ class _ContentTile extends StatelessWidget {
   }
 
   static Widget _placeholder() => Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: const Icon(
-          Icons.music_note,
-          color: Color(0xFF5A5A5A),
-          size: 26,
-        ),
-      );
+    width: 48,
+    height: 48,
+    decoration: BoxDecoration(
+      color: const Color(0xFF2A2A2A),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: const Icon(Icons.music_note, color: Color(0xFF5A5A5A), size: 26),
+  );
 }
 
 class _EmptyTab extends StatelessWidget {
@@ -436,10 +413,7 @@ class _EmptyTab extends StatelessWidget {
 }
 
 class _ErrorTab extends StatelessWidget {
-  const _ErrorTab({
-    required this.label,
-    required this.onRetry,
-  });
+  const _ErrorTab({required this.label, required this.onRetry});
 
   final String label;
   final VoidCallback onRetry;

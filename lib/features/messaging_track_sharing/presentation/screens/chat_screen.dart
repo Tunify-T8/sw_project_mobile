@@ -48,6 +48,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _optionsKey = GlobalKey();
   final List<MessageAttachment> _pendingAttachments = [];
+  bool _didInitialScrollToBottom = false;
 
   @override
   void initState() {
@@ -63,15 +64,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool animated = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scrollController.hasClients) return;
+        final target = _scrollController.position.maxScrollExtent;
+        if (animated) {
+          _scrollController.animateTo(
+            target,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+          );
+        } else {
+          _scrollController.jumpTo(target);
+        }
+      });
     });
   }
 
@@ -105,6 +112,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     ref.listen(chatControllerProvider(widget.conversationId), (previous, next) {
+      if ((previous?.isLoading ?? true) &&
+          !next.isLoading &&
+          next.messages.isNotEmpty) {
+        _didInitialScrollToBottom = true;
+        _scrollToBottom(animated: false);
+      }
       if ((previous?.messages.length ?? 0) < next.messages.length) {
         _scrollToBottom();
       }
@@ -139,6 +152,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         );
       }
     });
+
+    if (!_didInitialScrollToBottom &&
+        !chatState.isLoading &&
+        chatState.messages.isNotEmpty) {
+      _didInitialScrollToBottom = true;
+      _scrollToBottom(animated: false);
+    }
 
     final otherUserId = conversation?.otherUser.id ?? '';
     final relationshipIsBlocked = otherUserId.isNotEmpty

@@ -61,6 +61,9 @@ class _PlayerBody extends ConsumerWidget {
                       artist: bundle.artist.name,
                       artistId: bundle.artist.id,
                       coverUrl: bundle.coverUrl,
+                      privateToken: playerState.privateToken,
+                      isPrivate:
+                          playerState.privateToken?.trim().isNotEmpty == true,
                     ),
                     ref: ref,
                   ),

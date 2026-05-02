@@ -80,12 +80,21 @@ class MessageAttachment {
   final String? subtitle;
   final String? artworkUrl;
 
+  /// True when this is a private track shared by the owner. Recipients see a
+  /// lock icon and cannot forward the track.
+  final bool isPrivate;
+
+  /// Token required for recipients to play a privately shared track.
+  final String? privateToken;
+
   const MessageAttachment({
     required this.id,
     required this.type,
     required this.title,
     this.subtitle,
     this.artworkUrl,
+    this.isPrivate = false,
+    this.privateToken,
     MessageAttachmentBackendKind? backendKind,
   }) : backendKind =
            backendKind ??
@@ -94,4 +103,30 @@ class MessageAttachment {
                : type == MessageAttachmentType.collection
                ? MessageAttachmentBackendKind.playlist
                : MessageAttachmentBackendKind.user);
+
+  MessageAttachment copyWith({
+    String? id,
+    MessageAttachmentType? type,
+    MessageAttachmentBackendKind? backendKind,
+    String? title,
+    String? subtitle,
+    String? artworkUrl,
+    bool? isPrivate,
+    Object? privateToken = _sentinel,
+  }) {
+    return MessageAttachment(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      backendKind: backendKind ?? this.backendKind,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      artworkUrl: artworkUrl ?? this.artworkUrl,
+      isPrivate: isPrivate ?? this.isPrivate,
+      privateToken: identical(privateToken, _sentinel)
+          ? this.privateToken
+          : privateToken as String?,
+    );
+  }
 }
+
+const Object _sentinel = Object();

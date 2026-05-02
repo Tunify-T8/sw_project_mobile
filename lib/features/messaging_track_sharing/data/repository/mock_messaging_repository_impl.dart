@@ -126,11 +126,12 @@ class MockMessagingRepository implements MessagingRepository {
         .map(
           (attachment) => MessageAttachmentDto(
             id: attachment.id,
-            type: attachment.type == MessageAttachmentType.collection
-                ? 'COLLECTION'
-                : 'TRACK',
+            type: attachment.backendKind.wireType,
             title: attachment.title,
+            subtitle: attachment.subtitle,
             artworkUrl: attachment.artworkUrl,
+            isPrivate: attachment.isPrivate,
+            privateToken: attachment.privateToken,
           ),
         )
         .toList();

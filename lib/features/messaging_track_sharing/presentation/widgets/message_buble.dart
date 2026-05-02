@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/routing/routes.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
+import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
 import '../../../audio_upload_and_management/presentation/widgets/upload_artwork_view.dart';
@@ -166,6 +167,7 @@ class _AttachmentCard extends ConsumerWidget {
     final icon = isTrack
         ? Icons.music_note_outlined
         : Icons.library_music_outlined;
+    final showLock = isTrack && attachment.isPrivate;
 
     return InkWell(
       onTap: () => _open(context, ref),
@@ -211,16 +213,31 @@ class _AttachmentCard extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            attachment.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              height: 1.3,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  attachment.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                              if (showLock) ...[
+                                const SizedBox(width: 5),
+                                const Icon(
+                                  Icons.lock_outline,
+                                  color: Color(0xFFFFA726),
+                                  size: 13,
+                                ),
+                              ],
+                            ],
                           ),
                           if (attachment.subtitle != null &&
                               attachment.subtitle!.trim().isNotEmpty) ...[
@@ -266,15 +283,27 @@ class _AttachmentCard extends ConsumerWidget {
 
     final store = ref.read(globalTrackStoreProvider);
     final uploadItem = store.find(trackId);
+    final privateToken = attachment.privateToken?.trim();
 
     if (uploadItem != null) {
-      await openUploadItemPlayer(context, ref, uploadItem);
+      final playableItem = privateToken == null || privateToken.isEmpty
+          ? uploadItem
+          : uploadItem.copyWith(
+              visibility: UploadVisibility.private,
+              privateToken: privateToken,
+            );
+      await openUploadItemPlayer(context, ref, playableItem);
       return;
     }
 
     // Fallback: open the track by id using the existing track link helper.
     // TrackDetailScreen + ensureUploadItemPlayback will fetch the real bundle.
-    await TrackLinkHelper.openTrackByIdAndToken(context, ref, trackId);
+    await TrackLinkHelper.openTrackByIdAndToken(
+      context,
+      ref,
+      trackId,
+      privateToken: privateToken,
+    );
   }
 
   String? _localArtworkPath(String? artwork) {

@@ -44,6 +44,8 @@ class MessagingMapper {
       title: d.title,
       subtitle: d.subtitle,
       artworkUrl: d.artworkUrl,
+      isPrivate: d.isPrivate,
+      privateToken: d.privateToken,
     );
   }
 
@@ -97,6 +99,7 @@ class MessagingMapper {
         otherUser: userPreview(d.otherUser),
         lastMessagePreview: d.lastMessagePreview,
         lastMessageAt: d.lastMessageAt,
+        lastMessageSenderId: d.lastMessageSenderId ?? d.lastMessage?.senderId,
         unreadCount: d.unreadCount,
         isBlocked: d.isBlocked,
         isArchived: d.isArchived,

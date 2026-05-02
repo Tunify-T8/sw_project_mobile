@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/message_limits.dart';
@@ -8,6 +10,7 @@ import '../../domain/entities/send_message_draft.dart';
 import '../../domain/repositories/messaging_repository.dart';
 import '../api/messaging_api.dart';
 import '../dto/conversation_dto.dart';
+import '../dto/message_dto.dart';
 import '../dto/paginated_dto.dart';
 import '../dto/user_preview_dto.dart';
 import '../mappers/messaging_mapper.dart';
@@ -105,12 +108,22 @@ class RealMessagingRepository implements MessagingRepository {
           if (attachment.subtitle != null) 'subtitle': attachment.subtitle,
           if (attachment.artworkUrl != null)
             'artworkUrl': attachment.artworkUrl,
+          if (attachment.isPrivate) ...{
+            'isPrivate': true,
+            'privacy': 'private',
+          },
+          if (attachment.privateToken != null &&
+              attachment.privateToken!.trim().isNotEmpty)
+            'privateToken': attachment.privateToken!.trim(),
         },
       };
       switch (kind) {
         case MessageAttachmentBackendKind.trackLike:
         case MessageAttachmentBackendKind.trackUpload:
           payload['trackId'] = attachment.id;
+          if (attachment.isPrivate) {
+            payload['content'] = _privateTrackContent(attachment);
+          }
           break;
         case MessageAttachmentBackendKind.playlist:
         case MessageAttachmentBackendKind.album:
@@ -148,6 +161,10 @@ class RealMessagingRepository implements MessagingRepository {
       case MessageAttachmentBackendKind.user:
         return 'USER';
     }
+  }
+
+  String _privateTrackContent(MessageAttachment attachment) {
+    return '${MessageDto.privateTrackContentPrefix}${jsonEncode({'privateToken': attachment.privateToken?.trim() ?? '', 'title': attachment.title, 'artist': attachment.subtitle ?? '', 'artworkUrl': attachment.artworkUrl ?? ''})}';
   }
 
   @override
@@ -257,6 +274,7 @@ class RealMessagingRepository implements MessagingRepository {
     isBlocked: conversation.isBlocked,
     isArchived: conversation.isArchived,
     lastMessage: conversation.lastMessage,
+    lastMessageSenderId: conversation.lastMessageSenderId,
   );
 
   bool _looksLikeFallbackName(UserPreviewDto preview) {

@@ -27,6 +27,7 @@ class ConversationDto {
   /// The mapper uses this to build the preview text when we don't yet
   /// know it.
   final MessageDto? lastMessage;
+  final String? lastMessageSenderId;
 
   const ConversationDto({
     required this.conversationId,
@@ -39,6 +40,7 @@ class ConversationDto {
     this.isBlocked = false,
     this.isArchived = false,
     this.lastMessage,
+    this.lastMessageSenderId,
   });
 
   /// Parses the backend conversation payload.
@@ -133,6 +135,13 @@ class ConversationDto {
         fallbackConversationId: id,
       );
     }
+    final lastSenderId = _nullableString(
+      j['lastMessageSenderId'] ??
+          j['last_message_sender_id'] ??
+          j['lastSenderId'] ??
+          j['last_sender_id'] ??
+          lastMessage?.senderId,
+    );
 
     String? lastPreview = _nullableString(
       j['lastMessagePreview'] ?? j['last_message_preview'] ?? j['preview'],
@@ -151,10 +160,6 @@ class ConversationDto {
       }
     }
 
-    lastAt ??= j['updatedAt'] == null
-        ? null
-        : DateTime.tryParse(j['updatedAt'].toString());
-
     return ConversationDto(
       conversationId: id,
       user1Id: user1,
@@ -168,6 +173,7 @@ class ConversationDto {
       isBlocked: status == 'BLOCKED' || ((j['isBlocked'] as bool?) ?? false),
       isArchived: status == 'ARCHIVED',
       lastMessage: lastMessage,
+      lastMessageSenderId: lastSenderId,
     );
   }
 

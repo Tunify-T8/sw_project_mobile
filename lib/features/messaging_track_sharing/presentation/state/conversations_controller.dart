@@ -94,8 +94,24 @@ class ConversationsController extends Notifier<ConversationsState> {
   List<ConversationEntity> _applyLocalOverrides(
     List<ConversationEntity> items,
   ) {
+    final existingById = {
+      for (final item in state.items) item.conversationId: item,
+    };
+    final currentUserId = ref.read(messagingSessionUserIdProvider)?.trim();
     return items.map((c) {
-      var next = c;
+      final existing = existingById[c.conversationId];
+      var next = ConversationEntity(
+        conversationId: c.conversationId,
+        otherUser: c.otherUser,
+        lastMessagePreview:
+            c.lastMessagePreview ?? existing?.lastMessagePreview,
+        lastMessageAt: c.lastMessageAt ?? existing?.lastMessageAt,
+        lastMessageSenderId:
+            c.lastMessageSenderId ?? existing?.lastMessageSenderId,
+        unreadCount: c.unreadCount,
+        isBlocked: c.isBlocked,
+        isArchived: c.isArchived,
+      );
       if (_localUnarchivedIds.contains(c.conversationId)) {
         next = next.copyWith(isArchived: false);
       }
@@ -103,15 +119,21 @@ class ConversationsController extends Notifier<ConversationsState> {
         next = next.copyWith(isArchived: true);
       }
 
+      if (currentUserId != null &&
+          currentUserId.isNotEmpty &&
+          next.lastMessageSenderId == currentUserId) {
+        next = next.copyWith(unreadCount: 0);
+      }
+
       final readAt = _localReadWatermarks[c.conversationId];
-      final lastMessageAt = c.lastMessageAt;
+      final lastMessageAt = next.lastMessageAt;
       if (readAt != null &&
           (lastMessageAt == null || !lastMessageAt.isAfter(readAt))) {
         next = next.copyWith(unreadCount: 0);
       }
 
       return next;
-    }).toList();
+    }).toList()..sort(_compareByLastMessageAt);
   }
 
   Future<void> _ensureReadWatermarksLoaded(String userId) async {
@@ -251,18 +273,25 @@ class ConversationsController extends Notifier<ConversationsState> {
     _localUnarchivedIds.add(message.conversationId);
     _localArchivedIds.remove(message.conversationId);
 
+    // Stamp a read watermark so refresh() doesn't re-light the conversation
+    // row with the backend's stale unreadCount after we send a message.
+    final userId = ref.read(messagingSessionUserIdProvider);
+    if (userId != null && userId.isNotEmpty) {
+      final now = DateTime.now();
+      _localReadWatermarks[message.conversationId] =
+          message.createdAt.isAfter(now) ? message.createdAt : now;
+      unawaited(_persistReadWatermarks(userId));
+    }
+
     final next = [...state.items];
     next[index] = next[index].copyWith(
       lastMessagePreview: _previewFor(message),
       lastMessageAt: message.createdAt,
+      lastMessageSenderId: message.senderId,
       unreadCount: 0,
       isArchived: false,
     );
-    next.sort((a, b) {
-      final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bTime.compareTo(aTime);
-    });
+    next.sort(_compareByLastMessageAt);
     state = state.copyWith(items: next);
   }
 
@@ -319,15 +348,22 @@ class ConversationsController extends Notifier<ConversationsState> {
           // in-memory read in mock mode and a single network call in real mode.
           switch (event) {
             case MessageReceivedEvent():
+            case ConversationBlockedEvent():
+              refresh();
             case MessageReadEvent():
             case MessageDeliveredEvent():
             case MessageUndeliveredEvent():
-            case ConversationBlockedEvent():
-              refresh();
+              break;
             case TypingEvent():
               break;
           }
         });
+  }
+
+  int _compareByLastMessageAt(ConversationEntity a, ConversationEntity b) {
+    final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    return bTime.compareTo(aTime);
   }
 
   String _previewFor(MessageEntity message) {

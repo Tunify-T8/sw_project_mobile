@@ -7,6 +7,7 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/message_limits.dart';
 import '../../domain/entities/realtime_event.dart';
 import '../../domain/entities/send_message_draft.dart';
+import '../../../audio_upload_and_management/presentation/providers/upload_repository_provider.dart';
 import '../providers/messaging_dependencies_provider.dart';
 import '../providers/messaging_repository_provider.dart';
 import '../providers/messaging_usecases_provider.dart';
@@ -158,9 +159,10 @@ class ChatController extends Notifier<ChatState> {
       // Backend returns most-recent-first — render oldest → newest.
       final chronological = [...page.items]
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final normalized = _withOwnMessagesAtLeastDelivered(chronological);
 
-      state = state.copyWith(isLoading: false, messages: chronological);
-      _markIncomingMessagesVisible(chronological);
+      state = state.copyWith(isLoading: false, messages: normalized);
+      _markIncomingMessagesVisible(normalized);
 
       if (ref.read(messagingSessionUserIdProvider) == userId) {
         await ref
@@ -193,8 +195,11 @@ class ChatController extends Notifier<ChatState> {
                 }
                 return true;
               }).toList();
-              state = state.copyWith(messages: [...filtered, attributed]);
-              _markIncomingMessagesVisible([attributed]);
+              final normalized = _isMine(attributed)
+                  ? _ownMessageAtLeastDelivered(attributed)
+                  : attributed;
+              state = state.copyWith(messages: [...filtered, normalized]);
+              _markIncomingMessagesVisible([normalized]);
               unawaited(
                 ref
                     .read(conversationsControllerProvider.notifier)
@@ -231,6 +236,23 @@ class ChatController extends Notifier<ChatState> {
     if (me == null || me.isEmpty) return false;
     return message.senderId == me ||
         message.senderId == kOptimisticSenderMarker;
+  }
+
+  List<MessageEntity> _withOwnMessagesAtLeastDelivered(
+    List<MessageEntity> messages,
+  ) {
+    return messages.map(_ownMessageAtLeastDelivered).toList();
+  }
+
+  MessageEntity _ownMessageAtLeastDelivered(MessageEntity message) {
+    if (!_isMine(message) || message.isPending || message.isFailed) {
+      return message;
+    }
+    if (_statusRank(message.deliveryStatus) >=
+        _statusRank(MessageDeliveryStatus.delivered)) {
+      return message;
+    }
+    return message.copyWith(deliveryStatus: MessageDeliveryStatus.delivered);
   }
 
   void _markIncomingMessagesVisible(List<MessageEntity> messages) {
@@ -366,10 +388,17 @@ class ChatController extends Notifier<ChatState> {
       state = state.copyWith(error: kMessageTextTooLongError);
       return;
     }
+    List<MessageAttachment> sendAttachments;
+    try {
+      sendAttachments = await _prepareAttachmentsForSend(attachments);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return;
+    }
     _stopOutgoingTyping();
 
-    if (trimmedText.isNotEmpty && attachments.isNotEmpty) {
-      for (final attachment in attachments) {
+    if (trimmedText.isNotEmpty && sendAttachments.isNotEmpty) {
+      for (final attachment in sendAttachments) {
         if (state.isSending) return;
         await _send(
           SendMessageDraft(
@@ -389,8 +418,8 @@ class ChatController extends Notifier<ChatState> {
       return;
     }
 
-    if (attachments.length > 1) {
-      for (final attachment in attachments) {
+    if (sendAttachments.length > 1) {
+      for (final attachment in sendAttachments) {
         if (state.isSending) return;
         await _send(
           SendMessageDraft(
@@ -404,13 +433,58 @@ class ChatController extends Notifier<ChatState> {
 
     await _send(
       SendMessageDraft(
-        type: attachments.isNotEmpty
+        type: sendAttachments.isNotEmpty
             ? MessageType.attachment
             : MessageType.text,
         text: trimmedText.isEmpty ? null : trimmedText,
-        attachments: attachments,
+        attachments: sendAttachments,
       ),
     );
+  }
+
+  Future<List<MessageAttachment>> _prepareAttachmentsForSend(
+    List<MessageAttachment> attachments,
+  ) async {
+    if (attachments.isEmpty) return const [];
+
+    final prepared = <MessageAttachment>[];
+    for (final attachment in attachments) {
+      if (attachment.type != MessageAttachmentType.track) {
+        prepared.add(attachment);
+        continue;
+      }
+
+      final existingToken = attachment.privateToken?.trim();
+      if (!attachment.isPrivate ||
+          (existingToken != null && existingToken.isNotEmpty)) {
+        prepared.add(attachment);
+        continue;
+      }
+
+      final details = await ref
+          .read(uploadRepositoryProvider)
+          .getTrackDetails(attachment.id)
+          .timeout(const Duration(seconds: 5));
+      final token = details.privateToken?.trim();
+      if (token == null || token.isEmpty) {
+        throw Exception('Could not share private track. Token is missing.');
+      }
+
+      prepared.add(
+        attachment.copyWith(
+          title: details.title?.trim().isNotEmpty == true
+              ? details.title!.trim()
+              : attachment.title,
+          artworkUrl: details.artworkUrl?.trim().isNotEmpty == true
+              ? details.artworkUrl!.trim()
+              : attachment.artworkUrl,
+          isPrivate: true,
+          privateToken: token,
+        ),
+      );
+    }
+
+    return prepared;
   }
 
   Future<void> _send(SendMessageDraft draft) async {
@@ -435,7 +509,16 @@ class ChatController extends Notifier<ChatState> {
           .unarchiveConversation(_conversationId);
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
 
-      final attributed = _attributeToMe(message);
+      // Server accepted the message → it's in the recipient's inbox regardless
+      // of whether a MessageDeliveredEvent ever arrives. Upgrade to delivered.
+      final acceptedStatus =
+          _statusRank(message.deliveryStatus) >
+              _statusRank(MessageDeliveryStatus.delivered)
+          ? message.deliveryStatus
+          : MessageDeliveryStatus.delivered;
+      final attributed = _attributeToMe(
+        message.copyWith(deliveryStatus: acceptedStatus),
+      );
       final alreadyInList = state.messages.any((m) => m.id == attributed.id);
       var didReplace = false;
       final replaced = state.messages.map((m) {
@@ -450,6 +533,8 @@ class ChatController extends Notifier<ChatState> {
         isSending: false,
         messages: alreadyInList
             ? state.messages
+                  .map((m) => m.id == attributed.id ? attributed : m)
+                  .toList()
             : (didReplace ? replaced : [...state.messages, attributed]),
       );
       ref
@@ -457,6 +542,9 @@ class ChatController extends Notifier<ChatState> {
           .handleLocalMessageSent(attributed);
     } catch (e) {
       if (ref.read(messagingSessionUserIdProvider) != userId) return;
+      if (await _reconcileAcceptedMessageAfterSend(optimistic)) {
+        return;
+      }
       state = state.copyWith(
         isSending: false,
         error: e.toString(),
@@ -469,6 +557,60 @@ class ChatController extends Notifier<ChatState> {
             .toList(),
       );
       unawaited(ref.read(conversationsControllerProvider.notifier).refresh());
+    }
+  }
+
+  Future<bool> _reconcileAcceptedMessageAfterSend(
+    MessageEntity optimistic,
+  ) async {
+    try {
+      final page = await ref
+          .read(getMessagesUseCaseProvider)
+          .call(_conversationId);
+      final me = _currentUserId();
+      if (me == null || me.isEmpty) return false;
+      final chronological = [...page.items]
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      MessageEntity? accepted;
+      for (final message in chronological.reversed) {
+        if (message.senderId != me) continue;
+        if (!_samePayload(optimistic, message)) continue;
+        if (message.createdAt.isBefore(
+          optimistic.createdAt.subtract(const Duration(minutes: 2)),
+        )) {
+          continue;
+        }
+        accepted = _ownMessageAtLeastDelivered(message);
+        break;
+      }
+      if (accepted == null) return false;
+
+      final withoutOptimistic = state.messages
+          .where((m) => m.id != optimistic.id)
+          .toList();
+      final acceptedMessage = accepted;
+      final hasAccepted = withoutOptimistic.any(
+        (m) => m.id == acceptedMessage.id,
+      );
+      final next = hasAccepted
+          ? withoutOptimistic
+                .map((m) => m.id == acceptedMessage.id ? acceptedMessage : m)
+                .toList()
+          : [...withoutOptimistic, acceptedMessage];
+      next.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      state = state.copyWith(
+        isSending: false,
+        clearError: true,
+        messages: next,
+      );
+      ref
+          .read(conversationsControllerProvider.notifier)
+          .handleLocalMessageSent(acceptedMessage);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

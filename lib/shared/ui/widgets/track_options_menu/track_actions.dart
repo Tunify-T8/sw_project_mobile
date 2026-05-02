@@ -14,6 +14,7 @@ class TrackActions extends ConsumerWidget {
   final bool isMyTrack;
   final bool isDiscoverFeed;
   final bool isFollowingFeed;
+  final bool canUseForwardingActions;
 
   const TrackActions({
     super.key,
@@ -22,6 +23,7 @@ class TrackActions extends ConsumerWidget {
     required this.isMyTrack,
     required this.isDiscoverFeed,
     required this.isFollowingFeed,
+    this.canUseForwardingActions = true,
   });
 
   @override
@@ -42,64 +44,68 @@ class TrackActions extends ConsumerWidget {
             },
           ),
 
-        TrackOptionMenuItem(
-          key: const Key('track_options_play_next'),
-          icon: Icons.queue_play_next,
-          label: 'Play next',
-          onTap: () {
-            ref.read(playerProvider.notifier).addToQueueNext(trackId);
-            Navigator.pop(context);
-          },
-        ),
-
-        TrackOptionMenuItem(
-          key: const Key('track_options_play_last'),
-          icon: Icons.add_to_queue,
-          label: 'Play last',
-          onTap: () {
-            ref.read(playerProvider.notifier).addToQueueLast(trackId);
-            Navigator.pop(context);
-          },
-        ),
-
-        TrackOptionMenuItem(
-          key: const Key('track_options_add_to_playlist_item'),
-          icon: Icons.playlist_add,
-          label: 'Add to playlist',
-          onTap: () {
-            final navigator = Navigator.of(context);
-            final targetContext = navigator.context;
-            navigator.pop();
-            showSelectPlaylistSheet(
-              context: targetContext,
-              ref: ref,
-              trackId: trackId,
-            );
-          },
-        ),
-        TrackOptionMenuItem(
-          key: const Key('track_options_add_to_album_item'),
-          icon: Icons.album_outlined,
-          label: 'Add to album',
-          onTap: () {
-            if (!isArtist) {
+        if (canUseForwardingActions) ...[
+          TrackOptionMenuItem(
+            key: const Key('track_options_play_next'),
+            icon: Icons.queue_play_next,
+            label: 'Play next',
+            onTap: () {
+              ref.read(playerProvider.notifier).addToQueueNext(trackId);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Only artists can add to albums')),
+            },
+          ),
+
+          TrackOptionMenuItem(
+            key: const Key('track_options_play_last'),
+            icon: Icons.add_to_queue,
+            label: 'Play last',
+            onTap: () {
+              ref.read(playerProvider.notifier).addToQueueLast(trackId);
+              Navigator.pop(context);
+            },
+          ),
+
+          TrackOptionMenuItem(
+            key: const Key('track_options_add_to_playlist_item'),
+            icon: Icons.playlist_add,
+            label: 'Add to playlist',
+            onTap: () {
+              final navigator = Navigator.of(context);
+              final targetContext = navigator.context;
+              navigator.pop();
+              showSelectPlaylistSheet(
+                context: targetContext,
+                ref: ref,
+                trackId: trackId,
               );
-              return;
-            }
-            final navigator = Navigator.of(context);
-            final targetContext = navigator.context;
-            navigator.pop();
-            showSelectPlaylistSheet(
-              context: targetContext,
-              ref: ref,
-              trackId: trackId,
-              collectionType: CollectionType.album,
-            );
-          },
-        ),
+            },
+          ),
+          TrackOptionMenuItem(
+            key: const Key('track_options_add_to_album_item'),
+            icon: Icons.album_outlined,
+            label: 'Add to album',
+            onTap: () {
+              if (!isArtist) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Only artists can add to albums'),
+                  ),
+                );
+                return;
+              }
+              final navigator = Navigator.of(context);
+              final targetContext = navigator.context;
+              navigator.pop();
+              showSelectPlaylistSheet(
+                context: targetContext,
+                ref: ref,
+                trackId: trackId,
+                collectionType: CollectionType.album,
+              );
+            },
+          ),
+        ],
 
         if (!isDiscoverFeed && !isFollowingFeed && !isMyTrack)
           TrackOptionMenuItem(

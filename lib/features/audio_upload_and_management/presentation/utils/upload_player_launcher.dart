@@ -94,6 +94,7 @@ Future<void> openHistorySourcedPlayer(
   );
   if (!preparedItem.isPlayable) return;
   final privateToken = _normalizePrivateToken(preparedItem.privateToken);
+  final canUseQueue = privateToken == null;
 
   if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
     _optimisticallyPromoteHistory(ref, preparedItem);
@@ -109,7 +110,7 @@ Future<void> openHistorySourcedPlayer(
 
   final notifier = ref.read(playerProvider.notifier);
 
-  if (startIndex >= 0 && queueTrackIds.length > 1) {
+  if (canUseQueue && startIndex >= 0 && queueTrackIds.length > 1) {
     unawaited(
       notifier.loadTrack(
         preparedItem.id,
@@ -207,6 +208,7 @@ Future<void> ensureUploadItemPlayback(
   }
   if (!item.isPlayable) return;
   final privateToken = _normalizePrivateToken(item.privateToken);
+  final canUseQueue = privateToken == null;
 
   final notifier = ref.read(playerProvider.notifier);
   final current = ref.read(playerProvider).asData?.value;
@@ -219,7 +221,9 @@ Future<void> ensureUploadItemPlayback(
   // fetched from the backend by enrichQueueWithArtistTracks (called from
 
   // inside loadTrack once the real bundle lands).
-  final preparedQueueItems = _mergeQueueWithCachedItems(ref, item, queueItems);
+  final preparedQueueItems = canUseQueue
+      ? _mergeQueueWithCachedItems(ref, item, queueItems)
+      : const <UploadItem>[];
   _cacheUploadItems(ref, [item, ...preparedQueueItems]);
 
   final queue = _resolveArtistQueue(item, preparedQueueItems, store);
@@ -232,7 +236,10 @@ Future<void> ensureUploadItemPlayback(
       current?.isBuffering != true &&
       _hasUsableCurrentPlaybackSource(current)) {
     final hasUsefulQueue = (current?.queue?.trackIds.length ?? 0) > 1;
-    if (!hasUsefulQueue && currentIndex >= 0 && queueIds.length > 1) {
+    if (canUseQueue &&
+        !hasUsefulQueue &&
+        currentIndex >= 0 &&
+        queueIds.length > 1) {
       await notifier.loadTrackWithQueue(
         trackId: item.id,
         trackIds: queueIds,
@@ -251,7 +258,7 @@ Future<void> ensureUploadItemPlayback(
     return;
   }
 
-  if (currentIndex >= 0 && queueIds.length > 1) {
+  if (canUseQueue && currentIndex >= 0 && queueIds.length > 1) {
     await notifier.loadTrackWithQueue(
       trackId: item.id,
       trackIds: queueIds,

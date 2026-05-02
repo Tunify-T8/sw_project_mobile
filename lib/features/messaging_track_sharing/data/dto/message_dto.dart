@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'message_attachment_dto.dart';
 
 /// Wire-level representation of a chat message.
@@ -77,7 +79,9 @@ class MessageDto {
             .toString()
             .toUpperCase();
 
-    final text = _nullableString(j['text'] ?? j['content'] ?? j['body']);
+    final rawText = _nullableString(j['text'] ?? j['content'] ?? j['body']);
+    final privatePayload = _privateTrackPayload(rawText);
+    final text = privatePayload == null ? rawText : null;
 
     // Backend may send a single attachment under `attachment`, older /
     // optimistic payloads use the flat `attachments` list.
@@ -102,6 +106,20 @@ class MessageDto {
         list.whereType<Map<String, dynamic>>().map(
           MessageAttachmentDto.fromJson,
         ),
+      );
+    }
+
+    if (privatePayload != null && attachments.isNotEmpty) {
+      final first = attachments.first;
+      attachments[0] = first.copyWith(
+        isPrivate: true,
+        privateToken: privatePayload['privateToken'],
+        title: _privateFallback(first.title, privatePayload['title'], type),
+        subtitle: _firstNonEmpty([first.subtitle, privatePayload['artist']]),
+        artworkUrl: _firstNonEmpty([
+          first.artworkUrl,
+          privatePayload['artworkUrl'],
+        ]),
       );
     }
 
@@ -211,7 +229,9 @@ class MessageDto {
     Map<String, dynamic> json,
     String type,
   ) {
-    final explicit = _map(json['attachment'] ?? json['sharedResource']);
+    final explicit = _map(
+      json['attachment'] ?? json['sharedResource'] ?? json['clientPreview'],
+    );
     if (explicit != null) return explicit;
 
     switch (type) {
@@ -228,6 +248,39 @@ class MessageDto {
         return _map(json['sharedUser']);
       default:
         return null;
+    }
+  }
+
+  static String _privateFallback(
+    String current,
+    String? fallback,
+    String type,
+  ) {
+    final trimmedFallback = fallback?.trim() ?? '';
+    if (trimmedFallback.isEmpty) return current;
+    return current == _attachmentFallbackTitle(type)
+        ? trimmedFallback
+        : current;
+  }
+
+  static const String privateTrackContentPrefix = '__tunify_private_track__';
+
+  static Map<String, String>? _privateTrackPayload(String? text) {
+    if (text == null || !text.startsWith(privateTrackContentPrefix)) {
+      return null;
+    }
+
+    final jsonText = text.substring(privateTrackContentPrefix.length).trim();
+    if (jsonText.isEmpty) return const {};
+
+    try {
+      final decoded = jsonDecode(jsonText);
+      if (decoded is! Map) return const {};
+      return decoded.map(
+        (key, value) => MapEntry(key.toString(), value?.toString() ?? ''),
+      );
+    } catch (_) {
+      return const {};
     }
   }
 }
