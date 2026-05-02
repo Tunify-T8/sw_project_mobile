@@ -133,6 +133,11 @@ NotificationActorDto? _actorFromFlatJson(Map<String, dynamic> json) {
 }
 
 String? _referenceTypeFor(Map<String, dynamic> json, String type) {
+  if (_isMessageType(type)) {
+    if (_findConversationId(json) != null) return 'conversation';
+    if (_findUserId(json) != null) return 'user';
+  }
+
   final hasTrackReference = _findTrackId(json) != null;
   if (hasTrackReference &&
       (type == 'track_commented' ||
@@ -157,6 +162,13 @@ String? _referenceTypeFor(Map<String, dynamic> json, String type) {
 }
 
 String? _referenceIdFor(Map<String, dynamic> json, String type) {
+  if (_isMessageType(type)) {
+    final conversationId = _findConversationId(json);
+    if (conversationId != null) return conversationId;
+    final userId = _findUserId(json);
+    if (userId != null) return userId;
+  }
+
   if (type == 'track_commented' ||
       type == 'track_liked' ||
       type == 'track_reposted' ||
@@ -254,6 +266,67 @@ String? _findTrackId(Map<String, dynamic> json) {
       return nestedId;
     }
     final recursive = _findTrackId(nested);
+    if (recursive != null) return recursive;
+  }
+
+  return null;
+}
+
+bool _isMessageType(String type) {
+  return type == 'new_message' || type == 'message';
+}
+
+String? _findConversationId(Map<String, dynamic> json) {
+  final direct = _nullableString(
+    json['conversationId'] ??
+        json['conversation_id'] ??
+        json['chatId'] ??
+        json['chat_id'] ??
+        json['threadId'] ??
+        json['thread_id'] ??
+        json['roomId'] ??
+        json['room_id'],
+  );
+  if (direct != null) return direct;
+
+  for (final key in const [
+    'conversation',
+    'chat',
+    'thread',
+    'target',
+    'reference',
+    'resource',
+    'entity',
+    'metadata',
+    'meta',
+    'payload',
+    'data',
+  ]) {
+    final nested = _mapOrNull(json[key]);
+    if (nested == null) continue;
+    final nestedId = _nullableString(
+      nested['conversationId'] ??
+          nested['conversation_id'] ??
+          nested['chatId'] ??
+          nested['chat_id'] ??
+          nested['threadId'] ??
+          nested['thread_id'] ??
+          nested['id'] ??
+          nested['_id'],
+    );
+    if (nestedId != null &&
+        (key == 'conversation' ||
+            key == 'chat' ||
+            key == 'thread' ||
+            nested.containsKey('conversationId') ||
+            nested.containsKey('conversation_id') ||
+            nested.containsKey('chatId') ||
+            nested.containsKey('chat_id') ||
+            nested['type']?.toString().toLowerCase().contains('conversation') ==
+                true)) {
+      return nestedId;
+    }
+    final recursive = _findConversationId(nested);
     if (recursive != null) return recursive;
   }
 

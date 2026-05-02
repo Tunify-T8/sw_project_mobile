@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/routing/routes.dart';
 import '../../../audio_upload_and_management/presentation/utils/track_link_helper.dart';
 import '../../../engagements_social_interactions/presentation/screens/comments_screen.dart';
+import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
+import '../../../messaging_track_sharing/presentation/providers/messaging_usecases_provider.dart';
 import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/entities/notification_type.dart';
@@ -18,6 +21,11 @@ class NotificationNavigation {
     WidgetRef ref,
     NotificationEntity notification,
   ) async {
+    if (notification.type == NotificationType.newMessage) {
+      await openMessage(context, ref, notification);
+      return;
+    }
+
     if (notification.type == NotificationType.trackCommented) {
       await openComments(context, ref, notification);
       return;
@@ -29,6 +37,45 @@ class NotificationNavigation {
     }
 
     await openActor(context, ref, notification);
+  }
+
+  static Future<void> openMessage(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationEntity notification,
+  ) async {
+    await _markRead(ref, notification);
+    if (!context.mounted) return;
+
+    final actor = notification.actor;
+    final otherUserId = _messageSenderId(notification);
+    final conversationId = await _messageConversationId(ref, notification);
+    if (!context.mounted) return;
+
+    if (conversationId == null || conversationId.isEmpty) {
+      _showUnavailable(context);
+      return;
+    }
+
+    if (otherUserId != null && otherUserId.isNotEmpty) {
+      ref
+          .read(mockMessagingStoreProvider)
+          .registerUserPreview(
+            id: otherUserId,
+            displayName: actor?.username ?? otherUserId,
+            avatarUrl: actor?.avatarUrl,
+          );
+    }
+
+    await Navigator.of(context).pushNamed(
+      Routes.chat,
+      arguments: {
+        'conversationId': conversationId,
+        'otherUserId': otherUserId,
+        'otherUserName': actor?.username ?? '',
+        'otherUserAvatar': actor?.avatarUrl,
+      },
+    );
   }
 
   static Future<void> openActor(
@@ -178,6 +225,35 @@ class NotificationNavigation {
     return null;
   }
 
+  static String? _messageSenderId(NotificationEntity notification) {
+    final actorId = notification.actor?.id.trim();
+    if (actorId != null && actorId.isNotEmpty) return actorId;
+
+    final referenceType = _normalizedReferenceType(notification.referenceType);
+    final referenceId = notification.referenceId?.trim();
+    if (referenceId == null || referenceId.isEmpty) return null;
+    if (_isUserReferenceType(referenceType)) return referenceId;
+    return null;
+  }
+
+  static Future<String?> _messageConversationId(
+    WidgetRef ref,
+    NotificationEntity notification,
+  ) async {
+    final referenceType = _normalizedReferenceType(notification.referenceType);
+    final referenceId = notification.referenceId?.trim();
+    if (referenceId != null &&
+        referenceId.isNotEmpty &&
+        _isConversationReferenceType(referenceType)) {
+      return referenceId;
+    }
+
+    final senderId = _messageSenderId(notification);
+    if (senderId == null || senderId.isEmpty) return null;
+
+    return ref.read(openConversationUseCaseProvider).call(senderId);
+  }
+
   static Future<void> _markRead(
     WidgetRef ref,
     NotificationEntity notification,
@@ -219,6 +295,14 @@ class NotificationNavigation {
 
   static bool _isUserReferenceType(String? referenceType) {
     return referenceType == 'user' || referenceType == 'users';
+  }
+
+  static bool _isConversationReferenceType(String? referenceType) {
+    return referenceType == 'conversation' ||
+        referenceType == 'conversations' ||
+        referenceType == 'chat' ||
+        referenceType == 'thread' ||
+        referenceType == 'message';
   }
 
   static List<String> _trackIdsFromResponse(Object? raw) {
