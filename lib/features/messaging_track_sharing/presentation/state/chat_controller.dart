@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/message_limits.dart';
 import '../../domain/entities/realtime_event.dart';
 import '../../domain/entities/send_message_draft.dart';
 import '../providers/messaging_dependencies_provider.dart';
@@ -361,6 +362,10 @@ class ChatController extends Notifier<ChatState> {
     final trimmedText = text.trim();
     if (trimmedText.isEmpty && attachments.isEmpty) return;
     if (state.isSending) return;
+    if (isMessageTextTooLong(trimmedText)) {
+      state = state.copyWith(error: kMessageTextTooLongError);
+      return;
+    }
     _stopOutgoingTyping();
 
     if (trimmedText.isNotEmpty && attachments.isNotEmpty) {

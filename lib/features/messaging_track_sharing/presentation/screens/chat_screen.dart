@@ -117,12 +117,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (next.error != null && next.error != previous?.error) {
         final raw = next.error!.toLowerCase();
         final friendly =
-            raw.contains('403') ||
-                raw.contains('forbidden') ||
-                raw.contains('not follow') ||
-                raw.contains('blocked') ||
-                raw.contains('cannot') ||
-                raw.contains('rejected')
+            raw.contains('20,000') ||
+                raw.contains('20000') ||
+                raw.contains('too long') ||
+                raw.contains('character limit')
+            ? 'Message is too long. Keep it under 20,000 characters.'
+            : raw.contains('403') ||
+                  raw.contains('forbidden') ||
+                  raw.contains('not follow') ||
+                  raw.contains('blocked') ||
+                  raw.contains('cannot') ||
+                  raw.contains('rejected')
             ? 'Message not delivered. ${widget.otherUserName} only accepts messages from people they follow.'
             : 'Message not delivered. Please try again.';
         ScaffoldMessenger.of(context).showSnackBar(
