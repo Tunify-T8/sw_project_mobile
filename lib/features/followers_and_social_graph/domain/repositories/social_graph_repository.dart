@@ -8,6 +8,10 @@ abstract class SocialGraphRepository {
   Future<void> unblockUser(String userId);
   Future<SocialRelationEntity> getFollowStatus(String userId);
 
+  /// Returns true if [otherUserId] follows the current user.
+  /// Used to enforce "only followers can message me" privacy rule.
+  Future<bool> doesUserFollowMe(String otherUserId, String myUserId);
+
   Future<List<SocialUserEntity>> getUserFollowers({
     required String userId,
     int page = 1,

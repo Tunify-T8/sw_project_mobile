@@ -4,10 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/dio_client.dart';
-import '../../../premium_subscription/data/api/subscription_api.dart';
-import '../../../premium_subscription/data/repository/subscription_repository_impl.dart';
-import '../../../premium_subscription/domain/usecases/get_current_subscription_usecase.dart';
+import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../../domain/config/playlist_limits.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
@@ -165,20 +162,22 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
     try {
       if (type == CollectionType.playlist) {
         final playlistLimit = await _getPlaylistLimit();
-        final latestPlaylists = await _getMyPlaylists(
-          page: 1,
-          limit: 1,
-          type: CollectionType.playlist,
-        );
-        if (latestPlaylists.total >= playlistLimit) {
-          state = state.copyWith(
-            isMutating: false,
-            mutationError: playlistLimitReachedMessage(
-              playlistLimit,
-              includeUpgradeHint: true,
-            ),
+        if (playlistLimit != -1) {
+          final latestPlaylists = await _getMyPlaylists(
+            page: 1,
+            limit: 1,
+            type: CollectionType.playlist,
           );
-          return null;
+          if (latestPlaylists.total >= playlistLimit) {
+            state = state.copyWith(
+              isMutating: false,
+              mutationError: playlistLimitReachedMessage(
+                playlistLimit,
+                includeUpgradeHint: true,
+              ),
+            );
+            return null;
+          }
         }
       }
 
@@ -456,15 +455,13 @@ class PlaylistNotifier extends Notifier<PlaylistState> {
 
   Future<int> _getPlaylistLimit() async {
     try {
-      final dio = ref.read(dioProvider);
-      final useCase = GetCurrentSubscriptionUseCase(
-        SubscriptionRepositoryImpl(SubscriptionApi(dio)),
-      );
-      final subscription = await useCase.call();
+      final subscription = ref
+          .read(subscriptionNotifierProvider)
+          .currentSubscription;
       final playlistLimit = subscription.features.playlistLimit;
-      return playlistLimit > 0 ? playlistLimit : 2;
+      return playlistLimit == -1 ? -1 : playlistLimit > 0 ? playlistLimit : 3;
     } catch (_) {
-      return 2;
+      return 3;
     }
   }
 }

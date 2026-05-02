@@ -24,6 +24,7 @@ import 'search_result_tile_playlist.dart';
 import 'search_result_tile_profile.dart';
 import 'search_result_tile_track.dart';
 import 'search_section_header.dart';
+import '../../../../../core/routing/routes.dart';
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
@@ -96,6 +97,75 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
     );
   }
 
+  void _openPlaylist(PlaylistResultEntity playlist) {
+    ref
+        .read(searchProvider.notifier)
+        .recordResultTapped(
+          RecentResultItem(
+            kind: RecentResultKind.playlist,
+            id: playlist.id,
+            title: playlist.title,
+            subtitle: playlist.creatorName,
+            artworkUrl: playlist.artworkUrl,
+          ),
+        );
+    Navigator.of(
+      context,
+    ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': playlist.id});
+  }
+
+  void _openAlbum(AlbumResultEntity album) {
+    ref
+        .read(searchProvider.notifier)
+        .recordResultTapped(
+          RecentResultItem(
+            kind: RecentResultKind.album,
+            id: album.id,
+            title: album.title,
+            subtitle: album.artistName,
+            artworkUrl: album.artworkUrl,
+          ),
+        );
+    Navigator.of(
+      context,
+    ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': album.id});
+  }
+
+  void _openRecentResult(RecentResultItem item) {
+    switch (item.kind) {
+      case RecentResultKind.track:
+        final track = item.track;
+        if (track != null) {
+          playSearchTrack(context, ref, track);
+        }
+        break;
+      case RecentResultKind.profile:
+        final profile = widget.state.allResult?.profiles
+            .where((p) => p.id == item.id)
+            .firstOrNull;
+        if (profile != null) {
+          _openProfile(profile);
+        } else {
+          navigateToProfile(
+            context,
+            item.id,
+            currentUserId: ref.read(authControllerProvider).value?.id,
+          );
+        }
+        break;
+      case RecentResultKind.playlist:
+        Navigator.of(
+          context,
+        ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': item.id});
+        break;
+      case RecentResultKind.album:
+        Navigator.of(
+          context,
+        ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': item.id});
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -139,6 +209,9 @@ class _SearchResultsTabsState extends ConsumerState<SearchResultsTabs>
                         queueTracks: widget.state.allResult?.tracks ?? const [],
                       ),
                       onProfileTap: _openProfile,
+                      onPlaylistTap: _openPlaylist,
+                      onAlbumTap: _openAlbum,
+                      onRecentResultTap: _openRecentResult,
                     ),
                     _TrackTab(
                       tracks: widget.state.tracks,
@@ -175,6 +248,9 @@ class _AllTab extends StatelessWidget {
     required this.onResultTapped,
     required this.onTrackTap,
     required this.onProfileTap,
+    required this.onPlaylistTap,
+    required this.onAlbumTap,
+    required this.onRecentResultTap,
   });
 
   final SearchState state;
@@ -182,6 +258,9 @@ class _AllTab extends StatelessWidget {
   final ValueChanged<RecentResultItem> onResultTapped;
   final ValueChanged<TrackResultEntity> onTrackTap;
   final ValueChanged<ProfileResultEntity> onProfileTap;
+  final ValueChanged<PlaylistResultEntity> onPlaylistTap;
+  final ValueChanged<AlbumResultEntity> onAlbumTap;
+  final ValueChanged<RecentResultItem> onRecentResultTap;
 
   @override
   Widget build(BuildContext context) {
@@ -238,16 +317,20 @@ class _AllTab extends StatelessWidget {
             topResult: result.topResult!,
             onTrackTap: onTrackTap,
             onProfileTap: onProfileTap,
-            onTap: () => onResultTapped(
-              RecentResultItem(
-                kind: _kindFrom(result.topResult!.type),
-                id: result.topResult!.id,
-                title: result.topResult!.title,
-                subtitle: result.topResult!.subtitle,
-                artworkUrl: result.topResult!.artworkUrl,
-                isCertified: result.topResult!.type == TopResultType.profile,
-              ),
-            ),
+            onPlaylistTap: onPlaylistTap,
+            onAlbumTap: onAlbumTap,
+            onTap: () {
+              onResultTapped(
+                RecentResultItem(
+                  kind: _kindFrom(result.topResult!.type),
+                  id: result.topResult!.id,
+                  title: result.topResult!.title,
+                  subtitle: result.topResult!.subtitle,
+                  artworkUrl: result.topResult!.artworkUrl,
+                  isCertified: result.topResult!.type == TopResultType.profile,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
         ],
@@ -274,9 +357,7 @@ class _AllTab extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (context, i) => _RecentlyPlayedCard(
                       item: played[i],
-                      onTap: played[i].track != null
-                          ? () => onTrackTap(played[i].track!)
-                          : null,
+                      onTap: () => onRecentResultTap(played[i]),
                     ),
                   ),
                 ),
@@ -318,7 +399,12 @@ class _AllTab extends StatelessWidget {
           ),
           ...result.playlists
               .take(3)
-              .map((p) => SearchResultTilePlaylist(playlist: p)),
+              .map(
+                (p) => SearchResultTilePlaylist(
+                  playlist: p,
+                  onTap: () => onPlaylistTap(p),
+                ),
+              ),
           const SizedBox(height: 16),
         ],
 
@@ -357,7 +443,12 @@ class _AllTab extends StatelessWidget {
               ),
             ),
           ),
-          ...result.albums.take(3).map((a) => SearchResultTileAlbum(album: a)),
+          ...result.albums
+              .take(3)
+              .map(
+                (a) =>
+                    SearchResultTileAlbum(album: a, onTap: () => onAlbumTap(a)),
+              ),
           const SizedBox(height: 16),
         ],
 
@@ -448,57 +539,114 @@ class _TrackTab extends StatelessWidget {
 
 // ── Profile tab ───────────────────────────────────────────────────────────────
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends ConsumerWidget {
   const _ProfileTab({required this.profiles, required this.onProfileTap});
-
   final List<ProfileResultEntity> profiles;
   final ValueChanged<ProfileResultEntity> onProfileTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (profiles.isEmpty) return const _SearchEmptyTabState();
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: profiles.length,
-      itemBuilder: (context, i) => SearchResultTileProfile(
-        profile: profiles[i],
-        onTap: () => onProfileTap(profiles[i]),
-      ),
+      itemBuilder: (context, i) {
+        final p = profiles[i];
+        return SearchResultTileProfile(
+          profile: p,
+          onTap: () {
+            ref
+                .read(searchProvider.notifier)
+                .recordResultTapped(
+                  RecentResultItem(
+                    kind: RecentResultKind.profile,
+                    id: p.id,
+                    title: p.displayLabel,
+                    subtitle: '${p.followersCount} Followers',
+                    artworkUrl: p.avatarUrl,
+                    isCertified: p.isCertified,
+                  ),
+                );
+            onProfileTap(p);
+          },
+        );
+      },
     );
   }
 }
 
 // ── Playlist tab ──────────────────────────────────────────────────────────────
 
-class _PlaylistTab extends StatelessWidget {
+class _PlaylistTab extends ConsumerWidget {
   const _PlaylistTab({required this.playlists});
   final List<PlaylistResultEntity> playlists;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (playlists.isEmpty) return const _SearchEmptyTabState();
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: playlists.length,
-      itemBuilder: (context, i) =>
-          SearchResultTilePlaylist(playlist: playlists[i]),
+      itemBuilder: (context, i) {
+        final p = playlists[i];
+        return SearchResultTilePlaylist(
+          playlist: p,
+          onTap: () {
+            ref
+                .read(searchProvider.notifier)
+                .recordResultTapped(
+                  RecentResultItem(
+                    kind: RecentResultKind.playlist,
+                    id: p.id,
+                    title: p.title,
+                    subtitle: p.creatorName,
+                    artworkUrl: p.artworkUrl,
+                  ),
+                );
+            Navigator.of(
+              context,
+            ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': p.id});
+          },
+        );
+      },
     );
   }
 }
 
 // ── Album tab ─────────────────────────────────────────────────────────────────
 
-class _AlbumTab extends StatelessWidget {
+class _AlbumTab extends ConsumerWidget {
   const _AlbumTab({required this.albums});
   final List<AlbumResultEntity> albums;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (albums.isEmpty) return const _SearchEmptyTabState();
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: albums.length,
-      itemBuilder: (context, i) => SearchResultTileAlbum(album: albums[i]),
+      itemBuilder: (context, i) {
+        final a = albums[i];
+        return SearchResultTileAlbum(
+          album: a,
+          onTap: () {
+            ref
+                .read(searchProvider.notifier)
+                .recordResultTapped(
+                  RecentResultItem(
+                    kind: RecentResultKind.album,
+                    id: a.id,
+                    title: a.title,
+                    subtitle: a.artistName,
+                    artworkUrl: a.artworkUrl,
+                  ),
+                );
+            Navigator.of(
+              context,
+            ).pushNamed(Routes.playlistDetail, arguments: {'playlistId': a.id});
+          },
+        );
+      },
     );
   }
 }
@@ -514,6 +662,8 @@ class _TopResultCard extends StatelessWidget {
     required this.onTap,
     required this.onTrackTap,
     required this.onProfileTap,
+    required this.onPlaylistTap,
+    required this.onAlbumTap,
   });
 
   final SearchState state;
@@ -521,6 +671,8 @@ class _TopResultCard extends StatelessWidget {
   final VoidCallback onTap;
   final ValueChanged<TrackResultEntity> onTrackTap;
   final ValueChanged<ProfileResultEntity> onProfileTap;
+  final ValueChanged<PlaylistResultEntity> onPlaylistTap;
+  final ValueChanged<AlbumResultEntity> onAlbumTap;
 
   @override
   Widget build(BuildContext context) {
@@ -547,11 +699,33 @@ class _TopResultCard extends StatelessWidget {
           GestureDetector(
             onTap: () {
               onTap();
-              if (topResult.type == TopResultType.profile) {
-                final p = state.allResult?.profiles
-                    .where((p) => p.id == topResult.id)
-                    .firstOrNull;
-                if (p != null) onProfileTap(p);
+              switch (topResult.type) {
+                case TopResultType.profile:
+                  final profile = state.allResult?.profiles
+                      .where((p) => p.id == topResult.id)
+                      .firstOrNull;
+                  if (profile != null) {
+                    onProfileTap(profile);
+                  }
+                  break;
+                case TopResultType.playlist:
+                  final playlist = state.allResult?.playlists
+                      .where((p) => p.id == topResult.id)
+                      .firstOrNull;
+                  if (playlist != null) {
+                    onPlaylistTap(playlist);
+                  }
+                  break;
+                case TopResultType.album:
+                  final album = state.allResult?.albums
+                      .where((a) => a.id == topResult.id)
+                      .firstOrNull;
+                  if (album != null) {
+                    onAlbumTap(album);
+                  }
+                  break;
+                case TopResultType.track:
+                  break;
               }
             },
             child: Padding(

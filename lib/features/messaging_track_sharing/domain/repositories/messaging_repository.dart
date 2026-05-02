@@ -23,6 +23,9 @@ abstract class MessagingRepository {
   Future<void> unarchiveConversation(String conversationId);
   Future<void> blockConversation(String conversationId);
 
+  Future<void> enableReceiveFromAnyone();
+  Future<void> disableReceiveFromAnyone();
+
   /// Joins the websocket room for a conversation so that `message:received`
   /// events for it are delivered. Safe to call repeatedly.
   Future<void> joinConversation(String conversationId);

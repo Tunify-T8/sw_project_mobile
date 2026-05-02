@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../audio_upload_and_management/domain/entities/upload_item.dart';
 import '../../../audio_upload_and_management/presentation/utils/upload_player_launcher.dart';
+import '../../../playback_streaming_engine/presentation/providers/player_provider.dart';
 import '../../domain/entities/track_preview_entity.dart';
 import '../providers/feed_preview_playback_controller.dart';
 
 Future<void> playFeedTrack(
   BuildContext context,
   WidgetRef ref,
-  TrackPreviewEntity track,
-) async {
+  TrackPreviewEntity track, {
+  bool openScreen = true,
+  bool restartIfCurrent = false,
+}) async {
   // Stop any in-flight preview so we don't get overlapping audio when the
   // user jumps straight from the preview overlay to the full-track tile.
   await ref.read(feedPreviewPlaybackControllerProvider).stop();
@@ -18,6 +21,21 @@ Future<void> playFeedTrack(
   // Convert the feed track preview model into the UploadItem shape expected by
   // the shared player/detail launcher.
   final stub = _trackPreviewToUploadItem(track);
+
+  final current = ref.read(playerProvider).asData?.value;
+  if (restartIfCurrent &&
+      current?.bundle?.trackId == track.trackId &&
+      current?.isBuffering != true) {
+    final notifier = ref.read(playerProvider.notifier);
+    await notifier.seek(0);
+    await notifier.play();
+    return;
+  }
+
+  if (!openScreen) {
+    await ensureUploadItemPlayback(ref, stub, autoPlay: true);
+    return;
+  }
 
   // Feed entities don't carry a waveformUrl, so the stub has no way to fetch
   // bars on its own. The shared launcher only allows 500 ms for pre-resolution

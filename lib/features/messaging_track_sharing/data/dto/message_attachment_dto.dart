@@ -33,22 +33,29 @@ class MessageAttachmentDto {
 
     final rawType = (j['type'] ?? preview['type'] ?? 'TRACK_LIKE').toString();
 
-    final title = (j['title'] ??
-            preview['title'] ??
-            preview['username'] ??
-            preview['displayName'] ??
-            '')
-        .toString();
+    final title =
+        (j['title'] ??
+                preview['title'] ??
+                preview['username'] ??
+                preview['displayName'] ??
+                '')
+            .toString();
 
-    final subtitle = (j['subtitle'] ??
-            preview['artistName'] ??
-            preview['ownerName'] ??
-            preview['subtitle']) as String?;
+    final subtitle =
+        (j['subtitle'] ??
+                preview['artistName'] ??
+                preview['ownerName'] ??
+                preview['subtitle'])
+            as String?;
 
-    final artwork = (j['artworkUrl'] ??
-            preview['artworkUrl'] ??
-            preview['coverUrl'] ??
-            preview['avatarUrl']) as String?;
+    final artwork =
+        (j['artworkUrl'] ??
+                j['coverUrl'] ??
+                j['avatarUrl'] ??
+                preview['artworkUrl'] ??
+                preview['coverUrl'] ??
+                preview['avatarUrl'])
+            as String?;
 
     return MessageAttachmentDto(
       id: (j['id'] ?? preview['id'] ?? '').toString(),
@@ -60,11 +67,11 @@ class MessageAttachmentDto {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type,
-        if (title.isNotEmpty) 'title': title,
-        if (subtitle != null && subtitle!.trim().isNotEmpty) 'subtitle': subtitle,
-        if (artworkUrl != null && artworkUrl!.trim().isNotEmpty)
-          'artworkUrl': artworkUrl,
-      };
+    'id': id,
+    'type': type,
+    if (title.isNotEmpty) 'title': title,
+    if (subtitle != null && subtitle!.trim().isNotEmpty) 'subtitle': subtitle,
+    if (artworkUrl != null && artworkUrl!.trim().isNotEmpty)
+      'artworkUrl': artworkUrl,
+  };
 }

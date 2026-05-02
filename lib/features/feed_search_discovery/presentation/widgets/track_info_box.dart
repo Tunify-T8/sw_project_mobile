@@ -5,6 +5,7 @@ import '../../../../../core/utils/navigation_utils.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../followers_and_social_graph/presentation/widgets/relationship_button.dart';
 import '../utils/feed_track_playback.dart';
+import 'feed_play_button.dart';
 
 class TrackInfoBox extends ConsumerWidget {
   final TrackPreviewEntity track;
@@ -25,78 +26,91 @@ class TrackInfoBox extends ConsumerWidget {
           borderRadius: BorderRadius.circular(5),
         ),
         child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  track.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          children: [
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    track.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
 
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => navigateToProfile(
-                        context,
-                        track.artistId,
-                        currentUserId: ref.read(authControllerProvider).value?.id,
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => navigateToProfile(
+                          context,
+                          track.artistId,
+                          currentUserId: ref
+                              .read(authControllerProvider)
+                              .value
+                              ?.id,
+                        ),
+                        child: CircleAvatar(
+                          radius: 20.0,
+                          backgroundImage: track.artistAvatar != null
+                              ? NetworkImage(track.artistAvatar!)
+                              : null,
+                          child: track.artistAvatar == null
+                              ? const Icon(Icons.person, color: Colors.white)
+                              : null,
+                        ),
                       ),
-                      child: CircleAvatar(
-                        radius: 20.0,
-                        backgroundImage: track.artistAvatar != null
-                            ? NetworkImage(track.artistAvatar!)
-                            : null,
-                        child: track.artistAvatar == null
-                            ? const Icon(Icons.person, color: Colors.white)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 10.0),
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              track.artistName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(width: 10.0),
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                track.artistName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 5.0),
-                          if (track.artistVerified)
-                            const Icon(
-                              Icons.verified,
-                              color: Colors.blue,
-                              size: 20.0,
+                            const SizedBox(width: 5.0),
+                            if (track.artistVerified)
+                              const Icon(
+                                Icons.verified,
+                                color: Colors.blue,
+                                size: 20.0,
+                              ),
+                            const SizedBox(width: 8.0),
+                            RelationshipButton(
+                              userId: track.artistId,
+                              initialIsFollowing: track.isFollowingArtist,
                             ),
-                          const SizedBox(width: 8.0),
-                          RelationshipButton(
-                            userId: track.artistId,
-                            initialIsFollowing: track.isFollowingArtist,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: FeedPlayButton(
+                progress: 0,
+                isPlaying: false,
+                onTap: (){},
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+

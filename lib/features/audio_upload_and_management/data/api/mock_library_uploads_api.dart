@@ -41,7 +41,7 @@ class MockLibraryUploadsApi {
       uploadMinutesLimit: 180,
       uploadMinutesUsed: usedMinutes,
       canReplaceFiles: false,
-      canUpgrade: true,
+      //canUpgrade: true,
     );
   }
 

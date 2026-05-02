@@ -18,8 +18,7 @@ class MessagingMapper {
       UserPreview(id: d.id, displayName: d.displayName, avatarUrl: d.avatarUrl);
 
   static MessageAttachment attachment(MessageAttachmentDto d) {
-    final backendKind =
-        MessageAttachmentBackendKindX.fromWire(d.type);
+    final backendKind = MessageAttachmentBackendKindX.fromWire(d.type);
 
     MessageAttachmentType uiType;
     if (backendKind != null) {
@@ -53,9 +52,11 @@ class MessagingMapper {
       case 'TEXT':
         return MessageType.text;
       case 'ATTACHMENT':
+      case 'TRACK':
       case 'TRACK_LIKE':
       case 'TRACK_UPLOAD':
       case 'UPLOAD':
+      case 'COLLECTION':
       case 'PLAYLIST':
       case 'ALBUM':
       case 'USER':
@@ -65,17 +66,18 @@ class MessagingMapper {
   }
 
   static MessageEntity message(MessageDto d) => MessageEntity(
-        id: d.id,
-        conversationId: d.conversationId,
-        senderId: d.senderId,
-        type: _messageType(d.type),
-        text: d.text,
-        attachments: d.attachments.map(attachment).toList(),
-        createdAt: d.createdAt,
-        isRead: d.isRead,
-      );
+    id: d.id,
+    conversationId: d.conversationId,
+    senderId: d.senderId,
+    type: _messageType(d.type),
+    text: d.text,
+    attachments: d.attachments.map(attachment).toList(),
+    createdAt: d.createdAt,
+    isRead: d.isRead,
+  );
 
-  static ConversationEntity conversation(ConversationDto d) => ConversationEntity(
+  static ConversationEntity conversation(ConversationDto d) =>
+      ConversationEntity(
         conversationId: d.conversationId,
         otherUser: userPreview(d.otherUser),
         lastMessagePreview: d.lastMessagePreview,
@@ -93,11 +95,12 @@ class MessagingMapper {
         total: d.total,
       );
 
-  static PaginatedConversations conversations(PaginatedDto<ConversationDto> d) =>
-      PaginatedConversations(
-        items: d.items.map(conversation).toList(),
-        page: d.page,
-        limit: d.limit,
-        total: d.total,
-      );
+  static PaginatedConversations conversations(
+    PaginatedDto<ConversationDto> d,
+  ) => PaginatedConversations(
+    items: d.items.map(conversation).toList(),
+    page: d.page,
+    limit: d.limit,
+    total: d.total,
+  );
 }

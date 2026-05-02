@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/social_user_entity.dart';
 import 'relationship_button.dart';
 
-
 class SuggestedUserItem extends StatelessWidget {
   final SocialUserEntity user;
   final VoidCallback? onTap;
@@ -11,7 +10,6 @@ class SuggestedUserItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: GestureDetector(
@@ -23,12 +21,17 @@ class SuggestedUserItem extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 50,
+                backgroundColor: Color(0xFF2A2A2A),
                 backgroundImage:
                     user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                     ? NetworkImage(user.avatarUrl!)
                     : null,
                 child: user.avatarUrl == null || user.avatarUrl!.isEmpty
-                    ? const Icon(Icons.person, size: 40)
+                    ? const Icon(
+                        Icons.person,
+                        color: Color(0xFF6A8AAA),
+                        size: 40,
+                      )
                     : null,
               ),
 

@@ -10,9 +10,10 @@ import '../../../../core/design_system/colors.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_status.dart';
 import '../../../playback_streaming_engine/presentation/screens/listening_history_screen.dart';
-import '../../../playback_streaming_engine/presentation/screens/open_shared_track_link_screen.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
+import '../../../playlists/presentation/providers/playlist_providers.dart';
+import '../../../playlists/presentation/providers/recent_playlists_provider.dart';
 import '../../../profile/presentation/providers/profile_provider.dart';
-import '../../../playback_streaming_engine/presentation/widgets/track_options_sheet.dart';
 import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
 import '../../data/services/global_track_store.dart';
 import '../../../engagements_social_interactions/presentation/screens/liked_tracks_screen.dart';
@@ -31,8 +32,6 @@ const _libraryMenuItems = [
   'Albums',
   'Following',
   'Stations',
-  'Open shared link',
-  'Your insights',
   'Your uploads',
 ];
 
@@ -63,6 +62,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     Future.microtask(() {
       ref.read(profileProvider.notifier).loadProfile();
       ref.read(subscriptionNotifierProvider.notifier).loadCurrentSubscription();
+      ref.read(playlistNotifierProvider.notifier).loadMyCollections();
     });
   }
 
@@ -98,7 +98,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                     ),
                     const Spacer(),
-                    if (currentSubscription?.tier == SubscriptionTier.free) ...[
+                    if (currentSubscription.tier == SubscriptionTier.free) ...[
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).push(
@@ -180,15 +180,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 18)),
             SliverToBoxAdapter(
-              child: _LibraryRecentlyPlayedPlaylistsSection(
-                onUnavailableTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: Color(0xFF1C1C1E),
-                    content: Text('Playlists will appear here when Module 7 is plugged in'),
-                    duration: Duration(seconds: 1),
-                  ),
-                ),
-              ),
+              child: const _LibraryRecentlyPlayedPlaylistsSection(),
             ),
             SliverToBoxAdapter(
               child: Padding(
@@ -269,13 +261,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 }
 
-class _LibraryRecentlyPlayedPlaylistsSection extends StatelessWidget {
-  const _LibraryRecentlyPlayedPlaylistsSection({required this.onUnavailableTap});
-
-  final VoidCallback onUnavailableTap;
+class _LibraryRecentlyPlayedPlaylistsSection extends ConsumerWidget {
+  const _LibraryRecentlyPlayedPlaylistsSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recentAsync = ref.watch(recentPlaylistsProvider);
+    final playlistState = ref.watch(playlistNotifierProvider);
+    final profile = ref.watch(profileProvider).profile;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -296,7 +290,8 @@ class _LibraryRecentlyPlayedPlaylistsSection extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: onUnavailableTap,
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(Routes.playlists),
                   child: const Text(
                     'See all',
                     style: TextStyle(color: Colors.white70, fontSize: 15),
@@ -305,17 +300,72 @@ class _LibraryRecentlyPlayedPlaylistsSection extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            height: 190,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              itemBuilder: (context, index) => _LibraryPlaylistPlaceholderCard(
-                onTap: onUnavailableTap,
+          recentAsync.when(
+            data: (items) {
+              final displayItems = items.isNotEmpty
+                  ? items
+                  : playlistState.myCollections
+                        .where(
+                          (playlist) =>
+                              playlist.isMine &&
+                              playlist.type == CollectionType.playlist,
+                        )
+                        .map(
+                          (playlist) => RecentPlaylistItem.fromSummary(
+                            playlist,
+                            ownerName: profile?.userName,
+                          ),
+                        )
+                        .take(10)
+                        .toList(growable: false);
+
+              if (displayItems.isEmpty) {
+                if (playlistState.isMyCollectionsLoading) {
+                  return const SizedBox(
+                    height: 96,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  );
+                }
+
+                return const Padding(
+                  padding: EdgeInsets.fromLTRB(18, 8, 18, 0),
+                  child: Text(
+                    'No playlists yet',
+                    style: TextStyle(color: Colors.white38),
+                  ),
+                );
+              }
+
+              return SizedBox(
+                height: 190,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  itemBuilder: (context, index) =>
+                      _LibraryRecentPlaylistCard(item: displayItems[index]),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 14),
+                  itemCount: displayItems.length,
+                ),
+              );
+            },
+            loading: () => const SizedBox(
+              height: 96,
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemCount: 6,
+            ),
+            error: (_, _) => const Padding(
+              padding: EdgeInsets.fromLTRB(18, 8, 18, 0),
+              child: Text(
+                'Could not load recent playlists',
+                style: TextStyle(color: Colors.white38),
+              ),
             ),
           ),
         ],
@@ -324,15 +374,18 @@ class _LibraryRecentlyPlayedPlaylistsSection extends StatelessWidget {
   }
 }
 
-class _LibraryPlaylistPlaceholderCard extends StatelessWidget {
-  const _LibraryPlaylistPlaceholderCard({required this.onTap});
+class _LibraryRecentPlaylistCard extends StatelessWidget {
+  const _LibraryRecentPlaylistCard({required this.item});
 
-  final VoidCallback onTap;
+  final RecentPlaylistItem item;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => Navigator.of(context).pushNamed(
+        Routes.playlistDetail,
+        arguments: {'playlistId': item.id, 'isMine': item.isMine},
+      ),
       child: SizedBox(
         width: 138,
         child: Column(
@@ -346,31 +399,43 @@ class _LibraryPlaylistPlaceholderCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: Colors.white10),
               ),
-              child: const Center(
-                child: Icon(Icons.queue_music_rounded, color: Colors.white24, size: 32),
-              ),
+              clipBehavior: Clip.antiAlias,
+              child: item.coverUrl?.isNotEmpty == true
+                  ? Image.network(
+                      item.coverUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _playlistPlaceholder(),
+                    )
+                  : _playlistPlaceholder(),
             ),
             const SizedBox(height: 8),
-            Container(
-              height: 12,
-              width: 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
+            Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
-            Container(
-              height: 10,
-              width: 74,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
+            const SizedBox(height: 3),
+            Text(
+              item.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _playlistPlaceholder() {
+    return const Center(
+      child: Icon(Icons.queue_music_rounded, color: Colors.white24, size: 32),
     );
   }
 }

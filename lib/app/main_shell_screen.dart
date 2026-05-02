@@ -70,6 +70,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
     final currentSubscription = ref
         .watch(subscriptionNotifierProvider)
         .currentSubscription;
+    final feedViewMode = ref.watch(feedViewModeProvider);
+    final showMiniPlayer = _index != 1 || feedViewMode == FeedViewMode.classic;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -85,7 +87,7 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
           index: _index,
           children: [
             const HomeScreen(),
-            ref.watch(feedViewModeProvider) == FeedViewMode.classic
+            feedViewMode == FeedViewMode.classic
                 ? const ClassicFeedScreen()
                 : const FeedScreen(),
             const SearchScreen(),
@@ -97,8 +99,8 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
               onOpenYourUploads: () =>
                   Navigator.of(context).pushNamed(Routes.yourUploads),
             ),
-            
-            (currentSubscription?.tier == SubscriptionTier.free)
+
+            (currentSubscription.tier == SubscriptionTier.free)
                 ? const UpgradeScreen(popUp: false)
                 : const CurrentSubscriptionScreen(),
           ],
@@ -112,9 +114,9 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Hide the mini player on the Feed tab (index 1) — the full
-            // player screen is used there instead.
-            if (_index != 1) const MiniPlayer(),
+            // The discover feed keeps its immersive playback surface; classic
+            // feed uses the regular mini player like the rest of the app.
+            if (showMiniPlayer) const MiniPlayer(),
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: _SCBottomBar(
@@ -130,23 +132,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
       ),
     );
   }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: Center(
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white38, fontSize: 20),
-      ),
-    ),
-  );
 }
 
 class _SCBottomBar extends StatelessWidget {

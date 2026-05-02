@@ -52,18 +52,32 @@ class RelationshipButton extends ConsumerWidget {
 
     return TextButton(
       key: Key('${isBlockMode ? 'block' : 'follow'}_button_$userId'),
-      onPressed: isBlockMode
-          ? notifier.toggleBlock
-          : notifier.toggleFollow,
+      onPressed: () async {
+        isBlockMode
+            ? await notifier.toggleBlock()
+            : await notifier.toggleFollow();
+
+        if (relationshipState.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Action not available right now",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          );
+        }
+      },
       style: TextButton.styleFrom(
         backgroundColor: isSelected ? const Color(0xFF303030) : Colors.white,
         foregroundColor: isSelected ? Colors.white : Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      child: Text(
-        buttonText,
-        style: const TextStyle(fontSize: 15),
-      ),
+      child: Text(buttonText, style: const TextStyle(fontSize: 15)),
     );
   }
 }

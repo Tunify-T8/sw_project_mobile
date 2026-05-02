@@ -80,7 +80,7 @@ class RealMessagingRepository implements MessagingRepository {
   ) async {
     // The backend models messages polymorphically — one `type` per message
     // with a type-specific fk. Attachments that arrive as a list from the UI
-    // are sent as separate messages (text goes out as a TEXT message first).
+    // are sent as separate messages before the typed text message.
     final trimmedText = (draft.text ?? '').trim();
     final hasText = trimmedText.isNotEmpty;
     final attachments = draft.attachments;
@@ -91,21 +91,11 @@ class RealMessagingRepository implements MessagingRepository {
 
     MessageEntity? last;
 
-    if (hasText) {
-      last = MessagingMapper.message(
-        await _socket.sendMessage(<String, dynamic>{
-          'conversationId': conversationId,
-          'type': 'TEXT',
-          'content': trimmedText,
-        }),
-      );
-    }
-
     for (final attachment in attachments) {
       final kind = attachment.backendKind;
       final payload = <String, dynamic>{
         'conversationId': conversationId,
-        'type': kind.wireType,
+        'type': _messageTypeFor(kind),
         'clientPreview': {
           'id': attachment.id,
           'type': kind.wireType,
@@ -117,9 +107,9 @@ class RealMessagingRepository implements MessagingRepository {
       };
       switch (kind) {
         case MessageAttachmentBackendKind.trackLike:
+        case MessageAttachmentBackendKind.trackUpload:
           payload['trackId'] = attachment.id;
           break;
-        case MessageAttachmentBackendKind.trackUpload:
         case MessageAttachmentBackendKind.playlist:
         case MessageAttachmentBackendKind.album:
           payload['collectionId'] = attachment.id;
@@ -131,7 +121,31 @@ class RealMessagingRepository implements MessagingRepository {
       last = MessagingMapper.message(await _socket.sendMessage(payload));
     }
 
+    if (hasText) {
+      last = MessagingMapper.message(
+        await _socket.sendMessage(<String, dynamic>{
+          'conversationId': conversationId,
+          'type': 'TEXT',
+          'content': trimmedText,
+        }),
+      );
+    }
+
     return last!;
+  }
+
+  String _messageTypeFor(MessageAttachmentBackendKind kind) {
+    switch (kind) {
+      case MessageAttachmentBackendKind.trackLike:
+      case MessageAttachmentBackendKind.trackUpload:
+        return 'TRACK_LIKE';
+      case MessageAttachmentBackendKind.playlist:
+        return 'PLAYLIST';
+      case MessageAttachmentBackendKind.album:
+        return 'ALBUM';
+      case MessageAttachmentBackendKind.user:
+        return 'USER';
+    }
   }
 
   @override
@@ -152,6 +166,12 @@ class RealMessagingRepository implements MessagingRepository {
   @override
   Future<void> blockConversation(String conversationId) =>
       _api.block(conversationId);
+
+  @override
+  Future<void> enableReceiveFromAnyone() => _api.enableAllowAll();
+
+  @override
+  Future<void> disableReceiveFromAnyone() => _api.disableAllowAll();
 
   @override
   Future<void> joinConversation(String conversationId) =>

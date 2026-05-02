@@ -1,7 +1,10 @@
 part of 'queue_screen.dart';
 
 class _VisibleQueueEntry {
-  const _VisibleQueueEntry({required this.trackId, required this.absoluteIndex});
+  const _VisibleQueueEntry({
+    required this.trackId,
+    required this.absoluteIndex,
+  });
   final String trackId;
   final int absoluteIndex;
 }
@@ -33,7 +36,8 @@ class _QueueBody extends ConsumerWidget {
     final queueNextEntries = <_VisibleQueueEntry>[];
     if (queue != null && queue.trackIds.length > 1) {
       for (var offset = 1; offset < queue.trackIds.length; offset++) {
-        final absoluteIndex = (queue.currentIndex + offset) % queue.trackIds.length;
+        final absoluteIndex =
+            (queue.currentIndex + offset) % queue.trackIds.length;
         queueNextEntries.add(
           _VisibleQueueEntry(
             trackId: queue.trackIds[absoluteIndex],
@@ -79,7 +83,9 @@ class _QueueBody extends ConsumerWidget {
               children: [
                 for (int i = 0; i < queueNextEntries.length; i++)
                   _QueueTrackTile(
-                    key: ValueKey("${queueNextEntries[i].trackId}-${queueNextEntries[i].absoluteIndex}"),
+                    key: ValueKey(
+                      "${queueNextEntries[i].trackId}-${queueNextEntries[i].absoluteIndex}",
+                    ),
                     index: i,
                     trackId: queueNextEntries[i].trackId,
                     onTap: () => ref
@@ -246,6 +252,9 @@ class _HistoryTile extends ConsumerWidget {
   Future<void> _playHistoryTrack(WidgetRef ref) async {
     if (track.status == PlaybackStatus.blocked) return;
 
+    final stored = ref.read(globalTrackStoreProvider).find(track.trackId);
+    final privateToken = stored?.privateToken?.trim();
+
     final playableHistory = allHistoryTracks
         .where((item) => item.status != PlaybackStatus.blocked)
         .toList(growable: false);
@@ -256,11 +265,16 @@ class _HistoryTile extends ConsumerWidget {
 
     final startIndex = queueTrackIds.indexOf(track.trackId);
 
-    await ref.read(playerProvider.notifier).loadTrack(
+    await ref
+        .read(playerProvider.notifier)
+        .loadTrack(
           track.trackId,
           autoPlay: true,
-          seedTrack: _seedTrackFromHistory(track),
+          seedTrack: _seedTrackFromHistory(track, stored),
           initialPositionSeconds: track.lastPositionSeconds.toDouble(),
+          privateToken: privateToken == null || privateToken.isEmpty
+              ? null
+              : privateToken,
           queue: startIndex >= 0
               ? PlaybackQueue(
                   trackIds: queueTrackIds,
@@ -273,17 +287,20 @@ class _HistoryTile extends ConsumerWidget {
         );
   }
 
-  PlayerSeedTrack _seedTrackFromHistory(HistoryTrack track) {
+  PlayerSeedTrack _seedTrackFromHistory(
+    HistoryTrack track,
+    UploadItem? stored,
+  ) {
     return PlayerSeedTrack(
       trackId: track.trackId,
-      title: track.title,
-      artistName: track.artist.name,
-      durationSeconds: track.durationSeconds,
-      coverUrl: track.coverUrl,
-      waveformUrl: null,
-      directAudioUrl: null,
+      title: stored?.title ?? track.title,
+      artistName: stored?.artistDisplay ?? track.artist.name,
+      durationSeconds: stored?.durationSeconds ?? track.durationSeconds,
+      coverUrl: stored?.artworkUrl ?? track.coverUrl,
+      waveformUrl: stored?.waveformUrl,
+      directAudioUrl: stored?.audioUrl,
       resumePositionSeconds: track.lastPositionSeconds,
-      localFilePath: null,
+      localFilePath: stored?.localFilePath,
     );
   }
 }
@@ -595,11 +612,7 @@ class _Cover extends StatelessWidget {
 // ── Track info resolver ───────────────────────────────────────────────────────
 
 class _TrackInfo {
-  const _TrackInfo({
-    required this.title,
-    required this.artist,
-    this.coverUrl,
-  });
+  const _TrackInfo({required this.title, required this.artist, this.coverUrl});
 
   final String title;
   final String artist;

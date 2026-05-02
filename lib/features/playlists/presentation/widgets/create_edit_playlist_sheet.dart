@@ -5,6 +5,7 @@ import '../../domain/config/playlist_limits.dart';
 import '../../domain/entities/collection_privacy.dart';
 import '../../domain/entities/collection_type.dart';
 import '../../domain/entities/playlist_entity.dart';
+import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
 import '../providers/playlist_providers.dart';
 import 'playlist_form_fields.dart';
 
@@ -73,12 +74,19 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
             limit: 1,
             type: CollectionType.playlist,
           );
-      final reachedLimit = hasReachedFreeCollectionLimit(latestPlaylists.total);
+      final playlistLimit = widget.ref
+          .read(subscriptionNotifierProvider)
+          .currentSubscription
+          .features
+          .playlistLimit;
+      final limit = playlistLimit > 0 ? playlistLimit : kFreeCollectionLimit;
+      final reachedLimit = playlistLimit != -1 &&
+          hasReachedFreeCollectionLimit(latestPlaylists.total, limit: limit);
       if (!mounted) return;
       setState(() {
         _canCreate = !reachedLimit;
         _availabilityMessage = reachedLimit
-            ? playlistLimitReachedMessage(kFreeCollectionLimit)
+            ? playlistLimitReachedMessage(limit)
             : null;
         _isCheckingAvailability = false;
       });

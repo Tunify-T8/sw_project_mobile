@@ -3,7 +3,13 @@
 // Used by: upload_flow_controller, artist_home_credits_section, artist_tools_sheet
 // Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../premium_subscription/domain/entities/billing_cycle.dart';
+import '../../../premium_subscription/domain/entities/subscription_plan_entity.dart';
+import '../../../premium_subscription/domain/entities/subscription_tier.dart';
+import '../../../premium_subscription/presentation/providers/subscription_notifier.dart';
+import '../../../premium_subscription/presentation/widgets/payment/payment_method_sheet.dart';
 import 'artist_tool_paywall_data.dart';
 import 'artist_tool_paywall_footer.dart';
 
@@ -20,32 +26,128 @@ Future<void> showArtistToolPaywallSheet({
     backgroundColor: Colors.transparent,
     builder: (_) => _ArtistToolPaywallSheet(
       kind: kind,
-      onSubscribe: onSubscribe,
       uploadMinutesRemaining: uploadMinutesRemaining,
       uploadMinutesLimit: uploadMinutesLimit,
     ),
   );
 }
 
-class _ArtistToolPaywallSheet extends StatelessWidget {
+class _ArtistToolPaywallSheet extends ConsumerStatefulWidget {
   const _ArtistToolPaywallSheet({
     required this.kind,
-    required this.onSubscribe,
     required this.uploadMinutesRemaining,
     required this.uploadMinutesLimit,
   });
 
   final ArtistToolKind kind;
-  final VoidCallback? onSubscribe;
   final int? uploadMinutesRemaining;
   final int? uploadMinutesLimit;
 
   @override
+  ConsumerState<_ArtistToolPaywallSheet> createState() =>
+      _ArtistToolPaywallSheetState();
+}
+
+class _ArtistToolPaywallSheetState
+    extends ConsumerState<_ArtistToolPaywallSheet> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      final state = ref.read(subscriptionNotifierProvider);
+      if (state.plans.isEmpty && !state.isPlansLoading) {
+        ref.read(subscriptionNotifierProvider.notifier).loadPlans();
+      }
+    });
+  }
+
+  Future<void> _openArtistProMonthlyPayment() async {
+    final notifier = ref.read(subscriptionNotifierProvider.notifier);
+    var state = ref.read(subscriptionNotifierProvider);
+    if (state.isPlansLoading) return;
+
+    if (state.plans.isEmpty) {
+      await notifier.loadPlans();
+      state = ref.read(subscriptionNotifierProvider);
+    }
+
+    if (!mounted) return;
+
+    final artistProPlan = _findArtistProPlan(state.plans);
+    if (artistProPlan == null) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: const Color(0xFF1C1C1C),
+          title: const Text(
+            'Artist Pro unavailable',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Artist Pro is not available right now.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final price =
+        '${artistProPlan.currency} ${artistProPlan.monthlyPrice.toStringAsFixed(2)}/month';
+
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+
+    if (!navigator.mounted) return;
+
+    showModalBottomSheet(
+      context: navigator.context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF121212),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      showDragHandle: true,
+      builder: (_) => PaymentMethodSheet(
+        price: price,
+        onContinue: (paymentMethod) {
+          notifier.setBillingCycle(BillingCycle.monthly);
+          return notifier.subscribe(
+            tier: artistProPlan.tier,
+            paymentMethod: paymentMethod,
+          );
+        },
+      ),
+    );
+  }
+
+  SubscriptionPlanEntity? _findArtistProPlan(
+    List<SubscriptionPlanEntity> plans,
+  ) {
+    for (final plan in plans) {
+      if (plan.tier == SubscriptionTier.artistpro) return plan;
+    }
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final subscriptionState = ref.watch(subscriptionNotifierProvider);
+    final artistProPlan = _findArtistProPlan(subscriptionState.plans);
+    final priceText = (artistProPlan == null)
+        ? 'EGP 175.00/month.'
+        : '${artistProPlan.currency} ${artistProPlan.monthlyPrice.toStringAsFixed(2)}/month.';
     final data = artistToolSheetData(
-      kind,
-      uploadMinutesRemaining: uploadMinutesRemaining,
-      uploadMinutesLimit: uploadMinutesLimit,
+      widget.kind,
+      uploadMinutesRemaining: widget.uploadMinutesRemaining,
+      uploadMinutesLimit: widget.uploadMinutesLimit,
     );
 
     return Container(
@@ -99,16 +201,15 @@ class _ArtistToolPaywallSheet extends StatelessWidget {
               ),
               const SizedBox(height: 22),
               _ArtistToolPaywallMessage(
-                kind: kind,
+                kind: widget.kind,
                 data: data,
-                uploadMinutesLimit: uploadMinutesLimit,
+                uploadMinutesLimit: widget.uploadMinutesLimit,
               ),
               const SizedBox(height: 28),
               ArtistToolPaywallFooter(
-                onSubscribe: () {
-                  Navigator.of(context).pop();
-                  onSubscribe?.call();
-                },
+                isLoading: subscriptionState.isPlansLoading,
+                priceText: priceText,
+                onSubscribe: _openArtistProMonthlyPayment,
               ),
             ],
           ),

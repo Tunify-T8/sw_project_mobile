@@ -26,7 +26,9 @@ class _PlayerBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bundle = playerState.bundle!;
-    final engagementState = ref.watch(engagementProvider(bundle.trackId)); // engagement addition — watch live engagement state for this track
+    final engagementState = ref.watch(
+      engagementProvider(bundle.trackId),
+    ); // engagement addition — watch live engagement state for this track
     final isLiked = engagementState.engagement?.isLiked ?? false;
 
     return GestureDetector(
@@ -51,7 +53,17 @@ class _PlayerBody extends ConsumerWidget {
               children: [
                 _TopBar(
                   onDismiss: () => Navigator.of(context).pop(),
-                  onMore: onToggleMore,
+                  onMore: () => showTrackOptionsSheet(
+                    context,
+                    info: TrackOptionInfo(
+                      trackId: bundle.trackId,
+                      title: bundle.title,
+                      artist: bundle.artist.name,
+                      artistId: bundle.artist.id,
+                      coverUrl: bundle.coverUrl,
+                    ),
+                    ref: ref,
+                  ),
                 ),
                 Expanded(
                   child: Padding(
@@ -69,18 +81,21 @@ class _PlayerBody extends ConsumerWidget {
                             // so the Expanded(flex: 5) inside its Column works.
                             layoutBuilder: (currentChild, previousChildren) =>
                                 Stack(
-                              fit: StackFit.expand,
-                              alignment: Alignment.center,
-                              children: [
-                                ...previousChildren,
-                                if (currentChild case final child?) child,
-                              ],
-                            ),
+                                  fit: StackFit.expand,
+                                  alignment: Alignment.center,
+                                  children: [
+                                    ...previousChildren,
+                                    ?currentChild,
+                                  ],
+                                ),
                             transitionBuilder: (child, animation) {
                               return SlideTransition(
                                 position: animation.drive(
                                   Tween(
-                                    begin: Offset(swipeDir.toDouble() * 0.25, 0),
+                                    begin: Offset(
+                                      swipeDir.toDouble() * 0.25,
+                                      0,
+                                    ),
                                     end: Offset.zero,
                                   ).chain(CurveTween(curve: Curves.easeOut)),
                                 ),
@@ -110,7 +125,8 @@ class _PlayerBody extends ConsumerWidget {
                           likeCount: engagementState.engagement?.likeCount ?? 0,
                           onLikeCountTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => LikersScreen(trackId: bundle.trackId),
+                              builder: (_) =>
+                                  LikersScreen(trackId: bundle.trackId),
                             ),
                           ),
                         ),
@@ -167,7 +183,17 @@ class _PlayerBody extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         _BottomActions(
-                          trackId: bundle.trackId,
+                          info: TrackOptionInfo(
+                            trackId: bundle.trackId,
+                            title: bundle.title,
+                            artist: bundle.artist.name,
+                            artistId: bundle.artist.id,
+                            coverUrl: bundle.coverUrl,
+                            privateToken: playerState.privateToken,
+                            isPrivate:
+                                playerState.privateToken?.trim().isNotEmpty ==
+                                true,
+                          ),
                           onQueue: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -178,9 +204,8 @@ class _PlayerBody extends ConsumerWidget {
                           onComments: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => CommentsScreen(
-                                  trackId: bundle.trackId,
-                                ),
+                                builder: (_) =>
+                                    CommentsScreen(trackId: bundle.trackId),
                               ),
                             );
                           },
@@ -202,7 +227,8 @@ class _PlayerBody extends ConsumerWidget {
 
 /// Artwork + track info + waveform bar + time row for one track.
 /// Keyed by [bundle.trackId] so AnimatedSwitcher can animate between tracks.
-class _TrackContent extends ConsumerWidget { // engagement modification — was StatelessWidget, converted to ConsumerWidget
+class _TrackContent extends ConsumerWidget {
+  // engagement modification — was StatelessWidget, converted to ConsumerWidget
   const _TrackContent({
     super.key,
     required this.playerState,
@@ -215,9 +241,12 @@ class _TrackContent extends ConsumerWidget { // engagement modification — was 
   final void Function(int positionSeconds) onSeek;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) { // engagement modification — added WidgetRef ref
+  Widget build(BuildContext context, WidgetRef ref) {
+    // engagement modification — added WidgetRef ref
     final bundle = playerState.bundle!;
-    final engagementState = ref.watch(engagementProvider(bundle.trackId)); // engagement modification — watch live engagement state
+    final engagementState = ref.watch(
+      engagementProvider(bundle.trackId),
+    ); // engagement modification — watch live engagement state
     final isLiked = engagementState.engagement?.isLiked ?? false;
     final likeCount = engagementState.engagement?.likeCount ?? 0;
     return Column(
@@ -234,10 +263,14 @@ class _TrackContent extends ConsumerWidget { // engagement modification — was 
         _TrackInfo(
           title: bundle.title,
           artistName: bundle.artist.name,
-          isLiked: isLiked, // engagement modification — was bundle.engagement.isLiked
-          onLike: () => ref.read(engagementProvider(bundle.trackId).notifier).toggleLike(), // engagement modification — was () {}
+          isLiked:
+              isLiked, // engagement modification — was bundle.engagement.isLiked
+          onLike: () => ref
+              .read(engagementProvider(bundle.trackId).notifier)
+              .toggleLike(), // engagement modification — was () {}
           likeCount: likeCount, // engagement modification — added
-          onLikeCountTap: () => Navigator.of(context).push( // engagement modification — added, navigates to LikersScreen
+          onLikeCountTap: () => Navigator.of(context).push(
+            // engagement modification — added, navigates to LikersScreen
             MaterialPageRoute(
               builder: (_) => LikersScreen(trackId: bundle.trackId),
             ),

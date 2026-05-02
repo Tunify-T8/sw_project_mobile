@@ -75,17 +75,12 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const UpgradeImage(),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const UpgradeImage(),
 
-              if (subscription == null)
-                const Text(
-                  'No current subscription found.',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                )
-              else ...[
                 Text(
                   _planName(subscription.tier),
                   style: const TextStyle(
@@ -116,67 +111,69 @@ class CurrentSubscriptionScreen extends ConsumerWidget {
                           size: 18,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          feature,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                        Expanded(
+                          child: Text(
+                            feature,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-              ],
-
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const SubscriptionPlansScreen(),
+            
+                const SizedBox(height: 24),
+            
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SubscriptionPlansScreen(),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
                       ),
-                    );
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26),
                     ),
-                  ),
-                  child: const Text(
-                    'See more plans',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              Center(
-                child: TextButton(
-                  onPressed: state.isCancelling
-                      ? null
-                      : () => ref
-                            .read(subscriptionNotifierProvider.notifier)
-                            .cancelSubscription(),
-                  child: Text(
-                    state.isCancelling
-                        ? 'Cancelling...'
-                        : 'Cancel Subscription',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                    child: const Text(
+                      'See more plans',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
-              ),
-            ],
+            
+                const SizedBox(height: 12),
+            
+                Center(
+                  child: TextButton(
+                    onPressed: state.isCancelling
+                        ? null
+                        : () => ref
+                              .read(subscriptionNotifierProvider.notifier)
+                              .cancelSubscription(),
+                    child: Text(
+                      state.isCancelling
+                          ? 'Cancelling...'
+                          : 'Cancel Subscription',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -7,10 +7,6 @@ class OpenConversationUseCase {
   const OpenConversationUseCase(this.repo);
 
   Future<String> call(String otherUserId) async {
-    final conversationId = await repo.createOrGetConversation(otherUserId);
-    if (conversationId.isNotEmpty) {
-      await repo.unarchiveConversation(conversationId);
-    }
-    return conversationId;
+    return repo.createOrGetConversation(otherUserId);
   }
 }

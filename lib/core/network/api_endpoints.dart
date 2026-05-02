@@ -10,15 +10,15 @@ class ApiEndpoints {
   /// Builds a shareable track URL.
   /// Private tracks include [privateToken] as a query parameter.
   static String shareTrackUrl(String trackId, {String? privateToken}) {
-    final base = Uri.parse(shareBaseUrl).replace(
-      pathSegments: ['tracks', trackId],
-    );
+    final base = Uri.parse(
+      shareBaseUrl,
+    ).replace(pathSegments: ['tracks', trackId]);
     if (privateToken == null || privateToken.trim().isEmpty) {
       return base.toString();
     }
-    return base.replace(
-      queryParameters: {'privateToken': privateToken},
-    ).toString();
+    return base
+        .replace(queryParameters: {'privateToken': privateToken})
+        .toString();
   }
 
   /// Builds a shareable profile URL.
@@ -103,6 +103,7 @@ class ApiEndpoints {
   static String trackPlayback(String trackId) => '/tracks/$trackId/playback';
   static String trackStream(String trackId) => '/tracks/$trackId/stream';
   static String trackPlayed(String trackId) => '/tracks/$trackId/played';
+  static String trackDownload(String trackId) => '/tracks/$trackId/download';
 
   /// Older contract endpoint kept only as a compatibility fallback.
   static const String playbackEvents = '/me/playback/events';
@@ -130,14 +131,16 @@ class ApiEndpoints {
   static const String legacyPlaybackContext = '/playback/context';
 
   // Engagement & Social Interactions
-  static String trackEngagement(String trackId) => '/tracks/$trackId/engagement';
+  static String trackEngagement(String trackId) =>
+      '/tracks/$trackId/engagement';
   static String likeTrack(String trackId) => '/tracks/$trackId/like';
   static String repostTrack(String trackId) => '/tracks/$trackId/repost';
   static String trackComments(String trackId) => '/tracks/$trackId/comments';
   static String trackLikers(String trackId) => '/tracks/$trackId/likes';
   static String trackReposters(String trackId) => '/tracks/$trackId/reposts';
   static String deleteComment(String commentId) => '/comments/$commentId';
-  static String commentReplies(String commentId) => '/comments/$commentId/replies';
+  static String commentReplies(String commentId) =>
+      '/comments/$commentId/replies';
   static String likeComment(String commentId) => '/comments/$commentId/like';
   static const String myLikedTracks = '/users/me/liked-tracks';
   static String userLikes(String userId) => '/users/$userId/likes';
@@ -153,6 +156,7 @@ class ApiEndpoints {
   static const String searchTracks = '/search/tracks';
   static const String searchCollections = '/search/collections';
   static const String searchPeople = '/search/people';
+  static const String searchAutocomplete = '/search/autocomplete';
 
   //Premuim
   static const String getSubscriptionPlans = '/subscriptions/plans';
@@ -178,7 +182,8 @@ class ApiEndpoints {
   static String collectionLike(String id) => '/collections/$id/like';
   static String collectionEmbed(String id) => '/collections/$id/embed';
   static String collectionShare(String id) => '/collections/$id/share';
-  static String collectionShareReset(String id) => '/collections/$id/share/reset';
+  static String collectionShareReset(String id) =>
+      '/collections/$id/share/reset';
 
   static String userCollections(String username) =>
       '/users/$username/collections';

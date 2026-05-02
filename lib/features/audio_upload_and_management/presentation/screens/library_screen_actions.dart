@@ -7,19 +7,19 @@ extension _LibraryScreenActions on _LibraryScreenState {
       return;
     }
 
-    if (label == 'Your likes') { // engagement addition — navigate to liked tracks screen
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const LikedTracksScreen()),
-      );
+    if (label == 'Your likes') {
+      // engagement addition — navigate to liked tracks screen
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LikedTracksScreen()));
       return;
     }
 
     if (label == 'Following') {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => const NetworkListsScreen(
-            listType: NetworkListType.following,
-          ),
+          builder: (_) =>
+              const NetworkListsScreen(listType: NetworkListType.following),
         ),
       );
       return;
@@ -37,15 +37,6 @@ extension _LibraryScreenActions on _LibraryScreenState {
             onStartUpload: widget.onStartUpload,
             onOpenSubscription: widget.onOpenSubscription,
           ),
-        ),
-      );
-      return;
-    }
-
-    if (label == 'Open shared link') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const OpenSharedTrackLinkScreen(),
         ),
       );
       return;

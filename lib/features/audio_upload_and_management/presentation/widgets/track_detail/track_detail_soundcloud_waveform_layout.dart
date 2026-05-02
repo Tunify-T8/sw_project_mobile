@@ -122,11 +122,11 @@ class _WaveformMetrics {
   }) : barCount = bars.length,
        safeProgress = progress.clamp(0.0, 1.0),
        viewportWidth = containerWidth,
-       stride = _resolveStride(containerWidth),
+       stride = _resolveStride(containerWidth, bars.length),
        playheadAnchorX = containerWidth * 0.62,
        contentWidth = math.max(
          containerWidth,
-         bars.length * _resolveStride(containerWidth),
+         bars.length * _resolveStride(containerWidth, bars.length),
        ) {
     final currentIndexDouble = safeProgress * math.max(0, barCount - 1);
     currentBarX = currentIndexDouble * stride + (stride * 0.5);
@@ -147,8 +147,9 @@ class _WaveformMetrics {
   late final double playheadX;
   late final double badgeLeft;
 
-  static double _resolveStride(double width) {
-    final density = width > 420 ? 3.45 : 3.15;
-    return density;
+  static double _resolveStride(double width, int barCount) {
+    final baseDensity = width > 420 ? 3.45 : 3.15;
+    if (barCount <= 0 || width <= 0) return baseDensity;
+    return math.max(baseDensity, width / barCount);
   }
 }

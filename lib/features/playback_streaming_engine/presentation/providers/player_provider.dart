@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/widgets.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:just_audio/just_audio.dart' as just_audio;
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
 import '../../../audio_upload_and_management/data/services/global_track_store.dart';
 import '../../domain/entities/history_track.dart';
@@ -83,8 +83,6 @@ class PlayerNotifier extends AsyncNotifier<PlayerState>
   bool _isTransportBusy = false;
   DateTime? _lastSessionPersistAt;
   PlayerState? _lastKnownState;
-
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   PlayerState? get _current => _lastKnownState;
 

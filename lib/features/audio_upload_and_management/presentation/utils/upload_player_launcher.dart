@@ -3,9 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../core/storage/safe_secure_storage.dart';
 import '../../../../core/storage/storage_keys.dart';
+import '../../../../core/storage/token_storage.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../playback_streaming_engine/domain/entities/history_track.dart';
 import '../../../playback_streaming_engine/domain/entities/playability_info.dart';
 import '../../../playback_streaming_engine/domain/entities/playback_queue.dart';
@@ -52,8 +54,8 @@ Future<void> openUploadItemPlayer(
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -75,12 +77,17 @@ Future<void> openHistorySourcedPlayer(
   UploadItem item, {
   required List<HistoryTrack> historyTracks,
   bool openScreen = true,
+  double? initialPositionSeconds,
 }) async {
   if (!item.isPlayable) return;
 
   await _ensureCachedUploadsHydrated(ref);
 
-  final preparedItem = await _prepareTrackSurfaceItemFast(ref, item);
+  final preparedItem = await _resolvePrivateItemForPlayback(
+    ref,
+    await _prepareTrackSurfaceItemFast(ref, item),
+  );
+  final privateToken = _normalizePrivateToken(preparedItem.privateToken);
 
   if (!await _isRegionRestrictedForCurrentUser(ref, preparedItem)) {
     _optimisticallyPromoteHistory(ref, preparedItem);
@@ -102,6 +109,8 @@ Future<void> openHistorySourcedPlayer(
         preparedItem.id,
         autoPlay: true,
         seedTrack: seedTrack,
+        initialPositionSeconds: initialPositionSeconds,
+        privateToken: privateToken,
         queue: PlaybackQueue(
           trackIds: queueTrackIds,
           currentIndex: startIndex,
@@ -113,7 +122,13 @@ Future<void> openHistorySourcedPlayer(
     );
   } else {
     unawaited(
-      notifier.loadTrack(preparedItem.id, autoPlay: true, seedTrack: seedTrack),
+      notifier.loadTrack(
+        preparedItem.id,
+        autoPlay: true,
+        seedTrack: seedTrack,
+        initialPositionSeconds: initialPositionSeconds,
+        privateToken: privateToken,
+      ),
     );
   }
 
@@ -122,8 +137,8 @@ Future<void> openHistorySourcedPlayer(
   if (!openScreen || !context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: preparedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: preparedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -174,28 +189,12 @@ Future<void> ensureUploadItemPlayback(
   // Private tracks from the library list never include privateToken (the list
   // endpoint omits it). Fetch the full track detail here so we have the token
   // before we attempt the stream request. Without it the backend returns 403.
-  UploadItem resolvedItem = item;
-  if (item.visibility == UploadVisibility.private &&
-      item.privateToken == null) {
-    ref.invalidate(trackDetailItemProvider(item));
-    try {
-      resolvedItem = await ref
-          .read(trackDetailItemProvider(item).future)
-          .timeout(const Duration(seconds: 5));
-    } catch (error) {
-      debugPrint('Private track detail fetch failed for ${item.id}: $error');
-      resolvedItem = item;
-    }
-
-    if (resolvedItem.privateToken == null ||
-        resolvedItem.privateToken!.trim().isEmpty) {
-      debugPrint('Private track ${item.id} has no privateToken after details.');
-    }
-  }
+  final resolvedItem = await _resolvePrivateItemForPlayback(ref, item);
 
   // Rebind item to the resolved copy (may have privateToken now).
   // ignore: parameter_assignments
   item = resolvedItem;
+  final privateToken = _normalizePrivateToken(item.privateToken);
 
   final notifier = ref.read(playerProvider.notifier);
   final current = ref.read(playerProvider).asData?.value;
@@ -226,7 +225,7 @@ Future<void> ensureUploadItemPlayback(
         repeat: RepeatMode.all,
         autoPlay: autoPlay || current?.isPlaying == true,
         seedTrack: seedTrack,
-        privateToken: item.privateToken,
+        privateToken: privateToken,
       );
       return;
     }
@@ -245,7 +244,7 @@ Future<void> ensureUploadItemPlayback(
       repeat: RepeatMode.all,
       autoPlay: autoPlay,
       seedTrack: seedTrack,
-      privateToken: item.privateToken,
+      privateToken: privateToken,
     );
     return;
   }
@@ -254,8 +253,38 @@ Future<void> ensureUploadItemPlayback(
     item.id,
     autoPlay: autoPlay,
     seedTrack: seedTrack,
-    privateToken: item.privateToken,
+    privateToken: privateToken,
   );
+}
+
+String? _normalizePrivateToken(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return trimmed;
+}
+
+Future<UploadItem> _resolvePrivateItemForPlayback(
+  WidgetRef ref,
+  UploadItem item,
+) async {
+  if (item.visibility != UploadVisibility.private ||
+      _normalizePrivateToken(item.privateToken) != null) {
+    return item;
+  }
+
+  ref.invalidate(trackDetailItemProvider(item));
+  try {
+    final resolvedItem = await ref
+        .read(trackDetailItemProvider(item).future)
+        .timeout(const Duration(seconds: 5));
+    if (_normalizePrivateToken(resolvedItem.privateToken) == null) {
+      debugPrint('Private track ${item.id} has no privateToken after details.');
+    }
+    return resolvedItem;
+  } catch (error) {
+    debugPrint('Private track detail fetch failed for ${item.id}: $error');
+    return item;
+  }
 }
 
 // Fire-and-forget background fetch: pull the playing artist's full track
@@ -396,8 +425,8 @@ Future<void> openCurrentPlaybackTrackSurface(
   if (!context.mounted) return;
   await Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder: (_, __, ___) => TrackDetailScreen(item: hydratedItem),
-      transitionsBuilder: (_, animation, __, child) => SlideTransition(
+      pageBuilder: (_, _, _) => TrackDetailScreen(item: hydratedItem),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
@@ -515,8 +544,17 @@ Future<void> _ensureCachedUploadsHydrated(WidgetRef ref) async {
   final store = ref.read(globalTrackStoreProvider);
   if (store.all.isNotEmpty) return;
 
-  const storage = FlutterSecureStorage();
-  final raw = await storage.read(key: StorageKeys.cachedLibraryUploads);
+  // Resolve the user-scoped cache key so we never hydrate one user's offline
+  // uploads into another user's session.
+  final userId =
+      ref.read(authControllerProvider).asData?.value?.id.trim() ??
+      (await const TokenStorage().getUser())?.id.trim() ??
+      '';
+  final key = userId.isEmpty
+      ? StorageKeys.cachedLibraryUploads
+      : '${StorageKeys.cachedLibraryUploads}_$userId';
+
+  final raw = await SafeSecureStorage.read(key);
   if (raw == null || raw.isEmpty) return;
 
   try {

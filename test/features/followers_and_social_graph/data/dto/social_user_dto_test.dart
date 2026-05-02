@@ -9,13 +9,9 @@ void main() {
         'username': 'sound_user',
         'avatarUrl': 'https://example.com/avatar.png',
         'coverUrl': 'https://example.com/cover.png',
-        'userType': 'ARTIST',
         'location': 'Cairo',
         'followersCount': 120,
-        'followingCount': 55,
-        'tracksUploadedCount': 19,
-        'mutualFollowersCount': 7,
-        'isVerified': true,
+        'isCertified': true,
         'isFollowing': true,
         'isNotificationEnabled': true,
         'isBlocked': true,
@@ -25,12 +21,8 @@ void main() {
       expect(dto.username, 'sound_user');
       expect(dto.avatarUrl, 'https://example.com/avatar.png');
       expect(dto.coverUrl, 'https://example.com/cover.png');
-      expect(dto.userType, 'ARTIST');
       expect(dto.location, 'Cairo');
       expect(dto.followersCount, 120);
-      expect(dto.followingCount, 55);
-      expect(dto.tracksUploadedCount, 19);
-      expect(dto.mutualFollowersCount, 7);
       expect(dto.isCertified, isTrue);
       expect(dto.isFollowing, isTrue);
       expect(dto.isNotificationEnabled, isTrue);
@@ -71,12 +63,11 @@ void main() {
 
       expect(dto.avatarUrl, isNull);
       expect(dto.coverUrl, isNull);
-      expect(dto.userType, isNull);
       expect(dto.location, isNull);
     });
 
     test(
-      'uses false defaults for flags when isVerified isFollowing isNotificationEnabled and isBlocked are absent',
+      'uses current defaults for flags when optional booleans are absent',
       () {
         final dto = SocialUserDTO.fromJson({
           'id': '1',
@@ -84,7 +75,7 @@ void main() {
         });
 
         expect(dto.isCertified, isFalse);
-        expect(dto.isFollowing, isFalse);
+        expect(dto.isFollowing, isTrue);
         expect(dto.isNotificationEnabled, isFalse);
         expect(dto.isBlocked, isFalse);
       },

@@ -5,6 +5,7 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import '../../domain/entities/feed_item_entity.dart';
 import 'feed_activity_row.dart';
 import 'feed_interaction_buttons.dart';
+import '../utils/feed_track_playback.dart';
 import '../../../../../core/utils/navigation_utils.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/ui/widgets/track_options_menu/track_options_menu.dart';
@@ -13,6 +14,16 @@ class ClassicFeedCard extends ConsumerWidget {
   final FeedItemEntity item;
 
   const ClassicFeedCard({super.key, required this.item});
+
+  Future<void> _playTrack(BuildContext context, WidgetRef ref) {
+    return playFeedTrack(
+      context,
+      ref,
+      item.track,
+      openScreen: false,
+      restartIfCurrent: true,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,7 +52,8 @@ class ClassicFeedCard extends ConsumerWidget {
           Stack(
             children: [
               GestureDetector(
-                onTap: () {}, //play track here. only starts doesnt stop
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _playTrack(context, ref),
                 child: Container(
                   width: double.infinity,
                   height: 350,
@@ -66,9 +78,30 @@ class ClassicFeedCard extends ConsumerWidget {
                       : null,
                 ),
               ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      width: 74,
+                      height: 74,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.62),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 46,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
               Positioned(
                 left: 16,
+                right: 16,
                 bottom: 16,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,6 +111,8 @@ class ClassicFeedCard extends ConsumerWidget {
                       padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                       child: Text(
                         item.track.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -92,10 +127,15 @@ class ClassicFeedCard extends ConsumerWidget {
                         onTap: () => navigateToProfile(
                           context,
                           item.track.artistId,
-                          currentUserId: ref.read(authControllerProvider).value?.id,
+                          currentUserId: ref
+                              .read(authControllerProvider)
+                              .value
+                              ?.id,
                         ),
                         child: Text(
                           item.track.artistName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 16,
@@ -149,18 +189,18 @@ class ClassicFeedCard extends ConsumerWidget {
               ),
               const Spacer(),
               IconButton(
-              onPressed: () async {
-                await showTrackOptionsMenu(
-                  context: context,
-                  trackId: item.track.trackId,
-                  title: item.track.title,
-                  artistId: item.track.artistId,
-                  artistName: item.track.artistName,
-                  coverUrl: item.track.coverUrl,
-                  initialIsLiked: item.track.interaction.isLiked,
-                  initialIsReposted: item.track.interaction.isReposted,
-                );
-              },
+                onPressed: () async {
+                  await showTrackOptionsMenu(
+                    context: context,
+                    trackId: item.track.trackId,
+                    title: item.track.title,
+                    artistId: item.track.artistId,
+                    artistName: item.track.artistName,
+                    coverUrl: item.track.coverUrl,
+                    initialIsLiked: item.track.interaction.isLiked,
+                    initialIsReposted: item.track.interaction.isReposted,
+                  );
+                },
                 icon: const Icon(Icons.more_horiz, color: Colors.white),
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,

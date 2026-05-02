@@ -3,12 +3,16 @@
 // Used by: artist_home_screen
 // Concerns: Supporting UI and infrastructure for upload and track management.
 import 'package:flutter/material.dart';
+import 'package:software_project/features/premium_subscription/domain/entities/current_subscription_entity.dart';
 
 import '../../../domain/entities/artist_tools_quota.dart';
 import '../artist_tool_paywall_data.dart';
 import '../artist_tool_paywall_sheet.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../premium_subscription/presentation/providers/subscription_notifier.dart';
+import '../../../../premium_subscription/domain/entities/subscription_tier.dart';
 
-class ArtistHomeCreditsSection extends StatelessWidget {
+class ArtistHomeCreditsSection extends ConsumerWidget {
   const ArtistHomeCreditsSection({
     super.key,
     required this.quota,
@@ -19,7 +23,10 @@ class ArtistHomeCreditsSection extends StatelessWidget {
   final VoidCallback? onOpenSubscription;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subscriptionState = ref.watch(subscriptionNotifierProvider);
+    final currentSubscription = subscriptionState.currentSubscription;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -41,8 +48,18 @@ class ArtistHomeCreditsSection extends StatelessWidget {
                   icon: Icons.bolt_rounded,
                   iconColor: const Color(0xFFB873FF),
                   label: 'Amplify',
-                  subText: quota.canAmplify ? 'OPEN' : 'TRY IT',
-                  onTap: () => _openPaywall(context, ArtistToolKind.amplify),
+                  subText: (currentSubscription.tier != SubscriptionTier.free)
+                      ? 'OPEN'
+                      : 'TRY IT',
+                  onTap: () {
+                    if (currentSubscription.tier == SubscriptionTier.free) {
+                      _openPaywall(
+                        context,
+                        ArtistToolKind.amplify,
+                        currentSubscription,
+                      );
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 10),
@@ -51,11 +68,20 @@ class ArtistHomeCreditsSection extends StatelessWidget {
                   icon: Icons.cloud_upload_outlined,
                   iconColor: const Color(0xFF7CB4FF),
                   label: 'Upload time',
-                  subText: quota.isFree
-                      ? '${quota.uploadMinutesRemaining}/${quota.uploadMinutesLimit} mins left'
+                  subText:
+                      (currentSubscription.tier != SubscriptionTier.artistpro)
+                      ? '${currentSubscription.features.uploadLimit - quota.uploadMinutesUsed}/${currentSubscription.features.uploadLimit} mins left'
                       : 'Unlimited',
                   underlineSubtitle: false,
-                  onTap: () => _openPaywall(context, ArtistToolKind.uploadTime),
+                  onTap: () {
+                    if (currentSubscription.tier == SubscriptionTier.free) {
+                      _openPaywall(
+                        context,
+                        ArtistToolKind.uploadTime,
+                        currentSubscription,
+                      );
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 10),
@@ -65,8 +91,15 @@ class ArtistHomeCreditsSection extends StatelessWidget {
                   iconColor: const Color(0xFF7CB4FF),
                   label: 'Replace file',
                   subText: quota.canReplaceFiles ? 'OPEN' : 'TRY IT',
-                  onTap: () =>
-                      _openPaywall(context, ArtistToolKind.replaceFile),
+                  onTap: () {
+                    if (currentSubscription.tier == SubscriptionTier.free) {
+                      _openPaywall(
+                        context,
+                        ArtistToolKind.replaceFile,
+                        currentSubscription,
+                      );
+                    }
+                  },
                 ),
               ),
             ],
@@ -76,13 +109,17 @@ class ArtistHomeCreditsSection extends StatelessWidget {
     );
   }
 
-  void _openPaywall(BuildContext context, ArtistToolKind kind) {
+  void _openPaywall(
+    BuildContext context,
+    ArtistToolKind kind,
+    CurrentSubscriptionEntity currentSubscription,
+  ) {
     showArtistToolPaywallSheet(
       context: context,
       kind: kind,
       onSubscribe: onOpenSubscription,
       uploadMinutesRemaining: quota.uploadMinutesRemaining,
-      uploadMinutesLimit: quota.uploadMinutesLimit,
+      uploadMinutesLimit: currentSubscription.features.uploadLimit,
     );
   }
 }

@@ -5,6 +5,8 @@ import '../../../../core/design_system/colors.dart';
 import '../../../audio_upload_and_management/presentation/providers/library_uploads_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import '../../../playlists/domain/entities/collection_type.dart';
+import '../../../playlists/presentation/providers/playlist_providers.dart';
 import '../../domain/entities/message_attachment.dart';
 
 /// Bottom sheet for choosing content to attach to a message.
@@ -30,6 +32,14 @@ class _AttachContentSheetState extends ConsumerState<AttachContentSheet>
       final uploadsState = ref.read(libraryUploadsProvider);
       if (!uploadsState.isLoading && uploadsState.items.isEmpty) {
         await ref.read(libraryUploadsProvider.notifier).load();
+      }
+
+      final playlistState = ref.read(playlistNotifierProvider);
+      if (!playlistState.isMyCollectionsLoading &&
+          playlistState.myCollections.isEmpty) {
+        await ref
+            .read(playlistNotifierProvider.notifier)
+            .loadMyCollections(type: CollectionType.playlist, limit: 100);
       }
     });
   }
@@ -207,7 +217,7 @@ class _LikesTab extends ConsumerWidget {
   }
 }
 
-class _PlaylistsTab extends StatelessWidget {
+class _PlaylistsTab extends ConsumerWidget {
   const _PlaylistsTab({
     required this.isSelected,
     required this.onToggle,
@@ -216,48 +226,60 @@ class _PlaylistsTab extends StatelessWidget {
   final bool Function(String id) isSelected;
   final ValueChanged<MessageAttachment> onToggle;
 
-  static const _playlists = [
-    _MockPlaylist(id: 'pl_1', title: 'test1', owner: 'Rozana Ahmed'),
-    _MockPlaylist(id: 'pl_2', title: 'Untitled playlist', owner: 'Rozana Ahmed'),
-    _MockPlaylist(id: 'pl_3', title: 'Pop Fit Workout', owner: 'Discovery Playlists'),
-    _MockPlaylist(id: 'pl_4', title: 'Rand', owner: 'Rozana Ahmed'),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playlistState = ref.watch(playlistNotifierProvider);
+    final currentUser = ref.watch(authControllerProvider).asData?.value;
+    final ownerName = currentUser?.username ?? 'You';
+    final playlists = playlistState.myCollections
+        .where(
+          (playlist) =>
+              playlist.type == CollectionType.playlist && playlist.isMine,
+        )
+        .toList(growable: false);
+
+    if (playlistState.isMyCollectionsLoading && playlists.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (playlistState.myCollectionsError != null && playlists.isEmpty) {
+      return _ErrorTab(
+        label: 'Could not load playlists',
+        onRetry: () => ref
+            .read(playlistNotifierProvider.notifier)
+            .loadMyCollections(type: CollectionType.playlist, limit: 100),
+      );
+    }
+
+    if (playlists.isEmpty) {
+      return const _EmptyTab(label: 'No playlists yet');
+    }
+
     return ListView.builder(
-      itemCount: _playlists.length,
+      itemCount: playlists.length,
       itemBuilder: (context, index) {
-        final pl = _playlists[index];
+        final playlist = playlists[index];
         final attachment = MessageAttachment(
-          id: pl.id,
+          id: playlist.id,
           type: MessageAttachmentType.collection,
           backendKind: MessageAttachmentBackendKind.playlist,
-          title: pl.title,
-          subtitle: pl.owner,
+          title: playlist.title,
+          subtitle: ownerName,
+          artworkUrl: playlist.coverUrl,
         );
 
         return _ContentTile(
-          title: pl.title,
-          subtitle: pl.owner,
-          selected: isSelected(pl.id),
+          title: playlist.title,
+          subtitle: ownerName,
+          imageUrl: playlist.coverUrl,
+          selected: isSelected(playlist.id),
           onTap: () => onToggle(attachment),
         );
       },
     );
   }
-}
-
-class _MockPlaylist {
-  const _MockPlaylist({
-    required this.id,
-    required this.title,
-    required this.owner,
-  });
-
-  final String id;
-  final String title;
-  final String owner;
 }
 
 class _UploadsTab extends ConsumerWidget {
@@ -408,6 +430,42 @@ class _EmptyTab extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(color: Colors.white38, fontSize: 15),
+      ),
+    );
+  }
+}
+
+class _ErrorTab extends StatelessWidget {
+  const _ErrorTab({
+    required this.label,
+    required this.onRetry,
+  });
+
+  final String label;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white38, fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: onRetry,
+            child: const Text(
+              'Retry',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -4,9 +4,8 @@ import '../../../domain/entities/profile_result_entity.dart';
 
 /// Search result tile for a user profile.
 ///
-/// FIX: Added optional [onTap] callback for profile navigation.
-/// FIX: Follow button now uses [RelationshipButton] — same widget used in
-/// the home feed and suggested users — so follow/unfollow actually works.
+/// Follow button uses [RelationshipButton] so follow/unfollow works.
+/// [onTap] callback for profile navigation.
 class SearchResultTileProfile extends StatelessWidget {
   const SearchResultTileProfile({super.key, required this.profile, this.onTap});
 
@@ -38,7 +37,7 @@ class SearchResultTileProfile extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              profile.username,
+              profile.displayLabel,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,

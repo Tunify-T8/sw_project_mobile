@@ -14,19 +14,24 @@ import '../utils/messaging_time_format.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/message_buble.dart';
 import '../widgets/messaging_bottom_shell.dart';
+import '../../../profile/presentation/screens/other_user_profile_screen.dart';
 import 'attach_content_sheet.dart';
 import 'report_contact_screen.dart';
+import '../../domain/entities/conversation_entity.dart';
+import '../../../../features/followers_and_social_graph/presentation/providers/relationship_status_notifier.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
     super.key,
     required this.conversationId,
+    this.otherUserId,
     required this.otherUserName,
     this.otherUserAvatar,
     this.pendingAttachment,
   });
 
   final String conversationId;
+  final String? otherUserId;
   final String otherUserName;
   final String? otherUserAvatar;
 
@@ -92,12 +97,89 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       widget.otherUserAvatar,
       conversation?.otherUser.avatarUrl,
     );
+    final appBarUserId = _bestUserId(
+      widget.otherUserId,
+      conversation?.otherUser.id,
+      currentUserId,
+    );
 
     ref.listen(chatControllerProvider(widget.conversationId), (previous, next) {
       if ((previous?.messages.length ?? 0) < next.messages.length) {
         _scrollToBottom();
       }
+      // Surface a friendly toast when a message send fails — usually because
+      // the recipient only accepts messages from people they follow.
+      if (next.error != null && next.error != previous?.error) {
+        final raw = next.error!.toLowerCase();
+        final friendly =
+            raw.contains('403') ||
+                raw.contains('forbidden') ||
+                raw.contains('not follow') ||
+                raw.contains('blocked') ||
+                raw.contains('cannot') ||
+                raw.contains('rejected')
+            ? 'Message not delivered. ${widget.otherUserName} only accepts messages from people they follow.'
+            : 'Message not delivered. Please try again.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(friendly),
+            backgroundColor: const Color(0xFF2A2A2A),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     });
+
+    final otherUserId = conversation?.otherUser.id ?? '';
+    final relationshipIsBlocked = otherUserId.isNotEmpty
+        ? ref.watch(relationshipStatusProvider(otherUserId)).isBlocked
+        : null;
+    final isBlocked = relationshipIsBlocked ?? conversation?.isBlocked ?? false;
+
+    final bottomWidget = isBlocked
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Text(
+                  "You've blocked this account and can't send messages to them.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => ref
+                        .read(relationshipStatusProvider(otherUserId).notifier)
+                        .toggleBlock(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2A2A2A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(
+                      'Unblock',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : ChatInputBar(
+            isSending: chatState.isSending,
+            pendingAttachments: _pendingAttachments,
+            onRemoveAttachment: _removePendingAttachment,
+            onSend: _sendComposerMessage,
+            onAttachTap: () => _showAttachSheet(context),
+          );
 
     final isDesktop = AdaptiveBreakpoints.isExpanded(context);
     if (isDesktop) {
@@ -110,6 +192,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               name: appBarName,
               avatarUrl: appBarAvatar,
               onBack: () => Navigator.of(context).pop(),
+              onProfileTap: appBarUserId == null
+                  ? null
+                  : () => _openOtherUserProfile(appBarUserId),
               optionsButtonKey: _optionsKey,
               onOptionsPressed: _showOptionsPopup,
             ),
@@ -127,13 +212,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       currentUserId: currentUserId,
                     ),
             ),
-            ChatInputBar(
-              isSending: chatState.isSending,
-              pendingAttachments: _pendingAttachments,
-              onRemoveAttachment: _removePendingAttachment,
-              onSend: _sendComposerMessage,
-              onAttachTap: () => _showAttachSheet(context),
-            ),
+            bottomWidget,
           ],
         ),
       );
@@ -180,6 +259,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 name: appBarName,
                 avatarUrl: appBarAvatar,
                 onBack: () => Navigator.of(context).pop(),
+                onProfileTap: appBarUserId == null
+                    ? null
+                    : () => _openOtherUserProfile(appBarUserId),
                 optionsButtonKey: _optionsKey,
                 onOptionsPressed: _showOptionsPopup,
               ),
@@ -197,13 +279,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         currentUserId: currentUserId,
                       ),
               ),
-              ChatInputBar(
-                isSending: chatState.isSending,
-                pendingAttachments: _pendingAttachments,
-                onRemoveAttachment: _removePendingAttachment,
-                onSend: _sendComposerMessage,
-                onAttachTap: () => _showAttachSheet(context),
-              ),
+              bottomWidget,
             ],
           ),
         ),
@@ -224,6 +300,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (hydrated.isNotEmpty) return hydrated;
     final route = routeAvatar?.trim() ?? '';
     return route.isEmpty ? null : route;
+  }
+
+  String? _bestUserId(
+    String? routeUserId,
+    String? hydratedUserId,
+    String currentUserId,
+  ) {
+    final route = routeUserId?.trim() ?? '';
+    if (route.isNotEmpty && route != currentUserId) return route;
+    final hydrated = hydratedUserId?.trim() ?? '';
+    if (hydrated.isNotEmpty && hydrated != currentUserId) return hydrated;
+    return null;
+  }
+
+  void _openOtherUserProfile(String userId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OtherUserProfileScreen(userId: userId),
+      ),
+    );
   }
 
   void _showAttachSheet(BuildContext context) {
@@ -293,6 +389,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       Offset.zero & overlay.size,
     );
 
+    ConversationEntity? conversation;
+    for (final item in ref.read(conversationsControllerProvider).items) {
+      if (item.conversationId == widget.conversationId) {
+        conversation = item;
+        break;
+      }
+    }
+    final otherUserId = conversation?.otherUser.id ?? '';
+    final isBlocked = otherUserId.isNotEmpty
+        ? (ref.read(relationshipStatusProvider(otherUserId)).isBlocked ?? false)
+        : false;
+
     showMenu<String>(
       context: context,
       position: position,
@@ -300,12 +408,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       items: [
         _menuItem('report', Icons.flag_outlined, 'Report'),
-        _menuItem('block', Icons.block_outlined, 'Block'),
+        _menuItem('block', Icons.block, isBlocked ? 'Unblock' : 'Block user'),
         _menuItem('archive', Icons.archive_outlined, 'Archive'),
       ],
     ).then((action) {
       if (!mounted || action == null) return;
-      _handleAction(action);
+      _handleAction(action, otherUserId: otherUserId);
     });
   }
 
@@ -329,10 +437,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  void _handleAction(String action) {
+  void _handleAction(String action, {String otherUserId = ''}) {
     switch (action) {
       case 'block':
-        _showBlockConfirmation();
+        _showBlockConfirmation(otherUserId: otherUserId);
         break;
       case 'archive':
         _archiveConversation();
@@ -343,6 +451,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  void _showBlockConfirmation({String otherUserId = ''}) {
+    final isCurrentlyBlocked = otherUserId.isNotEmpty
+        ? (ref.read(relationshipStatusProvider(otherUserId)).isBlocked ?? false)
+        : false;
+
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(
+          isCurrentlyBlocked ? 'Unblock user?' : 'Block user?',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          isCurrentlyBlocked
+              ? 'You\'ll be able to receive messages from ${widget.otherUserName} again.'
+              : 'You won\'t receive messages from ${widget.otherUserName} anymore.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              isCurrentlyBlocked ? 'Unblock' : 'Block',
+              style: TextStyle(
+                color: isCurrentlyBlocked ? Colors.greenAccent : Colors.redAccent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed != true || !mounted || otherUserId.isEmpty) return;
+      ref.read(relationshipStatusProvider(otherUserId).notifier).toggleBlock();
+    });
+  }
+
   void _archiveConversation() {
     ref
         .read(chatControllerProvider(widget.conversationId).notifier)
@@ -351,54 +502,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           if (!mounted) return;
           Navigator.of(context).pop();
         });
-  }
-
-  void _showBlockConfirmation() {
-    showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2A2A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text(
-          'Block user?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        content: Text(
-          'You won\'t receive messages from ${widget.otherUserName} anymore.',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white54),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text(
-              'Block',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed != true || !mounted) return;
-
-      ref
-          .read(chatControllerProvider(widget.conversationId).notifier)
-          .blockConversation()
-          .then((_) {
-            if (!mounted) return;
-            ref.read(conversationsControllerProvider.notifier).refresh();
-            Navigator.of(context).pop();
-          });
-    });
   }
 
   void _openReportScreen() {
@@ -418,6 +521,7 @@ class _ChatAppBar extends StatelessWidget {
     required this.name,
     this.avatarUrl,
     required this.onBack,
+    this.onProfileTap,
     required this.optionsButtonKey,
     required this.onOptionsPressed,
   });
@@ -425,6 +529,7 @@ class _ChatAppBar extends StatelessWidget {
   final String name;
   final String? avatarUrl;
   final VoidCallback onBack;
+  final VoidCallback? onProfileTap;
   final GlobalKey optionsButtonKey;
   final VoidCallback onOptionsPressed;
 
@@ -439,26 +544,40 @@ class _ChatAppBar extends StatelessWidget {
             onPressed: onBack,
           ),
           const SizedBox(width: 4),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: Colors.blue.withValues(alpha: 0.24),
-            backgroundImage: avatarUrl != null
-                ? NetworkImage(avatarUrl!)
-                : null,
-            child: avatarUrl == null
-                ? const Icon(Icons.person, color: Color(0xFF64B5F6), size: 22)
-                : null,
-          ),
-          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onProfileTap,
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.blue.withValues(alpha: 0.24),
+                    backgroundImage: avatarUrl != null
+                        ? NetworkImage(avatarUrl!)
+                        : null,
+                    child: avatarUrl == null
+                        ? const Icon(
+                            Icons.person,
+                            color: Color(0xFF64B5F6),
+                            size: 22,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
