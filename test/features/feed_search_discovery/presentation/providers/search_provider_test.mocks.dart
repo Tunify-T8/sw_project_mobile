@@ -3,27 +3,31 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:software_project/features/feed_search_discovery/domain/entities/album_result_entity.dart'
-    as _i10;
+    as _i11;
+import 'package:software_project/features/feed_search_discovery/domain/entities/autocomplete_result_entity.dart'
+    as _i4;
 import 'package:software_project/features/feed_search_discovery/domain/entities/genre_detail_entity.dart'
     as _i3;
 import 'package:software_project/features/feed_search_discovery/domain/entities/playlist_result_entity.dart'
-    as _i9;
+    as _i10;
 import 'package:software_project/features/feed_search_discovery/domain/entities/profile_result_entity.dart'
-    as _i8;
+    as _i9;
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_all_result_entity.dart'
     as _i2;
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_filters_entity.dart'
-    as _i7;
+    as _i8;
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_genre_entity.dart'
-    as _i11;
+    as _i12;
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_result_entity.dart'
-    as _i6;
+    as _i7;
+import 'package:software_project/features/feed_search_discovery/domain/usecases/search_autocomplete_usecase.dart'
+    as _i13;
 import 'package:software_project/features/feed_search_discovery/domain/usecases/search_usecases.dart'
-    as _i4;
+    as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -52,42 +56,48 @@ class _FakeGenreDetailEntity_1 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
+class _FakeAutocompleteResultEntity_2 extends _i1.SmartFake
+    implements _i4.AutocompleteResultEntity {
+  _FakeAutocompleteResultEntity_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [SearchAllUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSearchAllUseCase extends _i1.Mock implements _i4.SearchAllUseCase {
+class MockSearchAllUseCase extends _i1.Mock implements _i5.SearchAllUseCase {
   @override
-  _i5.Future<_i2.SearchAllResultEntity> call(String? query) =>
+  _i6.Future<_i2.SearchAllResultEntity> call(String? query) =>
       (super.noSuchMethod(
             Invocation.method(#call, [query]),
-            returnValue: _i5.Future<_i2.SearchAllResultEntity>.value(
+            returnValue: _i6.Future<_i2.SearchAllResultEntity>.value(
               _FakeSearchAllResultEntity_0(
                 this,
                 Invocation.method(#call, [query]),
               ),
             ),
             returnValueForMissingStub:
-                _i5.Future<_i2.SearchAllResultEntity>.value(
+                _i6.Future<_i2.SearchAllResultEntity>.value(
                   _FakeSearchAllResultEntity_0(
                     this,
                     Invocation.method(#call, [query]),
                   ),
                 ),
           )
-          as _i5.Future<_i2.SearchAllResultEntity>);
+          as _i6.Future<_i2.SearchAllResultEntity>);
 }
 
 /// A class which mocks [SearchTracksUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSearchTracksUseCase extends _i1.Mock
-    implements _i4.SearchTracksUseCase {
+    implements _i5.SearchTracksUseCase {
   @override
-  _i5.Future<List<_i6.TrackResultEntity>> call(
+  _i6.Future<List<_i7.TrackResultEntity>> call(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.TrackSearchFilters? filters = const _i7.TrackSearchFilters(),
+    _i8.TrackSearchFilters? filters = const _i8.TrackSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -95,28 +105,28 @@ class MockSearchTracksUseCase extends _i1.Mock
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i6.TrackResultEntity>>.value(
-              <_i6.TrackResultEntity>[],
+            returnValue: _i6.Future<List<_i7.TrackResultEntity>>.value(
+              <_i7.TrackResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i6.TrackResultEntity>>.value(
-                  <_i6.TrackResultEntity>[],
+                _i6.Future<List<_i7.TrackResultEntity>>.value(
+                  <_i7.TrackResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i6.TrackResultEntity>>);
+          as _i6.Future<List<_i7.TrackResultEntity>>);
 }
 
 /// A class which mocks [SearchProfilesUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSearchProfilesUseCase extends _i1.Mock
-    implements _i4.SearchProfilesUseCase {
+    implements _i5.SearchProfilesUseCase {
   @override
-  _i5.Future<List<_i8.ProfileResultEntity>> call(
+  _i6.Future<List<_i9.ProfileResultEntity>> call(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.PeopleSearchFilters? filters = const _i7.PeopleSearchFilters(),
+    _i8.PeopleSearchFilters? filters = const _i8.PeopleSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -124,28 +134,28 @@ class MockSearchProfilesUseCase extends _i1.Mock
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i8.ProfileResultEntity>>.value(
-              <_i8.ProfileResultEntity>[],
+            returnValue: _i6.Future<List<_i9.ProfileResultEntity>>.value(
+              <_i9.ProfileResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i8.ProfileResultEntity>>.value(
-                  <_i8.ProfileResultEntity>[],
+                _i6.Future<List<_i9.ProfileResultEntity>>.value(
+                  <_i9.ProfileResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i8.ProfileResultEntity>>);
+          as _i6.Future<List<_i9.ProfileResultEntity>>);
 }
 
 /// A class which mocks [SearchPlaylistsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSearchPlaylistsUseCase extends _i1.Mock
-    implements _i4.SearchPlaylistsUseCase {
+    implements _i5.SearchPlaylistsUseCase {
   @override
-  _i5.Future<List<_i9.PlaylistResultEntity>> call(
+  _i6.Future<List<_i10.PlaylistResultEntity>> call(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.CollectionSearchFilters? filters = const _i7.CollectionSearchFilters(),
+    _i8.CollectionSearchFilters? filters = const _i8.CollectionSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -153,28 +163,28 @@ class MockSearchPlaylistsUseCase extends _i1.Mock
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i9.PlaylistResultEntity>>.value(
-              <_i9.PlaylistResultEntity>[],
+            returnValue: _i6.Future<List<_i10.PlaylistResultEntity>>.value(
+              <_i10.PlaylistResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i9.PlaylistResultEntity>>.value(
-                  <_i9.PlaylistResultEntity>[],
+                _i6.Future<List<_i10.PlaylistResultEntity>>.value(
+                  <_i10.PlaylistResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i9.PlaylistResultEntity>>);
+          as _i6.Future<List<_i10.PlaylistResultEntity>>);
 }
 
 /// A class which mocks [SearchAlbumsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSearchAlbumsUseCase extends _i1.Mock
-    implements _i4.SearchAlbumsUseCase {
+    implements _i5.SearchAlbumsUseCase {
   @override
-  _i5.Future<List<_i10.AlbumResultEntity>> call(
+  _i6.Future<List<_i11.AlbumResultEntity>> call(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.CollectionSearchFilters? filters = const _i7.CollectionSearchFilters(),
+    _i8.CollectionSearchFilters? filters = const _i8.CollectionSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -182,57 +192,83 @@ class MockSearchAlbumsUseCase extends _i1.Mock
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i10.AlbumResultEntity>>.value(
-              <_i10.AlbumResultEntity>[],
+            returnValue: _i6.Future<List<_i11.AlbumResultEntity>>.value(
+              <_i11.AlbumResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i10.AlbumResultEntity>>.value(
-                  <_i10.AlbumResultEntity>[],
+                _i6.Future<List<_i11.AlbumResultEntity>>.value(
+                  <_i11.AlbumResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i10.AlbumResultEntity>>);
+          as _i6.Future<List<_i11.AlbumResultEntity>>);
 }
 
 /// A class which mocks [GetGenresUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetGenresUseCase extends _i1.Mock implements _i4.GetGenresUseCase {
+class MockGetGenresUseCase extends _i1.Mock implements _i5.GetGenresUseCase {
   @override
-  _i5.Future<List<_i11.SearchGenreEntity>> call() =>
+  _i6.Future<List<_i12.SearchGenreEntity>> call() =>
       (super.noSuchMethod(
             Invocation.method(#call, []),
-            returnValue: _i5.Future<List<_i11.SearchGenreEntity>>.value(
-              <_i11.SearchGenreEntity>[],
+            returnValue: _i6.Future<List<_i12.SearchGenreEntity>>.value(
+              <_i12.SearchGenreEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i11.SearchGenreEntity>>.value(
-                  <_i11.SearchGenreEntity>[],
+                _i6.Future<List<_i12.SearchGenreEntity>>.value(
+                  <_i12.SearchGenreEntity>[],
                 ),
           )
-          as _i5.Future<List<_i11.SearchGenreEntity>>);
+          as _i6.Future<List<_i12.SearchGenreEntity>>);
 }
 
 /// A class which mocks [GetGenreDetailUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGetGenreDetailUseCase extends _i1.Mock
-    implements _i4.GetGenreDetailUseCase {
+    implements _i5.GetGenreDetailUseCase {
   @override
-  _i5.Future<_i3.GenreDetailEntity> call(String? genreId) =>
+  _i6.Future<_i3.GenreDetailEntity> call(String? genreId) =>
       (super.noSuchMethod(
             Invocation.method(#call, [genreId]),
-            returnValue: _i5.Future<_i3.GenreDetailEntity>.value(
+            returnValue: _i6.Future<_i3.GenreDetailEntity>.value(
               _FakeGenreDetailEntity_1(
                 this,
                 Invocation.method(#call, [genreId]),
               ),
             ),
-            returnValueForMissingStub: _i5.Future<_i3.GenreDetailEntity>.value(
+            returnValueForMissingStub: _i6.Future<_i3.GenreDetailEntity>.value(
               _FakeGenreDetailEntity_1(
                 this,
                 Invocation.method(#call, [genreId]),
               ),
             ),
           )
-          as _i5.Future<_i3.GenreDetailEntity>);
+          as _i6.Future<_i3.GenreDetailEntity>);
+}
+
+/// A class which mocks [SearchAutocompleteUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSearchAutocompleteUseCase extends _i1.Mock
+    implements _i13.SearchAutocompleteUseCase {
+  @override
+  _i6.Future<_i4.AutocompleteResultEntity> call(String? query) =>
+      (super.noSuchMethod(
+            Invocation.method(#call, [query]),
+            returnValue: _i6.Future<_i4.AutocompleteResultEntity>.value(
+              _FakeAutocompleteResultEntity_2(
+                this,
+                Invocation.method(#call, [query]),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i6.Future<_i4.AutocompleteResultEntity>.value(
+                  _FakeAutocompleteResultEntity_2(
+                    this,
+                    Invocation.method(#call, [query]),
+                  ),
+                ),
+          )
+          as _i6.Future<_i4.AutocompleteResultEntity>);
 }

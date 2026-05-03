@@ -150,8 +150,6 @@ void main() {
       dio.get<Map<String, dynamic>>(
         ApiEndpoints.getTrending,
         queryParameters: {
-          'page': 1,
-          'limit': 10,
           'type': 'playlist',
           'period': 'month',
           'genreId': 'pop',
@@ -247,6 +245,43 @@ void main() {
 
     expect(result.items.single.track?.title, 'Song');
     expect(result.page, 2);
+  });
+
+  test('searchAutocomplete forwards query and parses category lists', () async {
+    when(
+      dio.get<Map<String, dynamic>>(
+        ApiEndpoints.searchAutocomplete,
+        queryParameters: {'q': 'do'},
+      ),
+    ).thenAnswer(
+      (_) async => jsonResponse(ApiEndpoints.searchAutocomplete, {
+        'tracks': [
+          {'id': 'track-1', 'title': 'Don Anthem', 'artist': 'Don'},
+        ],
+        'users': [
+          {
+            'id': 'user-1',
+            'username': 'don',
+            'displayName': 'Don Toliver',
+          },
+        ],
+        'collections': [
+          {'id': 'album-1', 'title': 'OCTANE', 'artist': 'Don Toliver'},
+        ],
+      }),
+    );
+
+    final result = await api.searchAutocomplete(q: 'do');
+
+    expect(result.tracks.single.title, 'Don Anthem');
+    expect(result.users.single.displayName, 'Don Toliver');
+    expect(result.collections.single.artist, 'Don Toliver');
+    verify(
+      dio.get<Map<String, dynamic>>(
+        ApiEndpoints.searchAutocomplete,
+        queryParameters: {'q': 'do'},
+      ),
+    ).called(1);
   });
 
   test('searchTracks only includes non-null filters', () async {

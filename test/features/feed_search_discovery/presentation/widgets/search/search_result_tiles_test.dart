@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:software_project/features/auth/domain/entities/auth_user_entity.dart';
+import 'package:software_project/features/auth/presentation/providers/auth_provider.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/album_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/playlist_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/profile_result_entity.dart';
@@ -8,8 +11,30 @@ import 'package:software_project/features/feed_search_discovery/presentation/wid
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/search/search_result_tile_playlist.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/search/search_result_tile_profile.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/search/search_result_tile_track.dart';
+import 'package:software_project/features/followers_and_social_graph/domain/entities/social_relation_entity.dart';
+import 'package:software_project/features/followers_and_social_graph/domain/repositories/social_graph_repository.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
 
 import '../../../../../test_utils/mock_network_images.dart';
+
+class FakeSocialGraphRepository implements SocialGraphRepository {
+  @override
+  Future<SocialRelationEntity> getFollowStatus(String userId) async {
+    return SocialRelationEntity(
+      targetUserId: userId,
+      isFollowing: userId == '2',
+    );
+  }
+
+  @override
+  Future<void> followUser(String userId) async {}
+
+  @override
+  Future<void> unfollowUser(String userId) async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   Future<void> setLargeSurface(WidgetTester tester) async {
@@ -19,11 +44,24 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  Widget wrap(Widget child) => MaterialApp(
-        home: Scaffold(
-          backgroundColor: Colors.black,
-          body: Center(
-            child: SizedBox(width: 900, child: child),
+  Widget wrap(Widget child) => ProviderScope(
+        overrides: [
+          socialGraphRepositoryProvider.overrideWithValue(
+            FakeSocialGraphRepository(),
+          ),
+          authControllerProvider.overrideWith(
+            () => _TestAuthController('viewer-1'),
+          ),
+        ],
+        child: MaterialApp(
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('route opened')),
+          ),
+          home: Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: SizedBox(width: 900, child: child),
+            ),
           ),
         ),
       );
@@ -172,6 +210,38 @@ void main() {
       expect(find.text('1.5M'), findsOneWidget);
       expect(find.byType(Image), findsOneWidget);
     });
+
+    testWidgets('default tap opens playlist route and more button opens options sheet', (
+      tester,
+    ) async {
+      await setLargeSurface(tester);
+      await tester.pumpWidget(
+        wrap(
+          const SearchResultTilePlaylist(
+            playlist: PlaylistResultEntity(
+              id: '3',
+              title: 'Owned Mix',
+              creatorId: 'viewer-1',
+              creatorName: 'Me',
+              trackCount: 6,
+              likesCount: 2000,
+              isLiked: true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('search_playlist_tile_3')));
+      await tester.pumpAndSettle();
+      expect(find.text('route opened'), findsOneWidget);
+
+      Navigator.of(tester.element(find.text('route opened'))).pop();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('search_playlist_more_3')));
+      await tester.pump();
+      expect(find.text('Owned Mix'), findsWidgets);
+    });
   });
 
   group('SearchResultTileProfile', () {
@@ -184,7 +254,7 @@ void main() {
               id: '1',
               username: 'Don Toliver',
               followersCount: 1200,
-              isVerified: true,
+              isCertified: true,
             ),
           ),
         ),
@@ -232,7 +302,7 @@ void main() {
               id: '3',
               username: 'Indie Artist',
               followersCount: 999,
-              isVerified: false,
+              isCertified: false,
               isFollowing: false,
             ),
           ),
@@ -246,4 +316,23 @@ void main() {
       await tester.pump();
     });
   });
+}
+
+class _TestAuthController extends AuthController {
+  _TestAuthController(this._currentUserId);
+
+  final String _currentUserId;
+
+  @override
+  AsyncValue<AuthUserEntity?> build() {
+    return AsyncData(
+      AuthUserEntity(
+        id: _currentUserId,
+        email: 'viewer@example.com',
+        username: 'viewer',
+        role: 'listener',
+        isVerified: true,
+      ),
+    );
+  }
 }

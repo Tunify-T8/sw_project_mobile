@@ -3,27 +3,29 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:software_project/features/feed_search_discovery/domain/entities/album_result_entity.dart'
-    as _i10;
-import 'package:software_project/features/feed_search_discovery/domain/entities/genre_detail_entity.dart'
+    as _i11;
+import 'package:software_project/features/feed_search_discovery/domain/entities/autocomplete_result_entity.dart'
     as _i3;
+import 'package:software_project/features/feed_search_discovery/domain/entities/genre_detail_entity.dart'
+    as _i4;
 import 'package:software_project/features/feed_search_discovery/domain/entities/playlist_result_entity.dart'
-    as _i9;
+    as _i10;
 import 'package:software_project/features/feed_search_discovery/domain/entities/profile_result_entity.dart'
-    as _i8;
+    as _i9;
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_all_result_entity.dart'
     as _i2;
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_filters_entity.dart'
-    as _i7;
+    as _i8;
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_genre_entity.dart'
-    as _i11;
+    as _i12;
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_result_entity.dart'
-    as _i6;
+    as _i7;
 import 'package:software_project/features/feed_search_discovery/domain/repositories/search_repository.dart'
-    as _i4;
+    as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -46,42 +48,68 @@ class _FakeSearchAllResultEntity_0 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeGenreDetailEntity_1 extends _i1.SmartFake
-    implements _i3.GenreDetailEntity {
-  _FakeGenreDetailEntity_1(Object parent, Invocation parentInvocation)
+class _FakeAutocompleteResultEntity_1 extends _i1.SmartFake
+    implements _i3.AutocompleteResultEntity {
+  _FakeAutocompleteResultEntity_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeGenreDetailEntity_2 extends _i1.SmartFake
+    implements _i4.GenreDetailEntity {
+  _FakeGenreDetailEntity_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
 /// A class which mocks [SearchRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSearchRepository extends _i1.Mock implements _i4.SearchRepository {
+class MockSearchRepository extends _i1.Mock implements _i5.SearchRepository {
   @override
-  _i5.Future<_i2.SearchAllResultEntity> searchAll(String? query) =>
+  _i6.Future<_i2.SearchAllResultEntity> searchAll(String? query) =>
       (super.noSuchMethod(
             Invocation.method(#searchAll, [query]),
-            returnValue: _i5.Future<_i2.SearchAllResultEntity>.value(
+            returnValue: _i6.Future<_i2.SearchAllResultEntity>.value(
               _FakeSearchAllResultEntity_0(
                 this,
                 Invocation.method(#searchAll, [query]),
               ),
             ),
             returnValueForMissingStub:
-                _i5.Future<_i2.SearchAllResultEntity>.value(
+                _i6.Future<_i2.SearchAllResultEntity>.value(
                   _FakeSearchAllResultEntity_0(
                     this,
                     Invocation.method(#searchAll, [query]),
                   ),
                 ),
           )
-          as _i5.Future<_i2.SearchAllResultEntity>);
+          as _i6.Future<_i2.SearchAllResultEntity>);
 
   @override
-  _i5.Future<List<_i6.TrackResultEntity>> searchTracks(
+  _i6.Future<_i3.AutocompleteResultEntity> searchAutocomplete(String? query) =>
+      (super.noSuchMethod(
+            Invocation.method(#searchAutocomplete, [query]),
+            returnValue: _i6.Future<_i3.AutocompleteResultEntity>.value(
+              _FakeAutocompleteResultEntity_1(
+                this,
+                Invocation.method(#searchAutocomplete, [query]),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i6.Future<_i3.AutocompleteResultEntity>.value(
+                  _FakeAutocompleteResultEntity_1(
+                    this,
+                    Invocation.method(#searchAutocomplete, [query]),
+                  ),
+                ),
+          )
+          as _i6.Future<_i3.AutocompleteResultEntity>);
+
+  @override
+  _i6.Future<List<_i7.TrackResultEntity>> searchTracks(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.TrackSearchFilters? filters = const _i7.TrackSearchFilters(),
+    _i8.TrackSearchFilters? filters = const _i8.TrackSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -89,22 +117,22 @@ class MockSearchRepository extends _i1.Mock implements _i4.SearchRepository {
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i6.TrackResultEntity>>.value(
-              <_i6.TrackResultEntity>[],
+            returnValue: _i6.Future<List<_i7.TrackResultEntity>>.value(
+              <_i7.TrackResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i6.TrackResultEntity>>.value(
-                  <_i6.TrackResultEntity>[],
+                _i6.Future<List<_i7.TrackResultEntity>>.value(
+                  <_i7.TrackResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i6.TrackResultEntity>>);
+          as _i6.Future<List<_i7.TrackResultEntity>>);
 
   @override
-  _i5.Future<List<_i8.ProfileResultEntity>> searchProfiles(
+  _i6.Future<List<_i9.ProfileResultEntity>> searchProfiles(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.PeopleSearchFilters? filters = const _i7.PeopleSearchFilters(),
+    _i8.PeopleSearchFilters? filters = const _i8.PeopleSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -112,22 +140,22 @@ class MockSearchRepository extends _i1.Mock implements _i4.SearchRepository {
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i8.ProfileResultEntity>>.value(
-              <_i8.ProfileResultEntity>[],
+            returnValue: _i6.Future<List<_i9.ProfileResultEntity>>.value(
+              <_i9.ProfileResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i8.ProfileResultEntity>>.value(
-                  <_i8.ProfileResultEntity>[],
+                _i6.Future<List<_i9.ProfileResultEntity>>.value(
+                  <_i9.ProfileResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i8.ProfileResultEntity>>);
+          as _i6.Future<List<_i9.ProfileResultEntity>>);
 
   @override
-  _i5.Future<List<_i9.PlaylistResultEntity>> searchPlaylists(
+  _i6.Future<List<_i10.PlaylistResultEntity>> searchPlaylists(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.CollectionSearchFilters? filters = const _i7.CollectionSearchFilters(),
+    _i8.CollectionSearchFilters? filters = const _i8.CollectionSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -135,22 +163,22 @@ class MockSearchRepository extends _i1.Mock implements _i4.SearchRepository {
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i9.PlaylistResultEntity>>.value(
-              <_i9.PlaylistResultEntity>[],
+            returnValue: _i6.Future<List<_i10.PlaylistResultEntity>>.value(
+              <_i10.PlaylistResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i9.PlaylistResultEntity>>.value(
-                  <_i9.PlaylistResultEntity>[],
+                _i6.Future<List<_i10.PlaylistResultEntity>>.value(
+                  <_i10.PlaylistResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i9.PlaylistResultEntity>>);
+          as _i6.Future<List<_i10.PlaylistResultEntity>>);
 
   @override
-  _i5.Future<List<_i10.AlbumResultEntity>> searchAlbums(
+  _i6.Future<List<_i11.AlbumResultEntity>> searchAlbums(
     String? query, {
     int? page = 1,
     int? limit = 20,
-    _i7.CollectionSearchFilters? filters = const _i7.CollectionSearchFilters(),
+    _i8.CollectionSearchFilters? filters = const _i8.CollectionSearchFilters(),
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -158,46 +186,46 @@ class MockSearchRepository extends _i1.Mock implements _i4.SearchRepository {
               [query],
               {#page: page, #limit: limit, #filters: filters},
             ),
-            returnValue: _i5.Future<List<_i10.AlbumResultEntity>>.value(
-              <_i10.AlbumResultEntity>[],
+            returnValue: _i6.Future<List<_i11.AlbumResultEntity>>.value(
+              <_i11.AlbumResultEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i10.AlbumResultEntity>>.value(
-                  <_i10.AlbumResultEntity>[],
+                _i6.Future<List<_i11.AlbumResultEntity>>.value(
+                  <_i11.AlbumResultEntity>[],
                 ),
           )
-          as _i5.Future<List<_i10.AlbumResultEntity>>);
+          as _i6.Future<List<_i11.AlbumResultEntity>>);
 
   @override
-  _i5.Future<List<_i11.SearchGenreEntity>> getGenres() =>
+  _i6.Future<List<_i12.SearchGenreEntity>> getGenres() =>
       (super.noSuchMethod(
             Invocation.method(#getGenres, []),
-            returnValue: _i5.Future<List<_i11.SearchGenreEntity>>.value(
-              <_i11.SearchGenreEntity>[],
+            returnValue: _i6.Future<List<_i12.SearchGenreEntity>>.value(
+              <_i12.SearchGenreEntity>[],
             ),
             returnValueForMissingStub:
-                _i5.Future<List<_i11.SearchGenreEntity>>.value(
-                  <_i11.SearchGenreEntity>[],
+                _i6.Future<List<_i12.SearchGenreEntity>>.value(
+                  <_i12.SearchGenreEntity>[],
                 ),
           )
-          as _i5.Future<List<_i11.SearchGenreEntity>>);
+          as _i6.Future<List<_i12.SearchGenreEntity>>);
 
   @override
-  _i5.Future<_i3.GenreDetailEntity> getGenreDetail(String? genreId) =>
+  _i6.Future<_i4.GenreDetailEntity> getGenreDetail(String? genreId) =>
       (super.noSuchMethod(
             Invocation.method(#getGenreDetail, [genreId]),
-            returnValue: _i5.Future<_i3.GenreDetailEntity>.value(
-              _FakeGenreDetailEntity_1(
+            returnValue: _i6.Future<_i4.GenreDetailEntity>.value(
+              _FakeGenreDetailEntity_2(
                 this,
                 Invocation.method(#getGenreDetail, [genreId]),
               ),
             ),
-            returnValueForMissingStub: _i5.Future<_i3.GenreDetailEntity>.value(
-              _FakeGenreDetailEntity_1(
+            returnValueForMissingStub: _i6.Future<_i4.GenreDetailEntity>.value(
+              _FakeGenreDetailEntity_2(
                 this,
                 Invocation.method(#getGenreDetail, [genreId]),
               ),
             ),
           )
-          as _i5.Future<_i3.GenreDetailEntity>);
+          as _i6.Future<_i4.GenreDetailEntity>);
 }

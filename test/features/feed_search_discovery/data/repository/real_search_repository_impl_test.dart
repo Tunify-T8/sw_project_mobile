@@ -4,6 +4,7 @@ import 'package:mockito/mockito.dart';
 import 'package:software_project/features/feed_search_discovery/data/api/discovery_api.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/collection_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/collection_search_response_dto.dart';
+import 'package:software_project/features/feed_search_discovery/data/dto/autocomplete_response_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/search_result_item_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/track_interaction_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/track_preview_dto.dart';
@@ -104,10 +105,10 @@ void main() {
       final result = await repository.searchAll('don');
 
       expect(result.tracks, hasLength(1));
-      expect(result.tracks.first.playCount, '1.2K');
+      expect(result.tracks.first.playCount, '1K');
       expect(result.albums.single.trackCount, 1);
       expect(result.playlists.single.trackCount, 2);
-      expect(result.profiles.single.isVerified, isTrue);
+      expect(result.profiles.single.isCertified, isTrue);
       expect(result.profiles.single.isFollowing, isTrue);
       expect(result.topResult?.type, TopResultType.track);
       expect(result.topResult?.title, 'Ocean Drive');
@@ -136,7 +137,46 @@ void main() {
       final result = await repository.searchAll('artist');
 
       expect(result.topResult?.type, TopResultType.profile);
-      expect(result.topResult?.subtitle, '1.5K followers');
+      expect(result.topResult?.subtitle, '2K followers');
+    });
+  });
+
+  group('searchAutocomplete', () {
+    test('maps autocomplete dto categories to domain entities', () async {
+      when(api.searchAutocomplete(q: 'do')).thenAnswer(
+        (_) async => const AutocompleteResponseDto(
+          tracks: [
+            AutocompleteTrackDto(
+              id: 'track-1',
+              title: 'Don Anthem',
+              artist: 'Don',
+            ),
+          ],
+          users: [
+            AutocompleteUserDto(
+              id: 'user-1',
+              username: 'don',
+              displayName: 'Don Toliver',
+            ),
+            AutocompleteUserDto(id: 'user-2', username: 'nova'),
+          ],
+          collections: [
+            AutocompleteCollectionDto(
+              id: 'album-1',
+              title: 'OCTANE',
+              artist: 'Don Toliver',
+            ),
+          ],
+        ),
+      );
+
+      final result = await repository.searchAutocomplete('do');
+
+      expect(result.tracks.single.title, 'Don Anthem');
+      expect(result.users.first.displayLabel, 'Don Toliver');
+      expect(result.users.last.displayLabel, 'nova');
+      expect(result.collections.single.artist, 'Don Toliver');
+      verify(api.searchAutocomplete(q: 'do')).called(1);
     });
   });
 
@@ -196,7 +236,7 @@ void main() {
       );
 
       expect(result.single.title, 'Ocean Drive');
-      expect(result.single.playCount, '20.5K');
+      expect(result.single.playCount, '21K');
       verify(
         api.searchTracks(
           q: 'ocean',
@@ -225,7 +265,7 @@ void main() {
             username: 'Artist',
             avatarUrl: 'https://example.com/avatar.jpg',
             followersCount: 900,
-            verified: true,
+            isCertified: true,
             location: 'Cairo',
             isFollowing: true,
           ),
@@ -242,7 +282,7 @@ void main() {
           location: 'Cairo',
           minFollowers: 500,
           verifiedOnly: true,
-          sort: 'FOLLOWERS',
+          sort: 'relevance',
         ),
       ).thenAnswer((_) async => response);
 
@@ -254,7 +294,7 @@ void main() {
       );
 
       expect(result.single.username, 'Artist');
-      expect(result.single.isVerified, isTrue);
+      expect(result.single.isCertified, isTrue);
       expect(result.single.isFollowing, isTrue);
       verify(
         api.searchPeople(
@@ -264,7 +304,7 @@ void main() {
           location: 'Cairo',
           minFollowers: 500,
           verifiedOnly: true,
-          sort: 'FOLLOWERS',
+          sort: 'relevance',
         ),
       ).called(1);
     });
@@ -333,7 +373,11 @@ void main() {
 
     test('getGenreDetail combines trending, collections, and profiles', () async {
       when(
-        api.getTrending(type: 'track', period: 'week', limit: 10),
+        api.getTrending(
+          type: 'track',
+          period: 'week',
+          genreId: 'b1ef24ad-24b3-4f9a-a56e-355409b1fdec',
+        ),
       ).thenAnswer(
         (_) async => const PaginatedTrendingResponseDto(
           items: [
@@ -350,7 +394,11 @@ void main() {
         ),
       );
       when(
-        api.searchCollections(q: '', tag: 'rock', limit: 10),
+        api.searchCollections(
+          q: 'Rock',
+          tag: 'b1ef24ad-24b3-4f9a-a56e-355409b1fdec',
+          limit: 10,
+        ),
       ).thenAnswer(
         (_) async => CollectionSearchResponseDto(
           items: [
@@ -372,7 +420,7 @@ void main() {
         ),
       );
       when(
-        api.searchPeople(q: 'rock', limit: 6),
+        api.searchPeople(q: 'Rock', limit: 6),
       ).thenAnswer(
         (_) async => UserSearchResponseDto(
           items: [
@@ -381,7 +429,7 @@ void main() {
               username: 'Rocker',
               avatarUrl: 'https://example.com/rocker.jpg',
               followersCount: 200,
-              verified: true,
+              isCertified: true,
               location: 'NY',
               isFollowing: false,
             ),
@@ -395,13 +443,25 @@ void main() {
       final result = await repository.getGenreDetail('rock');
 
       expect(result.genreId, 'rock');
-      expect(result.genreLabel, 'rock');
+      expect(result.genreLabel, 'Rock');
       expect(result.trendingTracks.single.title, 'Hit Song');
       expect(result.playlists.single.title, 'Rock Mix');
       expect(result.profiles.single.username, 'Rocker');
-      verify(api.getTrending(type: 'track', period: 'week', limit: 10)).called(1);
-      verify(api.searchCollections(q: '', tag: 'rock', limit: 10)).called(1);
-      verify(api.searchPeople(q: 'rock', limit: 6)).called(1);
+      verify(
+        api.getTrending(
+          type: 'track',
+          period: 'week',
+          genreId: 'b1ef24ad-24b3-4f9a-a56e-355409b1fdec',
+        ),
+      ).called(1);
+      verify(
+        api.searchCollections(
+          q: 'Rock',
+          tag: 'b1ef24ad-24b3-4f9a-a56e-355409b1fdec',
+          limit: 10,
+        ),
+      ).called(1);
+      verify(api.searchPeople(q: 'Rock', limit: 6)).called(1);
     });
   });
 }
