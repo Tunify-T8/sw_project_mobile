@@ -6,16 +6,16 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/trending_genre_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/trending_track_entity.dart';
-import 'package:software_project/features/feed_search_discovery/domain/repositories/trending_repository.dart';
+import 'package:software_project/features/feed_search_discovery/domain/repositories/discovery_repository.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/trending_notifier.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/trending_provider.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/trending_state.dart';
 
 import 'trending_notifier_test.mocks.dart';
 
-@GenerateNiceMocks([MockSpec<TrendingRepository>()])
+@GenerateNiceMocks([MockSpec<DiscoveryRepository>()])
 void main() {
-  late MockTrendingRepository repository;
+  late MockDiscoveryRepository repository;
   late ProviderContainer container;
   late TrendingNotifier notifier;
 
@@ -34,7 +34,7 @@ void main() {
   );
 
   setUp(() {
-    repository = MockTrendingRepository();
+    repository = MockDiscoveryRepository();
     container = ProviderContainer(
       overrides: [
         trendingRepositoryProvider.overrideWithValue(repository),
@@ -71,7 +71,7 @@ void main() {
       );
 
       when(
-        repository.getTrending(genre: 'pop'),
+        repository.getTrending(genre: '3b4aa26f-2def-4e4d-8629-e0007c9da02d'),
       ).thenAnswer((_) => completer.future);
 
       final future = notifier.loadTrending(genre: 'pop');
@@ -89,13 +89,13 @@ void main() {
       expect(state.trending, popTrending);
       expect(state.isLoading, isFalse);
       expect(state.error, isNull);
-      verify(repository.getTrending(genre: 'pop')).called(1);
+      verify(repository.getTrending(genre: '3b4aa26f-2def-4e4d-8629-e0007c9da02d')).called(1);
     });
 
     test('stores error and keeps previous trending data on failure', () async {
       notifier.state = TrendingState(trending: popTrending);
       when(
-        repository.getTrending(genre: 'jazz'),
+        repository.getTrending(genre: ''),
       ).thenThrow(Exception('trending failed'));
 
       await notifier.loadTrending(genre: 'jazz');
@@ -104,7 +104,7 @@ void main() {
       expect(state.trending, popTrending);
       expect(state.isLoading, isFalse);
       expect(state.error, 'Exception: trending failed');
-      verify(repository.getTrending(genre: 'jazz')).called(1);
+      verify(repository.getTrending(genre: '')).called(1);
     });
   });
 }

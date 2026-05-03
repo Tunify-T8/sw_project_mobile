@@ -3,14 +3,16 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i12;
+import 'dart:async' as _i13;
 
 import 'package:dio/dio.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:software_project/features/feed_search_discovery/data/api/discovery_api.dart'
-    as _i11;
+    as _i12;
+import 'package:software_project/features/feed_search_discovery/data/dto/autocomplete_response_dto.dart'
+    as _i8;
 import 'package:software_project/features/feed_search_discovery/data/dto/collection_search_response_dto.dart'
-    as _i9;
+    as _i10;
 import 'package:software_project/features/feed_search_discovery/data/dto/discovery_item_dto.dart'
     as _i4;
 import 'package:software_project/features/feed_search_discovery/data/dto/feed_item_dto.dart'
@@ -20,13 +22,13 @@ import 'package:software_project/features/feed_search_discovery/data/dto/search_
 import 'package:software_project/features/feed_search_discovery/data/dto/suggested_artist_dto.dart'
     as _i6;
 import 'package:software_project/features/feed_search_discovery/data/dto/track_search_response_dto.dart'
-    as _i8;
+    as _i9;
 import 'package:software_project/features/feed_search_discovery/data/dto/trending_item_dto.dart'
     as _i5;
 import 'package:software_project/features/feed_search_discovery/data/dto/user_search_response_dto.dart'
-    as _i10;
+    as _i11;
 import 'package:software_project/features/feed_search_discovery/domain/entities/collection_type.dart'
-    as _i13;
+    as _i14;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -84,28 +86,34 @@ class _FakePaginatedSearchResponseDto_5 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeTrackSearchResponseDto_6 extends _i1.SmartFake
-    implements _i8.TrackSearchResponseDto {
-  _FakeTrackSearchResponseDto_6(Object parent, Invocation parentInvocation)
+class _FakeAutocompleteResponseDto_6 extends _i1.SmartFake
+    implements _i8.AutocompleteResponseDto {
+  _FakeAutocompleteResponseDto_6(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeCollectionSearchResponseDto_7 extends _i1.SmartFake
-    implements _i9.CollectionSearchResponseDto {
-  _FakeCollectionSearchResponseDto_7(Object parent, Invocation parentInvocation)
+class _FakeTrackSearchResponseDto_7 extends _i1.SmartFake
+    implements _i9.TrackSearchResponseDto {
+  _FakeTrackSearchResponseDto_7(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeUserSearchResponseDto_8 extends _i1.SmartFake
-    implements _i10.UserSearchResponseDto {
-  _FakeUserSearchResponseDto_8(Object parent, Invocation parentInvocation)
+class _FakeCollectionSearchResponseDto_8 extends _i1.SmartFake
+    implements _i10.CollectionSearchResponseDto {
+  _FakeCollectionSearchResponseDto_8(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeUserSearchResponseDto_9 extends _i1.SmartFake
+    implements _i11.UserSearchResponseDto {
+  _FakeUserSearchResponseDto_9(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
 /// A class which mocks [DiscoveryApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
+class MockDiscoveryApi extends _i1.Mock implements _i12.DiscoveryApi {
   @override
   _i2.Dio get dio =>
       (super.noSuchMethod(
@@ -119,7 +127,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
           as _i2.Dio);
 
   @override
-  _i12.Future<_i3.PaginatedFeedResponseDto> getFollowingFeed({
+  _i13.Future<_i3.PaginatedFeedResponseDto> getFollowingFeed({
     int? page = 1,
     int? limit = 20,
     bool? includeReposts = true,
@@ -132,7 +140,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #includeReposts: includeReposts,
               #sinceTimestamp: sinceTimestamp,
             }),
-            returnValue: _i12.Future<_i3.PaginatedFeedResponseDto>.value(
+            returnValue: _i13.Future<_i3.PaginatedFeedResponseDto>.value(
               _FakePaginatedFeedResponseDto_1(
                 this,
                 Invocation.method(#getFollowingFeed, [], {
@@ -144,7 +152,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i3.PaginatedFeedResponseDto>.value(
+                _i13.Future<_i3.PaginatedFeedResponseDto>.value(
                   _FakePaginatedFeedResponseDto_1(
                     this,
                     Invocation.method(#getFollowingFeed, [], {
@@ -156,10 +164,10 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i3.PaginatedFeedResponseDto>);
+          as _i13.Future<_i3.PaginatedFeedResponseDto>);
 
   @override
-  _i12.Future<_i4.PaginatedDiscoveryResponseDto> getDiscover({
+  _i13.Future<_i4.PaginatedDiscoveryResponseDto> getDiscover({
     int? page = 1,
     int? limit = 20,
     String? genreId,
@@ -170,7 +178,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #limit: limit,
               #genreId: genreId,
             }),
-            returnValue: _i12.Future<_i4.PaginatedDiscoveryResponseDto>.value(
+            returnValue: _i13.Future<_i4.PaginatedDiscoveryResponseDto>.value(
               _FakePaginatedDiscoveryResponseDto_2(
                 this,
                 Invocation.method(#getDiscover, [], {
@@ -181,7 +189,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i4.PaginatedDiscoveryResponseDto>.value(
+                _i13.Future<_i4.PaginatedDiscoveryResponseDto>.value(
                   _FakePaginatedDiscoveryResponseDto_2(
                     this,
                     Invocation.method(#getDiscover, [], {
@@ -192,10 +200,10 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i4.PaginatedDiscoveryResponseDto>);
+          as _i13.Future<_i4.PaginatedDiscoveryResponseDto>);
 
   @override
-  _i12.Future<_i5.PaginatedTrendingResponseDto> getTrending({
+  _i13.Future<_i5.PaginatedTrendingResponseDto> getTrending({
     int? page = 1,
     int? limit = 20,
     String? type = 'track',
@@ -210,7 +218,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #period: period,
               #genreId: genreId,
             }),
-            returnValue: _i12.Future<_i5.PaginatedTrendingResponseDto>.value(
+            returnValue: _i13.Future<_i5.PaginatedTrendingResponseDto>.value(
               _FakePaginatedTrendingResponseDto_3(
                 this,
                 Invocation.method(#getTrending, [], {
@@ -223,7 +231,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i5.PaginatedTrendingResponseDto>.value(
+                _i13.Future<_i5.PaginatedTrendingResponseDto>.value(
                   _FakePaginatedTrendingResponseDto_3(
                     this,
                     Invocation.method(#getTrending, [], {
@@ -236,10 +244,10 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i5.PaginatedTrendingResponseDto>);
+          as _i13.Future<_i5.PaginatedTrendingResponseDto>);
 
   @override
-  _i12.Future<_i6.PaginatedSuggestedArtistsResponseDto> getSuggestedArtists({
+  _i13.Future<_i6.PaginatedSuggestedArtistsResponseDto> getSuggestedArtists({
     int? page = 1,
     int? limit = 10,
   }) =>
@@ -249,7 +257,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #limit: limit,
             }),
             returnValue:
-                _i12.Future<_i6.PaginatedSuggestedArtistsResponseDto>.value(
+                _i13.Future<_i6.PaginatedSuggestedArtistsResponseDto>.value(
                   _FakePaginatedSuggestedArtistsResponseDto_4(
                     this,
                     Invocation.method(#getSuggestedArtists, [], {
@@ -259,7 +267,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
             returnValueForMissingStub:
-                _i12.Future<_i6.PaginatedSuggestedArtistsResponseDto>.value(
+                _i13.Future<_i6.PaginatedSuggestedArtistsResponseDto>.value(
                   _FakePaginatedSuggestedArtistsResponseDto_4(
                     this,
                     Invocation.method(#getSuggestedArtists, [], {
@@ -269,17 +277,17 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i6.PaginatedSuggestedArtistsResponseDto>);
+          as _i13.Future<_i6.PaginatedSuggestedArtistsResponseDto>);
 
   @override
-  _i12.Future<_i7.PaginatedSearchResponseDto> search({
+  _i13.Future<_i7.PaginatedSearchResponseDto> search({
     required String? q,
     int? page = 1,
     int? limit = 20,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#search, [], {#q: q, #page: page, #limit: limit}),
-            returnValue: _i12.Future<_i7.PaginatedSearchResponseDto>.value(
+            returnValue: _i13.Future<_i7.PaginatedSearchResponseDto>.value(
               _FakePaginatedSearchResponseDto_5(
                 this,
                 Invocation.method(#search, [], {
@@ -290,7 +298,7 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i7.PaginatedSearchResponseDto>.value(
+                _i13.Future<_i7.PaginatedSearchResponseDto>.value(
                   _FakePaginatedSearchResponseDto_5(
                     this,
                     Invocation.method(#search, [], {
@@ -301,10 +309,32 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i7.PaginatedSearchResponseDto>);
+          as _i13.Future<_i7.PaginatedSearchResponseDto>);
 
   @override
-  _i12.Future<_i8.TrackSearchResponseDto> searchTracks({
+  _i13.Future<_i8.AutocompleteResponseDto> searchAutocomplete({
+    required String? q,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#searchAutocomplete, [], {#q: q}),
+            returnValue: _i13.Future<_i8.AutocompleteResponseDto>.value(
+              _FakeAutocompleteResponseDto_6(
+                this,
+                Invocation.method(#searchAutocomplete, [], {#q: q}),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i13.Future<_i8.AutocompleteResponseDto>.value(
+                  _FakeAutocompleteResponseDto_6(
+                    this,
+                    Invocation.method(#searchAutocomplete, [], {#q: q}),
+                  ),
+                ),
+          )
+          as _i13.Future<_i8.AutocompleteResponseDto>);
+
+  @override
+  _i13.Future<_i9.TrackSearchResponseDto> searchTracks({
     required String? q,
     int? page = 1,
     int? limit = 20,
@@ -325,8 +355,8 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #toListen: toListen,
               #allowDownloads: allowDownloads,
             }),
-            returnValue: _i12.Future<_i8.TrackSearchResponseDto>.value(
-              _FakeTrackSearchResponseDto_6(
+            returnValue: _i13.Future<_i9.TrackSearchResponseDto>.value(
+              _FakeTrackSearchResponseDto_7(
                 this,
                 Invocation.method(#searchTracks, [], {
                   #q: q,
@@ -341,8 +371,8 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i8.TrackSearchResponseDto>.value(
-                  _FakeTrackSearchResponseDto_6(
+                _i13.Future<_i9.TrackSearchResponseDto>.value(
+                  _FakeTrackSearchResponseDto_7(
                     this,
                     Invocation.method(#searchTracks, [], {
                       #q: q,
@@ -357,14 +387,14 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i8.TrackSearchResponseDto>);
+          as _i13.Future<_i9.TrackSearchResponseDto>);
 
   @override
-  _i12.Future<_i9.CollectionSearchResponseDto> searchCollections({
+  _i13.Future<_i10.CollectionSearchResponseDto> searchCollections({
     required String? q,
     int? page = 1,
     int? limit = 20,
-    _i13.CollectionType? type,
+    _i14.CollectionType? type,
     String? tag,
   }) =>
       (super.noSuchMethod(
@@ -375,8 +405,8 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #type: type,
               #tag: tag,
             }),
-            returnValue: _i12.Future<_i9.CollectionSearchResponseDto>.value(
-              _FakeCollectionSearchResponseDto_7(
+            returnValue: _i13.Future<_i10.CollectionSearchResponseDto>.value(
+              _FakeCollectionSearchResponseDto_8(
                 this,
                 Invocation.method(#searchCollections, [], {
                   #q: q,
@@ -388,8 +418,8 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i9.CollectionSearchResponseDto>.value(
-                  _FakeCollectionSearchResponseDto_7(
+                _i13.Future<_i10.CollectionSearchResponseDto>.value(
+                  _FakeCollectionSearchResponseDto_8(
                     this,
                     Invocation.method(#searchCollections, [], {
                       #q: q,
@@ -401,10 +431,10 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i9.CollectionSearchResponseDto>);
+          as _i13.Future<_i10.CollectionSearchResponseDto>);
 
   @override
-  _i12.Future<_i10.UserSearchResponseDto> searchPeople({
+  _i13.Future<_i11.UserSearchResponseDto> searchPeople({
     required String? q,
     int? page = 1,
     int? limit = 20,
@@ -423,8 +453,8 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               #verifiedOnly: verifiedOnly,
               #sort: sort,
             }),
-            returnValue: _i12.Future<_i10.UserSearchResponseDto>.value(
-              _FakeUserSearchResponseDto_8(
+            returnValue: _i13.Future<_i11.UserSearchResponseDto>.value(
+              _FakeUserSearchResponseDto_9(
                 this,
                 Invocation.method(#searchPeople, [], {
                   #q: q,
@@ -438,8 +468,8 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
               ),
             ),
             returnValueForMissingStub:
-                _i12.Future<_i10.UserSearchResponseDto>.value(
-                  _FakeUserSearchResponseDto_8(
+                _i13.Future<_i11.UserSearchResponseDto>.value(
+                  _FakeUserSearchResponseDto_9(
                     this,
                     Invocation.method(#searchPeople, [], {
                       #q: q,
@@ -453,5 +483,37 @@ class MockDiscoveryApi extends _i1.Mock implements _i11.DiscoveryApi {
                   ),
                 ),
           )
-          as _i12.Future<_i10.UserSearchResponseDto>);
+          as _i13.Future<_i11.UserSearchResponseDto>);
+
+  @override
+  _i13.Future<_i3.PaginatedFeedResponseDto> getReccomendations({
+    int? page = 1,
+    int? limit = 20,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getReccomendations, [], {
+              #page: page,
+              #limit: limit,
+            }),
+            returnValue: _i13.Future<_i3.PaginatedFeedResponseDto>.value(
+              _FakePaginatedFeedResponseDto_1(
+                this,
+                Invocation.method(#getReccomendations, [], {
+                  #page: page,
+                  #limit: limit,
+                }),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i13.Future<_i3.PaginatedFeedResponseDto>.value(
+                  _FakePaginatedFeedResponseDto_1(
+                    this,
+                    Invocation.method(#getReccomendations, [], {
+                      #page: page,
+                      #limit: limit,
+                    }),
+                  ),
+                ),
+          )
+          as _i13.Future<_i3.PaginatedFeedResponseDto>);
 }

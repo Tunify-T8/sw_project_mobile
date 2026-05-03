@@ -1,32 +1,40 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:software_project/features/feed_search_discovery/data/repository/mock_feed_repository_impl.dart';
-import 'package:software_project/features/feed_search_discovery/data/repository/mock_trending_repository_impl.dart';
-import 'package:software_project/features/feed_search_discovery/data/services/mock_feed_service.dart';
-import 'package:software_project/features/feed_search_discovery/data/services/mock_trending_service.dart';
+import 'package:software_project/features/feed_search_discovery/data/repository/discovery_repository_impl.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/feed_provider.dart';
+import 'package:software_project/features/feed_search_discovery/presentation/providers/feed_view_provider.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/trending_provider.dart';
 
 void main() {
-  test('feed providers expose mock service and repository instances', () {
+  test('feed provider exposes discovery repository implementation', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    final service = container.read(feedServiceProvider);
     final repository = container.read(feedRepositoryProvider);
 
-    expect(service, isA<MockFeedService>());
-    expect(repository, isA<MockFeedRepositoryImpl>());
+    expect(repository, isA<DiscoveryRepositoryImpl>());
   });
 
-  test('trending providers expose mock service and repository instances', () {
+  test('trending provider exposes discovery repository implementation', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    final service = container.read(trendingServiceProvider);
     final repository = container.read(trendingRepositoryProvider);
 
-    expect(service, isA<MockTrendingService>());
-    expect(repository, isA<MockTrendingRepositoryImpl>());
+    expect(repository, isA<DiscoveryRepositoryImpl>());
+  });
+
+  test('feed view mode provider starts in discover mode and can switch modes', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    expect(container.read(feedViewModeProvider), FeedViewMode.discover);
+
+    container
+        .read(feedViewModeProvider.notifier)
+        .setMode(FeedViewMode.classic);
+
+    expect(container.read(feedViewModeProvider), FeedViewMode.classic);
   });
 }

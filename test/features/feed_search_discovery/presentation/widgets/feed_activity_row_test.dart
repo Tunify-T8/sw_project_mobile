@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_item_source.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_tab_type.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_view_mode.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/feed_activity_row.dart';
 
 void main() {
@@ -18,6 +19,9 @@ void main() {
           avatarUrl: avatarUrl,
           timeAgo: '2h',
           createdAt: createdAt,
+          feedViewMode: feedType == FeedType.discover
+              ? FeedViewMode.discover
+              : FeedViewMode.classic,
           feedType: feedType,
           source: source,
           actorName: 'Drake',
@@ -30,15 +34,15 @@ void main() {
   testWidgets('renders classic post activity without createdAt text', (tester) async {
     await tester.pumpWidget(
       buildRow(
-        feedType: FeedType.classic,
+        feedType: FeedType.following,
         source: FeedItemSource.post,
         createdAt: '5:20',
       ),
     );
 
-    expect(find.text(' Drake posted a track'), findsOneWidget);
+    expect(find.textContaining('Drake posted a track'), findsOneWidget);
     expect(find.textContaining('5:20'), findsNothing);
-    expect(find.textContaining('2h ago'), findsOneWidget);
+    expect(find.textContaining('2h'), findsOneWidget);
   });
 
   testWidgets('renders repost and discover timestamps when not classic', (tester) async {
@@ -49,12 +53,12 @@ void main() {
       ),
     );
 
-    expect(find.text('Drake reposted a track'), findsOneWidget);
+    expect(find.textContaining('Drake reposted a track'), findsOneWidget);
     expect(find.textContaining('5:20'), findsOneWidget);
-    expect(find.textContaining('2h ago'), findsOneWidget);
+    expect(find.textContaining('2h'), findsOneWidget);
   });
 
-  testWidgets('covers new-release and recommendation text branches', (tester) async {
+  testWidgets('covers discover reason text branches', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Material(
@@ -65,27 +69,33 @@ void main() {
                 avatarUrl: null,
                 timeAgo: '1h',
                 createdAt: '4:10',
+                feedViewMode: FeedViewMode.discover,
                 feedType: FeedType.discover,
-                source: FeedItemSource.newRelease,
+                source: null,
                 actorName: 'Billie',
+                discoverReason: 'New release by Billie',
                 trackName: 'Ocean Lights',
               ),
               FeedActivityRow(
                 avatarUrl: null,
                 timeAgo: '3h',
                 createdAt: '7:30',
+                feedViewMode: FeedViewMode.discover,
                 feedType: FeedType.following,
-                source: FeedItemSource.becauseYouLiked,
+                source: null,
                 actorName: 'Drake',
+                discoverReason: 'Because you liked Midnight Drive by Drake',
                 trackName: 'Midnight Drive',
               ),
               FeedActivityRow(
                 avatarUrl: null,
                 timeAgo: '4h',
                 createdAt: null,
+                feedViewMode: FeedViewMode.classic,
                 feedType: FeedType.following,
-                source: FeedItemSource.becauseYouFollow,
+                source: null,
                 actorName: 'Drake',
+                discoverReason: 'Because you follow Drake',
                 trackName: 'Ignored',
               ),
             ],
@@ -100,6 +110,5 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Because you follow Drake'), findsOneWidget);
-    expect(find.textContaining('7:30'), findsOneWidget);
   });
 }

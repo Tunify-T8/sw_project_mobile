@@ -51,7 +51,6 @@ void main() {
     expect(find.text('Backend Hip Hop'), findsOneWidget);
 
     await tester.tap(find.text('Backend Hip Hop'));
-    await tester.pumpAndSettle();
 
     expect(tappedGenre?.id, 'hip_hop_rap');
     expect(find.text('Backend Hip Hop'), findsWidgets);

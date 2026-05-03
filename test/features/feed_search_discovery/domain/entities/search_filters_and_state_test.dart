@@ -124,7 +124,7 @@ void main() {
           id: 'user-1',
           username: 'Artist',
           followersCount: 100,
-          verified: true,
+          isCertified: true,
           isFollowing: false,
         ),
       );

@@ -82,7 +82,7 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.single.track.title, 'Midnight Drive');
-      expect(result.single.actor.username, 'Drake');
+      expect(result.single.actor?.username, 'Drake');
       expect(result.single.track.interaction.isLiked, isTrue);
       verify(
         api.getFollowingFeed(
@@ -143,7 +143,7 @@ void main() {
                 username: 'Artist',
                 avatarUrl: null,
                 followersCount: 500,
-                verified: true,
+                isCertified: true,
                 location: 'Cairo',
                 isFollowing: true,
               ),

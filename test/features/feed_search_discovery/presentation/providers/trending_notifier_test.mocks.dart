@@ -6,9 +6,13 @@
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:software_project/features/feed_search_discovery/domain/entities/discovery_item_entity.dart'
+    as _i6;
+import 'package:software_project/features/feed_search_discovery/domain/entities/feed_item_entity.dart'
+    as _i5;
 import 'package:software_project/features/feed_search_discovery/domain/entities/trending_genre_entity.dart'
     as _i2;
-import 'package:software_project/features/feed_search_discovery/domain/repositories/trending_repository.dart'
+import 'package:software_project/features/feed_search_discovery/domain/repositories/discovery_repository.dart'
     as _i3;
 
 // ignore_for_file: type=lint
@@ -32,11 +36,72 @@ class _FakeTrendingGenreEntity_0 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-/// A class which mocks [TrendingRepository].
+/// A class which mocks [DiscoveryRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTrendingRepository extends _i1.Mock
-    implements _i3.TrendingRepository {
+class MockDiscoveryRepository extends _i1.Mock
+    implements _i3.DiscoveryRepository {
+  @override
+  _i4.Future<List<_i5.FeedItemEntity>> getFollowingFeed({
+    int? page = 1,
+    int? limit = 20,
+    bool? includeReposts = true,
+    String? sinceTimestamp,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getFollowingFeed, [], {
+              #page: page,
+              #limit: limit,
+              #includeReposts: includeReposts,
+              #sinceTimestamp: sinceTimestamp,
+            }),
+            returnValue: _i4.Future<List<_i5.FeedItemEntity>>.value(
+              <_i5.FeedItemEntity>[],
+            ),
+            returnValueForMissingStub:
+                _i4.Future<List<_i5.FeedItemEntity>>.value(
+                  <_i5.FeedItemEntity>[],
+                ),
+          )
+          as _i4.Future<List<_i5.FeedItemEntity>>);
+
+  @override
+  _i4.Future<List<_i5.FeedItemEntity>> getReccomendations({
+    int? page = 1,
+    int? limit = 20,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getReccomendations, [], {
+              #page: page,
+              #limit: limit,
+            }),
+            returnValue: _i4.Future<List<_i5.FeedItemEntity>>.value(
+              <_i5.FeedItemEntity>[],
+            ),
+            returnValueForMissingStub:
+                _i4.Future<List<_i5.FeedItemEntity>>.value(
+                  <_i5.FeedItemEntity>[],
+                ),
+          )
+          as _i4.Future<List<_i5.FeedItemEntity>>);
+
+  @override
+  _i4.Future<List<_i6.DiscoveryItemEntity>> getDiscover({
+    int? page = 1,
+    int? limit = 20,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getDiscover, [], {#page: page, #limit: limit}),
+            returnValue: _i4.Future<List<_i6.DiscoveryItemEntity>>.value(
+              <_i6.DiscoveryItemEntity>[],
+            ),
+            returnValueForMissingStub:
+                _i4.Future<List<_i6.DiscoveryItemEntity>>.value(
+                  <_i6.DiscoveryItemEntity>[],
+                ),
+          )
+          as _i4.Future<List<_i6.DiscoveryItemEntity>>);
+
   @override
   _i4.Future<_i2.TrendingGenreEntity> getTrending({required String? genre}) =>
       (super.noSuchMethod(

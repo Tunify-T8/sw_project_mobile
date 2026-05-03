@@ -13,7 +13,7 @@ void main() {
     final result = await service.getFollowingFeed();
 
     expect(result, hasLength(2));
-    expect(result.first.actor.username, 'Drake');
+    expect(result.first.actor?.username, 'Drake');
     expect(result.first.source, FeedItemSource.post);
     expect(result.last.source, FeedItemSource.repost);
     expect(result.first.track.interaction.isLiked, isTrue);
@@ -23,9 +23,12 @@ void main() {
     final result = await service.getDiscoverFeed();
 
     expect(result, hasLength(3));
-    expect(result.first.source, FeedItemSource.becauseYouLiked);
-    expect(result[1].source, FeedItemSource.becauseYouFollow);
-    expect(result.last.source, FeedItemSource.newRelease);
+    expect(result.first.source, isNull);
+    expect(result.first.discoverReason, 'Because you liked Midnight Drive by Drake');
+    expect(result[1].source, isNull);
+    expect(result[1].discoverReason, 'Because you follow Billie');
+    expect(result.last.source, isNull);
+    expect(result.last.discoverReason, 'New release by Travis Scott');
     expect(result.last.track.artistName, 'Travis Scott');
   });
 }

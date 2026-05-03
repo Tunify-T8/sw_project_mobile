@@ -8,10 +8,13 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import 'package:software_project/features/feed_search_discovery/domain/entities/profile_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_all_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_filters_entity.dart';
-import 'package:software_project/features/feed_search_discovery/domain/entities/search_genre_entity.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/search_genre_entity.dart'
+    hide SearchTab;
 import 'package:software_project/features/feed_search_discovery/domain/entities/top_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/repositories/search_repository.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/autocomplete_result_entity.dart';
+import 'package:software_project/features/feed_search_discovery/domain/usecases/search_autocomplete_usecase.dart';
 import 'package:software_project/features/feed_search_discovery/domain/usecases/search_usecases.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/search_provider.dart';
 
@@ -25,6 +28,7 @@ import 'search_provider_test.mocks.dart';
   MockSpec<SearchAlbumsUseCase>(),
   MockSpec<GetGenresUseCase>(),
   MockSpec<GetGenreDetailUseCase>(),
+  MockSpec<SearchAutocompleteUseCase>(),
 ])
 void main() {
   late MockSearchAllUseCase mockSearchAllUseCase;
@@ -34,6 +38,7 @@ void main() {
   late MockSearchAlbumsUseCase mockSearchAlbumsUseCase;
   late MockGetGenresUseCase mockGetGenresUseCase;
   late MockGetGenreDetailUseCase mockGetGenreDetailUseCase;
+  late MockSearchAutocompleteUseCase mockSearchAutocompleteUseCase;
   late ProviderContainer container;
   late SearchNotifier notifier;
 
@@ -74,7 +79,7 @@ void main() {
     username: 'Don Toliver',
     avatarUrl: 'https://example.com/don.jpg',
     followersCount: 688000,
-    isVerified: true,
+    isCertified: true,
   );
   const profileOther = ProfileResultEntity(
     id: 'profile-other',
@@ -120,6 +125,9 @@ void main() {
         getGenreDetailUseCaseProvider.overrideWithValue(
           mockGetGenreDetailUseCase,
         ),
+        searchAutocompleteUseCaseProvider.overrideWithValue(
+          mockSearchAutocompleteUseCase,
+        ),
       ],
     );
   }
@@ -137,8 +145,16 @@ void main() {
     mockSearchAlbumsUseCase = MockSearchAlbumsUseCase();
     mockGetGenresUseCase = MockGetGenresUseCase();
     mockGetGenreDetailUseCase = MockGetGenreDetailUseCase();
+    mockSearchAutocompleteUseCase = MockSearchAutocompleteUseCase();
 
     when(mockGetGenresUseCase()).thenAnswer((_) async => const [genreRock]);
+    when(mockSearchAutocompleteUseCase(any)).thenAnswer(
+      (_) async => const AutocompleteResultEntity(
+        tracks: [],
+        users: [],
+        collections: [],
+      ),
+    );
 
     container = buildContainer();
     notifier = container.read(searchProvider.notifier);
@@ -146,88 +162,6 @@ void main() {
 
   tearDown(() {
     container.dispose();
-  });
-
-  group('SearchState helpers', () {
-    test('hasResults reflects active tab contents and activeTabHasFilters reflects filters', () {
-      const state = SearchState(
-        activeTab: SearchTab.tracks,
-        tracks: [trackOcean],
-        trackFilters: TrackSearchFilters(tag: 'rock'),
-      );
-
-      expect(state.hasResults, isTrue);
-      expect(state.activeTabHasFilters, isTrue);
-      expect(
-        const SearchState(
-          activeTab: SearchTab.all,
-          allResult: SearchAllResultEntity(),
-        ).hasResults,
-        isFalse,
-      );
-    });
-
-    test('hasResults and activeTabHasFilters cover all remaining tab branches', () {
-      expect(
-        const SearchState(
-          activeTab: SearchTab.all,
-          allResult: SearchAllResultEntity(
-            topResult: TopResultEntity(
-              id: 'top',
-              type: TopResultType.track,
-              title: 'Top',
-              subtitle: 'Artist',
-            ),
-          ),
-        ).hasResults,
-        isTrue,
-      );
-      expect(
-        const SearchState(
-          activeTab: SearchTab.profiles,
-          profiles: [profileDon],
-          peopleFilters: PeopleSearchFilters(location: 'Cairo'),
-        ).hasResults,
-        isTrue,
-      );
-      expect(
-        const SearchState(
-          activeTab: SearchTab.playlists,
-          playlists: [playlistOctane],
-          collectionFilters: CollectionSearchFilters(tag: 'party'),
-        ).hasResults,
-        isTrue,
-      );
-      expect(
-        const SearchState(
-          activeTab: SearchTab.albums,
-          albums: [albumOctane],
-          collectionFilters: CollectionSearchFilters(tag: 'party'),
-        ).hasResults,
-        isTrue,
-      );
-      expect(
-        const SearchState(
-          activeTab: SearchTab.profiles,
-          peopleFilters: PeopleSearchFilters(location: 'Cairo'),
-        ).activeTabHasFilters,
-        isTrue,
-      );
-      expect(
-        const SearchState(
-          activeTab: SearchTab.playlists,
-          collectionFilters: CollectionSearchFilters(tag: 'party'),
-        ).activeTabHasFilters,
-        isTrue,
-      );
-      expect(
-        const SearchState(
-          activeTab: SearchTab.all,
-          trackFilters: TrackSearchFilters(tag: 'ignored'),
-        ).activeTabHasFilters,
-        isFalse,
-      );
-    });
   });
 
   group('initialization', () {
@@ -269,6 +203,7 @@ void main() {
       expect(defaultContainer.read(searchAlbumsUseCaseProvider), isA<SearchAlbumsUseCase>());
       expect(defaultContainer.read(getGenresUseCaseProvider), isA<GetGenresUseCase>());
       expect(defaultContainer.read(getGenreDetailUseCaseProvider), isA<GetGenreDetailUseCase>());
+      expect(defaultContainer.read(searchAutocompleteUseCaseProvider), isA<SearchAutocompleteUseCase>());
     });
   });
 
@@ -321,6 +256,61 @@ void main() {
       expect(container.read(searchProvider).typingSuggestions, contains('The Octane Story'));
     });
 
+    test('onQueryChanged replaces local suggestions with autocomplete results', () async {
+      await flush();
+      when(mockSearchAutocompleteUseCase('do')).thenAnswer(
+        (_) async => const AutocompleteResultEntity(
+          tracks: [
+            AutocompleteTrackEntity(
+              id: 'track-1',
+              title: 'Don Anthem',
+              artist: 'Don Toliver',
+            ),
+          ],
+          users: [
+            AutocompleteUserEntity(
+              id: 'user-1',
+              username: 'don',
+              displayName: 'Don Toliver',
+            ),
+          ],
+          collections: [
+            AutocompleteCollectionEntity(
+              id: 'collection-1',
+              title: 'Downtown Mix',
+              artist: 'DJ',
+            ),
+          ],
+        ),
+      );
+
+      notifier.onQueryChanged('do');
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      await flush();
+
+      final suggestions = container.read(searchProvider).typingSuggestions;
+      expect(suggestions, contains('Don Anthem'));
+      expect(suggestions, contains('Don Toliver'));
+      expect(suggestions, contains('Downtown Mix'));
+      verify(mockSearchAutocompleteUseCase('do')).called(1);
+    });
+
+    test('autocomplete errors keep local suggestions unchanged', () async {
+      await flush();
+      notifier.state = notifier.state.copyWith(
+        tracks: const [trackDon],
+      );
+      when(mockSearchAutocompleteUseCase('do')).thenThrow(Exception('down'));
+
+      notifier.onQueryChanged('do');
+      final localSuggestions = container.read(searchProvider).typingSuggestions;
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      await flush();
+
+      expect(container.read(searchProvider).typingSuggestions, localSuggestions);
+      expect(localSuggestions, contains('Don Anthem'));
+    });
+
     test('onQueryChanged clears suggestions for short queries', () async {
       await flush();
       notifier.state = notifier.state.copyWith(
@@ -335,6 +325,20 @@ void main() {
       expect(state.mode, SearchScreenMode.typing);
     });
 
+    test('onQueryChanged clears suggestions for blank query', () async {
+      await flush();
+      notifier.state = notifier.state.copyWith(
+        typingSuggestions: const ['existing'],
+      );
+
+      notifier.onQueryChanged('   ');
+
+      final state = container.read(searchProvider);
+      expect(state.query, '   ');
+      expect(state.typingSuggestions, isEmpty);
+      verifyNever(mockSearchAutocompleteUseCase(any));
+    });
+
     test('onQuerySubmitted ignores empty trimmed query', () async {
       await flush();
 
@@ -344,7 +348,7 @@ void main() {
       verifyNever(mockSearchAllUseCase(any));
     });
 
-    test('onQuerySubmitted loads all-tab results, rescored top result, and records recents', () async {
+    test('onQuerySubmitted loads all-tab results, rescored top result, and records recent search', () async {
       await flush();
       const rawResult = SearchAllResultEntity(
         topResult: TopResultEntity(
@@ -372,10 +376,7 @@ void main() {
       expect(state.allResult?.topResult?.type, TopResultType.album);
       expect(state.allResult?.topResult?.id, albumOctane.id);
       expect(state.recentSearches.first, 'octane');
-      expect(state.recentResults.first.kind, RecentResultKind.track);
-      expect(state.recentResults.first.id, trackOcean.id);
-      expect(state.recentResults[1].kind, RecentResultKind.album);
-      expect(state.recentResults[1].id, albumOctane.id);
+      expect(state.recentResults, isEmpty);
       verify(mockSearchAllUseCase('octane')).called(1);
     });
 
@@ -392,7 +393,7 @@ void main() {
       verify(mockSearchAllUseCase('broken')).called(1);
     });
 
-    test('onQuerySubmitted records only the top profile when no playable result exists', () async {
+    test('onQuerySubmitted promotes profile when no playable result exists', () async {
       await flush();
       const rawResult = SearchAllResultEntity(
         profiles: [profileDon],
@@ -405,9 +406,7 @@ void main() {
 
       final state = container.read(searchProvider);
       expect(state.allResult?.topResult?.type, TopResultType.profile);
-      expect(state.recentResults, hasLength(1));
-      expect(state.recentResults.single.kind, RecentResultKind.profile);
-      expect(state.recentResults.single.id, profileDon.id);
+      expect(state.recentResults, isEmpty);
     });
 
     test('onQuerySubmitted preserves original top result when rescoring finds no better match', () async {
@@ -426,11 +425,10 @@ void main() {
 
       final state = container.read(searchProvider);
       expect(state.allResult?.topResult?.id, 'raw-top');
-      expect(state.recentResults.single.kind, RecentResultKind.track);
-      expect(state.recentResults.single.id, 'raw-top');
+      expect(state.recentResults, isEmpty);
     });
 
-    test('onQuerySubmitted rescales playlist results and records playlist as recently played', () async {
+    test('onQuerySubmitted rescales playlist results', () async {
       await flush();
       const rawResult = SearchAllResultEntity(
         playlists: [playlistOctane],
@@ -444,12 +442,22 @@ void main() {
       final state = container.read(searchProvider);
       expect(state.allResult?.topResult?.type, TopResultType.playlist);
       expect(state.allResult?.topResult?.id, playlistOctane.id);
-      expect(state.recentResults, hasLength(1));
-      expect(state.recentResults.single.kind, RecentResultKind.playlist);
-      expect(state.recentResults.single.id, playlistOctane.id);
+      expect(state.recentResults, isEmpty);
     });
 
-    test('onQuerySubmitted rescales track results and album-only results into recent items', () async {
+    test('onQuerySubmitted leaves all-tab loading false for unsupported direct load branch', () async {
+      await flush();
+      notifier.state = notifier.state.copyWith(
+        query: 'don',
+        activeTab: SearchTab.all,
+      );
+
+      await notifier.setActiveTab(SearchTab.all);
+
+      expect(container.read(searchProvider).isLoading, isFalse);
+    });
+
+    test('onQuerySubmitted rescales track results and album-only results', () async {
       await flush();
       const trackOnly = SearchAllResultEntity(tracks: [trackOcean]);
       const albumOnly = SearchAllResultEntity(albums: [albumOctane]);
@@ -458,12 +466,10 @@ void main() {
 
       await notifier.onQuerySubmitted('ocean drive');
       expect(container.read(searchProvider).allResult?.topResult?.type, TopResultType.track);
-      expect(container.read(searchProvider).recentResults.first.kind, RecentResultKind.track);
 
       await notifier.onQuerySubmitted('octane');
       expect(container.read(searchProvider).allResult?.topResult?.type, TopResultType.album);
-      expect(container.read(searchProvider).recentResults.first.kind, RecentResultKind.album);
-      expect(container.read(searchProvider).recentResults.first.id, albumOctane.id);
+      expect(container.read(searchProvider).recentResults, isEmpty);
     });
 
     test('onSearchCleared resets results but stays in typing mode', () async {
@@ -486,24 +492,20 @@ void main() {
       expect(state.query, '');
       expect(state.mode, SearchScreenMode.typing);
       expect(state.typingSuggestions, isEmpty);
-      expect(state.allResult, isNull);
-      expect(state.tracks, isEmpty);
-      expect(state.profiles, isEmpty);
-      expect(state.playlists, isEmpty);
-      expect(state.albums, isEmpty);
+      expect(state.allResult?.tracks, const [trackOcean]);
+      expect(state.tracks, const [trackOcean]);
+      expect(state.profiles, const [profileDon]);
+      expect(state.playlists, const [playlistOctane]);
+      expect(state.albums, const [albumOctane]);
       expect(state.error, isNull);
     });
 
-    test('onSearchDismissed moves results to typing then typing to idle', () async {
+    test('onSearchDismissed returns to idle and clears transient text state', () async {
       await flush();
       notifier.state = notifier.state.copyWith(
         mode: SearchScreenMode.results,
         error: 'old',
       );
-
-      notifier.onSearchDismissed();
-      expect(container.read(searchProvider).mode, SearchScreenMode.typing);
-      expect(container.read(searchProvider).error, isNull);
 
       notifier.onSearchDismissed();
       final state = container.read(searchProvider);
@@ -599,7 +601,87 @@ void main() {
       expect(container.read(searchProvider).albums, const [albumOctane]);
     });
 
-    test('applyTrackFilters resets paging and loads filtered tracks', () async {
+    test('setActiveTab seeds empty endpoint results from all results', () async {
+      await flush();
+      notifier.state = notifier.state.copyWith(
+        query: 'don',
+        mode: SearchScreenMode.results,
+        allResult: const SearchAllResultEntity(
+          tracks: [trackDon],
+          profiles: [profileDon],
+          playlists: [playlistOctane],
+          albums: [albumOctane],
+        ),
+      );
+      when(
+        mockSearchTracksUseCase(
+          'don',
+          page: 1,
+          limit: 20,
+          filters: const TrackSearchFilters(),
+        ),
+      ).thenAnswer((_) async => const []);
+      when(
+        mockSearchProfilesUseCase(
+          'don',
+          page: 1,
+          limit: 20,
+          filters: const PeopleSearchFilters(),
+        ),
+      ).thenAnswer((_) async => const []);
+      when(
+        mockSearchPlaylistsUseCase(
+          'don',
+          page: 1,
+          limit: 20,
+          filters: const CollectionSearchFilters(),
+        ),
+      ).thenAnswer((_) async => const []);
+      when(
+        mockSearchAlbumsUseCase(
+          'don',
+          page: 1,
+          limit: 20,
+          filters: const CollectionSearchFilters(),
+        ),
+      ).thenAnswer((_) async => const []);
+
+      await notifier.setActiveTab(SearchTab.tracks);
+      expect(container.read(searchProvider).tracks, const [trackDon]);
+
+      await notifier.setActiveTab(SearchTab.profiles);
+      expect(container.read(searchProvider).profiles, const [profileDon]);
+
+      await notifier.setActiveTab(SearchTab.playlists);
+      expect(container.read(searchProvider).playlists, const [playlistOctane]);
+
+      await notifier.setActiveTab(SearchTab.albums);
+      expect(container.read(searchProvider).albums, const [albumOctane]);
+    });
+
+    test('setActiveTab stores error when tab endpoint fails', () async {
+      await flush();
+      notifier.state = notifier.state.copyWith(
+        query: 'don',
+        mode: SearchScreenMode.results,
+      );
+      when(
+        mockSearchProfilesUseCase(
+          'don',
+          page: 1,
+          limit: 20,
+          filters: const PeopleSearchFilters(),
+        ),
+      ).thenThrow(Exception('profiles failed'));
+
+      await notifier.setActiveTab(SearchTab.profiles);
+
+      final state = container.read(searchProvider);
+      expect(state.isLoading, isFalse);
+      expect(state.error, 'Search failed. Please try again.');
+    });
+
+    test('setTrackFilters resets paging and loads filtered tracks', () async {
       await flush();
       const filters = TrackSearchFilters(
         tag: 'rock',
@@ -621,7 +703,8 @@ void main() {
         ),
       ).thenAnswer((_) async => const [trackOcean]);
 
-      await notifier.applyTrackFilters(filters);
+      notifier.setTrackFilters(filters);
+      await flush();
 
       final state = container.read(searchProvider);
       expect(state.trackFilters, filters);
@@ -638,7 +721,7 @@ void main() {
       ).called(1);
     });
 
-    test('applyCollectionFilters routes through active playlist tab', () async {
+    test('setCollectionFilters routes through active playlist tab', () async {
       await flush();
       const filters = CollectionSearchFilters(tag: 'party');
       notifier.state = notifier.state.copyWith(
@@ -655,7 +738,8 @@ void main() {
         ),
       ).thenAnswer((_) async => const [playlistOctane]);
 
-      await notifier.applyCollectionFilters(filters);
+      notifier.setCollectionFilters(filters);
+      await flush();
 
       final state = container.read(searchProvider);
       expect(state.collectionFilters, filters);
@@ -671,23 +755,52 @@ void main() {
       verifyNever(mockSearchAlbumsUseCase(any));
     });
 
-    test('applyTrackFilters, applyCollectionFilters, and applyPeopleFilters do nothing for blank query', () async {
+    test('setCollectionFilters routes through active album tab', () async {
+      await flush();
+      const filters = CollectionSearchFilters(tag: 'album');
+      notifier.state = notifier.state.copyWith(
+        query: 'mix',
+        activeTab: SearchTab.albums,
+        albums: const [albumOctane],
+      );
+      when(
+        mockSearchAlbumsUseCase(
+          'mix',
+          page: 1,
+          limit: 20,
+          filters: filters,
+        ),
+      ).thenAnswer((_) async => const [albumOctane]);
+
+      notifier.setCollectionFilters(filters);
       await flush();
 
-      await notifier.applyTrackFilters(const TrackSearchFilters(tag: 'rock'));
-      await notifier.applyCollectionFilters(
-        const CollectionSearchFilters(tag: 'party'),
-      );
-      await notifier.applyPeopleFilters(
-        const PeopleSearchFilters(location: 'Cairo'),
-      );
+      expect(container.read(searchProvider).collectionFilters, filters);
+      expect(container.read(searchProvider).albums, const [albumOctane]);
+      verify(
+        mockSearchAlbumsUseCase(
+          'mix',
+          page: 1,
+          limit: 20,
+          filters: filters,
+        ),
+      ).called(1);
+    });
+
+    test('set filter methods do not fetch for blank query', () async {
+      await flush();
+
+      notifier.setTrackFilters(const TrackSearchFilters(tag: 'rock'));
+      notifier.setCollectionFilters(const CollectionSearchFilters(tag: 'party'));
+      notifier.setPeopleFilters(const PeopleSearchFilters(location: 'Cairo'));
+      await flush();
 
       verifyNever(mockSearchTracksUseCase(any));
       verifyNever(mockSearchPlaylistsUseCase(any));
       verifyNever(mockSearchProfilesUseCase(any));
     });
 
-    test('applyPeopleFilters routes through profiles and clearFiltersForActiveTab resets them', () async {
+    test('setPeopleFilters routes through profiles', () async {
       await flush();
       const peopleFilters = PeopleSearchFilters(
         location: 'Cairo',
@@ -707,23 +820,12 @@ void main() {
           filters: peopleFilters,
         ),
       ).thenAnswer((_) async => const [profileDon]);
-      when(
-        mockSearchProfilesUseCase(
-          'don',
-          page: 1,
-          limit: 20,
-          filters: const PeopleSearchFilters(),
-        ),
-      ).thenAnswer((_) async => const [profileOther]);
-
-      await notifier.applyPeopleFilters(peopleFilters);
-      expect(container.read(searchProvider).peopleFilters, peopleFilters);
-
-      await notifier.clearFiltersForActiveTab();
+      notifier.setPeopleFilters(peopleFilters);
+      await flush();
 
       final state = container.read(searchProvider);
-      expect(state.peopleFilters.hasAny, isFalse);
-      expect(state.profiles, const [profileOther]);
+      expect(state.peopleFilters, peopleFilters);
+      expect(state.profiles, const [profileDon]);
       verify(
         mockSearchProfilesUseCase(
           'don',
@@ -732,53 +834,6 @@ void main() {
           filters: peopleFilters,
         ),
       ).called(1);
-      verify(
-        mockSearchProfilesUseCase(
-          'don',
-          page: 1,
-          limit: 20,
-          filters: const PeopleSearchFilters(),
-        ),
-        ).called(1);
-    });
-
-    test('clearFiltersForActiveTab covers track, album, and all-tab branches', () async {
-      await flush();
-      notifier.state = notifier.state.copyWith(
-        query: 'don',
-        activeTab: SearchTab.tracks,
-        trackFilters: const TrackSearchFilters(tag: 'rock'),
-      );
-      when(
-        mockSearchTracksUseCase(
-          'don',
-          page: 1,
-          limit: 20,
-          filters: const TrackSearchFilters(),
-        ),
-      ).thenAnswer((_) async => const [trackDon]);
-
-      await notifier.clearFiltersForActiveTab();
-      expect(container.read(searchProvider).trackFilters.hasAny, isFalse);
-
-      notifier.state = notifier.state.copyWith(
-        activeTab: SearchTab.albums,
-        collectionFilters: const CollectionSearchFilters(tag: 'party'),
-      );
-      when(
-        mockSearchAlbumsUseCase(
-          'don',
-          page: 1,
-          limit: 20,
-          filters: const CollectionSearchFilters(),
-        ),
-      ).thenAnswer((_) async => const [albumOctane]);
-
-      await notifier.clearFiltersForActiveTab();
-      expect(container.read(searchProvider).collectionFilters.hasAny, isFalse);
-
-      notifier.state = notifier.state.copyWith(activeTab: SearchTab.all);
-      await notifier.clearFiltersForActiveTab();
     });
 
     test('loadMore appends tracks and advances page', () async {
@@ -939,6 +994,20 @@ void main() {
       await notifier.loadMore();
       expect(container.read(searchProvider).albums, hasLength(2));
     });
+
+    test('loadMore handles default branch without fetching', () async {
+      await flush();
+      notifier.state = notifier.state.copyWith(
+        query: 'don',
+        activeTab: SearchTab.all,
+        hasMore: true,
+      );
+
+      await notifier.loadMore();
+
+      expect(container.read(searchProvider).isLoadingMore, isFalse);
+      verifyNever(mockSearchAlbumsUseCase(any));
+    });
   });
 
   group('recent searches and recents', () {
@@ -1004,6 +1073,21 @@ void main() {
       expect(results, hasLength(8));
       expect(results.first.id, '8');
       expect(results.last.id, '1');
+    });
+
+    test('recordTrackPlayed and invalidateTrackFromRecents update recent results', () async {
+      await flush();
+
+      notifier.recordTrackPlayed(trackOcean);
+
+      var results = container.read(searchProvider).recentResults;
+      expect(results.single.kind, RecentResultKind.track);
+      expect(results.single.id, trackOcean.id);
+      expect(results.single.track, trackOcean);
+
+      notifier.invalidateTrackFromRecents(trackOcean.id);
+      results = container.read(searchProvider).recentResults;
+      expect(results, isEmpty);
     });
 
     test('onRecentSearchTapped delegates to query submission', () async {
