@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:marquee/marquee.dart';
 import '../../domain/entities/feed_item_source.dart';
 import '../../domain/entities/feed_view_mode.dart';
+import '../../domain/entities/feed_tab_type.dart';
 
 class FeedActivityRow extends StatelessWidget {
   final String? avatarUrl;
   final String timeAgo;
   final String? createdAt;
   final FeedViewMode feedViewMode;
-  final FeedItemSource source;
-  final String actorName;
+  final FeedItemSource? source;
+  final String? actorName;
+  final String? discoverReason;
   final String trackName;
+  final FeedType feedType;
 
   const FeedActivityRow({
     super.key,
@@ -18,42 +21,50 @@ class FeedActivityRow extends StatelessWidget {
     required this.timeAgo,
     this.createdAt,
     required this.feedViewMode,
-    required this.source,
-    required this.actorName,
+    this.source,
+    this.actorName,
+    this.discoverReason,
     required this.trackName,
+    required this.feedType,
   });
 
   String _getActivityText() {
-    String activityText;
-    switch (source) {
-      case FeedItemSource.post:
-        activityText = ' $actorName posted a track';
-      case FeedItemSource.repost:
-        activityText = '$actorName reposted a track';
-      case FeedItemSource.newRelease:
-        activityText = 'New release by $actorName';
-      case FeedItemSource.becauseYouLiked:
-        activityText = 'Because you liked $trackName by $actorName';
-      case FeedItemSource.becauseYouFollow:
-        activityText = 'Because you follow $actorName';
+    String activityText = ' ';
+    if (discoverReason != null) {
+      activityText = discoverReason!;
+    } else if (source != null) {
+      switch (source!) {
+        case FeedItemSource.post:
+          activityText = ' $actorName posted a track';
+        case FeedItemSource.repost:
+          activityText = '$actorName reposted a track';
+      }
+
+      if (feedViewMode == FeedViewMode.discover && createdAt != null) {
+        activityText += " • $createdAt";
+      }
+
+      activityText += " • $timeAgo";
     }
 
-    if (feedViewMode == FeedViewMode.discover && createdAt != null) {
-      activityText += " • $createdAt";
-    }
-
-    activityText += " • $timeAgo";
     return activityText;
   }
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      key: ValueKey('feed_activity_row_${feedViewMode.name}_$trackName'),
       children: [
-        CircleAvatar(
-          radius: 10.0,
-          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-        ),
+        (feedType == FeedType.following)
+            ? CircleAvatar(
+                radius: 10.0,
+                backgroundImage: avatarUrl != null
+                    ? NetworkImage(avatarUrl!)
+                    : null,
+                backgroundColor: Colors.grey,
+              )
+            : Icon(Icons.star, color: Colors.white, size: 20,),
+
         const SizedBox(width: 10.0),
 
         Expanded(

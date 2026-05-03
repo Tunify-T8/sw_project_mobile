@@ -28,6 +28,7 @@ class SearchBarWidget extends StatelessWidget {
         children: [
           if (showBackButton)
             GestureDetector(
+              key: const Key('search_back_button'),
               onTap: onBack,
               child: const Padding(
                 padding: EdgeInsets.only(right: 8),
@@ -46,6 +47,7 @@ class SearchBarWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
               ),
               child: TextField(
+                key: const Key('search_text_field'),
                 controller: controller,
                 focusNode: focusNode,
                 style: const TextStyle(
@@ -71,6 +73,7 @@ class SearchBarWidget extends StatelessWidget {
                   ),
                   suffixIcon: controller.text.isNotEmpty
                       ? GestureDetector(
+                          key: const Key('search_clear_button'),
                           onTap: onClear,
                           child: const Icon(
                             Icons.cancel,

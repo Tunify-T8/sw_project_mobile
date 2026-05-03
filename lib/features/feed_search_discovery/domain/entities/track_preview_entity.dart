@@ -6,7 +6,7 @@ class TrackPreviewEntity {
   final String artistId;
   final String artistName;
   final String? artistAvatar;
-  final bool artistVerified;
+  final bool isArtistCertified;
   final bool? isFollowingArtist;
   final String? coverUrl;
   final int duration;
@@ -23,7 +23,7 @@ class TrackPreviewEntity {
     required this.artistId,
     required this.artistName,
     this.artistAvatar,
-    required this.artistVerified,
+    required this.isArtistCertified,
     this.isFollowingArtist = true,
     this.coverUrl,
     required this.duration,
@@ -58,7 +58,7 @@ class TrackPreviewEntity {
       artistId: artistId ?? this.artistId,
       artistName: artistName ?? this.artistName,
       artistAvatar: artistAvatar ?? this.artistAvatar,
-      artistVerified: artistVerified ?? this.artistVerified,
+      isArtistCertified: artistVerified ?? this.isArtistCertified,
       isFollowingArtist: isFollowingArtist ?? this.isFollowingArtist,
       coverUrl: coverUrl ?? this.coverUrl,
       duration: duration ?? this.duration,

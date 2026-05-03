@@ -10,16 +10,16 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_tab_type.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_interaction_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_preview_entity.dart';
-import 'package:software_project/features/feed_search_discovery/domain/repositories/feed_repository.dart';
+import 'package:software_project/features/feed_search_discovery/domain/repositories/discovery_repository.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/feed_notifier.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/feed_provider.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/providers/feed_state.dart';
 
 import 'feed_notifier_test.mocks.dart';
 
-@GenerateNiceMocks([MockSpec<FeedRepository>()])
+@GenerateNiceMocks([MockSpec<DiscoveryRepository>()])
 void main() {
-  late MockFeedRepository repository;
+  late MockDiscoveryRepository repository;
   late ProviderContainer container;
   late FeedNotifier notifier;
 
@@ -41,7 +41,7 @@ void main() {
         artistId: 'artist-$suffix',
         artistName: 'Artist $suffix',
         artistAvatar: 'https://example.com/artist-$suffix.png',
-        artistVerified: true,
+        isArtistCertified: true,
         isFollowingArtist: suffix != '0',
         coverUrl: 'https://example.com/cover-$suffix.png',
         duration: 180,
@@ -59,7 +59,7 @@ void main() {
   }
 
   setUp(() {
-    repository = MockFeedRepository();
+    repository = MockDiscoveryRepository();
     container = ProviderContainer(
       overrides: [
         feedRepositoryProvider.overrideWithValue(repository),
@@ -91,8 +91,8 @@ void main() {
   group('loadFeed', () {
     test('loads discover feed, forwards arguments, and emits loading then success', () async {
       final discoverItems = [
-        buildItem('1', source: FeedItemSource.becauseYouLiked),
-        buildItem('2', source: FeedItemSource.newRelease),
+        buildItem('1'),
+        buildItem('2'),
       ];
       final seedFollowing = buildItem('seed-following');
       final staleDiscover = buildItem('stale-discover');
@@ -114,7 +114,7 @@ void main() {
       );
 
       when(
-        repository.getDiscoverFeed(page: 3, limit: 7),
+        repository.getReccomendations(page: 3, limit: 7),
       ).thenAnswer((_) => completer.future);
 
       final future = notifier.loadFeed(
@@ -144,7 +144,7 @@ void main() {
       expect(state.hasLoadedFollowing, isFalse);
       expect(state.discoverError, isNull);
       expect(state.followingError, 'keep following error');
-      verify(repository.getDiscoverFeed(page: 3, limit: 7)).called(1);
+      verify(repository.getReccomendations(page: 3, limit: 7)).called(1);
       verifyNever(repository.getFollowingFeed(page: anyNamed('page'), limit: anyNamed('limit')));
     });
 
@@ -176,7 +176,7 @@ void main() {
       expect(state.followingError, isNull);
       expect(state.discoverError, 'discover stays');
       verify(repository.getFollowingFeed(page: 1, limit: 20)).called(1);
-      verifyNever(repository.getDiscoverFeed(page: anyNamed('page'), limit: anyNamed('limit')));
+      verifyNever(repository.getReccomendations(page: anyNamed('page'), limit: anyNamed('limit')));
     });
 
     test('treats classic tab as following branch', () async {
@@ -187,7 +187,7 @@ void main() {
       ).thenAnswer((_) async => followingItems);
 
       await notifier.loadFeed(
-        tab: FeedType.classic,
+        tab: FeedType.following,
         page: 2,
         limit: 4,
       );
@@ -197,7 +197,7 @@ void main() {
       expect(state.hasLoadedFollowing, isTrue);
       expect(state.followingError, isNull);
       verify(repository.getFollowingFeed(page: 2, limit: 4)).called(1);
-      verifyNever(repository.getDiscoverFeed(page: anyNamed('page'), limit: anyNamed('limit')));
+      verifyNever(repository.getReccomendations(page: anyNamed('page'), limit: anyNamed('limit')));
     });
 
     test('supports empty discover results', () async {
@@ -209,7 +209,7 @@ void main() {
       );
 
       when(
-        repository.getDiscoverFeed(page: 1, limit: 20),
+        repository.getReccomendations(page: 1, limit: 20),
       ).thenAnswer((_) async => <FeedItemEntity>[]);
 
       await notifier.loadFeed(tab: FeedType.discover);
@@ -219,7 +219,7 @@ void main() {
       expect(state.isDiscoverLoading, isFalse);
       expect(state.hasLoadedDiscover, isTrue);
       expect(state.discoverError, isNull);
-      verify(repository.getDiscoverFeed(page: 1, limit: 20)).called(1);
+      verify(repository.getReccomendations(page: 1, limit: 20)).called(1);
     });
 
     test('stores discover error and preserves following state when repository throws', () async {
@@ -241,7 +241,7 @@ void main() {
       );
 
       when(
-        repository.getDiscoverFeed(page: 5, limit: 2),
+        repository.getReccomendations(page: 5, limit: 2),
       ).thenThrow(Exception('discover failed'));
 
       await notifier.loadFeed(
@@ -260,7 +260,7 @@ void main() {
       expect(state.hasLoadedDiscover, isTrue);
       expect(state.discoverError, 'Exception: discover failed');
       expect(state.followingError, 'existing following error');
-      verify(repository.getDiscoverFeed(page: 5, limit: 2)).called(1);
+      verify(repository.getReccomendations(page: 5, limit: 2)).called(1);
       verifyNever(repository.getFollowingFeed(page: anyNamed('page'), limit: anyNamed('limit')));
     });
 
@@ -293,14 +293,14 @@ void main() {
       expect(state.followingError, 'Bad state: following failed');
       expect(state.discoverError, 'discover error stays');
       verify(repository.getFollowingFeed(page: 4, limit: 6)).called(1);
-      verifyNever(repository.getDiscoverFeed(page: anyNamed('page'), limit: anyNamed('limit')));
+      verifyNever(repository.getReccomendations(page: anyNamed('page'), limit: anyNamed('limit')));
     });
   });
 
   group('refreshFeed', () {
     test('refreshes discover items, clears discover error, and keeps flags unchanged', () async {
       final refreshedItems = [
-        buildItem('fresh-1', source: FeedItemSource.becauseYouFollow),
+        buildItem('fresh-1'),
       ];
       final oldDiscover = buildItem('old-discover');
       final oldFollowing = buildItem('old-following');
@@ -318,7 +318,7 @@ void main() {
       );
 
       when(
-        repository.getDiscoverFeed(page: 8, limit: 9),
+        repository.getReccomendations(page: 8, limit: 9),
       ).thenAnswer((_) async => refreshedItems);
 
       await notifier.refreshFeed(
@@ -337,7 +337,7 @@ void main() {
       expect(state.hasLoadedDiscover, isTrue);
       expect(state.hasLoadedFollowing, isTrue);
       expect(state.isPreviewing, isTrue);
-      verify(repository.getDiscoverFeed(page: 8, limit: 9)).called(1);
+      verify(repository.getReccomendations(page: 8, limit: 9)).called(1);
       verifyNever(repository.getFollowingFeed(page: anyNamed('page'), limit: anyNamed('limit')));
     });
 
@@ -363,7 +363,7 @@ void main() {
       ).thenAnswer((_) async => refreshedItems);
 
       await notifier.refreshFeed(
-        tab: FeedType.classic,
+        tab: FeedType.following,
         page: 2,
         limit: 3,
       );
@@ -374,7 +374,7 @@ void main() {
       expect(state.followingError, isNull);
       expect(state.discoverError, 'discover stays');
       verify(repository.getFollowingFeed(page: 2, limit: 3)).called(1);
-      verifyNever(repository.getDiscoverFeed(page: anyNamed('page'), limit: anyNamed('limit')));
+      verifyNever(repository.getReccomendations(page: anyNamed('page'), limit: anyNamed('limit')));
     });
 
     test('stores discover refresh error without clearing existing items', () async {
@@ -390,7 +390,7 @@ void main() {
       );
 
       when(
-        repository.getDiscoverFeed(page: 1, limit: 20),
+        repository.getReccomendations(page: 1, limit: 20),
       ).thenThrow(Exception('refresh discover failed'));
 
       await notifier.refreshFeed(tab: FeedType.discover);
@@ -401,7 +401,7 @@ void main() {
       expect(state.discoverError, 'Exception: refresh discover failed');
       expect(state.followingError, 'keep following error');
       expect(state.hasLoadedDiscover, isTrue);
-      verify(repository.getDiscoverFeed(page: 1, limit: 20)).called(1);
+      verify(repository.getReccomendations(page: 1, limit: 20)).called(1);
     });
 
     test('stores following refresh error without clearing existing items', () async {

@@ -82,11 +82,13 @@ class _SuggestionsList extends StatelessWidget {
         .firstOrNull;
 
     return ListView(
+      key: const Key('search_suggestions_list'),
       padding: const EdgeInsets.only(top: 8),
       children: [
         // Profile row at top (if a recent profile matches the typed query)
         if (profileMatch != null)
           ListTile(
+            key: ValueKey('search_suggestion_profile_${profileMatch.id}'),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 4,
@@ -178,9 +180,11 @@ class _SuggestionTile extends StatelessWidget {
     }
 
     return ListTile(
+      key: ValueKey('search_suggestion_tile_$suggestion'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       title: titleWidget,
       trailing: GestureDetector(
+        key: ValueKey('search_suggestion_fill_$suggestion'),
         onTap: () => onTap(),
         child: const Icon(Icons.north_west, color: Colors.white38, size: 18),
       ),
@@ -207,6 +211,7 @@ class _RecentResultsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      key: const Key('search_recent_results_list'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         Padding(
@@ -223,6 +228,7 @@ class _RecentResultsList extends StatelessWidget {
                 ),
               ),
               TextButton(
+                key: const Key('search_recent_clear_all_button'),
                 onPressed: onClearAll,
                 child: const Text(
                   'Clear all',
@@ -276,6 +282,7 @@ class _RecentResultTile extends StatelessWidget {
     }
 
     return ListTile(
+      key: ValueKey('search_recent_result_${item.kind.name}_${item.id}'),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: SizedBox(width: 40, height: 40, child: leading),
       title: Row(
@@ -301,6 +308,7 @@ class _RecentResultTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       trailing: GestureDetector(
+        key: ValueKey('search_recent_remove_${item.kind.name}_${item.id}'),
         onTap: onRemove,
         child: const Icon(Icons.close, color: Colors.white38, size: 18),
       ),

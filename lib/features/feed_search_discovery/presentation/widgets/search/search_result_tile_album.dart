@@ -12,6 +12,7 @@ class SearchResultTileAlbum extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      key: ValueKey('search_album_tile_${album.id}'),
       onTap:
           onTap ??
           () => Navigator.of(context).pushNamed(

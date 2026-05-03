@@ -215,6 +215,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
     }
 
     return ListView(
+      key: const Key('track_options_menu'),
       children: [
         const SizedBox(height: 8),
 
@@ -259,6 +260,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
 
         if (isMyTrack) ...[
           TrackOptionMenuItem(
+            key: const Key('track_options_edit_item'),
             icon: Icons.edit,
             label: 'Edit track',
             onTap: () => editTrackFromOptions(context, ref, info),
@@ -314,6 +316,7 @@ class _TrackOptionsMenuState extends ConsumerState<TrackOptionsMenu> {
           ),
           const Divider(color: Colors.white12),
           TrackOptionMenuItem(
+            key: const Key('track_options_delete_item'),
             icon: Icons.delete,
             color: Colors.red,
             label: 'Delete track',

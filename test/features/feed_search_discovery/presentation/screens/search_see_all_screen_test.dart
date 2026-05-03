@@ -6,6 +6,25 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import 'package:software_project/features/feed_search_discovery/domain/entities/profile_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/screens/search_see_all_screen.dart';
+import 'package:software_project/features/followers_and_social_graph/domain/entities/social_relation_entity.dart';
+import 'package:software_project/features/followers_and_social_graph/domain/repositories/social_graph_repository.dart';
+import 'package:software_project/features/followers_and_social_graph/presentation/providers/social_graph_repository_provider.dart';
+
+class FakeSocialGraphRepository implements SocialGraphRepository {
+  @override
+  Future<SocialRelationEntity> getFollowStatus(String userId) async {
+    return SocialRelationEntity(targetUserId: userId, isFollowing: false);
+  }
+
+  @override
+  Future<void> followUser(String userId) async {}
+
+  @override
+  Future<void> unfollowUser(String userId) async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   const track = TrackResultEntity(
@@ -32,8 +51,14 @@ void main() {
     trackCount: 10,
   );
 
-  Widget buildScreen(Widget child) =>
-      ProviderScope(child: MaterialApp(home: child));
+  Widget buildScreen(Widget child) => ProviderScope(
+        overrides: [
+          socialGraphRepositoryProvider.overrideWithValue(
+            FakeSocialGraphRepository(),
+          ),
+        ],
+        child: MaterialApp(home: child),
+      );
 
   testWidgets('renders tracks list before other result types', (tester) async {
     await tester.pumpWidget(
@@ -117,7 +142,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nothing to show.'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
+    await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.text('Open'), findsOneWidget);
   });

@@ -7,10 +7,42 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_interaction_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_preview_entity.dart';
 import 'package:software_project/features/feed_search_discovery/presentation/widgets/classic_feed_card.dart';
+import 'package:software_project/features/engagements_social_interactions/domain/entities/track_engagement_entity.dart';
+import 'package:software_project/features/engagements_social_interactions/domain/repositories/engagement_repository.dart';
+import 'package:software_project/features/engagements_social_interactions/presentation/provider/enagement_providers.dart';
+import 'package:software_project/features/playback_streaming_engine/presentation/providers/player_repository_provider.dart';
 
+import '../../../playback_streaming_engine/helpers/playback_test_utils.dart';
 import '../../../../test_utils/mock_network_images.dart';
 
+class FakeEngagementRepository implements EngagementRepository {
+  @override
+  Future<TrackEngagementEntity> getTrackEngagement({required String trackId}) async {
+    return TrackEngagementEntity(
+      trackId: trackId,
+      likeCount: 320,
+      commentCount: 45,
+      repostCount: 28,
+      isLiked: true,
+      isReposted: false,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
+  late PlaybackTestEnvironment playbackEnvironment;
+
+  setUp(() {
+    playbackEnvironment = createPlaybackTestEnvironment();
+  });
+
+  tearDown(() async {
+    await playbackEnvironment.dispose();
+  });
+
   FeedItemEntity buildItem({String? coverUrl}) {
     return FeedItemEntity(
       source: FeedItemSource.post,
@@ -21,7 +53,7 @@ void main() {
         title: 'Midnight Drive',
         artistId: 'artist-1',
         artistName: 'Drake',
-        artistVerified: true,
+        isArtistCertified: true,
         coverUrl: coverUrl,
         duration: 215,
         listensCount: 12400,
@@ -40,6 +72,11 @@ void main() {
   testWidgets('renders track and artist info with placeholder when cover is missing', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          engagementRepositoryProvider.overrideWithValue(
+            FakeEngagementRepository(),
+          ),
+        ],
         child: MaterialApp(
           home: Material(
             color: Colors.black,
@@ -59,6 +96,11 @@ void main() {
     await mockNetworkImagesFor(() async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            engagementRepositoryProvider.overrideWithValue(
+              FakeEngagementRepository(),
+            ),
+          ],
           child: MaterialApp(
             home: Material(
               color: Colors.black,
@@ -72,5 +114,29 @@ void main() {
 
     expect(find.byIcon(Icons.music_note), findsNothing);
     expect(find.byIcon(Icons.more_horiz), findsOneWidget);
+  });
+
+  testWidgets('tapping cover starts feed playback path', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          engagementRepositoryProvider.overrideWithValue(
+            FakeEngagementRepository(),
+          ),
+          playerRepositoryProvider.overrideWithValue(FakePlayerRepository()),
+        ],
+        child: MaterialApp(
+          home: Material(
+            color: Colors.black,
+            child: ClassicFeedCard(item: buildItem()),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('classic_feed_cover_track-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Midnight Drive'), findsOneWidget);
   });
 }

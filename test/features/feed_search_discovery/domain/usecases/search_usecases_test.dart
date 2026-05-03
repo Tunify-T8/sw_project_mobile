@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/album_result_entity.dart';
+import 'package:software_project/features/feed_search_discovery/domain/entities/autocomplete_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/genre_detail_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/playlist_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/profile_result_entity.dart';
@@ -10,6 +11,7 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import 'package:software_project/features/feed_search_discovery/domain/entities/search_genre_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/entities/track_result_entity.dart';
 import 'package:software_project/features/feed_search_discovery/domain/repositories/search_repository.dart';
+import 'package:software_project/features/feed_search_discovery/domain/usecases/search_autocomplete_usecase.dart';
 import 'package:software_project/features/feed_search_discovery/domain/usecases/search_usecases.dart';
 
 import 'search_usecases_test.mocks.dart';
@@ -30,6 +32,35 @@ void main() {
 
     expect(value, result);
     verify(repository.searchAll('don')).called(1);
+  });
+
+  test('SearchAutocompleteUseCase forwards partial query', () async {
+    const result = AutocompleteResultEntity(
+      tracks: [
+        AutocompleteTrackEntity(id: 'track-1', title: 'Song', artist: 'A'),
+      ],
+      users: [
+        AutocompleteUserEntity(
+          id: 'user-1',
+          username: 'artist',
+          displayName: 'Artist',
+        ),
+      ],
+      collections: [
+        AutocompleteCollectionEntity(
+          id: 'collection-1',
+          title: 'Mix',
+          artist: 'DJ',
+        ),
+      ],
+    );
+    when(repository.searchAutocomplete('ar')).thenAnswer((_) async => result);
+
+    final value = await SearchAutocompleteUseCase(repository)('ar');
+
+    expect(value, result);
+    expect(value.users.single.displayLabel, 'Artist');
+    verify(repository.searchAutocomplete('ar')).called(1);
   });
 
   test('SearchTracksUseCase forwards paging and filters', () async {

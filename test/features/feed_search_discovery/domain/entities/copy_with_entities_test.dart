@@ -20,7 +20,7 @@ void main() {
     artistId: 'artist-1',
     artistName: 'Duke',
     artistAvatar: 'avatar',
-    artistVerified: true,
+    isArtistCertified: true,
     isFollowingArtist: false,
     coverUrl: 'cover',
     duration: 210,
@@ -48,7 +48,7 @@ void main() {
     username: 'Nova',
     avatarUrl: 'avatar',
     followersCount: 1000,
-    verified: true,
+    isCertified: true,
     location: 'Cairo',
     isFollowing: false,
   );
@@ -75,9 +75,9 @@ void main() {
       expect(updated.username, 'Sky');
       expect(updated.location, 'Giza');
       expect(updated.id, user.id);
-      expect(updated.verified, isTrue);
+      expect(updated.isCertified, isTrue);
       expect(preserved.id, 'user-2');
-      expect(preserved.verified, user.verified);
+      expect(preserved.isCertified, user.isCertified);
       expect(preserved.location, user.location);
     });
 

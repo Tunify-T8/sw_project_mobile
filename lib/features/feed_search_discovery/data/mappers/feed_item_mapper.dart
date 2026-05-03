@@ -6,7 +6,8 @@ import '../dto/feed_item_dto.dart';
 import '../../domain/entities/feed_actor_entity.dart';
 
 extension FeedItemMapper on FeedItemDto {
-  String _calculateTimeAgo(String createdAt) {
+  String _calculateTimeAgo(String? createdAt) {
+    if (createdAt == null) return ' ';
     final date = DateTime.parse(createdAt);
     final diff = DateTime.now().difference(date);
 
@@ -16,24 +17,46 @@ extension FeedItemMapper on FeedItemDto {
     return '${(diff.inDays / 7).floor()}w ago';
   }
 
-  String _formatTime(String createdAt) {
+  String _formatTime(String? createdAt) {
+    if (createdAt == null) return ' ';
     final DateTime date = DateTime.parse(createdAt).toLocal();
     final String hour = date.hour.toString();
     final String minute = date.minute.toString();
     return '$hour:$minute';
   }
 
+  FeedItemSource? _mapSource(final action) {
+    if (action == null || action.action.isEmpty) return null;
+
+    try {
+      return FeedItemSource.values.byName(action.action);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  FeedActorEntity? _mapActor(final action) {
+    if (action == null) return null;
+
+    return FeedActorEntity(
+      id: action.actorId,
+      username: action.username,
+      avatarUrl: action.avatarUrl,
+    );
+  }
+
   FeedItemEntity toEntity() {
     return FeedItemEntity(
-      source: FeedItemSource.values.byName(action.action),
-      timeAgo: _calculateTimeAgo(action.date),
+      source: _mapSource(action),
+      timeAgo: _calculateTimeAgo(action?.date),
+      discoverReason: reason,
       track: TrackPreviewEntity(
         trackId: trackId,
         title: title,
         artistId: artistId,
         artistName: artist,
         artistAvatar: artistAvatarUrl,
-        artistVerified: artistIsCertified,
+        isArtistCertified: artistIsCertified,
         isFollowingArtist: isFollowingArtist,
         coverUrl: coverUrl,
         duration: durationInSeconds,
@@ -41,17 +64,13 @@ extension FeedItemMapper on FeedItemDto {
         likesCount: numberOfLikes,
         commentsCount: numberOfComments,
         repostsCount: numberOfReposts,
-        createdAt: _formatTime(action.date),
+        createdAt: _formatTime(action?.date),
         interaction: TrackInteractionEntity(
           isLiked: isLiked,
           isReposted: isReposted,
         ),
       ),
-      actor: FeedActorEntity(
-        id: action.actorId,
-        username: action.username,
-        avatarUrl: action.avatarUrl,
-      ),
+      actor: _mapActor(action)
     );
   }
 }

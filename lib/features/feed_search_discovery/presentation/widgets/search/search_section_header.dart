@@ -25,6 +25,7 @@ class SearchSectionHeader extends StatelessWidget {
           ),
           if (onSeeAll != null)
             TextButton(
+              key: ValueKey('search_section_see_all_$title'),
               onPressed: onSeeAll,
               child: const Text(
                 'See all',

@@ -234,4 +234,22 @@ class DiscoveryApi {
       response.data as Map<String, dynamic>,
     );
   }
+
+    Future<PaginatedFeedResponseDto> getReccomendations({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final params = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    final response = await dio.get(
+      ApiEndpoints.getReccomendations,
+      queryParameters: params,
+    );
+    debugPrint('[DiscoveryApi] getReccomendations → ${response.statusCode}');
+    return PaginatedFeedResponseDto.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }

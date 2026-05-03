@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:software_project/features/feed_search_discovery/data/dto/autocomplete_response_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/collection_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/discovery_item_dto.dart';
 import 'package:software_project/features/feed_search_discovery/data/dto/feed_action_dto.dart';
@@ -18,6 +19,32 @@ import 'package:software_project/features/feed_search_discovery/domain/entities/
 import 'package:software_project/features/feed_search_discovery/domain/entities/resource_type.dart';
 
 void main() {
+  test('AutocompleteResponseDto parses populated and missing category lists', () {
+    final populated = AutocompleteResponseDto.fromJson({
+      'tracks': [
+        {'id': 'track-1', 'title': 'Don Anthem', 'artist': 'Don'},
+      ],
+      'users': [
+        {
+          'id': 'user-1',
+          'username': 'don',
+          'displayName': 'Don Toliver',
+        },
+      ],
+      'collections': [
+        {'id': 'collection-1', 'title': 'OCTANE', 'artist': 'Don Toliver'},
+      ],
+    });
+    final empty = AutocompleteResponseDto.fromJson({});
+
+    expect(populated.tracks.single.id, 'track-1');
+    expect(populated.users.single.displayName, 'Don Toliver');
+    expect(populated.collections.single.title, 'OCTANE');
+    expect(empty.tracks, isEmpty);
+    expect(empty.users, isEmpty);
+    expect(empty.collections, isEmpty);
+  });
+
   test('TrackInteractionMapper maps dto flags to entity', () {
     final entity = TrackInteractionDto(
       isLiked: true,
@@ -77,13 +104,13 @@ void main() {
       username: 'Artist',
       avatarUrl: 'https://example.com/avatar.jpg',
       followersCount: 500,
-      verified: true,
+      isCertified: true,
       location: 'Cairo',
       isFollowing: false,
     ).toEntity();
 
     expect(entity.username, 'Artist');
-    expect(entity.verified, isTrue);
+    expect(entity.isCertified, isTrue);
     expect(entity.location, 'Cairo');
   });
 
@@ -111,7 +138,7 @@ void main() {
         username: 'Artist',
         avatarUrl: null,
         followersCount: 100,
-        verified: true,
+        isCertified: true,
         location: null,
         isFollowing: true,
       ),
@@ -155,8 +182,8 @@ void main() {
       isFollowingArtist: true,
     ).toEntity();
 
-    expect(entity.source.name, 'repost');
-    expect(entity.actor.username, 'Drake');
+    expect(entity.source?.name, 'repost');
+    expect(entity.actor?.username, 'Drake');
     expect(entity.track.listensCount, 12400);
     expect(entity.track.createdAt, contains(':'));
     expect(entity.timeAgo, matches(RegExp(r'^\d+[mhdw] ago$')));

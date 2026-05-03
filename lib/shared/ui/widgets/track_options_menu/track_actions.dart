@@ -43,6 +43,7 @@ class TrackActions extends ConsumerWidget {
           ),
 
         TrackOptionMenuItem(
+          key: const Key('track_options_play_next'),
           icon: Icons.queue_play_next,
           label: 'Play next',
           onTap: () {
@@ -52,6 +53,7 @@ class TrackActions extends ConsumerWidget {
         ),
 
         TrackOptionMenuItem(
+          key: const Key('track_options_play_last'),
           icon: Icons.add_to_queue,
           label: 'Play last',
           onTap: () {
@@ -61,6 +63,7 @@ class TrackActions extends ConsumerWidget {
         ),
 
         TrackOptionMenuItem(
+          key: const Key('track_options_add_to_playlist_item'),
           icon: Icons.playlist_add,
           label: 'Add to playlist',
           onTap: () {
@@ -75,6 +78,7 @@ class TrackActions extends ConsumerWidget {
           },
         ),
         TrackOptionMenuItem(
+          key: const Key('track_options_add_to_album_item'),
           icon: Icons.album_outlined,
           label: 'Add to album',
           onTap: () {
@@ -99,6 +103,7 @@ class TrackActions extends ConsumerWidget {
 
         if (!isDiscoverFeed && !isFollowingFeed && !isMyTrack)
           TrackOptionMenuItem(
+            key: const Key('track_options_start_station'),
             icon: Icons.sensors,
             label: 'Start station',
             onTap: () {},

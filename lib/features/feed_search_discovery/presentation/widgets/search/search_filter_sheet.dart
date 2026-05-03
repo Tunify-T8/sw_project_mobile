@@ -36,6 +36,7 @@ class _TrackFilterSheetState extends State<TrackFilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      key: const Key('track_filter_sheet'),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -138,6 +139,7 @@ class _CollectionFilterSheetState extends State<CollectionFilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      key: const Key('collection_filter_sheet'),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -212,6 +214,7 @@ class _PeopleFilterSheetState extends State<PeopleFilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      key: const Key('people_filter_sheet'),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -243,6 +246,7 @@ class _PeopleFilterSheetState extends State<PeopleFilterSheet> {
               child: Row(
                 children: [
                   Switch(
+                    key: const Key('people_filter_verified_switch'),
                     value: _filters.verifiedOnly ?? false,
                     onChanged: (v) => setState(
                       () => _filters = _filters.copyWith(
@@ -310,6 +314,7 @@ class _SheetHeader extends StatelessWidget {
           ),
         ),
         TextButton(
+          key: ValueKey('filter_clear_all_$title'),
           onPressed: onClearAll,
           child: const Text(
             'Clear all',
@@ -330,6 +335,7 @@ class _ApplyButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
+        key: const Key('filter_apply_button'),
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
@@ -392,6 +398,7 @@ class _ChipGroup<T> extends StatelessWidget {
       children: options.map((option) {
         final isSelected = option == selected;
         return GestureDetector(
+          key: ValueKey('filter_chip_${labelOf(option)}'),
           onTap: () => onSelected(option),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

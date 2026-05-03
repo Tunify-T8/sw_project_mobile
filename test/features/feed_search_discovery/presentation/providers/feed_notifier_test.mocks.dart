@@ -3,13 +3,17 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:software_project/features/feed_search_discovery/domain/entities/discovery_item_entity.dart'
+    as _i6;
 import 'package:software_project/features/feed_search_discovery/domain/entities/feed_item_entity.dart'
-    as _i4;
-import 'package:software_project/features/feed_search_discovery/domain/repositories/feed_repository.dart'
+    as _i5;
+import 'package:software_project/features/feed_search_discovery/domain/entities/trending_genre_entity.dart'
     as _i2;
+import 'package:software_project/features/feed_search_discovery/domain/repositories/discovery_repository.dart'
+    as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -26,47 +30,95 @@ import 'package:software_project/features/feed_search_discovery/domain/repositor
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
-/// A class which mocks [FeedRepository].
+class _FakeTrendingGenreEntity_0 extends _i1.SmartFake
+    implements _i2.TrendingGenreEntity {
+  _FakeTrendingGenreEntity_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+/// A class which mocks [DiscoveryRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockFeedRepository extends _i1.Mock implements _i2.FeedRepository {
+class MockDiscoveryRepository extends _i1.Mock
+    implements _i3.DiscoveryRepository {
   @override
-  _i3.Future<List<_i4.FeedItemEntity>> getFollowingFeed({
+  _i4.Future<List<_i5.FeedItemEntity>> getFollowingFeed({
     int? page = 1,
     int? limit = 20,
+    bool? includeReposts = true,
+    String? sinceTimestamp,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#getFollowingFeed, [], {
               #page: page,
               #limit: limit,
+              #includeReposts: includeReposts,
+              #sinceTimestamp: sinceTimestamp,
             }),
-            returnValue: _i3.Future<List<_i4.FeedItemEntity>>.value(
-              <_i4.FeedItemEntity>[],
+            returnValue: _i4.Future<List<_i5.FeedItemEntity>>.value(
+              <_i5.FeedItemEntity>[],
             ),
             returnValueForMissingStub:
-                _i3.Future<List<_i4.FeedItemEntity>>.value(
-                  <_i4.FeedItemEntity>[],
+                _i4.Future<List<_i5.FeedItemEntity>>.value(
+                  <_i5.FeedItemEntity>[],
                 ),
           )
-          as _i3.Future<List<_i4.FeedItemEntity>>);
+          as _i4.Future<List<_i5.FeedItemEntity>>);
 
   @override
-  _i3.Future<List<_i4.FeedItemEntity>> getDiscoverFeed({
+  _i4.Future<List<_i5.FeedItemEntity>> getReccomendations({
     int? page = 1,
     int? limit = 20,
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#getDiscoverFeed, [], {
+            Invocation.method(#getReccomendations, [], {
               #page: page,
               #limit: limit,
             }),
-            returnValue: _i3.Future<List<_i4.FeedItemEntity>>.value(
-              <_i4.FeedItemEntity>[],
+            returnValue: _i4.Future<List<_i5.FeedItemEntity>>.value(
+              <_i5.FeedItemEntity>[],
             ),
             returnValueForMissingStub:
-                _i3.Future<List<_i4.FeedItemEntity>>.value(
-                  <_i4.FeedItemEntity>[],
+                _i4.Future<List<_i5.FeedItemEntity>>.value(
+                  <_i5.FeedItemEntity>[],
                 ),
           )
-          as _i3.Future<List<_i4.FeedItemEntity>>);
+          as _i4.Future<List<_i5.FeedItemEntity>>);
+
+  @override
+  _i4.Future<List<_i6.DiscoveryItemEntity>> getDiscover({
+    int? page = 1,
+    int? limit = 20,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getDiscover, [], {#page: page, #limit: limit}),
+            returnValue: _i4.Future<List<_i6.DiscoveryItemEntity>>.value(
+              <_i6.DiscoveryItemEntity>[],
+            ),
+            returnValueForMissingStub:
+                _i4.Future<List<_i6.DiscoveryItemEntity>>.value(
+                  <_i6.DiscoveryItemEntity>[],
+                ),
+          )
+          as _i4.Future<List<_i6.DiscoveryItemEntity>>);
+
+  @override
+  _i4.Future<_i2.TrendingGenreEntity> getTrending({required String? genre}) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTrending, [], {#genre: genre}),
+            returnValue: _i4.Future<_i2.TrendingGenreEntity>.value(
+              _FakeTrendingGenreEntity_0(
+                this,
+                Invocation.method(#getTrending, [], {#genre: genre}),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i4.Future<_i2.TrendingGenreEntity>.value(
+                  _FakeTrendingGenreEntity_0(
+                    this,
+                    Invocation.method(#getTrending, [], {#genre: genre}),
+                  ),
+                ),
+          )
+          as _i4.Future<_i2.TrendingGenreEntity>);
 }

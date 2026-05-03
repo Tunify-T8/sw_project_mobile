@@ -71,6 +71,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final state = ref.watch(searchProvider);
 
     return Scaffold(
+      key: const Key('search_screen'),
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
