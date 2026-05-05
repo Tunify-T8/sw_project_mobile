@@ -28,7 +28,7 @@ void main() {
       result.uploadMinutesRemaining,
       sampleArtistToolsQuota.uploadMinutesRemaining,
     );
-    expect(result.canUpgrade, sampleArtistToolsQuota.canUpgrade);
+    expect(result.canReplaceFiles, sampleArtistToolsQuota.canReplaceFiles);
     verify(mockRepository.getArtistToolsQuota()).called(1);
     verifyNoMoreInteractions(mockRepository);
   });

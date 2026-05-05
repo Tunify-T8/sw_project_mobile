@@ -150,6 +150,7 @@ class MockMessagingRepository implements MessagingRepository {
       conversationId: conversationId,
       preview: _previewFor(dto),
       at: dto.createdAt,
+      senderId: dto.senderId,
       unreadDelta: 0,
       resetUnread: true,
     );
@@ -170,6 +171,7 @@ class MockMessagingRepository implements MessagingRepository {
       otherUser: conversation.otherUser,
       lastMessagePreview: conversation.lastMessagePreview,
       lastMessageAt: conversation.lastMessageAt,
+      lastMessageSenderId: conversation.lastMessageSenderId,
       unreadCount: 0,
       isBlocked: conversation.isBlocked,
     );
@@ -214,6 +216,7 @@ class MockMessagingRepository implements MessagingRepository {
         otherUser: conversation.otherUser,
         lastMessagePreview: conversation.lastMessagePreview,
         lastMessageAt: conversation.lastMessageAt,
+        lastMessageSenderId: conversation.lastMessageSenderId,
         unreadCount: conversation.unreadCount,
         isBlocked: true,
       );
@@ -294,6 +297,7 @@ class MockMessagingRepository implements MessagingRepository {
     required String preview,
     required DateTime at,
     required int unreadDelta,
+    String? senderId,
     bool resetUnread = false,
   }) {
     final conversation = _store.conversations[conversationId];
@@ -304,6 +308,7 @@ class MockMessagingRepository implements MessagingRepository {
       otherUser: conversation.otherUser,
       lastMessagePreview: preview,
       lastMessageAt: at,
+      lastMessageSenderId: senderId ?? conversation.lastMessageSenderId,
       unreadCount: resetUnread ? 0 : conversation.unreadCount + unreadDelta,
       isBlocked: conversation.isBlocked,
     );
@@ -333,6 +338,7 @@ class MockMessagingRepository implements MessagingRepository {
         conversationId: conversationId,
         preview: reply,
         at: dto.createdAt,
+        senderId: dto.senderId,
         unreadDelta: 1,
       );
       _socket.emit(MessageReceivedEvent(MessagingMapper.message(dto)));

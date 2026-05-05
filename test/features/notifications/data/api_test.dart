@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 void main() {
   group('NotificationApi', () {
@@ -174,7 +175,7 @@ class _DioRequest {
   });
 }
 
-class _RecordingDio extends Dio {
+class _RecordingDio extends DioForNative {
   final requests = <_DioRequest>[];
   dynamic response = {'data': []};
 
@@ -232,9 +233,9 @@ class _MockNotificationApi {
 
   Future<int> getUnreadCount() async {
     final res = await _dio.get('/notifications/unread-count');
-    final body = res.data as Map<String, dynamic>;
+    final body = Map<String, dynamic>.from(res.data as Map);
     final data = body['data'];
-    final payload = data is Map ? data as Map<String, dynamic> : body;
+    final payload = data is Map ? Map<String, dynamic>.from(data) : body;
     return (payload['unreadCount'] ?? payload['count'] as int?) ?? 0;
   }
 

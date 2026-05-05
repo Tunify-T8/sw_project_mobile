@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:software_project/features/messaging_track_sharing/domain/entities/message_entity.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/paginated_conversations.dart';
-import 'package:software_project/features/messaging_track_sharing/domain/entities/send_message_draft.dart';
 
 void main() {
   group('RealMessagingRepositoryImpl', () {
@@ -65,7 +63,11 @@ void main() {
       final api = _MockMessagingApi();
       final repo = _createRepository(api);
 
-      await repo.blockConversation('conv-123', removeComments: true, reportSpam: true);
+      await repo.blockConversation(
+        'conv-123',
+        removeComments: true,
+        reportSpam: true,
+      );
 
       expect(api.lastBlockConversationId, 'conv-123');
       expect(api.lastBlockRemoveComments, true);
@@ -144,11 +146,16 @@ class _MockMessagingRepository {
 
   _MockMessagingRepository(this.api);
 
-  Future<PaginatedConversations> getConversations({int page = 1, int limit = 20}) =>
-      api.getConversations(page: page, limit: limit);
+  Future<PaginatedConversations> getConversations({
+    int page = 1,
+    int limit = 20,
+  }) => api.getConversations(page: page, limit: limit);
 
-  Future<void> getMessages(String conversationId, {int page = 1, int limit = 20}) =>
-      api.getMessages(conversationId, page: page, limit: limit);
+  Future<void> getMessages(
+    String conversationId, {
+    int page = 1,
+    int limit = 20,
+  }) => api.getMessages(conversationId, page: page, limit: limit);
 
   Future<void> markConversationRead(String conversationId) =>
       api.markRead(conversationId);
@@ -166,8 +173,11 @@ class _MockMessagingRepository {
     String conversationId, {
     bool removeComments = false,
     bool reportSpam = false,
-  }) =>
-      api.block(conversationId, removeComments: removeComments, reportSpam: reportSpam);
+  }) => api.block(
+    conversationId,
+    removeComments: removeComments,
+    reportSpam: reportSpam,
+  );
 
   Future<void> unblockConversation(String blockedUserId) =>
       api.unblock(blockedUserId);
@@ -208,13 +218,25 @@ class _MockMessagingApi {
   int mockUnreadCount = 0;
   String mockConversationId = '';
 
-  Future<PaginatedConversations> getConversations({int page = 1, int limit = 20}) async {
+  Future<PaginatedConversations> getConversations({
+    int page = 1,
+    int limit = 20,
+  }) async {
     lastGetConversationsPage = page;
     lastGetConversationsLimit = limit;
-    return PaginatedConversations(data: [], total: 0);
+    return const PaginatedConversations(
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    );
   }
 
-  Future<void> getMessages(String conversationId, {int page = 1, int limit = 20}) async {
+  Future<void> getMessages(
+    String conversationId, {
+    int page = 1,
+    int limit = 20,
+  }) async {
     lastGetMessagesConversationId = conversationId;
     lastGetMessagesPage = page;
     lastGetMessagesLimit = limit;
@@ -236,7 +258,11 @@ class _MockMessagingApi {
     lastUnarchiveConversationId = conversationId;
   }
 
-  Future<void> block(String conversationId, {bool removeComments = false, bool reportSpam = false}) async {
+  Future<void> block(
+    String conversationId, {
+    bool removeComments = false,
+    bool reportSpam = false,
+  }) async {
     lastBlockConversationId = conversationId;
     lastBlockRemoveComments = removeComments;
     lastBlockReportSpam = reportSpam;

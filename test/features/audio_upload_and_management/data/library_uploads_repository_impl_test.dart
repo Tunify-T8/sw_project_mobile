@@ -69,13 +69,12 @@ void main() {
         uploadMinutesLimit: 180,
         uploadMinutesUsed: 12,
         canReplaceFiles: false,
-        canUpgrade: true,
       ));
 
       final result = await repository.getArtistToolsQuota();
 
       expect(result.uploadMinutesRemaining, 168);
-      expect(result.canUpgrade, isTrue);
+      expect(result.canReplaceFiles, isFalse);
     });
   });
 

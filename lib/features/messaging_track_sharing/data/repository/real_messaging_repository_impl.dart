@@ -251,6 +251,7 @@ class RealMessagingRepository implements MessagingRepository {
     user2Id: conversation.user2Id,
     lastMessagePreview: conversation.lastMessagePreview,
     lastMessageAt: conversation.lastMessageAt,
+    lastMessageSenderId: conversation.lastMessageSenderId,
     unreadCount: conversation.unreadCount,
     isBlocked: conversation.isBlocked,
     isArchived: conversation.isArchived,

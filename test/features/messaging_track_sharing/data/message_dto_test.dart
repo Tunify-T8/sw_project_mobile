@@ -18,7 +18,7 @@ void main() {
       expect(dto.id, 'msg-1');
       expect(dto.conversationId, 'conv-1');
       expect(dto.senderId, 'user-1');
-      expect(dto.type, 'text');
+      expect(dto.type, 'TEXT');
       expect(dto.text, 'Hello');
     });
 
@@ -85,7 +85,7 @@ void main() {
       expect(unreadDto.isRead, false);
     });
 
-    test('converts to JSON', () {
+    test('normalizes text messages from JSON', () {
       final json = {
         'id': 'msg-1',
         'conversationId': 'conv-1',
@@ -96,13 +96,12 @@ void main() {
       };
 
       final dto = MessageDto.fromJson(json, fallbackConversationId: 'conv-1');
-      final jsonOutput = dto.toJson();
 
-      expect(jsonOutput['id'], 'msg-1');
-      expect(jsonOutput['conversationId'], 'conv-1');
-      expect(jsonOutput['senderId'], 'user-1');
-      expect(jsonOutput['type'], 'text');
-      expect(jsonOutput['text'], 'Hello');
+      expect(dto.id, 'msg-1');
+      expect(dto.conversationId, 'conv-1');
+      expect(dto.senderId, 'user-1');
+      expect(dto.type, 'TEXT');
+      expect(dto.text, 'Hello');
     });
 
     test('handles missing text gracefully', () {
@@ -117,7 +116,7 @@ void main() {
       final dto = MessageDto.fromJson(json, fallbackConversationId: 'conv-1');
 
       expect(dto.id, 'msg-1');
-      expect(dto.type, 'attachment');
+      expect(dto.type, 'ATTACHMENT');
     });
   });
 }

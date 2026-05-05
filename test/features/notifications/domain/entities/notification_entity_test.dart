@@ -9,13 +9,13 @@ void main() {
       final now = DateTime.now();
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         message: 'Someone liked your track',
         createdAt: now,
       );
 
       expect(notification.id, 'notif-1');
-      expect(notification.type, NotificationType.like);
+      expect(notification.type, NotificationType.trackLiked);
       expect(notification.message, 'Someone liked your track');
       expect(notification.createdAt, now);
       expect(notification.isRead, false);
@@ -30,7 +30,7 @@ void main() {
 
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         actor: actor,
         message: 'john_doe liked your track',
         createdAt: DateTime.now(),
@@ -43,7 +43,7 @@ void main() {
     test('tracks reference information', () {
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         referenceType: 'track',
         referenceId: 'track-123',
         message: 'Someone liked your track',
@@ -60,7 +60,7 @@ void main() {
 
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         message: 'Someone liked your track',
         createdAt: now,
         isRead: true,
@@ -75,7 +75,7 @@ void main() {
       final now = DateTime.now();
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         message: 'Someone liked your track',
         createdAt: now,
         isRead: false,
@@ -102,7 +102,7 @@ void main() {
 
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         actor: actor,
         referenceType: 'track',
         message: 'Someone liked your track',
@@ -118,10 +118,10 @@ void main() {
 
     test('supports multiple notification types', () {
       final types = [
-        NotificationType.like,
-        NotificationType.follow,
-        NotificationType.comment,
-        NotificationType.repost,
+        NotificationType.trackLiked,
+        NotificationType.userFollowed,
+        NotificationType.trackCommented,
+        NotificationType.trackReposted,
       ];
 
       for (final type in types) {
@@ -139,7 +139,7 @@ void main() {
     test('handles null actor gracefully', () {
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         actor: null,
         message: 'Someone liked your track',
         createdAt: DateTime.now(),
@@ -151,7 +151,7 @@ void main() {
     test('handles null reference information', () {
       final notification = NotificationEntity(
         id: 'notif-1',
-        type: NotificationType.like,
+        type: NotificationType.trackLiked,
         referenceType: null,
         referenceId: null,
         message: 'Someone liked your track',
@@ -189,11 +189,11 @@ void main() {
   group('NotificationType', () {
     test('has all notification types', () {
       final types = [
-        NotificationType.like,
-        NotificationType.follow,
-        NotificationType.comment,
-        NotificationType.repost,
-        NotificationType.message,
+        NotificationType.trackLiked,
+        NotificationType.userFollowed,
+        NotificationType.trackCommented,
+        NotificationType.trackReposted,
+        NotificationType.newMessage,
         NotificationType.system,
       ];
 

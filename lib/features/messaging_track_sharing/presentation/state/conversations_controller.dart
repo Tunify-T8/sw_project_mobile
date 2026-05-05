@@ -44,19 +44,32 @@ class ConversationsState {
     filter: filter ?? this.filter,
   );
 
+  bool hasUnreadForUser(
+    ConversationEntity conversation,
+    String? currentUserId,
+  ) {
+    if (conversation.unreadCount <= 0) return false;
+    final me = currentUserId?.trim();
+    final lastSender = conversation.lastMessageSenderId?.trim();
+    return me == null || me.isEmpty || lastSender == null || lastSender != me;
+  }
+
   /// The list as it should be rendered, after the active filter is applied.
   /// Archived and blocked conversations are always hidden.
-  List<ConversationEntity> get visible {
+  List<ConversationEntity> visibleFor(String? currentUserId) {
     final active = items.where((c) => !c.isArchived && !c.isBlocked).toList();
     switch (filter) {
       case MessagesFilter.all:
         return active;
       case MessagesFilter.unreadOnly:
-        return active.where((c) => c.unreadCount > 0).toList();
+        return active.where((c) => hasUnreadForUser(c, currentUserId)).toList();
     }
   }
 
-  int get totalUnread => items.fold(0, (sum, c) => sum + c.unreadCount);
+  int totalUnreadFor(String? currentUserId) => items.fold(
+    0,
+    (sum, c) => sum + (hasUnreadForUser(c, currentUserId) ? c.unreadCount : 0),
+  );
 }
 
 class ConversationsController extends Notifier<ConversationsState> {
@@ -90,11 +103,19 @@ class ConversationsController extends Notifier<ConversationsState> {
   String _readWatermarksKey(String userId) =>
       '${StorageKeys.messagingReadWatermarks}_$userId';
 
-  /// Merges backend items with local overrides that must survive refreshes.
+  /// Merges backend items with local overrides that must survive refreshes,
+  /// and re-sorts the list by [ConversationEntity.lastMessageAt] descending.
+  ///
+  /// Sorting on the client matters because the backend orders conversations
+  /// by `updatedAt`, which gets bumped on side-effects like markRead /
+  /// archive / unblock. Without the client-side sort, opening a chat
+  /// shuffles it to the top of the list even when its last message is
+  /// older than other conversations.
   List<ConversationEntity> _applyLocalOverrides(
     List<ConversationEntity> items,
   ) {
-    return items.map((c) {
+    final currentUserId = ref.read(messagingSessionUserIdProvider)?.trim();
+    final overridden = items.map((c) {
       var next = c;
       if (_localUnarchivedIds.contains(c.conversationId)) {
         next = next.copyWith(isArchived: false);
@@ -110,8 +131,23 @@ class ConversationsController extends Notifier<ConversationsState> {
         next = next.copyWith(unreadCount: 0);
       }
 
+      final lastSender = next.lastMessageSenderId?.trim();
+      if (currentUserId != null &&
+          currentUserId.isNotEmpty &&
+          lastSender != null &&
+          lastSender == currentUserId) {
+        next = next.copyWith(unreadCount: 0);
+      }
+
       return next;
     }).toList();
+
+    overridden.sort((a, b) {
+      final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bTime.compareTo(aTime);
+    });
+    return overridden;
   }
 
   Future<void> _ensureReadWatermarksLoaded(String userId) async {
@@ -255,6 +291,7 @@ class ConversationsController extends Notifier<ConversationsState> {
     next[index] = next[index].copyWith(
       lastMessagePreview: _previewFor(message),
       lastMessageAt: message.createdAt,
+      lastMessageSenderId: message.senderId,
       unreadCount: 0,
       isArchived: false,
     );

@@ -162,7 +162,7 @@ void main() {
       expect(result.tier, 'free');
       expect(result.uploadMinutesLimit, 180);
       expect(result.uploadMinutesUsed, 0);
-      expect(result.canUpgrade, isTrue);
+      expect(result.canReplaceFiles, isFalse);
     });
 
     test('parses a nested data payload', () async {

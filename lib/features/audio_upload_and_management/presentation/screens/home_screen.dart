@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/routing/routes.dart';
 import '../../../../core/utils/adaptive_breakpoints.dart';
 import '../../../followers_and_social_graph/presentation/providers/network_lists_notifier.dart';
+import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../notifications/presentation/state/notifications_controller.dart';
 import '../../../playback_streaming_engine/presentation/providers/listening_history_provider.dart';
@@ -50,8 +51,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final libraryState = ref.watch(libraryUploadsProvider);
     final uploadState = ref.watch(uploadProvider);
     final historyAsync = ref.watch(listeningHistoryProvider);
+    final currentUserId = ref.watch(messagingSessionUserIdProvider);
     final hasUnreadMessages = ref.watch(
-      conversationsControllerProvider.select((state) => state.totalUnread > 0),
+      conversationsControllerProvider.select(
+        (state) => state.totalUnreadFor(currentUserId) > 0,
+      ),
     );
     final hasUnreadNotifications = ref.watch(
       notificationsControllerProvider.select((state) => state.unreadCount > 0),
