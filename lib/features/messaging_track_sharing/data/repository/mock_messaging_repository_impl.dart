@@ -3,6 +3,7 @@ import 'dart:math';
 
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/message_limits.dart';
 import '../../domain/entities/paginated_conversations.dart';
 import '../../domain/entities/paginated_messages.dart';
 import '../../domain/entities/realtime_event.dart';
@@ -115,6 +116,7 @@ class MockMessagingRepository implements MessagingRepository {
     String conversationId,
     SendMessageDraft draft,
   ) async {
+    validateMessageTextLength(draft.text);
     final existingConversation = _store.conversations[conversationId];
     if (existingConversation != null && existingConversation.isBlocked) {
       throw Exception('This conversation is blocked.');

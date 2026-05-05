@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/design_system/colors.dart';
 import '../../domain/entities/message_attachment.dart';
+import '../../domain/entities/message_limits.dart';
 
 /// The text-input bar at the bottom of the chat screen.
 ///
@@ -140,6 +142,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
+                      maxLength: kMaxMessageTextLength,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                       onSubmitted: (_) => _submit(),
                       textInputAction: TextInputAction.send,
                       style: const TextStyle(
@@ -161,6 +165,27 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         ),
                         border: InputBorder.none,
                       ),
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            required maxLength,
+                          }) {
+                            if (maxLength == null ||
+                                currentLength < maxLength - 500) {
+                              return null;
+                            }
+                            return Text(
+                              '$currentLength/$maxLength',
+                              style: TextStyle(
+                                color: currentLength >= maxLength
+                                    ? Colors.redAccent
+                                    : Colors.white54,
+                                fontSize: 11,
+                              ),
+                            );
+                          },
                     ),
                   ),
                 ),

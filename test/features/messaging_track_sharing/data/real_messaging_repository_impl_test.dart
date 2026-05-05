@@ -8,6 +8,7 @@ import 'package:software_project/features/messaging_track_sharing/data/repositor
 import 'package:software_project/features/messaging_track_sharing/data/services/messaging_socket.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/message_attachment.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/message_entity.dart';
+import 'package:software_project/features/messaging_track_sharing/domain/entities/message_limits.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/realtime_event.dart';
 import 'package:software_project/features/messaging_track_sharing/domain/entities/send_message_draft.dart';
 
@@ -64,6 +65,44 @@ void main() {
       'type': 'TEXT',
       'content': 'listen to these',
     });
+  });
+
+  test('sends text at the 20,000 character limit', () async {
+    final socket = _RecordingMessagingSocket();
+    final repository = RealMessagingRepository(
+      MessagingApi(Dio()),
+      socket,
+      currentUserId: () => 'me',
+    );
+    final text = List.filled(kMaxMessageTextLength, 'a').join();
+
+    await repository.sendMessage(
+      'conversation-1',
+      SendMessageDraft(type: MessageType.text, text: text),
+    );
+
+    expect(socket.sent, hasLength(1));
+    expect(socket.sent.single['content'], text);
+  });
+
+  test('rejects text over the 20,000 character limit before sending', () async {
+    final socket = _RecordingMessagingSocket();
+    final repository = RealMessagingRepository(
+      MessagingApi(Dio()),
+      socket,
+      currentUserId: () => 'me',
+    );
+    final text = List.filled(kMaxMessageTextLength + 1, 'a').join();
+
+    await expectLater(
+      repository.sendMessage(
+        'conversation-1',
+        SendMessageDraft(type: MessageType.text, text: text),
+      ),
+      throwsArgumentError,
+    );
+
+    expect(socket.sent, isEmpty);
   });
 
   test('uses backend attachment types for collections and users', () async {

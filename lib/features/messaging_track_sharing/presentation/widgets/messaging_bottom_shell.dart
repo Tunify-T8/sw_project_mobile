@@ -10,13 +10,21 @@ import '../../../playback_streaming_engine/presentation/widgets/mini_player.dart
 /// Tapping any tab pops all routes above the main shell so the user lands
 /// back on the requested tab.
 class MessagingBottomShell extends StatelessWidget {
-  const MessagingBottomShell({super.key, this.selectedIndex = 0, this.above});
+  const MessagingBottomShell({
+    super.key,
+    this.selectedIndex = 0,
+    this.above,
+    this.showMiniPlayer = true,
+  });
 
   /// Which bottom-bar tab to highlight (0 = Home, etc.).
   final int selectedIndex;
 
   /// Optional widget to show above the mini-player (e.g. ChatInputBar).
   final Widget? above;
+
+  /// Whether to render the mini-player surface in this messaging shell.
+  final bool showMiniPlayer;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +38,7 @@ class MessagingBottomShell extends StatelessWidget {
           top: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [?above, const MiniPlayer()],
+            children: [?above, if (showMiniPlayer) const MiniPlayer()],
           ),
         ),
       );
@@ -45,7 +53,7 @@ class MessagingBottomShell extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           ?above,
-          const MiniPlayer(),
+          if (showMiniPlayer) const MiniPlayer(),
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
             child: _BottomBar(

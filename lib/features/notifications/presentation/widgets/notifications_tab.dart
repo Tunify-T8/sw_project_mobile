@@ -84,6 +84,8 @@ class _NotificationsTabState extends ConsumerState<NotificationsTab> {
             onReferenceTap: () =>
                 notification.type == NotificationType.userFollowed
                 ? NotificationNavigation.openActor(context, ref, notification)
+                : notification.type == NotificationType.newMessage
+                ? NotificationNavigation.openMessage(context, ref, notification)
                 : notification.type == NotificationType.trackCommented
                 ? NotificationNavigation.openComments(
                     context,
