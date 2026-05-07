@@ -1,13 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:software_project/features\notifications/data/api/notification_api.dart';
+import 'package:software_project/features/notifications/data/api/notification_api.dart';
+import 'package:software_project/features/notifications/data/dto/notification_dto.dart';
 import 'package:software_project/features/notifications/data/repository/real_notification_repository_impl.dart';
-import 'package:software_project/features/notifications/domain/entities/notification_type.dart';
+import 'package:software_project/features/notifications/data/services/notification_socket.dart';
+import 'package:software_project/features/notifications/domain/entities/notification_entity.dart';
 
 void main() {
   group('RealNotificationRepositoryImpl', () {
     test('getNotifications calls API with parameters', () async {
       final api = _MockNotificationApi();
-      final repo = RealNotificationRepositoryImpl(api);
+      final repo = RealNotificationRepository(api, _FakeNotificationSocket());
 
       await repo.getNotifications(page: 2, limit: 30, type: 'like');
 
@@ -19,7 +21,7 @@ void main() {
     test('getUnreadCount calls API', () async {
       final api = _MockNotificationApi();
       api.mockUnreadCount = 5;
-      final repo = RealNotificationRepositoryImpl(api);
+      final repo = RealNotificationRepository(api, _FakeNotificationSocket());
 
       final count = await repo.getUnreadCount();
 
@@ -29,7 +31,7 @@ void main() {
 
     test('getPreferences calls API', () async {
       final api = _MockNotificationApi();
-      final repo = RealNotificationRepositoryImpl(api);
+      final repo = RealNotificationRepository(api, _FakeNotificationSocket());
 
       await repo.getPreferences();
 
@@ -38,7 +40,7 @@ void main() {
 
     test('markAsRead calls API with notification id', () async {
       final api = _MockNotificationApi();
-      final repo = RealNotificationRepositoryImpl(api);
+      final repo = RealNotificationRepository(api, _FakeNotificationSocket());
 
       await repo.markAsRead('notif-123');
 
@@ -47,7 +49,7 @@ void main() {
 
     test('markAllAsRead calls API', () async {
       final api = _MockNotificationApi();
-      final repo = RealNotificationRepositoryImpl(api);
+      final repo = RealNotificationRepository(api, _FakeNotificationSocket());
 
       await repo.markAllAsRead();
 
@@ -56,12 +58,10 @@ void main() {
 
     test('updatePreferences calls API', () async {
       final api = _MockNotificationApi();
-      final repo = RealNotificationRepositoryImpl(api);
+      final repo = RealNotificationRepository(api, _FakeNotificationSocket());
 
       await repo.updatePreferences(
-        const PreferenceChannelUpdate(
-          trackLiked: false,
-        ),
+        push: const {'trackLiked': false},
       );
 
       expect(api.updatePreferencesCalled, true);
@@ -115,9 +115,9 @@ class _MockNotificationApi implements NotificationApi {
   }
 
   @override
-  Future<dynamic> getPreferences() async {
+  Future<NotificationPreferencesDto> getPreferences() async {
     getPreferencesCalled = true;
-    return {};
+    return const NotificationPreferencesDto(push: {}, email: {});
   }
 
   @override
@@ -129,8 +129,16 @@ class _MockNotificationApi implements NotificationApi {
   }
 }
 
-class PreferenceChannelUpdate {
-  final bool? trackLiked;
+class _FakeNotificationSocket implements NotificationSocket {
+  @override
+  bool get isConnected => false;
 
-  const PreferenceChannelUpdate({this.trackLiked});
+  @override
+  Stream<NotificationEntity> get notifications => const Stream.empty();
+
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {}
 }

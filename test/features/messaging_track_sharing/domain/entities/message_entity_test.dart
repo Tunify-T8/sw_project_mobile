@@ -139,7 +139,6 @@ void main() {
 
   group('MessageDeliveryStatus', () {
     test('has all required statuses', () {
-      expect(MessageDeliveryStatus.notDelivered, isNotNull);
       expect(MessageDeliveryStatus.sent, isNotNull);
       expect(MessageDeliveryStatus.delivered, isNotNull);
       expect(MessageDeliveryStatus.read, isNotNull);

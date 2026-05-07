@@ -31,6 +31,7 @@ import '../../../engagements_social_interactions/presentation/screens/comments_s
 import '../../../engagements_social_interactions/presentation/widgets/repost_caption_sheet.dart';
 import '../../../messaging_track_sharing/domain/entities/conversation_entity.dart';
 import '../../../messaging_track_sharing/domain/entities/message_attachment.dart';
+import '../../../messaging_track_sharing/presentation/providers/messaging_dependencies_provider.dart';
 import '../../../messaging_track_sharing/presentation/state/chat_controller.dart';
 import '../../../messaging_track_sharing/presentation/state/conversations_controller.dart';
 import '../../../premium_subscription/domain/entities/subscription_tier.dart';
@@ -680,7 +681,9 @@ class TrackOptionsSheetContent extends ConsumerWidget {
 
     if (userId == null || userId.isEmpty) {
       try {
-        final ownerId = await ref.read(_trackOptionsOwnerProvider(info.trackId).future);
+        final ownerId = await ref.read(
+          _trackOptionsOwnerProvider(info.trackId).future,
+        );
         if (ownerId != null && ownerId.trim().isNotEmpty) {
           userId = ownerId.trim();
         }
@@ -689,6 +692,7 @@ class TrackOptionsSheetContent extends ConsumerWidget {
       }
     }
 
+    if (!context.mounted) return;
     if (userId == null || userId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1499,7 +1503,8 @@ class _TrackShareToScreenState extends ConsumerState<TrackShareToScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(conversationsControllerProvider);
-    final conversations = state.visible;
+    final currentUserId = ref.watch(messagingSessionUserIdProvider);
+    final conversations = state.visibleFor(currentUserId);
 
     return Scaffold(
       backgroundColor: Colors.black,

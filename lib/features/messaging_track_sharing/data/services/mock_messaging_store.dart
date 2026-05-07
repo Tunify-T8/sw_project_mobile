@@ -176,6 +176,7 @@ class MockMessagingStore {
       otherUser: youssef,
       lastMessagePreview: greeting.text,
       lastMessageAt: greeting.createdAt,
+      lastMessageSenderId: greeting.senderId,
       unreadCount: 1,
       isBlocked: false,
     );

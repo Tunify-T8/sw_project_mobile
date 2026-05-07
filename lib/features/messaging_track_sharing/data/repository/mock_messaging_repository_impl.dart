@@ -3,6 +3,7 @@ import 'dart:math';
 
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/message_limits.dart';
 import '../../domain/entities/paginated_conversations.dart';
 import '../../domain/entities/paginated_messages.dart';
 import '../../domain/entities/realtime_event.dart';
@@ -115,6 +116,7 @@ class MockMessagingRepository implements MessagingRepository {
     String conversationId,
     SendMessageDraft draft,
   ) async {
+    validateMessageTextLength(draft.text);
     final existingConversation = _store.conversations[conversationId];
     if (existingConversation != null && existingConversation.isBlocked) {
       throw Exception('This conversation is blocked.');
@@ -150,6 +152,7 @@ class MockMessagingRepository implements MessagingRepository {
       conversationId: conversationId,
       preview: _previewFor(dto),
       at: dto.createdAt,
+      senderId: dto.senderId,
       unreadDelta: 0,
       resetUnread: true,
     );
@@ -170,6 +173,7 @@ class MockMessagingRepository implements MessagingRepository {
       otherUser: conversation.otherUser,
       lastMessagePreview: conversation.lastMessagePreview,
       lastMessageAt: conversation.lastMessageAt,
+      lastMessageSenderId: conversation.lastMessageSenderId,
       unreadCount: 0,
       isBlocked: conversation.isBlocked,
     );
@@ -214,6 +218,7 @@ class MockMessagingRepository implements MessagingRepository {
         otherUser: conversation.otherUser,
         lastMessagePreview: conversation.lastMessagePreview,
         lastMessageAt: conversation.lastMessageAt,
+        lastMessageSenderId: conversation.lastMessageSenderId,
         unreadCount: conversation.unreadCount,
         isBlocked: true,
       );
@@ -294,6 +299,7 @@ class MockMessagingRepository implements MessagingRepository {
     required String preview,
     required DateTime at,
     required int unreadDelta,
+    String? senderId,
     bool resetUnread = false,
   }) {
     final conversation = _store.conversations[conversationId];
@@ -304,6 +310,7 @@ class MockMessagingRepository implements MessagingRepository {
       otherUser: conversation.otherUser,
       lastMessagePreview: preview,
       lastMessageAt: at,
+      lastMessageSenderId: senderId ?? conversation.lastMessageSenderId,
       unreadCount: resetUnread ? 0 : conversation.unreadCount + unreadDelta,
       isBlocked: conversation.isBlocked,
     );
@@ -333,6 +340,7 @@ class MockMessagingRepository implements MessagingRepository {
         conversationId: conversationId,
         preview: reply,
         at: dto.createdAt,
+        senderId: dto.senderId,
         unreadDelta: 1,
       );
       _socket.emit(MessageReceivedEvent(MessagingMapper.message(dto)));

@@ -164,7 +164,9 @@ class NotificationsController extends Notifier<NotificationsState> {
       id: notification.id.hashCode,
       title: notification.actor?.username ?? 'Tunify',
       body: notification.message,
-      payload: notification.id,
+      payload: PushNotificationService.instance.payloadForNotification(
+        notification,
+      ),
     );
   }
 

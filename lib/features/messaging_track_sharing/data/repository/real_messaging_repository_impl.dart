@@ -1,5 +1,6 @@
 import '../../domain/entities/message_attachment.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/message_limits.dart';
 import '../../domain/entities/paginated_conversations.dart';
 import '../../domain/entities/paginated_messages.dart';
 import '../../domain/entities/realtime_event.dart';
@@ -78,6 +79,7 @@ class RealMessagingRepository implements MessagingRepository {
     String conversationId,
     SendMessageDraft draft,
   ) async {
+    validateMessageTextLength(draft.text);
     // The backend models messages polymorphically — one `type` per message
     // with a type-specific fk. Attachments that arrive as a list from the UI
     // are sent as separate messages before the typed text message.
@@ -251,6 +253,7 @@ class RealMessagingRepository implements MessagingRepository {
     user2Id: conversation.user2Id,
     lastMessagePreview: conversation.lastMessagePreview,
     lastMessageAt: conversation.lastMessageAt,
+    lastMessageSenderId: conversation.lastMessageSenderId,
     unreadCount: conversation.unreadCount,
     isBlocked: conversation.isBlocked,
     isArchived: conversation.isArchived,

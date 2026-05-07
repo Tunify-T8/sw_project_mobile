@@ -147,15 +147,18 @@ class _MockNotificationRepository implements NotificationRepository {
     lastGetNotificationsUnreadOnly = unreadOnly;
 
     return PaginatedNotifications(
-      data: [
+      items: [
         NotificationEntity(
           id: 'notif-1',
-          type: NotificationType.like,
+          type: NotificationType.trackLiked,
           message: 'Someone liked your track',
           createdAt: DateTime.now(),
         ),
       ],
+      page: page,
+      limit: limit,
       total: 1,
+      unreadCount: unreadCount,
     );
   }
 
@@ -172,7 +175,10 @@ class _MockNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Future<void> updatePreferences(NotificationPreferencesEntity preferences) async {}
+  Future<void> updatePreferences({
+    Map<String, bool>? push,
+    Map<String, bool>? email,
+  }) async {}
 
   @override
   Future<void> markAsRead(String notificationId) async {
@@ -181,7 +187,17 @@ class _MockNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Future<void> markAllAsRead() async {
+  Future<int> markAllAsRead() async {
     markAllReadCalled = true;
+    return 1;
   }
+
+  @override
+  Stream<NotificationEntity> realtimeNotifications() => const Stream.empty();
+
+  @override
+  Future<void> connectRealtime() async {}
+
+  @override
+  Future<void> disconnectRealtime() async {}
 }

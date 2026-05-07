@@ -24,6 +24,8 @@ enum NotificationType {
         )
         .toLowerCase();
 
+    if (normalized == 'message') return NotificationType.newMessage;
+
     return NotificationType.values.firstWhere(
       (t) => t.value == normalized,
       orElse: () => NotificationType.system,

@@ -8,6 +8,7 @@ class NotificationEndpoints {
   static const String unreadCount = '/notifications/unread-count';
   static const String readAll = '/notifications/read-all';
   static const String preferences = '/notifications/preferences';
+  static const String deviceToken = '/notifications/device-token';
   static String single(String id) => '/notifications/$id';
 }
 
@@ -69,6 +70,25 @@ class NotificationApi {
     if (push != null) data['push'] = push;
     if (email != null) data['email'] = email;
     await _dio.patch(NotificationEndpoints.preferences, data: data);
+  }
+
+  /// PATCH /notifications/device-token — body { token, platform }
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    await _dio.patch(
+      NotificationEndpoints.deviceToken,
+      data: {'token': token, 'platform': platform},
+    );
+  }
+
+  /// DELETE /notifications/device-token — body { token }
+  Future<void> removeDeviceToken(String token) async {
+    await _dio.delete(
+      NotificationEndpoints.deviceToken,
+      data: {'token': token},
+    );
   }
 
   /// Coerces the raw Dio response into a [Map<String, dynamic>].

@@ -180,7 +180,7 @@ void main() {
         expect(uploads, hasLength(1));
         expect(uploads.single.id, 'track-1');
         expect(quota.uploadMinutesLimit - quota.uploadMinutesUsed, 179);
-        expect(quota.canUpgrade, isTrue);
+        expect(quota.canReplaceFiles, isFalse);
       },
     );
 

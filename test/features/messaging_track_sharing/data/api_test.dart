@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 void main() {
   group('MessagingApi', () {
@@ -178,7 +179,7 @@ class _DioRequest {
   });
 }
 
-class _RecordingDio extends Dio {
+class _RecordingDio extends DioForNative {
   final requests = <_DioRequest>[];
   dynamic response = {'data': []};
 
